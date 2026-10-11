@@ -27,7 +27,7 @@
               "title": "해외 공급처 찾고 비교하기",
               "what": "해외 도매 사이트의 상품과 공급처를 AI로 번역·비교하고 협상까지 합니다.",
               "status": "wait",
-              "yt": "1688 AI 소싱"
+              "yt": "AI 해외 도매 소싱"
             }
           ]
         },
@@ -91,10 +91,7 @@
               "title": "상세페이지 이미지 AI로 생성",
               "what": "제품 사진 한 장으로 연출 컷, 사용 장면, 비교 이미지를 만듭니다.",
               "status": "wait",
-              "yt": "나노바나나 상세페이지 이미지",
-              "tools": [
-                "Gemini"
-              ]
+              "yt": "AI 상세페이지 이미지 생성"
             },
             {
               "id": "cvr-check",
@@ -120,11 +117,7 @@
               "title": "촬영 없이 제품 연출 사진",
               "what": "흰 배경 제품 사진을 원하는 공간, 계절, 분위기로 바꿉니다.",
               "status": "wait",
-              "yt": "AI 제품 사진 연출",
-              "tools": [
-                "Photoroom",
-                "Gemini"
-              ]
+              "yt": "AI 제품 사진 연출"
             }
           ]
         },
@@ -136,33 +129,21 @@
               "title": "제품 사진으로 광고 영상 생성",
               "what": "사진 몇 장과 문구로 숏폼 광고 영상을 생성합니다.",
               "status": "wait",
-              "yt": "AI 제품 광고 영상 만들기",
-              "tools": [
-                "Veo",
-                "Kling",
-                "Runway"
-              ]
+              "yt": "AI 제품 광고 영상 만들기"
             },
             {
               "id": "avatar-host",
               "title": "AI 아바타 쇼호스트 영상",
               "what": "대본만 넣으면 AI 아바타가 상품을 소개하는 영상을 만듭니다.",
               "status": "wait",
-              "yt": "HeyGen AI 아바타 영상 만들기",
-              "tools": [
-                "HeyGen"
-              ]
+              "yt": "AI 아바타 상품 소개 영상 만들기"
             },
             {
               "id": "ai-voice",
               "title": "AI 목소리 내레이션",
               "what": "대본을 사람 목소리로 읽게 하고, 여러 언어로도 바꿉니다.",
               "status": "wait",
-              "yt": "ElevenLabs 사용법",
-              "tools": [
-                "ElevenLabs",
-                "클로바더빙"
-              ]
+              "yt": "AI 목소리 내레이션 만들기"
             }
           ]
         },
@@ -200,21 +181,14 @@
               "title": "AI 상담 챗봇",
               "what": "지난 문의와 답변을 학습시켜 1차 응대를 24시간 맡깁니다.",
               "status": "wait",
-              "yt": "쇼핑몰 AI 챗봇 만들기",
-              "tools": [
-                "채널톡"
-              ]
+              "yt": "쇼핑몰 AI 상담 챗봇 만들기"
             },
             {
               "id": "cs-auto",
               "title": "문의·리뷰 자동 분류와 답변 초안",
               "what": "들어온 문의를 유형별로 나누고 답변 초안까지 자동으로 만듭니다.",
               "status": "wait",
-              "yt": "n8n 고객 문의 자동화",
-              "tools": [
-                "n8n",
-                "Make"
-              ]
+              "yt": "고객 문의 자동 분류 AI 자동화"
             },
             {
               "id": "claim-insight",
@@ -240,21 +214,14 @@
               "title": "회의 녹음 자동 정리",
               "what": "회의를 녹음하면 결정 사항과 할 일, 담당자가 정리됩니다.",
               "status": "wait",
-              "yt": "클로바노트 회의록",
-              "tools": [
-                "클로바노트"
-              ]
+              "yt": "AI 회의록 자동 정리"
             },
             {
               "id": "company-ai",
               "title": "직원이 묻는 사내 AI",
               "what": "매뉴얼과 규정을 넣어 두고 직원 질문에 AI가 답하게 합니다.",
               "status": "wait",
-              "yt": "NotebookLM 업무 활용",
-              "tools": [
-                "NotebookLM",
-                "Claude 프로젝트"
-              ]
+              "yt": "사내 AI 챗봇 업무 매뉴얼"
             }
           ]
         },
@@ -273,17 +240,14 @@
               "title": "마켓별 정산 자동 합치기",
               "what": "여러 마켓 정산 파일을 자동으로 합치는 스크립트를 AI가 짜 줍니다.",
               "status": "wait",
-              "yt": "구글 앱스스크립트 AI 자동화",
-              "tools": [
-                "Google Sheets"
-              ]
+              "yt": "AI 엑셀 정산 자동화"
             },
             {
               "id": "profit-dash",
               "title": "손익·마진 대시보드",
               "what": "매출, 광고비, 원가를 매일 한 화면에서 봅니다.",
               "status": "wait",
-              "yt": "구글시트 대시보드 만들기"
+              "yt": "AI 손익 대시보드 만들기"
             }
           ]
         },
@@ -295,7 +259,7 @@
               "title": "재고 부족 자동 알림",
               "what": "재고가 기준 아래로 내려가면 메신저로 알림이 옵니다.",
               "status": "wait",
-              "yt": "구글시트 재고관리 자동 알림"
+              "yt": "재고 부족 자동 알림 AI"
             },
             {
               "id": "demand",
@@ -323,12 +287,7 @@
               "title": "반복 업무 자동 연결",
               "what": "주문, 시트, 메일, 메신저를 이어 사람이 손대지 않아도 돌아가게 합니다.",
               "status": "wait",
-              "yt": "n8n 자동화 입문",
-              "tools": [
-                "n8n",
-                "Make",
-                "Zapier"
-              ]
+              "yt": "AI 업무 자동화 반복 업무 연결"
             },
             {
               "id": "agent",
@@ -342,17 +301,14 @@
               "title": "AI와 내 도구 연결하기 (MCP)",
               "what": "노션, 구글 드라이브, 시트를 AI에 연결해 대화로 일을 시킵니다.",
               "status": "wait",
-              "yt": "MCP 클로드 연결"
+              "yt": "MCP AI 도구 연결"
             },
             {
               "id": "inhouse-app",
               "title": "회사 전용 업무 프로그램",
               "what": "엑셀로 하던 일을 작은 웹 프로그램으로 만들어 직원이 씁니다.",
               "status": "wait",
-              "yt": "클로드 코드 업무 자동화",
-              "tools": [
-                "Claude Code"
-              ],
+              "yt": "AI 코딩 업무 프로그램 만들기",
               "makesProgram": true
             }
           ]
@@ -372,7 +328,7 @@
               "title": "아침 시장 브리핑 자동 받기",
               "what": "밤사이 해외 증시, 환율, 뉴스를 AI가 요약해 매일 아침 메신저로 보냅니다.",
               "status": "wait",
-              "yt": "AI 주식 브리핑 자동화 텔레그램",
+              "yt": "AI 주식 시장 브리핑 자동화",
               "makesProgram": true
             },
             {
@@ -387,11 +343,7 @@
               "title": "딥 리서치로 산업 보고서",
               "what": "한 산업의 구조, 주요 기업, 리스크를 AI가 수십 개 자료로 조사합니다.",
               "status": "wait",
-              "yt": "딥리서치 주식 분석",
-              "tools": [
-                "Perplexity",
-                "ChatGPT·Claude"
-              ]
+              "yt": "AI 딥리서치 산업 분석"
             }
           ]
         },
@@ -403,10 +355,7 @@
               "title": "공시 자동 요약 알림",
               "what": "관심 종목 공시가 뜨면 핵심 요약을 바로 받습니다.",
               "status": "wait",
-              "yt": "OpenDART API 공시 알림",
-              "tools": [
-                "OpenDART"
-              ],
+              "yt": "AI 공시 요약 알림",
               "makesProgram": true
             },
             {
@@ -421,10 +370,7 @@
               "title": "증권사 리포트 비교",
               "what": "같은 종목 리포트 여러 개를 넣고 목표가와 근거 차이를 봅니다.",
               "status": "wait",
-              "yt": "NotebookLM 증권사 리포트",
-              "tools": [
-                "NotebookLM"
-              ]
+              "yt": "AI 증권사 리포트 비교 분석"
             }
           ]
         },
@@ -436,30 +382,21 @@
               "title": "재무 데이터 자동 수집·스크리닝",
               "what": "조건에 맞는 종목을 매일 자동으로 걸러 주는 코드를 AI가 짭니다.",
               "status": "wait",
-              "yt": "파이썬 주식 스크리닝",
-              "tools": [
-                "Python"
-              ]
+              "yt": "AI 주식 종목 스크리닝 자동화"
             },
             {
               "id": "pine",
               "title": "내 매매 조건을 차트 지표로",
-              "what": "말로 설명한 조건을 트레이딩뷰 지표 코드로 바꿉니다.",
+              "what": "말로 설명한 조건을 차트 지표 코드로 바꿉니다.",
               "status": "wait",
-              "yt": "ChatGPT Pine Script 트레이딩뷰",
-              "tools": [
-                "TradingView"
-              ]
+              "yt": "AI 매매 조건 차트 지표 만들기"
             },
             {
               "id": "backtest",
               "title": "매매 규칙 백테스트",
               "what": "과거 데이터로 내 규칙이 실제로 통했는지 숫자로 확인합니다.",
               "status": "wait",
-              "yt": "파이썬 백테스트 주식",
-              "tools": [
-                "Python"
-              ]
+              "yt": "AI 매매 전략 백테스트"
             }
           ]
         },
@@ -478,7 +415,7 @@
               "title": "조건 알림 봇",
               "what": "가격이나 지표 조건에 닿으면 텔레그램으로 알림을 보냅니다.",
               "status": "wait",
-              "yt": "주식 텔레그램 알림봇 만들기",
+              "yt": "주식 조건 알림봇 AI 만들기",
               "makesProgram": true
             },
             {
@@ -486,10 +423,7 @@
               "title": "증권사 API 자동매매",
               "what": "증권사 Open API로 정한 규칙대로 주문까지 자동으로 냅니다.",
               "status": "wait",
-              "yt": "한국투자증권 API 자동매매",
-              "tools": [
-                "한국투자증권 Open API"
-              ]
+              "yt": "증권사 API 자동매매 AI"
             },
             {
               "id": "risk",
@@ -515,7 +449,7 @@
               "title": "잘된 릴스 구조 분석",
               "what": "조회수 높은 릴스의 첫 3초, 전개, 마무리를 AI로 분해합니다.",
               "status": "wait",
-              "yt": "릴스 떡상 분석 AI"
+              "yt": "AI 릴스 분석 조회수"
             },
             {
               "id": "hook-script",
@@ -541,10 +475,7 @@
               "title": "AI로 영상 자동 컷편집",
               "what": "말 없는 구간과 실수한 부분을 자동으로 잘라 편집 시간을 줄입니다.",
               "status": "todo",
-              "yt": "Vrew 자동 컷편집",
-              "tools": [
-                "Vrew"
-              ],
+              "yt": "AI 영상 자동 컷편집",
               "priority": 1,
               "makesProgram": false
             },
@@ -553,21 +484,14 @@
               "title": "자막 자동 넣기",
               "what": "말한 내용을 자막으로 바꾸고 스타일을 맞춥니다.",
               "status": "wait",
-              "yt": "캡컷 자동자막",
-              "tools": [
-                "CapCut",
-                "Vrew"
-              ]
+              "yt": "AI 자동 자막 넣기"
             },
             {
               "id": "long-to-short",
               "title": "긴 영상을 쇼츠로 자동 자르기",
               "what": "긴 영상에서 반응 좋을 구간을 AI가 골라 쇼츠 여러 개로 만듭니다.",
               "status": "wait",
-              "yt": "Opus Clip 사용법",
-              "tools": [
-                "Opus Clip"
-              ]
+              "yt": "AI 긴 영상 쇼츠 자동 편집"
             },
             {
               "id": "zero-motion",
@@ -581,10 +505,7 @@
               "title": "카드뉴스·썸네일",
               "what": "공부노트를 카드 5~7장과 썸네일로 바꿉니다.",
               "status": "wait",
-              "yt": "캔바 AI 카드뉴스",
-              "tools": [
-                "Canva"
-              ]
+              "yt": "AI 카드뉴스 만들기"
             }
           ]
         },
@@ -596,17 +517,14 @@
               "title": "댓글 달면 DM 자동 발송",
               "what": "\"공부노트\"라고 댓글을 달면 링크가 DM으로 가는 흐름을 만듭니다.",
               "status": "wait",
-              "yt": "ManyChat 인스타 DM 자동화",
-              "tools": [
-                "ManyChat"
-              ]
+              "yt": "인스타 댓글 DM 자동 발송"
             },
             {
               "id": "insights",
               "title": "인사이트 데이터 AI 분석",
               "what": "조회수, 저장, 팔로우 숫자를 넣고 잘된 이유와 다음 주제를 찾습니다.",
               "status": "wait",
-              "yt": "인스타 인사이트 분석"
+              "yt": "AI 인스타 인사이트 분석"
             },
             {
               "id": "competitors",
@@ -632,31 +550,21 @@
               "title": "질문하며 읽기",
               "what": "책 내용을 넣어 두고 모르는 부분을 물어 가며 읽습니다.",
               "status": "wait",
-              "yt": "NotebookLM 독서",
-              "tools": [
-                "NotebookLM"
-              ]
+              "yt": "AI 독서법 질문하며 읽기"
             },
             {
               "id": "audio-overview",
               "title": "책을 팟캐스트로 듣기",
               "what": "자료를 넣으면 두 사람이 대화하는 오디오로 바꿔 줍니다.",
               "status": "wait",
-              "yt": "NotebookLM 오디오 오버뷰",
-              "tools": [
-                "NotebookLM"
-              ]
+              "yt": "AI 책 요약 오디오 팟캐스트"
             },
             {
               "id": "second-brain",
               "title": "독서노트를 세컨드 브레인으로",
               "what": "노트를 쌓아 두고 AI가 연결해 찾아 주게 만듭니다.",
               "status": "wait",
-              "yt": "옵시디언 AI 세컨드브레인",
-              "tools": [
-                "Obsidian",
-                "Notion"
-              ]
+              "yt": "AI 세컨드브레인 독서노트"
             }
           ]
         },
@@ -668,10 +576,7 @@
               "title": "목표를 주간 계획으로 자동 쪼개기",
               "what": "1년 목표를 넣으면 월, 주, 하루 할 일로 나눠 캘린더에 넣습니다.",
               "status": "wait",
-              "yt": "노션 AI 목표관리",
-              "tools": [
-                "Notion"
-              ]
+              "yt": "AI 목표 관리 계획 세우기"
             },
             {
               "id": "monthly-review",
@@ -697,10 +602,7 @@
               "title": "긴 강연·영상 요약 정리",
               "what": "긴 강연과 유튜브를 핵심 요약과 타임라인으로 받습니다.",
               "status": "wait",
-              "yt": "릴리스 AI 유튜브 요약",
-              "tools": [
-                "Lilys AI"
-              ]
+              "yt": "AI 유튜브 영상 요약"
             }
           ]
         }
