@@ -10,9 +10,16 @@ const { note } = Astro.props;
 
 // 원고 맨 위의 안내 인용문은 페이지 상단 안내 상자로 대신하고,
 // ==형광펜== 표시는 옐로 밑줄로 바꿉니다.
+// "> **잘한 점**", "> **더 좋은 명령**", "> **주의할 점**"으로 시작하는 인용문은 제로의 메모 상자로 보여줍니다.
+const CALLOUTS = { '잘한 점': 'good', '더 좋은 명령': 'tip', '주의할 점': 'warn' };
 const html = (await note.module.compiledContent())
   .replace(/^\s*<blockquote>\s*<p>이 글은 이현님의 비서 제로가[\s\S]*?<\/blockquote>/, '')
-  .replace(/==([^=<]+)==/g, '<mark>$1</mark>');
+  .replace(/==([^=<]+)==/g, '<mark>$1</mark>')
+  .replace(
+    /<blockquote>\s*<p><strong>(잘한 점|더 좋은 명령|주의할 점)<\/strong>\s*/g,
+    (_, label) => `<blockquote class="callout ${CALLOUTS[label]}"><p><strong class="callout-label">${label}</strong>`,
+  )
+  .replace(/<p><img ([^>]*?)alt="([^"]*)"([^>]*)><\/p>/g, '<figure><img $1alt="$2"$3 loading="lazy"><figcaption>$2</figcaption></figure>');
 ---
 <Base current="notes" title={note.title} description={note.summary}>
   <div class="wrap article-wrap">
@@ -141,6 +148,100 @@ const html = (await note.module.compiledContent())
 
   .prose :global(blockquote p:last-child) {
     margin-bottom: 0;
+  }
+
+  .prose :global(figure) {
+    margin: 8px 0 28px;
+  }
+
+  .prose :global(figure img) {
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+  }
+
+  .prose :global(figcaption) {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .prose :global(blockquote.callout) {
+    position: relative;
+    padding: 18px 22px 18px 80px;
+    border-left: 0;
+    border-radius: 14px;
+    background: var(--white);
+  }
+
+  .prose :global(blockquote.callout)::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 18px;
+    width: 44px;
+    height: 44px;
+    background: center / contain no-repeat;
+  }
+
+  .prose :global(blockquote.callout.good) {
+    box-shadow: inset 0 0 0 2px var(--yellow);
+  }
+
+  .prose :global(blockquote.callout.good)::before {
+    background-image: url('/assets/zero/zero-celebrate.svg');
+  }
+
+  .prose :global(blockquote.callout.tip) {
+    box-shadow: inset 0 0 0 2px var(--charcoal);
+  }
+
+  .prose :global(blockquote.callout.tip)::before {
+    background-image: url('/assets/zero/zero-found.svg');
+  }
+
+  .prose :global(blockquote.callout.warn) {
+    background: var(--charcoal);
+    color: var(--white);
+  }
+
+  .prose :global(blockquote.callout.warn)::before {
+    background-image: url('/assets/zero/zero-key.svg');
+  }
+
+  .prose :global(.callout-label) {
+    display: table;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .prose :global(.callout.good .callout-label) {
+    box-shadow: inset 0 -0.4em 0 var(--yellow);
+  }
+
+  .prose :global(.callout.warn .callout-label) {
+    color: var(--yellow);
+  }
+
+  .prose :global(.callout.warn code) {
+    background: #3a3e44;
+  }
+
+  .prose :global(code) {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--line);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .prose :global(pre code) {
+    background: none;
+    padding: 0;
+    font-size: inherit;
   }
 
   .prose :global(mark) {
@@ -287,6 +388,21 @@ const html = (await note.module.compiledContent())
     .prose :global(pre) {
       font-size: 13px;
       padding: 16px;
+    }
+
+    .prose :global(blockquote.callout) {
+      padding: 64px 16px 16px;
+    }
+
+    .prose :global(blockquote.callout)::before {
+      left: 16px;
+      top: 14px;
+      width: 40px;
+      height: 40px;
+    }
+
+    .prose :global(figure img) {
+      border-radius: 10px;
     }
   }
 </style>
