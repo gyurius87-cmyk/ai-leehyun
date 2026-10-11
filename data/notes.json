@@ -20,7 +20,26 @@
     {
       "no": "002",
       "slug": "002",
-      "file": "content/notes/002-vibe-coding-free-site.md",
+      "file": "content/notes/002-site-planning.md",
+      "date": "2026-10-11",
+      "title": "AI와 사이트 기획부터 디자인까지 정하는 법",
+      "summary": "코딩을 몰라도, AI와 질문을 주고받으며 사이트의 구조·첫 문장·색·캐릭터까지 정한 과정.",
+      "minutes": 240,
+      "steps": 8,
+      "tools": [
+        "Claude"
+      ],
+      "tags": [
+        "사이트",
+        "기획",
+        "디자인",
+        "브랜드"
+      ]
+    },
+    {
+      "no": "003",
+      "slug": "003",
+      "file": "content/notes/003-vibe-coding-deploy.md",
       "date": "2026-10-11",
       "title": "바이브코딩으로 만든 사이트, 무료로 배포하기",
       "summary": "채팅에서 만든 사이트 키트를, 코드 한 줄 안 쓰고 무료 인터넷 주소로 공개하기까지.",

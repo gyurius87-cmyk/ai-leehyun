@@ -160,6 +160,18 @@ const html = (await note.module.compiledContent())
     border-radius: 14px;
   }
 
+  .prose :global(.phones) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 300px));
+    justify-content: center;
+    gap: 20px;
+    margin: 8px 0 28px;
+  }
+
+  .prose :global(.phones figure) {
+    margin: 0;
+  }
+
   .prose :global(figcaption) {
     margin-top: 8px;
     font-size: 14px;
@@ -403,6 +415,10 @@ const html = (await note.module.compiledContent())
 
     .prose :global(figure img) {
       border-radius: 10px;
+    }
+
+    .prose :global(.phones) {
+      gap: 10px;
     }
   }
 </style>
