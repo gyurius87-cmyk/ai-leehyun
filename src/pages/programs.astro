@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+import { programs, stats } from '../lib/data.js';
+---
+<Base current="programs" title="프로그램" description="공부하면서 만든 프로그램과, 그걸로 아낀 시간">
+  <div slot="head" class="page-head">
+    <div class="row">
+      <h1 class="page-title">프로그램</h1>
+      <div class="big-count">{stats.programs}<small>개</small></div>
+    </div>
+    <p class="page-desc">무엇을 만들었고, 며칠 걸렸고, 얼마나 아끼는지 숫자로 남깁니다.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="stat-grid" style="--cols: 3">
+      <div class="stat"><div class="label">만든 프로그램</div><div class="num">{stats.programs}<small>개</small></div></div>
+      <div class="stat"><div class="label">한 주에 아끼는 시간</div><div class="num">{stats.hoursSaved}<small>시간</small></div></div>
+      <div class="stat"><div class="label">지금도 쓰는 중</div><div class="num">{stats.programsInUse}<small>개</small></div></div>
+    </div>
+
+    <div style="margin-top: 32px">
+      {programs.length === 0 ? (
+        <div class="empty">
+          <img src="/assets/zero/zero-waiting.svg" alt="기다리는 제로" width="96" height="96" />
+          <p style="margin: 0">첫 프로그램을 아직 만들지 않았습니다.<br />만들면 무엇을, 며칠 걸려, 얼마나 아끼는지까지 숫자로 남깁니다.</p>
+        </div>
+      ) : (
+        <div class="note-list">
+          {programs.map((p) => (
+            <div class="note-card">
+              <h3>{p.name}</h3>
+              {p.summary && <p>{p.summary}</p>}
+              <div class="facts">
+                {[p.days && `${p.days}일 걸림`, p.hoursPerWeek && `한 주에 ${p.hoursPerWeek}시간 아낌`, p.inUse === false ? '지금은 안 씀' : '지금도 쓰는 중']
+                  .filter(Boolean)
+                  .join(' · ')}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</Base>

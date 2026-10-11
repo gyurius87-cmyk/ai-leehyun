@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import NoteCard from '../../components/NoteCard.astro';
+import { notes } from '../../lib/data.js';
+---
+<Base current="notes" title="공부노트" description="따라 할 수 있는 방법으로 정리한 AI 공부노트">
+  <div slot="head" class="page-head">
+    <div class="row">
+      <h1 class="page-title">공부노트</h1>
+      <div class="big-count">{notes.length}<small>편</small></div>
+    </div>
+    <p class="page-desc">그날 공부한 것을 따라 할 수 있는 방법으로 정리합니다.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="note-list" style="margin-top: 40px">
+      {notes.map((note) => <NoteCard note={note} />)}
+    </div>
+  </div>
+</Base>

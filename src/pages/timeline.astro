@@ -1,0 +1,80 @@
+---
+import Base from '../layouts/Base.astro';
+import DayBlock from '../components/DayBlock.astro';
+import { days, stats } from '../lib/data.js';
+---
+<Base current="timeline" title="공부타임라인" description="하루 한 블록. 중요한 것만 남깁니다.">
+  <div slot="head" class="page-head">
+    <h1 class="page-title">공부타임라인</h1>
+    <p class="page-desc">하루 한 블록. 중요한 것만 남깁니다.</p>
+    <div class="zero-line">
+      <img src="/assets/zero/zero-writing.svg" alt="" width="46" height="40" />
+      <span>이현님의 비서 제로가 기록합니다.</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="stat-grid" style="--cols: 4">
+      <div class="stat"><div class="label">총 기록일</div><div class="num">{stats.recordDays}<small>일</small></div></div>
+      <div class="stat"><div class="label">연속 기록일</div><div class="num"><span class="hl">{stats.streak}</span><small>일</small></div></div>
+      <div class="stat"><div class="label">공부노트</div><div class="num">{stats.notes}<small>편</small></div></div>
+      <div class="stat"><div class="label">만든 프로그램</div><div class="num">{stats.programs}<small>개</small></div></div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="order-btn" aria-pressed="false">1일째부터 보기</button>
+    </div>
+
+    <div class="days" id="days">
+      {days.map((day) => <DayBlock day={day} />)}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 36px 0 14px;
+  }
+
+  .order-btn {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1.5px solid var(--charcoal);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink);
+    font: 500 15px var(--sans);
+    cursor: pointer;
+  }
+
+  .order-btn[aria-pressed='true'] {
+    background: var(--charcoal);
+    color: var(--white);
+  }
+
+  .days {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .days.reverse {
+    flex-direction: column-reverse;
+  }
+
+  .days :global(.day-block + .day-block) {
+    margin-top: 0;
+  }
+</style>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('.order-btn');
+  const list = document.getElementById('days');
+  btn?.addEventListener('click', () => {
+    const reversed = list?.classList.toggle('reverse') ?? false;
+    btn.setAttribute('aria-pressed', String(reversed));
+    btn.textContent = reversed ? '최신부터 보기' : '1일째부터 보기';
+  });
+</script>

@@ -1,0 +1,21 @@
+---
+import { formatDate } from '../lib/data.js';
+const { day } = Astro.props;
+---
+<article class="day-block">
+  <div class="day-label">
+    <div class="d">D{day.day}</div>
+    <div class="date">{formatDate(day.date)} ({day.weekday})</div>
+  </div>
+  <ul class="day-items">
+    {day.items.map((item) => (
+      <li>
+        <time>{item.time}</time>
+        <span>
+          {item.text}
+          {item.link && <a href={item.link}>보러가기 →</a>}
+        </span>
+      </li>
+    ))}
+  </ul>
+</article>

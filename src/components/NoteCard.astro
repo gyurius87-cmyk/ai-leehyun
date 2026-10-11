@@ -1,0 +1,14 @@
+---
+import { formatDate } from '../lib/data.js';
+const { note } = Astro.props;
+---
+<a class="note-card" href={`/notes/${note.slug}`}>
+  <div class="no">#{note.no} · D{note.day}</div>
+  <div class="meta">{formatDate(note.date)}</div>
+  <h3>{note.title}</h3>
+  <p>{note.summary}</p>
+  <div class="facts">{note.minutes}분 · {note.steps}단계 · {note.tools.join(', ')}</div>
+  {note.tags?.length > 0 && (
+    <div class="tags">{note.tags.map((t) => <span class="tag">#{t}</span>)}</div>
+  )}
+</a>

@@ -1,0 +1,16 @@
+---
+// 정적 사이트라서 빌드한 날 값이 먼저 들어가고, 방문자 화면에서 오늘(한국 시간) 기준으로 다시 계산합니다.
+import { START_DATE, todayDayNumber } from '../lib/data.js';
+---
+<span class="day-count" data-start={START_DATE}>{todayDayNumber()}</span>
+<script>
+  const DAY = 86400000;
+  document.querySelectorAll<HTMLElement>('.day-count').forEach((el) => {
+    const [y, m, d] = (el.dataset.start || '').split('-').map(Number);
+    if (!y) return;
+    const kstToday = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+    const [ty, tm, td] = kstToday.split('-').map(Number);
+    const n = Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(y, m - 1, d)) / DAY) + 1;
+    el.textContent = String(Math.max(1, n));
+  });
+</script>
