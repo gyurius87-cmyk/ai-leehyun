@@ -3,10 +3,14 @@ import Base from '../layouts/Base.astro';
 import DayBlock from '../components/DayBlock.astro';
 import NoteCard from '../components/NoteCard.astro';
 import DayCount from '../components/DayCount.astro';
-import { days, notes, stats } from '../lib/data.js';
+import Icon from '../components/Icon.astro';
+import { days, notes, stats, plan, nextStudy } from '../lib/data.js';
 
 const latest = days[0];
 const recent = notes.slice(0, 3);
+// 홈에는 다음 공부를 크게, 나머지는 하는 중 → 할 것 → 끝냄 순서로 4개까지
+const order = { doing: 0, todo: 1, done: 2 };
+const planPreview = [...plan].filter((i) => i !== nextStudy).sort((a, b) => order[a.status] - order[b.status]).slice(0, 4);
 ---
 <Base current="home">
   <div slot="head" class="hero">
@@ -21,6 +25,10 @@ const recent = notes.slice(0, 3);
         <dd class="y"><DayCount /></dd>
       </div>
       <div>
+        <dt>끝낸 공부</dt>
+        <dd>{stats.planDone}<span class="of">/{stats.planTotal}</span></dd>
+      </div>
+      <div>
         <dt>공부노트</dt>
         <dd>{stats.notes}</dd>
       </div>
@@ -33,11 +41,33 @@ const recent = notes.slice(0, 3);
 
   <div class="wrap">
     <section class="section">
-      <h2 class="section-title">공부타임라인</h2>
+      <h2 class="section-title">공부할 것</h2>
+      {nextStudy && (
+        <a class="next-study" href="/plan">
+          <span class="ns-label">{nextStudy.status === 'doing' ? '지금 공부 중' : '다음 공부'}</span>
+          <span class="ns-title"><span class="hl">{nextStudy.title}</span></span>
+        </a>
+      )}
+      <ul class="plan-mini">
+        {planPreview.map((i) => (
+          <li class={i.status}>
+            <span class="pm-box" aria-hidden="true">{i.status === 'done' && <Icon name="check" />}</span>
+            <span class="pm-title">{i.title}</span>
+            <span class="pm-meta mono">
+              {i.status === 'done' ? `${i.minutes}분 · 끝냄` : i.status === 'doing' ? '하는 중' : '할 것'}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <a class="more" href="/plan">공부할 것 전체 보기 →</a>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">공부한 것</h2>
       <div class="home-timeline">
         <div>
           {latest && <DayBlock day={latest} />}
-          <a class="more" href="/timeline">타임라인 전체 보기 →</a>
+          <a class="more" href="/timeline">공부한 것 전체 보기 →</a>
         </div>
         <aside class="zero-line zero-note">
           <img src="/assets/zero/zero-writing.svg" alt="정리 중인 제로" width="56" height="48" />
@@ -97,7 +127,7 @@ const recent = notes.slice(0, 3);
 
   .counters {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 220px));
+    grid-template-columns: repeat(4, minmax(0, 200px));
     gap: 16px;
     margin: 48px 0 0;
   }
@@ -118,6 +148,99 @@ const recent = notes.slice(0, 3);
     font-weight: 500;
     font-size: 52px;
     line-height: 1.1;
+  }
+
+  .of {
+    font-size: 0.5em;
+    color: var(--muted-dark);
+    margin-left: 2px;
+  }
+
+  .next-study {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 16px;
+    padding: 20px 26px;
+    text-decoration: none;
+  }
+
+  .ns-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--yellow);
+  }
+
+  .ns-title {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .ns-title .hl {
+    box-shadow: inset 0 -0.35em 0 rgba(242, 213, 60, 0.45);
+  }
+
+  .plan-mini {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 6px 26px;
+    background: var(--white);
+    border-radius: 16px;
+  }
+
+  .plan-mini li {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+  }
+
+  .plan-mini li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .pm-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #c9cdd3;
+    border-radius: 6px;
+  }
+
+  .done .pm-box {
+    background: var(--yellow);
+    border-color: var(--yellow);
+  }
+
+  .pm-box :global(svg) {
+    width: 15px;
+    height: 15px;
+  }
+
+  .pm-title {
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .done .pm-title {
+    color: var(--muted);
+  }
+
+  .pm-meta {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .doing .pm-meta {
+    color: var(--ink);
+    box-shadow: inset 0 -0.4em 0 var(--yellow);
   }
 
   .home-timeline {
@@ -158,8 +281,8 @@ const recent = notes.slice(0, 3);
     }
 
     .counters {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
       margin-top: 28px;
     }
 
@@ -168,7 +291,38 @@ const recent = notes.slice(0, 3);
     }
 
     .counters dd {
-      font-size: 34px;
+      font-size: 30px;
+    }
+
+    .next-study {
+      padding: 16px 18px;
+      flex-direction: column;
+    }
+
+    .ns-label {
+      font-size: 12px;
+    }
+
+    .ns-title {
+      font-size: 18px;
+    }
+
+    .plan-mini {
+      padding: 4px 16px;
+    }
+
+    .plan-mini li {
+      grid-template-columns: 24px 1fr auto;
+      gap: 10px;
+      min-height: 52px;
+    }
+
+    .pm-title {
+      font-size: 15px;
+    }
+
+    .pm-meta {
+      font-size: 11px;
     }
 
     .home-timeline {

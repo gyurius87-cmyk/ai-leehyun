@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import FollowCta from '../../components/FollowCta.astro';
 import { notes, formatDate, INSTAGRAM } from '../../lib/data.js';
 
 export function getStaticPaths() {
@@ -45,6 +46,8 @@ const html = (await note.module.compiledContent())
     </div>
 
     <article class="prose" set:html={html} />
+
+    <div class="cta"><FollowCta /></div>
 
     <div class="end">
       <a href="/notes">← 공부노트 목록</a>
@@ -339,12 +342,16 @@ const html = (await note.module.compiledContent())
     font-family: inherit;
   }
 
+  .cta {
+    margin-top: 56px;
+  }
+
   .end {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin-top: 56px;
+    margin-top: 28px;
     padding-top: 20px;
     border-top: 1px solid #d5d8dd;
   }

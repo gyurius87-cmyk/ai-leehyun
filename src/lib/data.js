@@ -1,6 +1,7 @@
 import timeline from '../../data/timeline.json';
 import notesData from '../../data/notes.json';
 import programsData from '../../data/programs.json';
+import planData from '../../data/plan.json';
 
 export const INSTAGRAM = 'https://www.instagram.com/ai_leehyun/';
 export const START_DATE = timeline.startDate;
@@ -52,13 +53,25 @@ const streak = (() => {
   return count;
 })();
 
-const hoursSaved = programs.reduce((sum, p) => sum + (Number(p.hoursPerWeek) || 0), 0);
+// 공부할 것: status 는 todo(할 것) / doing(하는 중) / done(끝냄)
+export const plan = (planData.items || []).map((item) => ({
+  ...item,
+  days: item.start && item.end ? dayNumber(item.end) - dayNumber(item.start) + 1 : null,
+}));
+export const planDoing = plan.filter((i) => i.status === 'doing');
+export const planTodo = plan.filter((i) => i.status === 'todo');
+export const planDone = plan.filter((i) => i.status === 'done');
+export const recommended = planData.recommended || [];
+/** 지금 하는 공부가 있으면 그것, 없으면 다음 할 것 */
+export const nextStudy = planDoing[0] || planTodo[0] || null;
 
 export const stats = {
   recordDays: days.length,
   streak,
   notes: notes.length,
   programs: programs.length,
-  programsInUse: programs.filter((p) => p.inUse !== false).length,
-  hoursSaved,
+  programsUsing: programs.filter((p) => p.status === 'using').length,
+  programsMaking: programs.filter((p) => p.status === 'making').length,
+  planTotal: plan.length,
+  planDone: planDone.length,
 };

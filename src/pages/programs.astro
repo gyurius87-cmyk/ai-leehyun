@@ -1,44 +1,111 @@
 ---
 import Base from '../layouts/Base.astro';
-import { programs, stats } from '../lib/data.js';
+import { programs, plan, stats } from '../lib/data.js';
+
+// 아직 끝내지 않은 공부 중, 끝내면 프로그램이 나올 것
+const upcoming = plan.filter((i) => i.makesProgram && i.status !== 'done');
+const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 중' };
 ---
-<Base current="programs" title="프로그램" description="공부하면서 만든 프로그램과, 그걸로 아낀 시간">
+<Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
   <div slot="head" class="page-head">
     <div class="row">
       <h1 class="page-title">프로그램</h1>
       <div class="big-count">{stats.programs}<small>개</small></div>
     </div>
-    <p class="page-desc">무엇을 만들었고, 며칠 걸렸고, 얼마나 아끼는지 숫자로 남깁니다.</p>
+    <p class="page-desc">공부하면서 직접 만들어, 실제로 쓰는 프로그램을 모아 둡니다. 무엇을 하는지, 어떤 공부에서 나왔는지 함께 남깁니다.</p>
   </div>
 
   <div class="wrap">
     <div class="stat-grid" style="--cols: 3">
       <div class="stat"><div class="label">만든 프로그램</div><div class="num">{stats.programs}<small>개</small></div></div>
-      <div class="stat"><div class="label">한 주에 아끼는 시간</div><div class="num">{stats.hoursSaved}<small>시간</small></div></div>
-      <div class="stat"><div class="label">지금도 쓰는 중</div><div class="num">{stats.programsInUse}<small>개</small></div></div>
+      <div class="stat"><div class="label">쓰는 중</div><div class="num">{stats.programsUsing}<small>개</small></div></div>
+      <div class="stat"><div class="label">만드는 중</div><div class="num">{stats.programsMaking}<small>개</small></div></div>
     </div>
 
     <div style="margin-top: 32px">
       {programs.length === 0 ? (
         <div class="empty">
           <img src="/assets/zero/zero-waiting.svg" alt="기다리는 제로" width="96" height="96" />
-          <p style="margin: 0">첫 프로그램을 아직 만들지 않았습니다.<br />만들면 무엇을, 며칠 걸려, 얼마나 아끼는지까지 숫자로 남깁니다.</p>
+          <p style="margin: 0">아직 놓인 프로그램이 없습니다.<br />공부할 것을 하나씩 끝내면, 그 과정에서 만든 프로그램이 여기에 놓입니다.</p>
         </div>
       ) : (
         <div class="note-list">
           {programs.map((p) => (
             <div class="note-card">
+              <div class="no">{STATUS[p.status] || ''}</div>
               <h3>{p.name}</h3>
               {p.summary && <p>{p.summary}</p>}
-              <div class="facts">
-                {[p.days && `${p.days}일 걸림`, p.hoursPerWeek && `한 주에 ${p.hoursPerWeek}시간 아낌`, p.inUse === false ? '지금은 안 씀' : '지금도 쓰는 중']
-                  .filter(Boolean)
-                  .join(' · ')}
-              </div>
+              {(p.from || p.note) && (
+                <div class="facts">
+                  {[p.from && `공부: ${plan.find((i) => i.id === p.from)?.title || p.from}`, p.note && `공부노트 #${p.note}`].filter(Boolean).join(' · ')}
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
     </div>
+
+    {upcoming.length > 0 && (
+      <section class="section">
+        <h2 class="section-title">곧 여기에 놓일 것</h2>
+        <div class="soon">
+          {upcoming.map((i) => (
+            <a class="soon-item" href="/plan">
+              <span class="tag">공부할 것</span>
+              <b>{i.title}</b>
+              <span class="why">{i.why}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
   </div>
 </Base>
+
+<style>
+  .soon {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .soon-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--white);
+    border-radius: 14px;
+    padding: 20px 22px;
+    text-decoration: none;
+    border: 2px solid transparent;
+  }
+
+  .soon-item:hover {
+    border-color: var(--charcoal);
+  }
+
+  .soon-item .tag {
+    align-self: flex-start;
+  }
+
+  .soon-item b {
+    font-size: 18px;
+  }
+
+  .soon-item .why {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 760px) {
+    .soon {
+      grid-template-columns: 1fr;
+    }
+
+    .soon-item b {
+      font-size: 16px;
+    }
+  }
+</style>

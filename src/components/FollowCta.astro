@@ -1,0 +1,87 @@
+---
+// 다음 공부를 보여주고 인스타 팔로우로 이어 주는 한 줄
+import { nextStudy, INSTAGRAM } from '../lib/data.js';
+---
+{nextStudy && (
+  <aside class="follow">
+    <img src="/assets/zero/zero-found.svg" alt="" width="44" height="40" />
+    <p>
+      <span class="label">다음 공부</span>
+      <a class="next" href="/plan"><span class="hl">{nextStudy.title}</span></a>
+      <span class="ask">결과가 궁금하면 <a href={INSTAGRAM} target="_blank" rel="noopener">@ai_leehyun</a> 팔로우</span>
+    </p>
+  </aside>
+)}
+
+<style>
+  .follow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 16px;
+    padding: 20px 24px;
+  }
+
+  .follow img {
+    width: 44px;
+    flex: none;
+  }
+
+  .follow p {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 12px;
+    row-gap: 2px;
+    line-height: 1.6;
+  }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--yellow);
+  }
+
+  .next {
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--white);
+  }
+
+  .next .hl {
+    box-shadow: inset 0 -0.35em 0 rgba(242, 213, 60, 0.45);
+  }
+
+  .ask {
+    font-size: 15px;
+    color: var(--muted-dark);
+  }
+
+  .ask a {
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  @media (max-width: 760px) {
+    .follow {
+      padding: 16px 18px;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .follow img {
+      width: 36px;
+    }
+
+    .follow p {
+      flex-direction: column;
+    }
+
+    .ask {
+      font-size: 13px;
+    }
+  }
+</style>
