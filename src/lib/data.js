@@ -72,8 +72,14 @@ export const planWait = plan.filter((i) => i.status === 'wait');
 /** 지금 하는 공부가 있으면 그것, 없으면 우선순위 1번 */
 export const nextStudy = planDoing[0] || planTodo[0] || null;
 
-/** 유튜브 조회수순 검색 주소 */
-export const ytSearch = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=CAMSAhAB`;
+/** 유튜브 검색 주소: 조회수순 + 최근 4개월(after:날짜). 날짜는 화면에서 오늘 기준으로 다시 계산합니다. */
+export const YT_MONTHS = 4;
+export const ytSearch = (q) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - YT_MONTHS);
+  const after = d.toISOString().slice(0, 10);
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${q} after:${after}`)}&sp=CAMSAhAB`;
+};
 
 export const stats = {
   recordDays: days.length,

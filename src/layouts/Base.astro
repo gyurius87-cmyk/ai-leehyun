@@ -88,5 +88,15 @@ const menu = [
         </a>
       ))}
     </nav>
+    <script>
+      // 유튜브 링크의 after:날짜를 방문한 날 기준 4개월 전으로 맞춥니다.
+      const d = new Date();
+      d.setMonth(d.getMonth() - 4);
+      const after = d.toISOString().slice(0, 10);
+      document.querySelectorAll<HTMLAnchorElement>('a[data-yt]').forEach((a) => {
+        const q = `${a.dataset.yt} after:${after}`;
+        a.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=CAMSAhAB`;
+      });
+    </script>
   </body>
 </html>

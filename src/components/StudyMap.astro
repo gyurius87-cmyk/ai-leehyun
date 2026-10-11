@@ -12,7 +12,7 @@ const LABEL = { done: '끝냄', doing: '하는 중', wait: '대기' };
   <h2 class="section-title">전체 공부 지도 <span class="mono count">{total}</span></h2>
   <div class="zero-line note">
     <img src="/assets/zero/zero-found.svg" alt="" width="46" height="40" />
-    <span>이미 많은 사람이 AI로 실제로 하고 있는 일만 모았습니다. 체크는 끝낸 공부, 노란 칸은 우선 할 것, 빈 칸은 대기입니다. 영상은 유튜브에서 조회수 높은 순으로 열립니다.</span>
+    <span>이미 많은 사람이 AI로 실제로 하고 있는 일만 모았습니다. 체크는 끝낸 공부, 노란 칸은 우선 할 것, 빈 칸은 대기입니다. 유튜브 아이콘을 누르면 최근 4개월 영상이 조회수 높은 순으로 열립니다.</span>
   </div>
 
   <div class="overview">
@@ -57,8 +57,11 @@ const LABEL = { done: '끝냄', doing: '하는 중', wait: '대기' };
                     <p>{it.what}</p>
                     <div class="meta">
                       {it.tools && it.tools.map((t) => <span class="tool">{t}</span>)}
-                      {it.video && <a class="yt" href={it.video.url} target="_blank" rel="noopener">▶ 추천 영상</a>}
-                      {it.yt && <a class="yt" href={ytSearch(it.yt)} target="_blank" rel="noopener">▶ 조회수순 영상</a>}
+                      {it.yt && (
+                        <a class="yt" href={ytSearch(it.yt)} data-yt={it.yt} target="_blank" rel="noopener" aria-label={`${it.title} 유튜브 영상 (최근 4개월, 조회수순)`} title="유튜브: 최근 4개월, 조회수순">
+                          <Icon name="youtube" />
+                        </a>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -292,16 +295,19 @@ const LABEL = { done: '끝냄', doing: '하는 중', wait: '대기' };
   .yt {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    min-width: 36px;
     min-height: 32px;
-    padding: 0 4px;
-    font-size: 12.5px;
-    font-weight: 500;
-    text-decoration: none;
-    color: var(--ink);
+    border-radius: 6px;
+  }
+
+  .yt :global(svg) {
+    width: 24px;
+    height: auto;
   }
 
   .yt:hover {
-    box-shadow: inset 0 -0.4em 0 var(--yellow);
+    background: var(--paper);
   }
 
   .badge {
