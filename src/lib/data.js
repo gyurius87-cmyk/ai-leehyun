@@ -30,7 +30,7 @@ export const todayDayNumber = () => {
 export const days = [...timeline.days]
   .filter((d) => d.items && d.items.length)
   .sort((a, b) => (a.date < b.date ? 1 : -1))
-  .map((d) => ({ ...d, day: dayNumber(d.date), weekday: weekday(d.date) }));
+  .map((d) => ({ ...d, items: [...d.items].sort((a, b) => (a.time < b.time ? 1 : -1)), day: dayNumber(d.date), weekday: weekday(d.date) }));
 
 // 실제로 원고 파일이 있는 공부노트만 셉니다.
 const mdFiles = import.meta.glob('../../content/notes/*.md', { eager: true });
