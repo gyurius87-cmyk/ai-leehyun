@@ -1,0 +1,315 @@
+---
+// 제로가 추천하는 다음 공부: 큰 분야 → 세부 분야 → 할 수 있는 일
+import { recommended, plan } from '../lib/data.js';
+
+const planById = Object.fromEntries(plan.map((i) => [i.id, i]));
+const countOf = (area) => area.groups.reduce((n, g) => n + g.items.length, 0);
+const total = recommended.reduce((n, a) => n + countOf(a), 0);
+const BADGE = { done: '끝냄', doing: '하는 중', todo: '할 것에 있음' };
+---
+<section class="section map" id="map">
+  <h2 class="section-title">제로가 추천하는 다음 공부 <span class="mono count">{total}</span></h2>
+  <div class="zero-line note">
+    <img src="/assets/zero/zero-found.svg" alt="" width="46" height="40" />
+    <span>이현님의 일과 관심 분야에 맞춰, 이미 많은 사람이 실제로 쓰고 있는 AI 활용만 골랐습니다. 하기로 정하면 위의 "할 것"으로 옮깁니다.</span>
+  </div>
+
+  <div class="overview">
+    {recommended.map((a) => (
+      <a class="ov" href={`#${a.id}`}>
+        <div class="ov-head">
+          <b>{a.area}</b>
+          <span class="mono">{countOf(a)}</span>
+        </div>
+        <ul>
+          {a.groups.map((g) => <li>{g.name} <span class="mono">{g.items.length}</span></li>)}
+        </ul>
+      </a>
+    ))}
+  </div>
+
+  {recommended.map((a) => (
+    <details class="area" id={a.id} open>
+      <summary>
+        <span class="area-name">{a.area}</span>
+        <span class="mono area-count">{countOf(a)}</span>
+        <span class="area-desc">{a.desc}</span>
+      </summary>
+      <div class="groups">
+        {a.groups.map((g) => (
+          <div class="group">
+            <h3>{g.name} <span class="mono">{g.items.length}</span></h3>
+            <ul>
+              {g.items.map((it) => {
+                const linked = it.planId && planById[it.planId];
+                return (
+                  <li class={linked ? `linked ${linked.status}` : ''}>
+                    <div class="it-title">
+                      {it.title}
+                      {linked && <a class="badge" href="#top-plan">{linked.status === 'done' ? '✓ ' : ''}{BADGE[linked.status]}</a>}
+                    </div>
+                    <p>{it.what}</p>
+                    {it.tools && <div class="tools">{it.tools.map((t) => <span>{t}</span>)}</div>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </details>
+  ))}
+</section>
+
+<style>
+  .count {
+    font-size: 0.8em;
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  .note {
+    color: var(--muted);
+    margin: -6px 0 20px;
+  }
+
+  .overview {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .ov {
+    display: block;
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 14px;
+    padding: 18px 20px;
+    text-decoration: none;
+  }
+
+  .ov:hover {
+    box-shadow: inset 0 0 0 2px var(--yellow);
+  }
+
+  .ov-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .ov-head b {
+    font-size: 17px;
+  }
+
+  .ov-head .mono {
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--yellow);
+  }
+
+  .ov ul {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 10px 0 0;
+    border-top: 1px solid #3a3e44;
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: var(--muted-dark);
+  }
+
+  .ov li .mono {
+    font-size: 12px;
+    color: #6f757e;
+    margin-left: 2px;
+  }
+
+  .area {
+    margin-top: 40px;
+    scroll-margin-top: 16px;
+  }
+
+  summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    cursor: pointer;
+    list-style: none;
+    padding: 12px 0;
+    border-bottom: 2px solid var(--charcoal);
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary::after {
+    content: '접기';
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .area:not([open]) summary::after {
+    content: '펼치기';
+  }
+
+  .area-name {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .area-count {
+    font-size: 18px;
+    font-weight: 500;
+    box-shadow: inset 0 -0.4em 0 var(--yellow);
+  }
+
+  .area-desc {
+    font-size: 15px;
+    color: var(--muted);
+  }
+
+  .groups {
+    columns: 3 300px;
+    column-gap: 14px;
+    margin-top: 16px;
+  }
+
+  .group {
+    break-inside: avoid;
+    background: var(--white);
+    border-radius: 14px;
+    padding: 18px 20px 8px;
+    margin-bottom: 14px;
+  }
+
+  .group h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+  }
+
+  .group h3 .mono {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .group ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .group li {
+    padding: 10px 0;
+  }
+
+  .group li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .it-title {
+    font-weight: 500;
+    font-size: 15.5px;
+    line-height: 1.5;
+  }
+
+  .group p {
+    margin: 2px 0 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .tools span {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1;
+    padding: 5px 7px;
+    border-radius: 6px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .badge {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 11px;
+    line-height: 1;
+    padding: 5px 7px;
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--muted);
+    text-decoration: none;
+    vertical-align: 2px;
+  }
+
+  .linked.done .badge {
+    background: var(--charcoal);
+    color: var(--white);
+  }
+
+  .linked.todo .badge,
+  .linked.doing .badge {
+    background: var(--yellow);
+    color: var(--ink);
+  }
+
+  @media (max-width: 1000px) {
+    .overview {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .overview {
+      gap: 8px;
+    }
+
+    .ov {
+      padding: 14px;
+    }
+
+    .ov-head b {
+      font-size: 15px;
+    }
+
+    .ov-head .mono {
+      font-size: 20px;
+    }
+
+    .ov ul {
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .area-name {
+      font-size: 20px;
+    }
+
+    .area-desc {
+      font-size: 13px;
+      width: 100%;
+      order: 3;
+    }
+
+    .groups {
+      columns: 1;
+    }
+
+    .group {
+      padding: 14px 16px 4px;
+    }
+  }
+</style>

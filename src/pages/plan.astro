@@ -2,13 +2,13 @@
 import Base from '../layouts/Base.astro';
 import PlanItem from '../components/PlanItem.astro';
 import FollowCta from '../components/FollowCta.astro';
+import StudyMap from '../components/StudyMap.astro';
 import { plan, planDoing, planTodo, planDone, recommended, stats } from '../lib/data.js';
 
 const index = (item) => plan.indexOf(item);
-const recCount = recommended.reduce((n, g) => n + g.items.length, 0);
 ---
 <Base current="plan" title="공부할 것" description="AI로 다음에 무엇을 공부할지 먼저 적어 두고, 끝내면 걸린 시간과 결과를 숫자로 남깁니다.">
-  <div slot="head" class="page-head">
+  <div slot="head" class="page-head" id="top-plan">
     <div class="row">
       <h1 class="page-title">공부할 것</h1>
       <div class="big-count">{stats.planDone}<small>/ {stats.planTotal} 끝냄</small></div>
@@ -51,31 +51,7 @@ const recCount = recommended.reduce((n, g) => n + g.items.length, 0);
 
     <div class="section"><FollowCta /></div>
 
-    {recCount > 0 && (
-      <section class="section rec">
-        <div class="rec-head">
-          <h2 class="section-title">제로가 추천하는 다음 공부 <span class="mono rec-count">{recCount}</span></h2>
-          <div class="zero-line rec-note">
-            <img src="/assets/zero/zero-found.svg" alt="" width="46" height="40" />
-            <span>이현님의 일과 상황에 맞춰 골랐습니다. 이미 많은 사람이 쓰고 있는 방법만 넣었습니다. 하기로 정하면 위의 "할 것"으로 옮깁니다.</span>
-          </div>
-        </div>
-        {recommended.map((g) => (
-          <div class="rec-group">
-            <h3 class="rec-group-title">{g.group} <span class="mono">{g.items.length}</span></h3>
-            <div class="rec-grid">
-              {g.items.map((r) => (
-                <article class="rec-card">
-                  <h4>{r.title}</h4>
-                  <p>{r.why}</p>
-                  {r.used && <p class="used"><span>이미 쓰는 곳</span>{r.used}</p>}
-                </article>
-              ))}
-            </div>
-          </div>
-        ))}
-      </section>
-    )}
+    {recommended.length > 0 && <StudyMap />}
   </div>
 </Base>
 
@@ -85,93 +61,4 @@ const recCount = recommended.reduce((n, g) => n + g.items.length, 0);
     gap: 12px;
   }
 
-  .rec-count {
-    font-size: 0.8em;
-    color: var(--muted);
-    font-weight: 500;
-    margin-left: 4px;
-  }
-
-  .rec-note {
-    color: var(--muted);
-    margin: -6px 0 8px;
-  }
-
-  .rec-group {
-    margin-top: 28px;
-  }
-
-  .rec-group-title {
-    font-size: 17px;
-    margin: 0 0 12px;
-  }
-
-  .rec-group-title .mono {
-    color: var(--muted);
-    font-weight: 400;
-    font-size: 14px;
-    margin-left: 4px;
-  }
-
-  .rec-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-
-  .rec-card {
-    border: 2px dashed #c9cdd3;
-    border-radius: 14px;
-    padding: 18px 20px;
-  }
-
-  .rec-card h4 {
-    margin: 0;
-    font-size: 17px;
-    line-height: 1.45;
-  }
-
-  .rec-card p {
-    margin: 6px 0 0;
-    font-size: 14.5px;
-    line-height: 1.65;
-    color: var(--muted);
-  }
-
-  .rec-card .used {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--line);
-    font-size: 13px;
-    color: var(--ink);
-  }
-
-  .rec-card .used span {
-    display: block;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 2px;
-  }
-
-  @media (max-width: 1000px) {
-    .rec-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 760px) {
-    .rec-grid {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    .rec-card {
-      padding: 16px;
-    }
-
-    .rec-card h4 {
-      font-size: 16px;
-    }
-  }
 </style>
