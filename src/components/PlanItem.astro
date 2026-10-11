@@ -18,14 +18,13 @@ const short = (ymd) => formatDate(ymd).slice(5);
     </div>
     <h3>{item.title}</h3>
     {(item.what || item.why) && <p class="why">{item.what || item.why}</p>}
-    {item.status !== 'done' && (item.video || item.yt) && (
+    {item.status !== 'done' && item.yt && (
       <div class="links">
         {item.yt && (
           <a class="yt" href={ytSearch(item.yt)} data-yt={item.yt} target="_blank" rel="noopener" aria-label={`${item.title} 유튜브 영상 (최근 4개월, 조회수순)`} title="유튜브: 최근 4개월, 조회수순">
             <Icon name="youtube" />
           </a>
         )}
-        {item.video && <a href={item.video.url} target="_blank" rel="noopener">추천 영상: {item.video.title} →</a>}
       </div>
     )}
 

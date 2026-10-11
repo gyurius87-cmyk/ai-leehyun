@@ -18,7 +18,7 @@ npm run dev
 
 | 하고 싶은 일 | 고칠 파일 |
 |---|---|
-| 공부할 것 추가·완료 | `data/plan.json` 의 `areas` → `groups` → `items`. `status`: `wait` 대기 / `todo` 우선(`priority` 1,2,3… 순서) / `doing` 하는 중 / `done` 끝냄. 끝내면 `start`, `end`, `minutes`, `facts`, `notes` 를 채움. `yt` 는 유튜브 조회수순 검색어, `video` 는 추천 영상 |
+| 공부할 것 추가·완료 | `data/plan.json` 의 `areas` → `groups` → `items`. `status`: `wait` 대기 / `todo` 우선(`priority` 1,2,3… 순서) / `doing` 하는 중 / `done` 끝냄. 끝내면 `start`, `end`, `minutes`, `facts`, `notes` 를 채움. `yt` 는 유튜브 검색어(최근 4개월·조회수순으로 열림) |
 | 공부한 것(타임라인) 기록 추가 | `data/timeline.json` 의 `days` 에 날짜 블록 추가 |
 | 공부노트 추가 | `content/notes/` 에 마크다운 파일을 넣고 `data/notes.json` 에 한 줄 추가 |
 | 프로그램 추가 | `data/programs.json` 의 `programs` 에 추가 (`name`, `summary`, `status`: `using` 쓰는 중 / `making` 만드는 중 / `resting` 쉬는 중, `from`: 공부할 것 id, `note`: 공부노트 번호) |

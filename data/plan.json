@@ -84,11 +84,7 @@
               "what": "구조와 문구, 이미지까지 AI로 만들어 상세페이지 한 장을 완성합니다.",
               "status": "todo",
               "yt": "AI 상세페이지 만들기",
-              "priority": 2,
-              "video": {
-                "title": "상세페이지 AI로 쉽고 빠르게 만들기",
-                "url": "https://www.youtube.com/watch?v=QAsdI8KfEN4"
-              }
+              "priority": 2
             },
             {
               "id": "detail-image",
@@ -320,11 +316,7 @@
               "status": "todo",
               "yt": "AI 개인비서 만들기",
               "priority": 3,
-              "makesProgram": true,
-              "video": {
-                "title": "1인 기업가의 완벽한 AI 비서 만들기 (노션+메이크)",
-                "url": "https://www.youtube.com/watch?v=qmplGm6H96I"
-              }
+              "makesProgram": true
             },
             {
               "id": "n8n",
@@ -554,11 +546,7 @@
                 "Vrew"
               ],
               "priority": 1,
-              "makesProgram": false,
-              "video": {
-                "title": "컷편집 + 자막 작업시간 최소 5배 단축 with VREW",
-                "url": "https://www.youtube.com/watch?v=FwMh5bThnqA"
-              }
+              "makesProgram": false
             },
             {
               "id": "captions",
