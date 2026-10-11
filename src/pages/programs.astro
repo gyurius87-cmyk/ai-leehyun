@@ -2,8 +2,8 @@
 import Base from '../layouts/Base.astro';
 import { programs, plan, stats } from '../lib/data.js';
 
-// 아직 끝내지 않은 공부 중, 끝내면 프로그램이 나올 것
-const upcoming = plan.filter((i) => i.makesProgram && i.status !== 'done');
+// 우선 할 것 중, 끝내면 프로그램이 나올 것
+const upcoming = plan.filter((i) => i.makesProgram && (i.status === 'todo' || i.status === 'doing'));
 const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 중' };
 ---
 <Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
@@ -54,7 +54,7 @@ const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 
             <a class="soon-item" href="/plan">
               <span class="tag">공부할 것</span>
               <b>{i.title}</b>
-              <span class="why">{i.why}</span>
+              <span class="why">{i.what || i.why}</span>
             </a>
           ))}
         </div>

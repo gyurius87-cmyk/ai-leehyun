@@ -3,9 +3,8 @@ import Base from '../layouts/Base.astro';
 import PlanItem from '../components/PlanItem.astro';
 import FollowCta from '../components/FollowCta.astro';
 import StudyMap from '../components/StudyMap.astro';
-import { plan, planDoing, planTodo, planDone, recommended, stats } from '../lib/data.js';
+import { plan, planDoing, planTodo, planDone, areas, stats } from '../lib/data.js';
 
-const index = (item) => plan.indexOf(item);
 ---
 <Base current="plan" title="공부할 것" description="AI로 다음에 무엇을 공부할지 먼저 적어 두고, 끝내면 걸린 시간과 결과를 숫자로 남깁니다.">
   <div slot="head" class="page-head" id="top-plan">
@@ -13,7 +12,7 @@ const index = (item) => plan.indexOf(item);
       <h1 class="page-title">공부할 것</h1>
       <div class="big-count">{stats.planDone}<small>/ {stats.planTotal} 끝냄</small></div>
     </div>
-    <p class="page-desc">무엇을 공부할지 먼저 적어 둡니다. 끝내면 걸린 시간과 결과를 숫자로 남깁니다.</p>
+    <p class="page-desc">AI로 이미 다른 사람들이 하고 있는 일을 모아 두고, 급한 것부터 하나씩 끝냅니다. 끝내면 걸린 시간과 결과를 숫자로 남깁니다.</p>
     <div class="zero-line">
       <img src="/assets/zero/zero-thinking.svg" alt="" width="46" height="40" />
       <span>이현님의 비서 제로가 함께 정리합니다.</span>
@@ -24,34 +23,27 @@ const index = (item) => plan.indexOf(item);
     <div class="stat-grid" style="--cols: 4">
       <div class="stat"><div class="label">전체</div><div class="num">{stats.planTotal}<small>개</small></div></div>
       <div class="stat"><div class="label">끝냄</div><div class="num"><span class="hl">{planDone.length}</span><small>개</small></div></div>
-      <div class="stat"><div class="label">하는 중</div><div class="num">{planDoing.length}<small>개</small></div></div>
-      <div class="stat"><div class="label">할 것</div><div class="num">{planTodo.length}<small>개</small></div></div>
+      <div class="stat"><div class="label">우선 할 것</div><div class="num">{stats.planTodo}<small>개</small></div></div>
+      <div class="stat"><div class="label">대기</div><div class="num">{stats.planWait}<small>개</small></div></div>
     </div>
 
-    {planDoing.length > 0 && (
+    {planDoing.length + planTodo.length > 0 && (
       <section class="section">
-        <h2 class="section-title">하는 중</h2>
-        <div class="plan-list">{planDoing.map((item) => <PlanItem item={item} index={index(item)} />)}</div>
-      </section>
-    )}
-
-    {planTodo.length > 0 && (
-      <section class="section">
-        <h2 class="section-title">할 것</h2>
-        <div class="plan-list">{planTodo.map((item) => <PlanItem item={item} index={index(item)} />)}</div>
+        <h2 class="section-title">우선 할 것</h2>
+        <div class="plan-list">{[...planDoing, ...planTodo].map((item) => <PlanItem item={item} />)}</div>
       </section>
     )}
 
     {planDone.length > 0 && (
       <section class="section">
         <h2 class="section-title">끝냄</h2>
-        <div class="plan-list">{planDone.map((item) => <PlanItem item={item} index={index(item)} />)}</div>
+        <div class="plan-list">{planDone.map((item) => <PlanItem item={item} />)}</div>
       </section>
     )}
 
     <div class="section"><FollowCta /></div>
 
-    {recommended.length > 0 && <StudyMap />}
+    {areas.length > 0 && <StudyMap />}
   </div>
 </Base>
 

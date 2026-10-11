@@ -4,13 +4,12 @@ import DayBlock from '../components/DayBlock.astro';
 import NoteCard from '../components/NoteCard.astro';
 import DayCount from '../components/DayCount.astro';
 import Icon from '../components/Icon.astro';
-import { days, notes, stats, plan, nextStudy } from '../lib/data.js';
+import { days, notes, stats, planDoing, planTodo, planDone, nextStudy } from '../lib/data.js';
 
 const latest = days[0];
 const recent = notes.slice(0, 3);
 // 홈에는 다음 공부를 크게, 나머지는 하는 중 → 할 것 → 끝냄 순서로 4개까지
-const order = { doing: 0, todo: 1, done: 2 };
-const planPreview = [...plan].filter((i) => i !== nextStudy).sort((a, b) => order[a.status] - order[b.status]).slice(0, 4);
+const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !== nextStudy).slice(0, 4);
 ---
 <Base current="home">
   <div slot="head" class="hero">
@@ -26,7 +25,7 @@ const planPreview = [...plan].filter((i) => i !== nextStudy).sort((a, b) => orde
       </div>
       <div>
         <dt>끝낸 공부</dt>
-        <dd>{stats.planDone}<span class="of">/{stats.planTotal}</span></dd>
+        <dd>{stats.planDone}</dd>
       </div>
       <div>
         <dt>공부노트</dt>
@@ -54,7 +53,7 @@ const planPreview = [...plan].filter((i) => i !== nextStudy).sort((a, b) => orde
             <span class="pm-box" aria-hidden="true">{i.status === 'done' && <Icon name="check" />}</span>
             <span class="pm-title">{i.title}</span>
             <span class="pm-meta mono">
-              {i.status === 'done' ? `${i.minutes}분 · 끝냄` : i.status === 'doing' ? '하는 중' : '할 것'}
+              {i.status === 'done' ? `${i.minutes}분 · 끝냄` : i.status === 'doing' ? '하는 중' : `우선 ${i.priority}`}
             </span>
           </li>
         ))}

@@ -53,17 +53,27 @@ const streak = (() => {
   return count;
 })();
 
-// 공부할 것: status 는 todo(할 것) / doing(하는 중) / done(끝냄)
-export const plan = (planData.items || []).map((item) => ({
-  ...item,
-  days: item.start && item.end ? dayNumber(item.end) - dayNumber(item.start) + 1 : null,
-}));
+// 공부할 것: 분야 → 세부 분야 → 항목. status 는 done(끝냄) / doing(하는 중) / todo(우선, priority 순) / wait(대기)
+export const areas = planData.areas || [];
+export const plan = areas.flatMap((a) =>
+  a.groups.flatMap((g) =>
+    g.items.map((item) => ({
+      ...item,
+      area: a.area,
+      group: g.name,
+      days: item.start && item.end ? dayNumber(item.end) - dayNumber(item.start) + 1 : null,
+    })),
+  ),
+);
 export const planDoing = plan.filter((i) => i.status === 'doing');
-export const planTodo = plan.filter((i) => i.status === 'todo');
+export const planTodo = plan.filter((i) => i.status === 'todo').sort((a, b) => (a.priority || 99) - (b.priority || 99));
 export const planDone = plan.filter((i) => i.status === 'done');
-export const recommended = planData.recommended || [];
-/** 지금 하는 공부가 있으면 그것, 없으면 다음 할 것 */
+export const planWait = plan.filter((i) => i.status === 'wait');
+/** 지금 하는 공부가 있으면 그것, 없으면 우선순위 1번 */
 export const nextStudy = planDoing[0] || planTodo[0] || null;
+
+/** 유튜브 조회수순 검색 주소 */
+export const ytSearch = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=CAMSAhAB`;
 
 export const stats = {
   recordDays: days.length,
@@ -74,4 +84,6 @@ export const stats = {
   programsMaking: programs.filter((p) => p.status === 'making').length,
   planTotal: plan.length,
   planDone: planDone.length,
+  planTodo: planTodo.length + planDoing.length,
+  planWait: planWait.length,
 };

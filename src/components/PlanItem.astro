@@ -1,8 +1,7 @@
 ---
 import Icon from './Icon.astro';
-import { formatDate } from '../lib/data.js';
-const { item, index } = Astro.props;
-const no = String(index + 1).padStart(2, '0');
+import { formatDate, ytSearch } from '../lib/data.js';
+const { item } = Astro.props;
 const short = (ymd) => formatDate(ymd).slice(5);
 ---
 <article class={`plan-item ${item.status}`}>
@@ -11,14 +10,20 @@ const short = (ymd) => formatDate(ymd).slice(5);
   </div>
   <div class="body">
     <div class="pi-top">
-      <span class="no">{no}</span>
       {item.status === 'done' && <span class="badge done">끝냄</span>}
       {item.status === 'doing' && <span class="badge doing">하는 중</span>}
-      {item.status === 'todo' && <span class="badge">할 것</span>}
+      {item.status === 'todo' && <span class="badge doing">우선 {item.priority}</span>}
+      <span class="no">{item.area} › {item.group}</span>
       {item.makesProgram && item.status !== 'done' && <span class="badge ghost">프로그램이 나올 공부</span>}
     </div>
     <h3>{item.title}</h3>
-    {item.why && <p class="why">{item.why}</p>}
+    {(item.what || item.why) && <p class="why">{item.what || item.why}</p>}
+    {item.status !== 'done' && (item.video || item.yt) && (
+      <div class="links">
+        {item.video && <a href={item.video.url} target="_blank" rel="noopener">▶ 추천 영상: {item.video.title}</a>}
+        {item.yt && <a href={ytSearch(item.yt)} target="_blank" rel="noopener">▶ 유튜브 조회수순 보기</a>}
+      </div>
+    )}
 
     {item.status === 'done' && (
       <>
