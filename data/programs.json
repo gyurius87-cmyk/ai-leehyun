@@ -8,6 +8,14 @@
       "start": "2026-10-12",
       "private": false,
       "href": "https://claude.ai/artifact/9YH5F2UH6yUC11uKeUqdwm"
+    },
+    {
+      "id": "mindmap",
+      "name": "머릿속 지도",
+      "status": "using",
+      "summary": "머릿속에서 돌아가는 할 일을 채팅으로 쏟아내면 AI가 카드로 정리하고, 할 것·진행·막힘·끝과 일의 순서, 지금 병목을 한 화면에 보여줍니다. 개인 업무용이라 비공개로 씁니다.",
+      "start": "2026-10-12",
+      "private": true
     }
   ]
 }
