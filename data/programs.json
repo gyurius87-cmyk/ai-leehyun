@@ -13,7 +13,7 @@
       "id": "mindmap",
       "name": "AI이현의 프로젝트 플로우",
       "status": "using",
-      "summary": "사업·SNS → 번호 붙은 프로젝트 → 할 일을 마인드맵처럼 펼쳐, 진행·막힘·지금 병목을 한눈에 보고, 진행 중인 일은 스톱워치로 시간을 잽니다. 생각을 채팅으로 쏟아내면 AI가 지도에 정리합니다.",
+      "summary": "사업·SNS → 번호 붙은 프로젝트 → 1단계부터 골까지 이어진 할 일로 펼쳐, 지금 할 차례와 막힌 곳을 한눈에 보고 진행 중인 일은 스톱워치로 잽니다. 생각을 채팅으로 쏟아내면 AI가 정리합니다.",
       "start": "2026-10-12",
       "private": true,
       "href": "https://claude.ai/artifact/KgWepoNBK8py7jfr8tJG2M"
