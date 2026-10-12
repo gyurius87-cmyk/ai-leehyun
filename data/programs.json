@@ -2,7 +2,7 @@
   "programs": [
     {
       "id": "bottleneck",
-      "name": "병목 지도",
+      "name": "병목 찾기",
       "status": "making",
       "summary": "걱정을 쏟아내면 AI가 지금 풀어야 할 병목 하나와 할 일, 기대효과를 정리해 한 장 이미지로 저장해 줍니다.",
       "start": "2026-10-12",
