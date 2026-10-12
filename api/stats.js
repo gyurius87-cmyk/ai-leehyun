@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     ...d14.flatMap((d) => [["GET", `v:${d}`], ["PFCOUNT", `u:${d}`], ["HGET", `ai:${d}`, "calls"], ["HGET", `ai:${d}`, "usd_u"]]),
     ...d7.map((d) => ["HGETALL", `p:${d}`]),
     ...d7.map((d) => ["HGETALL", `c:${d}`]),
+    ...d7.map((d) => ["HGETALL", `s:${d}`]),
     ["PFCOUNT", ...d7.map((d) => `u:${d}`)],
     ["PFCOUNT", "u:all"],
     ["HGETALL", "ai:total"],
@@ -37,10 +38,11 @@ export default async function handler(req, res) {
   let i = 0;
   const series = d14.map((day) => ({ day, views: Number(r[i++] || 0), visitors: Number(r[i++] || 0), calls: Number(r[i++] || 0), usd: Number(r[i++] || 0) / 1e6 }));
   const pages = top(merge(r.slice(i, (i += 7))), 10), clicks = top(merge(r.slice(i, (i += 7))), 10);
+  const srcToday = top(pairs(r[i + 6]), 10), sources = top(merge(r.slice(i, (i += 7))), 10);
   const visitors7 = Number(r[i++] || 0), visitorsAll = Number(r[i++] || 0), ai = pairs(r[i++]), charged = Number(r[i++] || 0) / 1e6;
   const spent = (ai.usd_u || 0) / 1e6;
   return res.status(200).json({
-    today: kstDay(), series, pages, clicks, visitors7, visitorsAll,
+    today: kstDay(), series, pages, clicks, sources, srcToday, visitors7, visitorsAll,
     ai: { calls: ai.calls || 0, inTokens: ai.in || 0, outTokens: ai.out || 0, spent, charged, left: charged ? charged - spent : null, model: process.env.BOTTLENECK_MODEL || "claude-haiku-5-5" },
   });
 }

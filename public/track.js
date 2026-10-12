@@ -13,7 +13,11 @@
     if (!(navigator.sendBeacon && navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }))))
       fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
   };
-  send({ t: "view" });
+  // 이번 방문(탭)의 첫 페이지에서만 어디서 왔는지 보냄
+  let entry = false;
+  try { entry = !sessionStorage.getItem("ai-entry"); sessionStorage.setItem("ai-entry", "1"); } catch {}
+  const q = new URLSearchParams(location.search);
+  send(entry ? { t: "view", ref: document.referrer, tag: q.get("r") || q.get("utm_source") || "" } : { t: "view" });
   document.addEventListener("click", (e) => {
     const el = e.target.closest("a, button"); if (!el) return;
     const label = el.getAttribute("aria-label") || el.textContent || el.getAttribute("href") || "";

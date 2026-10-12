@@ -102,6 +102,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--yellow); ou
       <section class="box"><h2>방문자 <span>14일 · 하루 단위</span></h2><div class="chart" id="chartVisitors"></div><div class="xlab" id="xVisitors"></div></section>
       <section class="box"><h2>페이지 조회 <span>14일 · 하루 단위</span></h2><div class="chart" id="chartViews"></div><div class="xlab" id="xViews"></div></section>
     </div>
+    <section class="box" style="margin-top:14px">
+      <h2>어디서 왔나 <span>새로 들어온 방문 기준 · 릴스 링크에 ?r=이름 을 붙이면 따로 셉니다</span></h2>
+      <div class="two"><div><div class="note" style="margin-bottom:6px">오늘</div><div class="rows" id="srcToday"></div></div><div><div class="note" style="margin-bottom:6px">최근 7일</div><div class="rows" id="sources"></div></div></div>
+    </section>
     <div class="two" style="margin-top:14px">
       <section class="box"><h2>많이 본 페이지 <span>최근 7일</span></h2><div class="rows" id="pages"></div></section>
       <section class="box"><h2>많이 누른 곳 <span>최근 7일</span></h2><div class="rows" id="clicks"></div></section>
@@ -160,6 +164,8 @@ function render(d) {
     `<div class="tile money"><div class="k">남은 금액 추정</div><div class="v">${left == null ? "—" : usd(left)}</div><div class="s">${left == null ? "아래에 충전 금액을 넣어 주세요" : won(left) + (a.calls ? ` · 약 ${num(Math.floor(left / (a.spent / a.calls)))}회 더` : "")}</div></div>`;
   bars($("chartVisitors"), $("xVisitors"), s, "visitors", "명");
   bars($("chartViews"), $("xViews"), s, "views", "회");
+  rows($("srcToday"), d.srcToday || [], "회");
+  rows($("sources"), d.sources || [], "회");
   rows($("pages"), d.pages, "회");
   rows($("clicks"), d.clicks, "회");
   const per = a.calls ? a.spent / a.calls : 0;
