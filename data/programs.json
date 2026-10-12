@@ -4,7 +4,7 @@
       "id": "bottleneck",
       "name": "병목 지도",
       "status": "making",
-      "summary": "머릿속 할 일을 쏟아내면 AI가 분야별로 묶고, 무엇이 무엇을 막는지 이어서 지금 풀어야 할 병목 하나를 짚어줍니다. 저장한 지도는 내 머릿속 지도에 날짜별로 쌓입니다.",
+      "summary": "걱정을 쏟아내면 AI가 지금 풀어야 할 병목 하나와 할 일, 기대효과를 정리해 한 장 이미지로 저장해 줍니다.",
       "start": "2026-10-12",
       "private": false,
       "href": "https://claude.ai/artifact/9YH5F2UH6yUC11uKeUqdwm"
