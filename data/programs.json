@@ -4,25 +4,25 @@
       "id": "bottleneck",
       "name": "문제 해결 도우미",
       "status": "using",
-      "summary": "고민 분야와 MBTI, 고민을 적으면 AI가 맞춤 질문 3개를 더 묻고, 나에게 맞는 이해와 해결 순서, 기대효과를 한 장 이미지로 정리해 줍니다.",
+      "summary": "고민을 적으면 AI가 몇 가지를 더 묻고, 나에게 맞는 원인과 해결 순서, 기대효과를 한 장으로 정리해 줍니다.",
       "start": "2026-10-12",
       "private": false,
       "href": "/programs/bottleneck"
     },
     {
       "id": "mindmap",
-      "name": "AI이현의 프로젝트 플로우",
+      "name": "프로젝트 플로우",
       "status": "using",
-      "summary": "사업·SNS → 번호 붙은 프로젝트 → 1단계부터 골까지 이어진 할 일로 펼쳐, 지금 할 차례와 막힌 곳을 한눈에 보고 진행 중인 일은 스톱워치로 잽니다. 생각을 채팅으로 쏟아내면 AI가 정리합니다.",
+      "summary": "프로젝트를 STEP 1부터 GOAL까지 한 줄로 잇고, 우선순위와 단계별 걸린 시간을 한눈에 봅니다. 끝난 프로젝트는 리포트로 남습니다.",
       "start": "2026-10-12",
       "private": true,
       "href": "https://claude.ai/artifact/KgWepoNBK8py7jfr8tJG2M"
     },
     {
       "id": "analytics",
-      "name": "AI이현 사이트 애널리틱스",
+      "name": "사이트 애널리틱스",
       "status": "using",
-      "summary": "사이트 방문자, 많이 본 페이지와 누른 곳, AI 사용 횟수와 쓴 돈, 남은 금액 추정을 한 화면에서 봅니다.",
+      "summary": "방문자, 많이 본 페이지, AI 사용 비용과 남은 금액을 한 화면에서 봅니다.",
       "start": "2026-10-12",
       "private": true,
       "href": "/programs/analytics"

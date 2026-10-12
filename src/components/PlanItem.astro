@@ -31,7 +31,7 @@ const short = (ymd) => formatDate(ymd).slice(5);
     {item.status === 'done' && (
       <>
         <div class="when mono">
-          {short(item.start)} → {short(item.end)} · {item.days}일 · 총 {item.minutes}분
+          {short(item.start)} → {short(item.end)} · {item.days}일{item.minutes ? ` · 총 ${item.minutes}분` : ''}
         </div>
         {item.facts && (
           <dl class="facts">

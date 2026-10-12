@@ -343,9 +343,36 @@
             {
               "id": "goals",
               "title": "AI를 이용한 목표·습관 관리",
-              "what": "목표를 주간 계획으로 쪼개고, 내 기록으로 월간 성장을 돌아봅니다.",
+              "what": "목표를 STEP 1부터 GOAL까지 쪼개고, 우선순위와 단계별 걸린 시간, 끝난 프로젝트 리포트로 돌아보는 프로젝트 플로우를 만들었습니다.",
               "yt": "AI 목표 관리",
-              "status": "wait"
+              "status": "done",
+              "start": "2026-10-12",
+              "end": "2026-10-12",
+              "facts": [
+                {
+                  "label": "우선순위",
+                  "value": "4",
+                  "unit": "단계"
+                },
+                {
+                  "label": "프로젝트 탭",
+                  "value": "3",
+                  "unit": "개"
+                },
+                {
+                  "label": "든 비용",
+                  "value": "0",
+                  "unit": "원"
+                }
+              ],
+              "result": {
+                "label": "프로젝트 플로우",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude Code",
+                "Claude 아티팩트"
+              ]
             }
           ]
         },
@@ -355,9 +382,40 @@
             {
               "id": "thinking",
               "title": "AI를 이용한 생각 정리·요약",
-              "what": "고민을 AI와 대화하며 정리하고, 긴 강연과 영상을 요약해 받습니다.",
+              "what": "고민을 적으면 AI가 맞춤 질문을 더 묻고, 원인과 해결 순서, 기대효과를 한 장으로 정리해 주는 문제 해결 도우미를 만들었습니다.",
               "yt": "AI 생각 정리 요약",
-              "status": "wait"
+              "status": "done",
+              "start": "2026-10-12",
+              "end": "2026-10-12",
+              "facts": [
+                {
+                  "label": "AI 추가 질문",
+                  "value": "3",
+                  "unit": "개"
+                },
+                {
+                  "label": "결과 항목",
+                  "value": "8",
+                  "unit": "개"
+                },
+                {
+                  "label": "고민 분야",
+                  "value": "7",
+                  "unit": "개"
+                }
+              ],
+              "notes": [
+                "004"
+              ],
+              "result": {
+                "label": "문제 해결 도우미",
+                "href": "/programs/bottleneck"
+              },
+              "tools": [
+                "Claude Code",
+                "Claude API",
+                "Vercel"
+              ]
             }
           ]
         },

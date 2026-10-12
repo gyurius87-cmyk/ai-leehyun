@@ -53,7 +53,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
             <span class="pm-box" aria-hidden="true">{i.status === 'done' && <Icon name="check" />}</span>
             <span class="pm-title">{i.title}</span>
             <span class="pm-meta mono">
-              {i.status === 'done' ? `${i.minutes}분 · 끝냄` : i.status === 'doing' ? '하는 중' : `${i.priority}순위`}
+              {i.status === 'done' ? (i.minutes ? `${i.minutes}분 · 끝냄` : '끝냄') : i.status === 'doing' ? '하는 중' : `${i.priority}순위`}
             </span>
           </li>
         ))}
