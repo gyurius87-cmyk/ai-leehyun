@@ -2,9 +2,9 @@
   "programs": [
     {
       "id": "bottleneck",
-      "name": "생각 병목 찾기",
+      "name": "문제 해결 도우미",
       "status": "using",
-      "summary": "걱정을 쏟아내면 AI가 지금 풀어야 할 병목 하나와 할 일, 기대효과를 정리해 한 장 이미지로 저장해 줍니다.",
+      "summary": "고민 분야와 MBTI, 고민을 적으면 AI가 맞춤 질문 3개를 더 묻고, 나에게 맞는 이해와 해결 순서, 기대효과를 한 장 이미지로 정리해 줍니다.",
       "start": "2026-10-12",
       "private": false,
       "href": "/programs/bottleneck"

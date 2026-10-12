@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="/favicon.svg">
-<meta name="description" content="걱정을 쏟아내면 AI가 지금 가장 먼저 풀어야 할 병목 하나와 할 일, 기대효과를 한 장으로 정리합니다.">
-<title>생각 병목 찾기</title>
+<meta name="description" content="고민을 적으면 AI가 몇 가지를 더 묻고, 나에게 맞는 이해와 해결 순서를 한 장으로 정리해 드립니다.">
+<title>문제 해결 도우미</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* 레이아웃: 걱정 쓰기 → 결과 한 장(병목 · 할 일 · 기대효과) → 이미지로 저장. 한 줄 흐름. */
+/* 레이아웃: 나와 고민 적기 → AI 맞춤 질문 3개 → 결과 한 장(핵심 문제 · 이해 · 해결 · 기대효과) → 이미지로 저장. 한 줄 흐름. */
 :root {
   --bg: #eef0f2; --panel: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d5d9de;
   --charcoal: #24272c; --on-charcoal: #f4f5f6; --sub-charcoal: #b8bdc4; --yellow: #f5d33f; --yellow-ink: #24272c;
@@ -83,6 +83,18 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow);
 .preview { margin-top: 14px; display: grid; gap: 6px; }
 .preview img { width: 100%; max-width: 360px; border-radius: 10px; border: 1px solid var(--line); }
 @media (max-width: 480px) { .effects { grid-template-columns: 1fr; } }
+.cats { display: flex; gap: 6px; flex-wrap: wrap; }
+.cats button, .opts button { background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-weight: 500; font-size: 14px; padding: 6px 12px; border-radius: 999px; }
+.cats button[aria-pressed="true"], .opts button[aria-pressed="true"] { background: var(--charcoal); color: var(--on-charcoal); border-color: var(--charcoal); }
+.qs { margin-top: 14px; }
+.qs h2 { margin: 0; font-size: 18px; }
+.qs .sub { margin: -4px 0 0; font-size: 13px; color: var(--muted); }
+.q { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.q .qt { font-weight: 700; }
+.q .qt i { font-style: normal; color: var(--muted); font-family: var(--mono); margin-right: 6px; }
+.opts { display: flex; gap: 6px; flex-wrap: wrap; }
+.q input { width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+.q input:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
 .loginLinks { display: inline-flex; gap: 8px; align-items: center; margin-left: 6px; flex-wrap: wrap; }
 .loginLinks a { color: var(--ink); font-weight: 700; background: var(--yellow, #f5d33f); color: #24272c; padding: 4px 10px; border-radius: 999px; text-decoration: none; }
 .loginLinks button { padding: 4px 10px; font-size: 13px; }
@@ -92,37 +104,50 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow);
 
 <header class="top"><div class="wrap">
   <a class="brand" href="/programs" style="color:inherit;text-decoration:none">AI<b>이현</b> · 프로그램</a>
-  <h1>생각 병목 찾기</h1>
-  <p class="lead">걱정을 쏟아내면 AI가 지금 가장 먼저 풀어야 할 병목 하나와 할 일, 기대효과를 한 장으로 정리합니다.</p>
-  <div class="steps3"><span>1 걱정 쓰기</span><span>2 병목 · 할 일 · 기대효과</span><span>3 한 장 이미지로 저장</span></div>
+  <h1>문제 해결 도우미</h1>
+  <p class="lead">고민을 적으면 AI가 몇 가지를 더 묻고, 나에게 맞는 이해와 해결 순서를 한 장으로 정리해 드립니다.</p>
+  <div class="steps3"><span>1 나와 고민 적기</span><span>2 AI의 맞춤 질문 3개</span><span>3 이해 · 해결 · 기대효과 한 장</span></div>
 </div></header>
 
 <main class="wrap">
   <form class="box input" id="form">
+    <label>어떤 고민인가요 <small>· 하나 고르기</small></label>
+    <div class="cats" id="cats" role="group" aria-label="고민 분야"></div>
     <div class="who">
       <div class="f"><label for="job">직업</label><input id="job" placeholder="예) 프리랜서 디자이너" autocomplete="organization-title"></div>
       <div class="f"><label for="mbti">MBTI</label><select id="mbti"><option value="">모름</option></select></div>
       <div class="f"><label for="spare">하루 여유 시간</label><select id="spare"><option value="">선택 안 함</option><option>30분 이하</option><option>1시간 정도</option><option>2시간 이상</option></select></div>
       <div class="f"><label for="stuck">나는 주로</label><select id="stuck"><option value="">선택 안 함</option><option>시작을 미룬다</option><option>일을 너무 많이 벌린다</option><option>끝까지 마무리를 못 한다</option><option>결정을 못 하고 고민만 한다</option><option>남에게 못 맡기고 혼자 다 한다</option></select></div>
     </div>
-    <label for="worry">요즘 걱정거리 <small>· 생각나는 대로, 한 줄에 하나</small></label>
+    <label for="worry">지금 고민 <small>· 생각나는 대로, 한 줄에 하나</small></label>
     <textarea id="worry" placeholder="예) 할 일이 너무 많아서 뭐부터 할지 모르겠다&#10;운동을 계속 미루고 있다&#10;이메일 답장이 쌓여 있다"></textarea>
     <div class="row">
-      <button type="submit" id="goBtn">병목 찾기</button>
+      <button type="submit" id="goBtn">다음: 맞춤 질문 받기</button>
       <button type="button" class="ghost" id="exampleBtn">예시 넣기</button>
       <span class="msg" id="msg"></span>
     </div>
   </form>
 
+  <form class="box qs" id="qs" hidden>
+    <h2>몇 가지만 더 알려 주세요</h2>
+    <p class="sub">고르거나 직접 적으면 더 정확해져요. 모르면 비워 둬도 돼요.</p>
+    <div id="qList" style="display:grid;gap:14px"></div>
+    <div class="row">
+      <button type="submit" id="solveBtn">해결 방법 보기</button>
+      <button type="button" class="ghost" id="skipBtn">질문 건너뛰기</button>
+      <span class="msg" id="qMsg"></span>
+    </div>
+  </form>
+
   <section class="box result" id="result" aria-live="polite" hidden>
     <div class="neck">
-      <div class="eyebrow"><span>지금 풀어야 할 병목</span><span class="ex" id="tag">예시</span></div>
+      <div class="eyebrow"><span>먼저 풀 핵심 문제</span><span class="ex" id="tag">예시</span></div>
       <h2 id="neckTitle"></h2>
       <p id="neckWhy"></p>
       <span class="forwho" id="forWho"></span>
     </div>
-    <div class="part mind" id="mind"><h3>왜 이 굴레에 빠질까</h3><div class="loop" id="loop"></div><p id="psy"></p><h3>빠져나오는 마음 팁</h3><ul class="tips" id="tips"></ul></div>
-    <div class="part"><h3>할 일</h3><ol class="todos" id="todos"></ol></div>
+    <div class="part mind" id="mind"><h3>나를 이해하기 · 왜 자꾸 반복될까</h3><div class="loop" id="loop"></div><p id="psy"></p><h3>빠져나오는 마음 팁</h3><ul class="tips" id="tips"></ul></div>
+    <div class="part"><h3>해결 순서</h3><ol class="todos" id="todos"></ol></div>
     <div class="part"><h3>기대효과</h3><div class="effects" id="effects"></div><div class="note">AI가 계산한 예상치입니다.</div></div>
   </section>
 
@@ -130,11 +155,12 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow);
     <button type="button" id="saveBtn">한 장 이미지로 저장</button>
     <span class="msg" id="saveMsg"></span>
   </div>
-  <div class="preview" id="preview" hidden><span class="msg">이미지를 길게 누르거나 오른쪽 클릭해서 저장할 수도 있어요.</span><img id="previewImg" alt="생각 병목 찾기 한 장 이미지"></div>
+  <div class="preview" id="preview" hidden><span class="msg">이미지를 길게 누르거나 오른쪽 클릭해서 저장할 수도 있어요.</span><img id="previewImg" alt="문제 해결 도우미 한 장 이미지"></div>
 </main>
 
 <script>
-const EXAMPLE_PROFILE = { job: "프리랜서 디자이너", mbti: "ENFP", spare: "1시간 정도", stuck: "일을 너무 많이 벌린다" };
+const CATS = ["일·사업", "돈·투자", "관계·가족", "공부·성장", "건강·습관", "마음·감정", "기타"];
+const EXAMPLE_PROFILE = { cat: "일·사업", job: "프리랜서 디자이너", mbti: "ENFP", spare: "1시간 정도", stuck: "일을 너무 많이 벌린다" };
 const EXAMPLE_TEXT = `클라이언트 수정 요청이 끝이 안 난다
 포트폴리오 사이트 몇 달째 손도 못 댐
 들어오는 일은 다 받는데 단가가 낮다
@@ -167,8 +193,12 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 $("mbti").innerHTML += MBTIS.map((m) => `<option>${m}</option>`).join("");
 let current = EXAMPLE, isExample = true;
 const FIELDS = ["job", "mbti", "spare", "stuck"];
-const profile = () => Object.fromEntries(FIELDS.map((k) => [k, $(k).value.trim()]));
-const whoLine = (p) => [p.job, p.mbti, p.spare && `여유 ${p.spare}`, p.stuck].filter(Boolean).join(" · ");
+let cat = "";
+$("cats").innerHTML = CATS.map((c) => `<button type="button" aria-pressed="false" data-c="${c}">${c}</button>`).join("");
+const setCat = (c) => { cat = c; $("cats").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.c === c))); };
+$("cats").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) setCat(cat === b.dataset.c ? "" : b.dataset.c); });
+const profile = () => ({ cat, ...Object.fromEntries(FIELDS.map((k) => [k, $(k).value.trim()])) });
+const whoLine = (p) => [p.cat, p.job, p.mbti, p.spare && `여유 ${p.spare}`, p.stuck].filter(Boolean).join(" · ");
 
 // 내 정보는 이 브라우저에만 기억 (다음에 다시 안 적도록)
 try { const saved = JSON.parse(localStorage.getItem("bn-profile") || "null"); if (saved) FIELDS.forEach((k) => { if (saved[k]) $(k).value = saved[k]; }); } catch {}
@@ -192,26 +222,68 @@ function render(r, example) {
 
 const valid = (r) => r && r.bottleneck?.title && Array.isArray(r.todos) && r.todos.length && Array.isArray(r.effects) && r.effects.length;
 
-$("exampleBtn").addEventListener("click", () => { FIELDS.forEach((k) => ($(k).value = EXAMPLE_PROFILE[k])); $("worry").value = EXAMPLE_TEXT; $("worry").focus(); });
+$("exampleBtn").addEventListener("click", () => { FIELDS.forEach((k) => ($(k).value = EXAMPLE_PROFILE[k])); setCat(EXAMPLE_PROFILE.cat); $("worry").value = EXAMPLE_TEXT; $("worry").focus(); });
+const reduce = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+const errText = (err, what) => err?.code === "limit" ? "오늘 사용 횟수를 다 썼어요. 내일 다시 써 주세요." : err?.code === "busy" ? "사람이 많아요. 잠시 뒤에 다시 눌러 주세요." : err?.code === "no_key" ? "지금은 준비 중이에요. 조금 뒤에 다시 와 주세요. (키 없음)" : err?.code === "api" ? `지금은 준비 중이에요. 조금 뒤에 다시 와 주세요. (AI 연결 ${err.detail})` : `${what} 다시 한 번 눌러 주세요.`;
+async function call(body) {
+  const res = await fetch("/api/bottleneck", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const r = await res.json().catch(() => ({}));
+  if (!res.ok) throw { code: r.error || "server", detail: r.status || res.status };
+  return r;
+}
+let asked = null, questions = [], answers = [];
+
+// 1단계: 나와 고민 → AI가 되묻는 질문 3개
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = $("worry").value.trim(), msg = $("msg"), p = profile();
-  if (!text) { msg.className = "msg err"; msg.textContent = "걱정거리를 한 줄 이상 적어 주세요."; return; }
+  if (!text) { msg.className = "msg err"; msg.textContent = "고민을 한 줄 이상 적어 주세요."; return; }
   $("goBtn").disabled = true;
-  msg.className = "msg"; msg.textContent = "이 사람에게 맞는 병목을 찾는 중이에요…";
+  msg.className = "msg"; msg.textContent = "고민을 읽고 더 물어볼 것을 고르는 중이에요…";
   try {
-    const res = await fetch("/api/bottleneck", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, profile: p }) });
-    const r = await res.json().catch(() => ({}));
-    if (!res.ok) throw { code: r.error || "server", detail: r.status || res.status };
-    if (!valid(r)) throw new Error("shape");
-    r.todos = r.todos.slice(0, 3); r.effects = r.effects.slice(0, 3); r.profile = p;
-    render(r, false); msg.textContent = "";
-    $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    const r = await call({ mode: "ask", text, profile: p });
+    if (!Array.isArray(r.questions) || !r.questions.length) throw new Error("shape");
+    asked = { text, profile: p }; questions = r.questions; answers = questions.map(() => ({ pick: "", text: "" }));
+    renderQs(); $("qs").hidden = false; $("result").hidden = true; $("saveRow").hidden = true; $("preview").hidden = true; msg.textContent = "";
+    $("qs").scrollIntoView({ behavior: reduce() });
   } catch (err) {
-    msg.className = "msg err";
-    msg.textContent = err?.code === "limit" ? "오늘 사용 횟수를 다 썼어요. 내일 다시 써 주세요." : err?.code === "busy" ? "사람이 많아요. 잠시 뒤에 다시 눌러 주세요." : err?.code === "no_key" ? "지금은 준비 중이에요. 조금 뒤에 다시 와 주세요. (키 없음)" : err?.code === "api" ? `지금은 준비 중이에요. 조금 뒤에 다시 와 주세요. (AI 연결 ${err.detail})` : "병목을 찾지 못했어요. 다시 한 번 눌러 주세요.";
+    msg.className = "msg err"; msg.textContent = errText(err, "질문을 만들지 못했어요.");
   } finally { $("goBtn").disabled = false; }
 });
+function renderQs() {
+  $("qList").innerHTML = questions.map((q, i) => `<div class="q" data-i="${i}">
+    <div class="qt"><i>${i + 1}</i>${esc(q.q)}</div>
+    ${q.options?.length ? `<div class="opts">${q.options.map((o) => `<button type="button" aria-pressed="${answers[i].pick === o}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>` : ""}
+    <input type="text" maxlength="200" placeholder="직접 적기 (선택)" aria-label="${i + 1}번 질문에 직접 답하기" value="${esc(answers[i].text)}">
+  </div>`).join("");
+}
+$("qList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-o]"); if (!b) return;
+  const i = +b.closest(".q").dataset.i, o = b.dataset.o;
+  answers[i].pick = answers[i].pick === o ? "" : o;
+  b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === answers[i].pick)));
+});
+$("qList").addEventListener("input", (e) => { const q = e.target.closest(".q"); if (q) answers[+q.dataset.i].text = e.target.value; });
+
+// 2단계: 답까지 넣어서 이해와 해결
+async function solve(withAnswers) {
+  if (!asked) return;
+  const msg = $("qMsg");
+  const qa = withAnswers ? questions.map((q, i) => ({ q: q.q, a: [answers[i].pick, answers[i].text.trim()].filter(Boolean).join(" / ") })).filter((x) => x.a) : [];
+  $("solveBtn").disabled = $("skipBtn").disabled = true;
+  msg.className = "msg"; msg.textContent = "나에게 맞는 해결 방법을 정리하는 중이에요…";
+  try {
+    const r = await call({ text: asked.text, profile: asked.profile, qa });
+    if (!valid(r)) throw new Error("shape");
+    r.todos = r.todos.slice(0, 3); r.effects = r.effects.slice(0, 3); r.profile = asked.profile;
+    render(r, false); msg.textContent = "";
+    $("result").scrollIntoView({ behavior: reduce() });
+  } catch (err) {
+    msg.className = "msg err"; msg.textContent = errText(err, "해결 방법을 만들지 못했어요.");
+  } finally { $("solveBtn").disabled = $("skipBtn").disabled = false; }
+}
+$("qs").addEventListener("submit", (e) => { e.preventDefault(); solve(true); });
+$("skipBtn").addEventListener("click", () => solve(false));
 
 // 한 장 이미지
 function wrap(ctx, text, maxW, maxLines) {
@@ -242,7 +314,7 @@ async function drawCard() {
   x.font = `400 28px ${F}`; const wl = wrap(x, r.bottleneck.why, IW, 3);
   const topH = P + 52 + tl.length * 68 + 16 + wl.length * 40 + (who ? 54 : 0) + 48;
   x.fillStyle = "#24272c"; x.fillRect(0, 0, W, topH);
-  let y = P + label("지금 풀어야 할 병목", "#f5d33f", P) + 6;
+  let y = P + label("먼저 풀 핵심 문제", "#f5d33f", P) + 6;
   y += text(r.bottleneck.title, `700 56px ${F}`, "#f4f5f6", P, y, IW, 2, 68) + 16;
   y += text(r.bottleneck.why, `400 28px ${F}`, "#b8bdc4", P, y, IW, 3, 40);
   if (who) text("맞춤: " + who, `400 23px ${F}`, "#8a9099", P, y + 18, IW, 1, 30);
@@ -250,7 +322,7 @@ async function drawCard() {
   y = topH + 44;
   // 굴레
   if (m.loop?.length) {
-    y += label("왜 이 굴레에 빠질까", "#d9480f", y);
+    y += label("나를 이해하기 · 왜 반복될까", "#d9480f", y);
     m.loop.slice(0, 4).forEach((l, i) => {
       x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(P, y, IW, 58, 14); x.fill();
       x.fillStyle = "#d9480f"; x.font = `700 24px ${F}`; x.fillText(String(i + 1), P + 22, y + 15);
@@ -268,7 +340,7 @@ async function drawCard() {
   }
   // 할 일
   const effTop = H - 280;
-  y += label("할 일", "#5f6670", y);
+  y += label("해결 순서", "#5f6670", y);
   r.todos.forEach((t, i) => {
     x.font = `500 29px ${F}`; const ls = wrap(x, t.t, IW - 58, 2);
     x.font = `400 22px ${F}`; const fl = t.fit ? wrap(x, t.fit, IW - 58, 1) : [];
@@ -290,7 +362,7 @@ async function drawCard() {
     text(e.label, `400 22px ${F}`, "#5f6670", bx + 22, by + 72, bw - 40, 2, 28);
   });
   x.fillStyle = "#8a9099"; x.font = `400 22px ${F}`;
-  x.fillText(`AI이현 · 생각 병목 찾기${isExample ? " · 예시" : " · " + new Date().toLocaleDateString("ko-KR")}`, P, H - 56);
+  x.fillText(`AI이현 · 문제 해결 도우미${isExample ? " · 예시" : " · " + new Date().toLocaleDateString("ko-KR")}`, P, H - 56);
   return c;
 }
 $("saveBtn").addEventListener("click", async () => {
@@ -299,7 +371,7 @@ $("saveBtn").addEventListener("click", async () => {
     const c = await drawCard();
     const blob = await new Promise((res) => c.toBlob(res, "image/png"));
     $("previewImg").src = URL.createObjectURL(blob); $("preview").hidden = false;
-    const d = new Date(), name = `생각병목찾기-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.png`;
+    const d = new Date(), name = `문제해결도우미-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.png`;
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
     m.textContent = "저장했어요. 안 받아졌다면 아래 이미지를 길게 눌러 저장해 주세요.";
   } catch (err) {
