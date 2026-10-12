@@ -18,6 +18,15 @@
       "start": "2026-10-12",
       "private": true,
       "href": "https://claude.ai/artifact/KgWepoNBK8py7jfr8tJG2M"
+    },
+    {
+      "id": "analytics",
+      "name": "AI이현 사이트 애널리틱스",
+      "status": "using",
+      "summary": "사이트 방문자, 많이 본 페이지와 누른 곳, AI 사용 횟수와 쓴 돈, 남은 금액 추정을 한 화면에서 봅니다.",
+      "start": "2026-10-12",
+      "private": true,
+      "href": "/programs/analytics"
     }
   ]
 }

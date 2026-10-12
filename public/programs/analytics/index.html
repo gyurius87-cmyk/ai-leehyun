@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<title>AI이현 사이트 애널리틱스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 한 화면: 숫자 카드 → 14일 막대 → 많이 본 페이지·클릭 → AI 비용·남은 금액 */
+:root {
+  --bg: #eef0f2; --panel: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d5d9de; --grid: #e7eaed;
+  --charcoal: #24272c; --on-charcoal: #f4f5f6; --yellow: #f5d33f; --bar: #3d434b; --good: #2b8a3e; --bad: #d9480f;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #9aa1aa; --line: #343840; --grid: #2b2f35; --bar: #aeb5be; --good: #51b768; --bad: #ff7a45;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.top { background: var(--charcoal); color: var(--on-charcoal); padding: 20px 0 54px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+.brand { color: inherit; text-decoration: none; font-family: var(--mono); font-size: 13px; }
+.brand b { color: var(--yellow); font-weight: 500; }
+h1 { margin: 6px 0 0; font-size: 24px; }
+h1 small { font-size: 13px; font-weight: 500; color: #b8bdc4; margin-left: 8px; }
+main { margin-top: -36px; display: grid; gap: 14px; padding-bottom: 40px; }
+.box { background: var(--panel); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+h2 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+h2 span { font-size: 12px; font-weight: 400; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tile { background: var(--panel); border-radius: 14px; padding: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1.2; margin-top: 2px; }
+.tile .s { font-size: 12px; color: var(--muted); }
+.tile.money { background: var(--charcoal); color: var(--on-charcoal); }
+.tile.money .k, .tile.money .s { color: #b8bdc4; }
+.tile.money .v { color: var(--yellow); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* 막대 */
+.chart { position: relative; display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; align-items: end; height: 140px; border-bottom: 1px solid var(--line);
+  background: repeating-linear-gradient(to top, transparent 0 34px, var(--grid) 34px 35px); }
+.col { height: 100%; display: flex; align-items: flex-end; justify-content: center; cursor: default; }
+.col i { display: block; width: 70%; max-width: 26px; min-height: 2px; background: var(--bar); border-radius: 4px 4px 0 0; }
+.col.today i { background: var(--yellow); }
+.col:hover i, .col:focus i { outline: 2px solid var(--ink); outline-offset: 1px; }
+.xlab { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; }
+.tip { position: absolute; pointer-events: none; background: var(--charcoal); color: var(--on-charcoal); font-size: 12px; padding: 6px 9px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, -110%); z-index: 2; }
+/* 목록 */
+.rows { display: grid; gap: 6px; font-size: 13px; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; position: relative; padding: 4px 8px; border-radius: 8px; overflow: hidden; }
+.row::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--grid); z-index: 0; }
+.row > * { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row b { font-family: var(--mono); font-weight: 500; }
+.empty { color: var(--muted); font-size: 13px; }
+/* AI 비용 */
+.ai { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ai > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.ai .k { font-size: 12px; color: var(--muted); }
+.ai .v { font-family: var(--mono); font-size: 18px; font-weight: 500; }
+.topup { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; font-size: 13px; }
+input, button { font: inherit; }
+input { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 7px 10px; width: 110px; }
+button { border: 0; border-radius: 10px; padding: 8px 14px; background: var(--yellow); color: #24272c; font-weight: 700; cursor: pointer; }
+button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.note { font-size: 12px; color: var(--muted); }
+.gate { max-width: 420px; }
+.gate form { display: flex; gap: 8px; margin-top: 10px; }
+.gate input { flex: 1; width: auto; }
+.msg { font-size: 13px; color: var(--bad); }
+@media (max-width: 760px) {
+  .tiles, .ai { grid-template-columns: 1fr 1fr; }
+  .two { grid-template-columns: 1fr; }
+  .tile .v { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/programs">AI<b>이현</b> · 프로그램</a>
+  <h1>사이트 애널리틱스<small id="asof"></small></h1>
+</div></header>
+
+<main class="wrap">
+  <section class="box gate" id="gate">
+    <h2>AI이현 전용</h2>
+    <p class="note" style="margin:0">Vercel에 넣은 <code>ADMIN_KEY</code> 값을 입력하세요. 이 브라우저에 기억되고, 이 브라우저의 방문은 통계에서 빠져요.</p>
+    <form id="gateForm"><input id="keyIn" type="password" placeholder="관리자 키" aria-label="관리자 키" autocomplete="current-password"><button>열기</button></form>
+    <p class="msg" id="gateMsg"></p>
+  </section>
+
+  <div id="dash" hidden>
+    <div class="tiles" id="tiles"></div>
+    <div class="two" style="margin-top:14px">
+      <section class="box"><h2>방문자 <span>14일 · 하루 단위</span></h2><div class="chart" id="chartVisitors"></div><div class="xlab" id="xVisitors"></div></section>
+      <section class="box"><h2>페이지 조회 <span>14일 · 하루 단위</span></h2><div class="chart" id="chartViews"></div><div class="xlab" id="xViews"></div></section>
+    </div>
+    <div class="two" style="margin-top:14px">
+      <section class="box"><h2>많이 본 페이지 <span>최근 7일</span></h2><div class="rows" id="pages"></div></section>
+      <section class="box"><h2>많이 누른 곳 <span>최근 7일</span></h2><div class="rows" id="clicks"></div></section>
+    </div>
+    <section class="box" style="margin-top:14px">
+      <h2>AI 사용과 남은 금액 <span id="model"></span></h2>
+      <div class="ai" id="ai"></div>
+      <form class="topup" id="topup">
+        충전한 금액 $<input id="usdIn" type="number" min="0" step="0.01" placeholder="5" aria-label="충전한 금액(달러)">
+        <button type="submit" data-action="topup">충전 추가</button>
+        <button type="submit" class="ghost" data-action="set">총액으로 맞추기</button>
+        <span class="note" id="topupMsg"></span>
+      </form>
+      <p class="note">남은 금액은 사이트가 직접 센 토큰으로 계산한 추정치예요. 정확한 잔액은 console.anthropic.com → Billing에서 확인하세요. 원화는 1달러 = 1,400원으로 어림했어요.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const KRW = 1400, num = (n) => Number(n || 0).toLocaleString("ko-KR");
+const usd = (n) => "$" + Number(n || 0).toFixed(2), won = (n) => "약 " + num(Math.round((n || 0) * KRW)) + "원";
+let key = ""; try { key = localStorage.getItem("ai-admin-key") || ""; } catch {}
+
+async function load(post) {
+  const res = await fetch("/api/stats", post ? { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(post) } : { headers: { "x-admin-key": key } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw data.error || "server";
+  return data;
+}
+
+function bars(el, xel, series, field, unit) {
+  const max = Math.max(1, ...series.map((d) => d[field])), last = series.length - 1;
+  el.innerHTML = series.map((d, i) => `<div class="col${i === last ? " today" : ""}" tabindex="0" data-tip="${d.day.slice(5).replace("-", "/")} · ${num(d[field])}${unit}"><i style="height:${(d[field] / max) * 100}%"></i></div>`).join("") + `<div class="tip" hidden></div>`;
+  xel.innerHTML = series.map((d, i) => `<span>${i % 2 === last % 2 ? d.day.slice(8) : ""}</span>`).join("");
+  const tip = el.querySelector(".tip");
+  const show = (col) => { tip.textContent = col.dataset.tip; tip.hidden = false; tip.style.left = col.offsetLeft + col.offsetWidth / 2 + "px"; tip.style.top = col.offsetTop + col.offsetHeight - col.querySelector("i").offsetHeight + "px"; };
+  el.querySelectorAll(".col").forEach((c) => { c.addEventListener("mouseenter", () => show(c)); c.addEventListener("focus", () => show(c)); c.addEventListener("mouseleave", () => (tip.hidden = true)); c.addEventListener("blur", () => (tip.hidden = true)); });
+}
+function rows(el, list, unit) {
+  if (!list.length) { el.innerHTML = `<p class="empty">아직 기록이 없어요.</p>`; return; }
+  const max = list[0][1];
+  el.innerHTML = list.map(([k, v]) => `<div class="row" style="--w:${(v / max) * 100}%"><span title="${esc(k)}">${esc(k)}</span><b>${num(v)}${unit}</b></div>`).join("");
+}
+
+function render(d) {
+  const s = d.series, t = s[s.length - 1], y = s[s.length - 2] || { visitors: 0, views: 0 };
+  const diff = (a, b) => (a === b ? "어제와 같음" : `어제보다 ${a > b ? "+" : ""}${num(a - b)}`);
+  const a = d.ai, left = a.left;
+  $("tiles").innerHTML = [
+    ["오늘 방문자", num(t.visitors) + "명", diff(t.visitors, y.visitors)],
+    ["오늘 조회", num(t.views) + "회", diff(t.views, y.views)],
+    ["7일 방문자", num(d.visitors7) + "명", `누적 ${num(d.visitorsAll)}명`],
+  ].map(([k, v, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join("") +
+    `<div class="tile money"><div class="k">남은 금액 추정</div><div class="v">${left == null ? "—" : usd(left)}</div><div class="s">${left == null ? "아래에 충전 금액을 넣어 주세요" : won(left) + (a.calls ? ` · 약 ${num(Math.floor(left / (a.spent / a.calls)))}회 더` : "")}</div></div>`;
+  bars($("chartVisitors"), $("xVisitors"), s, "visitors", "명");
+  bars($("chartViews"), $("xViews"), s, "views", "회");
+  rows($("pages"), d.pages, "회");
+  rows($("clicks"), d.clicks, "회");
+  const per = a.calls ? a.spent / a.calls : 0;
+  $("ai").innerHTML = [
+    ["오늘 AI 사용", num(t.calls) + "회", usd(t.usd)],
+    ["누적 AI 사용", num(a.calls) + "회", `토큰 ${num(a.inTokens + a.outTokens)}`],
+    ["쓴 돈", usd(a.spent), won(a.spent)],
+    ["1회 평균", usd(per), won(per)],
+  ].map(([k, v, sub]) => `<div><div class="k">${k}</div><div class="v">${v}</div><div class="note">${sub}</div></div>`).join("");
+  $("model").textContent = a.model + (a.charged ? ` · 충전 ${usd(a.charged)}` : "");
+  $("asof").textContent = `${d.today} 기준`;
+}
+
+async function open() {
+  try {
+    const d = await load();
+    try { localStorage.setItem("ai-admin-key", key); localStorage.setItem("ai-admin", "1"); } catch {}
+    $("gate").hidden = true; $("dash").hidden = false; render(d);
+  } catch (e) {
+    $("gate").hidden = false; $("dash").hidden = true;
+    $("gateMsg").textContent = e === "auth" ? (key ? "키가 맞지 않아요." : "") : e === "no_admin_key" ? "Vercel에 ADMIN_KEY가 아직 없어요." : e === "no_redis" ? "저장소(Redis)가 아직 연결되지 않았어요." : "불러오지 못했어요. 새로고침해 주세요.";
+  }
+}
+$("gateForm").addEventListener("submit", (e) => { e.preventDefault(); key = $("keyIn").value.trim(); open(); });
+let action = "topup";
+$("topup").addEventListener("click", (e) => { const b = e.target.closest("[data-action]"); if (b) action = b.dataset.action; });
+$("topup").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const v = Number($("usdIn").value); if (!(v >= 0) || $("usdIn").value === "") { $("topupMsg").textContent = "금액을 넣어 주세요."; return; }
+  try { render(await load({ action, usd: v })); $("usdIn").value = ""; $("topupMsg").textContent = action === "set" ? "총액을 맞췄어요." : "충전 금액을 더했어요."; }
+  catch { $("topupMsg").textContent = "저장하지 못했어요."; }
+});
+if (key) open();
+</script>
+</body>
+</html>
