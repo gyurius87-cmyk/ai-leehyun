@@ -5,6 +5,10 @@ import { programs, plan, stats } from '../lib/data.js';
 // 우선 할 것 중, 끝내면 프로그램이 나올 것
 const upcoming = plan.filter((i) => i.makesProgram && (i.status === 'todo' || i.status === 'doing')).sort((a, b) => (a.priority || 99) - (b.priority || 99));
 const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 중' };
+// 태그: 누구나 쓸 수 있는 것 / AI이현만 쓰는 것
+const TAGS = { public: '모두 사용', private: 'AI이현 전용' };
+const tagOf = (p) => (p.private ? 'private' : 'public');
+const FILTERS = [{ k: 'all', label: '전체' }, { k: 'public', label: TAGS.public }, { k: 'private', label: TAGS.private }];
 ---
 <Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
   <div slot="head" class="page-head">
@@ -29,10 +33,15 @@ const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 
           <p style="margin: 0">아직 놓인 프로그램이 없습니다.<br />공부할 것을 하나씩 끝내면, 그 과정에서 만든 프로그램이 여기에 놓입니다.</p>
         </div>
       ) : (
-        <div class="note-list">
+        <div class="pfilter" role="group" aria-label="프로그램 나눠 보기">
+          {FILTERS.map((f, i) => (
+            <button type="button" data-f={f.k} aria-pressed={i === 0 ? 'true' : 'false'}>{f.label} <span>{f.k === 'all' ? programs.length : programs.filter((p) => tagOf(p) === f.k).length}</span></button>
+          ))}
+        </div>
+        <div class="note-list" id="programList">
           {programs.map((p) => (
-            <div class="note-card">
-              <div class="no">{STATUS[p.status] || ''}</div>
+            <div class="note-card" data-tag={tagOf(p)}>
+              <div class="no">{STATUS[p.status] || ''} <span class={`ptag ${tagOf(p)}`}>{TAGS[tagOf(p)]}</span></div>
               <h3>{p.name}</h3>
               {p.summary && <p>{p.summary}</p>}
               {p.private && !p.href && <div class="facts">AI이현 전용 · 직접 쓰는 중</div>}
@@ -67,7 +76,70 @@ const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 
   </div>
 </Base>
 
+<script>
+  const bar = document.querySelector('.pfilter');
+  bar?.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-f]');
+    if (!b) return;
+    bar.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('#programList .note-card').forEach((c) => {
+      c.hidden = b.dataset.f !== 'all' && c.dataset.tag !== b.dataset.f;
+    });
+  });
+</script>
+
 <style>
+  .pfilter {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .pfilter button {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #d5d9de;
+    background: var(--white);
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .pfilter button span {
+    font-family: var(--mono);
+    opacity: 0.6;
+    margin-left: 2px;
+  }
+
+  .pfilter button[aria-pressed='true'] {
+    background: var(--charcoal);
+    border-color: var(--charcoal);
+    color: #fff;
+  }
+
+  .ptag {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--yellow);
+    color: var(--charcoal);
+  }
+
+  .ptag.private {
+    background: var(--charcoal);
+    color: var(--yellow);
+  }
+
+  .note-card[hidden] {
+    display: none;
+  }
+
   .open {
     display: inline-block;
     margin-top: 10px;
