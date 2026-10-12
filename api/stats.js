@@ -41,6 +41,6 @@ export default async function handler(req, res) {
   const spent = (ai.usd_u || 0) / 1e6;
   return res.status(200).json({
     today: kstDay(), series, pages, clicks, visitors7, visitorsAll,
-    ai: { calls: ai.calls || 0, inTokens: ai.in || 0, outTokens: ai.out || 0, spent, charged, left: charged ? charged - spent : null, model: process.env.BOTTLENECK_MODEL || "claude-opus-5-5" },
+    ai: { calls: ai.calls || 0, inTokens: ai.in || 0, outTokens: ai.out || 0, spent, charged, left: charged ? charged - spent : null, model: process.env.BOTTLENECK_MODEL || "claude-haiku-5-5" },
   });
 }

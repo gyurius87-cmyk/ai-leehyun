@@ -5,7 +5,7 @@ import { redis, kstDay, expire } from "./_redis.js";
 
 export const config = { maxDuration: 60 };
 
-const MODEL = process.env.BOTTLENECK_MODEL || "claude-opus-5-5";
+const MODEL = process.env.BOTTLENECK_MODEL || "claude-haiku-5-5";
 const PER_IP_PER_DAY = Number(process.env.BOTTLENECK_PER_IP_PER_DAY || 5);
 
 // 같은 사람이 하루에 너무 많이 누르지 않게 (서버 인스턴스별 대략적인 제한, 진짜 상한은 Console 사용 한도)
@@ -20,7 +20,7 @@ function allow(ip) {
 // 1M 토큰당 달러 (입력, 출력). 애널리틱스의 '쓴 돈'과 '남은 금액 추정'에 씀.
 const PRICE = { "claude-opus-5-5": [4, 20], "claude-sonnet-5-5": [2, 10], "claude-haiku-5-5": [0.1, 0.5] };
 async function recordUsage(u) {
-  const [pi, po] = PRICE[MODEL] || PRICE["claude-opus-5-5"];
+  const [pi, po] = PRICE[MODEL] || PRICE["claude-haiku-5-5"];
   const inT = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0), outT = u.output_tokens || 0;
   const usdMicro = Math.round(inT * pi + outT * po); // 토큰 × ($/1M) = 백만분의 1달러
   const day = kstDay(), cmds = [];
