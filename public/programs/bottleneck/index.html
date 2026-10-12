@@ -202,14 +202,14 @@ $("form").addEventListener("submit", async (e) => {
   try {
     const res = await fetch("/api/bottleneck", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, profile: p }) });
     const r = await res.json().catch(() => ({}));
-    if (!res.ok) throw { code: r.error || "server" };
+    if (!res.ok) throw { code: r.error || "server", detail: r.status || res.status };
     if (!valid(r)) throw new Error("shape");
     r.todos = r.todos.slice(0, 3); r.effects = r.effects.slice(0, 3); r.profile = p;
     render(r, false); msg.textContent = "";
     $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   } catch (err) {
     msg.className = "msg err";
-    msg.textContent = err?.code === "limit" ? "오늘 사용 횟수를 다 썼어요. 내일 다시 써 주세요." : err?.code === "busy" ? "사람이 많아요. 잠시 뒤에 다시 눌러 주세요." : err?.code === "no_key" || err?.code === "api" ? "지금은 준비 중이에요. 조금 뒤에 다시 와 주세요." : "병목을 찾지 못했어요. 다시 한 번 눌러 주세요.";
+    msg.textContent = err?.code === "limit" ? "오늘 사용 횟수를 다 썼어요. 내일 다시 써 주세요." : err?.code === "busy" ? "사람이 많아요. 잠시 뒤에 다시 눌러 주세요." : err?.code === "no_key" ? "지금은 준비 중이에요. 조금 뒤에 다시 와 주세요. (키 없음)" : err?.code === "api" ? `지금은 준비 중이에요. 조금 뒤에 다시 와 주세요. (AI 연결 ${err.detail})` : "병목을 찾지 못했어요. 다시 한 번 눌러 주세요.";
   } finally { $("goBtn").disabled = false; }
 });
 
