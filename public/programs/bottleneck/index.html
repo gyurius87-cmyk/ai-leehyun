@@ -95,6 +95,59 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow);
 .opts { display: flex; gap: 6px; flex-wrap: wrap; }
 .q input { width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
 .q input:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+/* 리포트 */
+.evi { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--sub-charcoal); }
+.evi li { display: flex; gap: 8px; }
+.evi li::before { content: "✓"; color: var(--yellow); font-weight: 700; }
+.part h3 .k { font-family: var(--mono); color: var(--block); margin-right: 6px; }
+.roots { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 8px; align-items: stretch; }
+.roots div { background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: 14px; display: grid; gap: 2px; align-content: start; }
+.roots div small { font-size: 11px; color: var(--muted); font-weight: 700; }
+.roots div.deep { background: var(--charcoal); color: var(--on-charcoal); }
+.roots div.deep small { color: var(--yellow); }
+.roots i { align-self: center; color: var(--muted); font-style: normal; }
+@media (max-width: 600px) { .roots { grid-template-columns: 1fr; } .roots i { justify-self: center; transform: rotate(90deg); } }
+.strength { background: var(--bg); border-left: 3px solid var(--good); border-radius: 0 10px 10px 0; padding: 10px 12px; font-size: 14px; }
+.strength b { display: block; font-size: 12px; color: var(--good); }
+.quotes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .quotes { grid-template-columns: 1fr; } }
+.quotes figure { margin: 0; background: var(--bg); border-radius: 12px; padding: 14px; display: grid; gap: 6px; }
+.quotes blockquote { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.45; }
+.quotes blockquote::before { content: "“"; color: var(--yellow); font-size: 30px; line-height: 0; vertical-align: -10px; margin-right: 2px; }
+.quotes figcaption { font-size: 13px; color: var(--muted); }
+.quotes .ap { font-size: 13px; }
+.roadsum { font-size: 13px; color: var(--muted); margin-top: -4px; }
+.road { list-style: none; margin: 0; padding: 0; display: grid; }
+.road li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; position: relative; padding-bottom: 14px; }
+.road li:not(:last-child)::before { content: ""; position: absolute; left: 17px; top: 38px; bottom: 2px; width: 2px; background: var(--line); }
+.road .n { width: 36px; height: 36px; border-radius: 50%; background: var(--charcoal); color: var(--yellow); display: grid; place-items: center; font: 700 15px var(--mono); }
+.road li:first-child .n { background: var(--yellow); color: var(--yellow-ink); }
+.road .c { background: var(--bg); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; min-width: 0; }
+.road .hd { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.road .chip { background: var(--panel); border-radius: 999px; padding: 2px 9px; font-weight: 700; }
+.road li:first-child .chip.w { background: var(--yellow); color: var(--yellow-ink); }
+.road .t { font-weight: 700; font-size: 16px; }
+.road .how { font-size: 14px; }
+.road .done { font-size: 13px; color: var(--good); font-weight: 500; }
+.road .fit { font-size: 12px; color: var(--muted); }
+.risks { display: grid; gap: 8px; }
+.risks div { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.risks b { color: var(--block); font-size: 12px; display: block; }
+.risks .th b { color: var(--good); }
+.risks i { font-style: normal; color: var(--muted); }
+@media (max-width: 600px) { .risks div { grid-template-columns: 1fr; } .risks i { display: none; } }
+.effects { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.effects .wh { font-size: 12px; color: var(--ink); font-weight: 700; }
+.effects .bs { font-size: 12px; color: var(--muted); }
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ba > div { border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.ba .b4 { background: var(--bg); }
+.ba .af { background: color-mix(in srgb, var(--good) 14%, var(--panel)); }
+.ba h4 { margin: 0; font-size: 13px; color: var(--muted); }
+.ba .af h4 { color: var(--good); }
+.ba ul { margin: 0; padding-left: 16px; font-size: 14px; display: grid; gap: 4px; }
+.cheer { background: var(--yellow); color: var(--yellow-ink); padding: 18px 20px; font-weight: 500; }
+.cheer b { display: block; font-size: 13px; margin-bottom: 4px; }
 .loginLinks { display: inline-flex; gap: 8px; align-items: center; margin-left: 6px; flex-wrap: wrap; }
 .loginLinks a { color: var(--ink); font-weight: 700; background: var(--yellow, #f5d33f); color: #24272c; padding: 4px 10px; border-radius: 999px; text-decoration: none; }
 .loginLinks button { padding: 4px 10px; font-size: 13px; }
@@ -144,11 +197,16 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow);
       <div class="eyebrow"><span>먼저 풀 핵심 문제</span><span class="ex" id="tag">예시</span></div>
       <h2 id="neckTitle"></h2>
       <p id="neckWhy"></p>
+      <ul class="evi" id="evi"></ul>
       <span class="forwho" id="forWho"></span>
     </div>
-    <div class="part mind" id="mind"><h3>나를 이해하기 · 왜 자꾸 반복될까</h3><div class="loop" id="loop"></div><p id="psy"></p><h3>빠져나오는 마음 팁</h3><ul class="tips" id="tips"></ul></div>
-    <div class="part"><h3>해결 순서</h3><ol class="todos" id="todos"></ol></div>
-    <div class="part"><h3>기대효과</h3><div class="effects" id="effects"></div><div class="note">AI가 계산한 예상치입니다.</div></div>
+    <div class="part" id="rootsPart"><h3><span class="k">01</span>문제의 뿌리 · 왜를 세 번 물으면</h3><div class="roots" id="roots"></div></div>
+    <div class="part mind" id="mind"><h3><span class="k">02</span>나를 이해하기 · 왜 자꾸 반복될까</h3><div class="loop" id="loop"></div><p id="psy"></p><div class="strength" id="strength"></div><h3>빠져나오는 마음 팁</h3><ul class="tips" id="tips"></ul></div>
+    <div class="part" id="quotesPart"><h3><span class="k">03</span>이 말이 뒷받침해요</h3><div class="quotes" id="quotes"></div></div>
+    <div class="part"><h3><span class="k">04</span>해결 로드맵</h3><div class="roadsum" id="roadSum"></div><ol class="road" id="todos"></ol></div>
+    <div class="part" id="risksPart"><h3><span class="k">05</span>막히면 이렇게</h3><div class="risks" id="risks"></div></div>
+    <div class="part"><h3><span class="k">06</span>기대효과</h3><div class="effects" id="effects"></div><div class="ba" id="ba"></div><div class="note">AI가 계산한 예상치입니다. 명언은 AI가 고른 것이라 출처를 한 번 더 확인해 주세요.</div></div>
+    <div class="cheer" id="cheer"></div>
   </section>
 
   <div class="row save" id="saveRow" hidden>
@@ -168,22 +226,43 @@ const EXAMPLE_TEXT = `클라이언트 수정 요청이 끝이 안 난다
 
 const EXAMPLE = {
   profile: EXAMPLE_PROFILE,
-  bottleneck: { title: "수정 횟수를 정하지 않고 일을 받음", why: "끝없는 수정이 하루를 잡아먹어서 포트폴리오도, 단가 올릴 협상도 못 하고 있습니다. 새 아이디어로 일을 넓히는 ENFP는 경계가 없으면 더 쉽게 흩어집니다." },
-  todos: [
-    { t: "다음 견적서에 '수정 2회 포함, 이후 회당 5만원' 한 줄 넣기", when: "오늘", mins: 10, fit: "말로 협상하는 것보다 문서 한 줄이 덜 부담스럽고 바로 효과가 납니다" },
-    { t: "진행 중인 일 중 수정 3회 넘은 1건에 남은 범위 메일 보내기", when: "내일", mins: 20, fit: "벌려둔 일 하나를 닫아야 새 일에 쓸 자리가 생깁니다" },
-    { t: "포트폴리오는 대표작 3개만 올린 한 페이지로 이번 주 마감", when: "이번 주", mins: 60, fit: "완벽한 사이트 대신 하루 1시간 안에 끝나는 크기로 줄였습니다" }
-  ],
-  mind: {
-    loop: ["수정 요청이 옴", "거절하면 일이 끊길까 불안", "일단 다 들어줌", "시간은 사라지고 단가는 그대로"],
-    why: "관계가 깨질까 하는 불안이 '추가 요청은 손해'라는 계산보다 먼저 움직이기 쉽습니다. 사람과 가능성에 끌리는 ENFP는 거절을 관계의 끝처럼 느껴서 경계를 긋는 순간을 미루게 됩니다.",
-    tips: ["거절은 관계를 끊는 게 아니라 '어디까지 해드릴 수 있는지' 알려주는 안내라고 바꿔 말해 보세요.", "수정 요청이 오면 바로 답하지 말고 '확인 후 30분 안에 답드릴게요'로 한 박자 쉬세요."]
+  bottleneck: {
+    title: "수정 횟수를 정하지 않고 일을 받음",
+    why: "끝없는 수정이 하루를 잡아먹어서 포트폴리오도, 단가 올릴 협상도 못 하고 있습니다. 수정에 시간이 새니 일을 더 많이 받아야 하고, 그래서 다시 수정에 묶이는 구조입니다. 새 가능성에 끌리는 ENFP는 경계가 없으면 더 쉽게 흩어집니다. 수정 기준 하나만 세워도 시간, 단가, 포트폴리오 문제가 같이 움직입니다.",
+    evidence: ["\"수정 요청이 끝이 안 난다\"는 시간이 새는 가장 큰 구멍입니다", "\"단가가 낮다\"는 수정 비용이 견적에 안 들어간 결과입니다", "\"포트폴리오 손도 못 댐\"은 남는 시간이 없다는 신호입니다"]
   },
+  roots: ["포트폴리오도 운동도 손을 못 댄다", "수정 요청에 하루 3~4시간이 사라진다", "수정 범위를 처음에 정하지 않는다"],
+  mind: {
+    loop: ["수정 요청이 옴", "거절하면 끊길까 불안", "일단 다 들어줌", "시간은 사라지고 단가는 그대로"],
+    why: "관계가 깨질까 하는 불안이 '추가 요청은 손해'라는 계산보다 먼저 움직이기 쉽습니다. 사람과 가능성에 끌리는 ENFP는 거절을 관계의 끝처럼 느끼기 쉽습니다. 그래서 경계를 긋는 순간을 자꾸 미루게 됩니다.",
+    strength: "ENFP의 친화력은 조건을 말할 때도 관계를 지켜 줍니다. 딱딱한 통보 대신 '더 잘해 드리려고 정한 기준'이라고 웃으며 말하면 오히려 신뢰가 쌓입니다.",
+    tips: ["거절은 관계를 끊는 게 아니라 '어디까지 해드릴 수 있는지' 알려주는 안내라고 바꿔 말해 보세요.", "수정 요청이 오면 바로 답하지 말고 '확인 후 30분 안에 답드릴게요'로 한 박자 쉬세요.", "수정 1회에 든 시간을 적어 두면 '이건 돈이 드는 일'이라는 감각이 생깁니다."]
+  },
+  quotes: [
+    { text: "전략의 본질은 무엇을 하지 않을지 선택하는 것이다.", who: "마이클 포터", apply: "모든 수정을 받는 대신 받을 범위를 먼저 정하는 게 전략입니다" },
+    { text: "호미로 막을 것을 가래로 막는다.", who: "한국 속담", apply: "견적서 한 줄이 나중의 수정 열 번을 막아 줍니다" }
+  ],
+  todos: [
+    { t: "다음 견적서에 '수정 2회 포함, 이후 회당 5만원' 한 줄 넣기", when: "오늘", mins: 10, how: "견적서 템플릿 맨 아래 '작업 조건'에 한 줄을 추가하세요. 문구는 '시안 확정 후 수정 2회 포함, 추가 수정은 회당 5만원'이면 충분합니다.", done: "템플릿 파일에 저장됨", fit: "말로 협상하는 것보다 문서 한 줄이 덜 부담스럽습니다" },
+    { t: "진행 중인 일 중 수정 3회 넘은 1건에 남은 범위 메일 보내기", when: "내일", mins: 20, how: "'지금까지 반영한 수정'과 '남은 1회'를 표로 정리해 보내세요. 마지막 줄에 '추가 수정은 별도 견적으로 안내드릴게요'를 넣습니다.", done: "메일 발송, 답장 받음", fit: "벌려둔 일 하나를 닫아야 새 일에 쓸 자리가 생깁니다" },
+    { t: "수정에 쓴 시간을 일주일 동안 기록하기", when: "이번 주", mins: 5, how: "휴대폰 메모에 '날짜, 고객, 수정 내용, 걸린 분'만 적으세요. 금요일에 합계를 내면 단가 협상의 숫자 근거가 됩니다.", done: "7일 기록과 합계", fit: "느낌 대신 숫자를 보면 ENFP도 거절이 쉬워집니다" },
+    { t: "포트폴리오는 대표작 3개만 올린 한 페이지로 마감", when: "2주 안", mins: 60, how: "가장 단가가 높았던 작업 3개만 고르세요. 작업마다 '문제, 해결, 결과' 세 줄만 쓰고 바로 공개합니다.", done: "링크를 견적서에 넣음", fit: "완벽한 사이트 대신 하루 1시간 안에 끝나는 크기로 줄였습니다" }
+  ],
+  risks: [
+    { if: "단골 고객이 조건에 서운해할 때", then: "기존 고객은 다음 프로젝트부터 적용한다고 말하고 이번 건은 그대로 진행하세요" },
+    { if: "추가 수정비를 말하기가 망설여질 때", then: "직접 말하지 말고 견적서 조항을 캡처해 '안내드린 기준대로'라고 보내세요" }
+  ],
   effects: [
-    { value: "주 6시간", label: "수정에 새던 시간 회수" },
-    { value: "+20%", label: "다음 견적 단가" },
-    { value: "7일 안", label: "포트폴리오 공개" }
-  ]
+    { value: "주 6시간", label: "수정에 새던 시간 회수", when: "2주 후", basis: "수정 1회 40분 × 주 9회가 절반으로" },
+    { value: "+20%", label: "다음 견적 단가", when: "다음 견적부터", basis: "추가 수정비와 대표작 3개로 협상 근거" },
+    { value: "7일 안", label: "포트폴리오 공개", when: "2주 안", basis: "되찾은 시간 중 1시간만 쓰면 충분" },
+    { value: "주 2회", label: "운동할 여유", when: "한 달 후", basis: "회수한 6시간 중 2시간을 운동에" }
+  ],
+  change: {
+    before: ["밤까지 수정 메일에 답함", "견적은 늘 예전 단가 그대로", "포트폴리오는 '언젠가'"],
+    after: ["수정은 정해진 2회만, 저녁은 비움", "조건이 적힌 견적서로 협상", "대표작 3개 링크를 견적서에"]
+  },
+  cheer: "일을 다 받아 온 건 그만큼 사람을 아끼는 마음이었어요. 이제 그 마음을 지키는 기준 하나만 세우면, 일도 관계도 오래 갑니다."
 };
 
 const MBTIS = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"];
@@ -206,17 +285,40 @@ FIELDS.forEach((k) => $(k).addEventListener("change", () => { try { localStorage
 
 function render(r, example) {
   current = r; isExample = example; if (!example) { $("result").hidden = false; $("saveRow").hidden = false; }
+  const L = (a) => (Array.isArray(a) ? a.filter(Boolean) : []);
   $("tag").textContent = example ? "예시" : new Date().toLocaleDateString("ko-KR");
   $("neckTitle").textContent = r.bottleneck.title;
   $("neckWhy").textContent = r.bottleneck.why;
+  $("evi").innerHTML = L(r.bottleneck.evidence).map((e) => `<li>${esc(e)}</li>`).join("");
   $("forWho").textContent = whoLine(r.profile || {}) ? `맞춤: ${whoLine(r.profile)}` : "";
-  $("todos").innerHTML = r.todos.map((t) => `<li><span class="sq" aria-hidden="true"></span><span><span class="tt">${esc(t.t)}</span><span class="meta">${esc(t.when)}${t.mins ? ` · ${t.mins}분` : ""}</span>${t.fit ? `<span class="fit">${esc(t.fit)}</span>` : ""}</span></li>`).join("");
+  const roots = L(r.roots).slice(0, 3), RL = ["겉으로 보이는 문제", "그 아래 이유", "진짜 원인"];
+  $("rootsPart").hidden = !roots.length;
+  $("roots").innerHTML = roots.map((x, i) => `<div class="${i === roots.length - 1 ? "deep" : ""}"><small>${RL[i] || ""}</small>${esc(x)}</div>`).join("<i>→</i>");
   const m = r.mind || {};
   $("mind").hidden = !(m.loop?.length || m.why);
-  $("loop").innerHTML = (m.loop || []).map((l) => `<span>${esc(l)}</span>`).join("<i>→</i>") + (m.loop?.length ? `<span class="back">↺ 다시 처음으로</span>` : "");
+  $("loop").innerHTML = L(m.loop).map((l) => `<span>${esc(l)}</span>`).join("<i>→</i>") + (m.loop?.length ? `<span class="back">↺ 다시 처음으로</span>` : "");
   $("psy").textContent = m.why || "";
-  $("tips").innerHTML = (m.tips || []).map((t) => `<li>${esc(t)}</li>`).join("");
-  $("effects").innerHTML = r.effects.map((e) => `<div><b>${esc(e.value)}</b><span>${esc(e.label)}</span></div>`).join("");
+  $("strength").hidden = !m.strength; $("strength").innerHTML = m.strength ? `<b>내 성향의 강점 쓰기</b>${esc(m.strength)}` : "";
+  $("tips").innerHTML = L(m.tips).map((t) => `<li>${esc(t)}</li>`).join("");
+  const qs = L(r.quotes).filter((q) => q.text).slice(0, 2);
+  $("quotesPart").hidden = !qs.length;
+  $("quotes").innerHTML = qs.map((q) => `<figure><blockquote>${esc(q.text)}</blockquote><figcaption>— ${esc(q.who)}</figcaption>${q.apply ? `<div class="ap">${esc(q.apply)}</div>` : ""}</figure>`).join("");
+  const mins = r.todos.reduce((a, t) => a + (+t.mins || 0), 0);
+  $("roadSum").textContent = `${r.todos.length}단계${mins ? ` · 모두 합쳐 약 ${mins >= 60 ? Math.floor(mins / 60) + "시간 " : ""}${mins % 60 ? (mins % 60) + "분" : ""}` : ""} · 1번은 오늘 바로`;
+  $("todos").innerHTML = r.todos.map((t, i) => `<li><span class="n">${i + 1}</span><div class="c">
+    <div class="hd"><span class="chip w">${esc(t.when || "")}</span>${t.mins ? `<span class="chip">${t.mins}분</span>` : ""}</div>
+    <div class="t">${esc(t.t)}</div>
+    ${t.how ? `<div class="how">${esc(t.how)}</div>` : ""}
+    ${t.done ? `<div class="done">✓ 완료 기준: ${esc(t.done)}</div>` : ""}
+    ${t.fit ? `<div class="fit">내게 맞는 이유 · ${esc(t.fit)}</div>` : ""}</div></li>`).join("");
+  const rk = L(r.risks).filter((x) => x.if).slice(0, 3);
+  $("risksPart").hidden = !rk.length;
+  $("risks").innerHTML = rk.map((x) => `<div><span><b>만약</b>${esc(x.if)}</span><i>→</i><span class="th"><b>이렇게</b>${esc(x.then)}</span></div>`).join("");
+  $("effects").innerHTML = r.effects.map((e) => `<div><b>${esc(e.value)}</b><span>${esc(e.label)}</span>${e.when ? `<span class="wh">${esc(e.when)}</span>` : ""}${e.basis ? `<span class="bs">근거 · ${esc(e.basis)}</span>` : ""}</div>`).join("");
+  const ch = r.change || {};
+  $("ba").hidden = !L(ch.before).length;
+  $("ba").innerHTML = L(ch.before).length ? `<div class="b4"><h4>지금</h4><ul>${L(ch.before).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div><div class="af"><h4>한 달 뒤</h4><ul>${L(ch.after).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+  $("cheer").hidden = !r.cheer; $("cheer").innerHTML = r.cheer ? `<b>제로가 전하는 한마디</b>${esc(r.cheer)}` : "";
   $("preview").hidden = true;
 }
 
@@ -271,11 +373,11 @@ async function solve(withAnswers) {
   const msg = $("qMsg");
   const qa = withAnswers ? questions.map((q, i) => ({ q: q.q, a: [answers[i].pick, answers[i].text.trim()].filter(Boolean).join(" / ") })).filter((x) => x.a) : [];
   $("solveBtn").disabled = $("skipBtn").disabled = true;
-  msg.className = "msg"; msg.textContent = "나에게 맞는 해결 방법을 정리하는 중이에요…";
+  msg.className = "msg"; msg.textContent = "나에게 맞는 해결 리포트를 쓰는 중이에요… (20초 정도)";
   try {
     const r = await call({ text: asked.text, profile: asked.profile, qa });
     if (!valid(r)) throw new Error("shape");
-    r.todos = r.todos.slice(0, 3); r.effects = r.effects.slice(0, 3); r.profile = asked.profile;
+    r.todos = r.todos.slice(0, 5); r.effects = r.effects.slice(0, 4); r.profile = asked.profile;
     render(r, false); msg.textContent = "";
     $("result").scrollIntoView({ behavior: reduce() });
   } catch (err) {
@@ -303,66 +405,82 @@ function wrap(ctx, text, maxW, maxLines) {
 async function drawCard() {
   const F = '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   try { await Promise.all([document.fonts.load(`700 40px ${F}`), document.fonts.load(`400 30px ${F}`), document.fonts.load(`500 30px ${F}`)]); } catch {}
-  // 1080×1920 (릴스·스토리 비율), 위에서 아래로 흐르는 한 장
-  const W = 1080, H = 1920, P = 72, IW = W - P * 2, c = document.createElement("canvas"); c.width = W; c.height = H;
+  // 1080×1920 (릴스·스토리 비율): 핵심 문제 → 뿌리 → 명언 → 로드맵 → 기대효과
+  const W = 1080, H = 1920, P = 64, IW = W - P * 2, c = document.createElement("canvas"); c.width = W; c.height = H;
   const x = c.getContext("2d"); x.textBaseline = "top";
-  const r = current, m = r.mind || {}, who = whoLine(r.profile || {});
+  const r = current, who = whoLine(r.profile || {}), L = (a) => (Array.isArray(a) ? a.filter(Boolean) : []);
   const text = (s, font, color, px, py, maxW, lines, lh) => { x.font = font; x.fillStyle = color; const ls = wrap(x, s, maxW, lines); ls.forEach((l, i) => x.fillText(l, px, py + i * lh)); return ls.length * lh; };
-  const label = (s, color, py) => { x.font = `700 26px ${F}`; x.fillStyle = color; x.fillText(s, P, py); return 46; };
-  // 병목
-  x.font = `700 56px ${F}`; const tl = wrap(x, r.bottleneck.title, IW, 2);
-  x.font = `400 28px ${F}`; const wl = wrap(x, r.bottleneck.why, IW, 3);
-  const topH = P + 52 + tl.length * 68 + 16 + wl.length * 40 + (who ? 54 : 0) + 48;
+  const label = (s, color, py) => { x.font = `700 25px ${F}`; x.fillStyle = color; x.fillText(s, P, py); return 44; };
+  const box = (bx, by, bw, bh, fill, rad = 16) => { x.fillStyle = fill; x.beginPath(); x.roundRect(bx, by, bw, bh, rad); x.fill(); };
+  // 핵심 문제
+  x.font = `700 54px ${F}`; const tl = wrap(x, r.bottleneck.title, IW, 2);
+  x.font = `400 26px ${F}`; const wl = wrap(x, r.bottleneck.why, IW, 4);
+  const topH = P + 50 + tl.length * 66 + 14 + wl.length * 38 + (who ? 50 : 0) + 40;
   x.fillStyle = "#24272c"; x.fillRect(0, 0, W, topH);
-  let y = P + label("먼저 풀 핵심 문제", "#f5d33f", P) + 6;
-  y += text(r.bottleneck.title, `700 56px ${F}`, "#f4f5f6", P, y, IW, 2, 68) + 16;
-  y += text(r.bottleneck.why, `400 28px ${F}`, "#b8bdc4", P, y, IW, 3, 40);
-  if (who) text("맞춤: " + who, `400 23px ${F}`, "#8a9099", P, y + 18, IW, 1, 30);
+  let y = P + label("먼저 풀 핵심 문제", "#f5d33f", P) + 4;
+  y += text(r.bottleneck.title, `700 54px ${F}`, "#f4f5f6", P, y, IW, 2, 66) + 14;
+  y += text(r.bottleneck.why, `400 26px ${F}`, "#b8bdc4", P, y, IW, 4, 38);
+  if (who) text("맞춤: " + who, `400 22px ${F}`, "#8a9099", P, y + 16, IW, 1, 30);
   x.fillStyle = "#f4f5f6"; x.fillRect(0, topH, W, H - topH);
-  y = topH + 44;
-  // 굴레
-  if (m.loop?.length) {
-    y += label("나를 이해하기 · 왜 반복될까", "#d9480f", y);
-    m.loop.slice(0, 4).forEach((l, i) => {
-      x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(P, y, IW, 58, 14); x.fill();
-      x.fillStyle = "#d9480f"; x.font = `700 24px ${F}`; x.fillText(String(i + 1), P + 22, y + 15);
-      text(l, `500 27px ${F}`, "#1f2328", P + 60, y + 13, IW - 90, 1, 34);
-      y += 58;
-      if (i < m.loop.length - 1) { x.fillStyle = "#d9480f"; x.font = `700 22px ${F}`; x.fillText("↓", P + 22, y + 2); y += 30; }
-    });
-    x.fillStyle = "#d9480f"; x.font = `500 22px ${F}`; x.fillText("↺ 그리고 다시 처음으로", P + 60, y + 8); y += 50;
+  y = topH + 36;
+  // 진짜 원인 한 줄
+  const roots = L(r.roots);
+  if (roots.length) {
+    box(P, y, IW, 64, "#ffffff");
+    x.fillStyle = "#d9480f"; x.font = `700 22px ${F}`; x.fillText("진짜 원인", P + 22, y + 20);
+    text(roots[roots.length - 1], `500 26px ${F}`, "#1f2328", P + 140, y + 17, IW - 165, 1, 32);
+    y += 84;
   }
-  if (m.why) { y += text(m.why, `400 26px ${F}`, "#3d434b", P, y, IW, 4, 38) + 22; }
-  if (m.tips?.length) {
-    y += label("빠져나오는 마음 팁", "#2b8a3e", y);
-    m.tips.slice(0, 2).forEach((t) => { x.fillStyle = "#2b8a3e"; x.font = `700 26px ${F}`; x.fillText("•", P + 4, y); y += text(t, `400 26px ${F}`, "#1f2328", P + 34, y, IW - 34, 2, 37) + 12; });
-    y += 18;
+  // 명언
+  const q = L(r.quotes).find((q) => q.text);
+  if (q) {
+    x.font = `700 30px ${F}`; const ql = wrap(x, q.text, IW - 80, 2);
+    const qh = 30 + ql.length * 42 + 40;
+    box(P, y, IW, qh, "#24272c");
+    x.fillStyle = "#f5d33f"; x.font = `700 60px ${F}`; x.fillText("“", P + 20, y + 6);
+    ql.forEach((l, i) => { x.fillStyle = "#f4f5f6"; x.font = `700 30px ${F}`; x.fillText(l, P + 60, y + 26 + i * 42); });
+    x.fillStyle = "#b8bdc4"; x.font = `400 22px ${F}`; x.fillText("— " + q.who, P + 60, y + 30 + ql.length * 42);
+    y += qh + 26;
   }
-  // 할 일
-  const effTop = H - 280;
-  y += label("해결 순서", "#5f6670", y);
-  r.todos.forEach((t, i) => {
-    x.font = `500 29px ${F}`; const ls = wrap(x, t.t, IW - 58, 2);
-    x.font = `400 22px ${F}`; const fl = t.fit ? wrap(x, t.fit, IW - 58, 1) : [];
-    if (y + ls.length * 40 + 30 + fl.length * 30 + 18 > effTop - 20) return;
-    x.strokeStyle = "#24272c"; x.lineWidth = 3; x.strokeRect(P, y + 2, 32, 32);
-    x.fillStyle = "#24272c"; x.font = `700 24px ${F}`; x.fillText(String(i + 1), P + 9, y + 6);
-    y += text(t.t, `500 29px ${F}`, "#1f2328", P + 58, y, IW - 58, 2, 40);
-    x.fillStyle = "#6b7480"; x.font = `400 22px ${F}`; x.fillText(`${t.when}${t.mins ? ` · ${t.mins}분` : ""}`, P + 58, y); y += 30;
-    fl.forEach((l) => { x.fillStyle = "#2b8a3e"; x.fillText(l, P + 58, y); y += 30; });
-    y += 18;
+  // 로드맵
+  const maxRoad = H - 420;
+  y += label("해결 로드맵", "#5f6670", y);
+  const steps = r.todos.slice(0, 5);
+  steps.forEach((t, i) => {
+    x.font = `400 22px ${F}`; const hl = t.how ? wrap(x, t.how, IW - 66, 2) : [];
+    const sh = 66 + hl.length * 30 + 20;
+    if (y + sh > maxRoad) return;
+    const first = i === 0;
+    if (i < steps.length - 1) { x.fillStyle = "#c9ced4"; x.fillRect(P + 23, y + 50, 3, sh - 52); }
+    x.fillStyle = first ? "#f5d33f" : "#24272c"; x.beginPath(); x.arc(P + 24, y + 24, 24, 0, Math.PI * 2); x.fill();
+    x.fillStyle = first ? "#24272c" : "#f5d33f"; x.font = `700 24px ${F}`; x.textAlign = "center"; x.fillText(String(i + 1), P + 24, y + 11); x.textAlign = "left";
+    x.font = `700 20px ${F}`; const wt = `${t.when || ""}${t.mins ? ` · ${t.mins}분` : ""}`; x.fillStyle = first ? "#b07d00" : "#6b7480"; x.fillText(wt, P + 66, y);
+    text(t.t, `700 28px ${F}`, "#1f2328", P + 66, y + 28, IW - 66, 1, 36);
+    hl.forEach((l, j) => { x.fillStyle = "#5f6670"; x.font = `400 22px ${F}`; x.fillText(l, P + 66, y + 68 + j * 30); });
+    y += sh;
   });
-  // 기대효과
-  const gap = 20, bw = (IW - gap * 2) / 3;
+  const effTop = y + 14;
+  // 기대효과 2×2
+  const gap = 16, bw = (IW - gap) / 2, bh = 112;
   label("기대효과", "#5f6670", effTop);
-  r.effects.slice(0, 3).forEach((e, i) => {
-    const bx = P + i * (bw + gap), by = effTop + 46;
-    x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(bx, by, bw, 132, 18); x.fill();
-    text(e.value, `700 34px ${F}`, "#2b8a3e", bx + 22, by + 22, bw - 40, 1, 40);
-    text(e.label, `400 22px ${F}`, "#5f6670", bx + 22, by + 72, bw - 40, 2, 28);
+  r.effects.slice(0, 4).forEach((e, i) => {
+    const bx = P + (i % 2) * (bw + gap), by = effTop + 44 + Math.floor(i / 2) * (bh + gap);
+    box(bx, by, bw, bh, "#ffffff", 18);
+    text(e.value, `700 34px ${F}`, "#2b8a3e", bx + 22, by + 18, bw - 40, 1, 40);
+    text(`${e.label}${e.when ? ` · ${e.when}` : ""}`, `400 22px ${F}`, "#5f6670", bx + 22, by + 66, bw - 40, 1, 28);
   });
+  y = effTop + 44 + Math.ceil(Math.min(4, r.effects.length) / 2) * (bh + gap) + 14;
+  // 남는 자리에 마지막 한마디
+  if (r.cheer) {
+    x.font = `500 26px ${F}`; const cl = wrap(x, r.cheer, IW - 48, 3); const chH = 70 + cl.length * 38;
+    if (y + chH <= H - 90) {
+      box(P, y, IW, chH, "#f5d33f");
+      x.fillStyle = "#24272c"; x.font = `700 21px ${F}`; x.fillText("제로가 전하는 한마디", P + 24, y + 22);
+      cl.forEach((l, i) => { x.font = `500 26px ${F}`; x.fillText(l, P + 24, y + 56 + i * 38); });
+    }
+  }
   x.fillStyle = "#8a9099"; x.font = `400 22px ${F}`;
-  x.fillText(`AI이현 · 문제 해결 도우미${isExample ? " · 예시" : " · " + new Date().toLocaleDateString("ko-KR")}`, P, H - 56);
+  x.fillText(`AI이현 · 문제 해결 도우미${isExample ? " · 예시" : " · " + new Date().toLocaleDateString("ko-KR")}`, P, H - 50);
   return c;
 }
 $("saveBtn").addEventListener("click", async () => {
