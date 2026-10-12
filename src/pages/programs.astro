@@ -36,7 +36,7 @@ const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 
               <h3>{p.name}</h3>
               {p.summary && <p>{p.summary}</p>}
               {p.href && (
-                <a class="open" href={p.href} target="_blank" rel="noopener">{p.private ? '열기 · 비공개, 이현님만 열립니다' : '열기'} →</a>
+                <a class="open" href={p.href} target="_blank" rel="noopener">{p.private ? '열기 · 비공개' : '열기 · Claude 로그인 후 사용'} →</a>
               )}
               {(p.from || p.note) && (
                 <div class="facts">
