@@ -55,6 +55,26 @@
         "배포",
         "무료호스팅"
       ]
+    },
+    {
+      "no": "004",
+      "slug": "004",
+      "file": "content/notes/004-site-claude-api.md",
+      "date": "2026-10-12",
+      "title": "내 사이트에 Claude API 연결해서 AI 기능 넣기",
+      "summary": "방문자가 로그인 없이 내 사이트에서 바로 AI를 쓰게 하기까지. 키 보관, 충전, 비용 계산, 막혔던 곳까지.",
+      "minutes": 57,
+      "steps": 6,
+      "tools": [
+        "Claude",
+        "Vercel"
+      ],
+      "tags": [
+        "Claude API",
+        "AI 기능",
+        "비용",
+        "배포"
+      ]
     }
   ]
 }
