@@ -5,10 +5,10 @@ import { programs, plan, stats } from '../lib/data.js';
 // 우선 할 것 중, 끝내면 프로그램이 나올 것
 const upcoming = plan.filter((i) => i.makesProgram && (i.status === 'todo' || i.status === 'doing')).sort((a, b) => (a.priority || 99) - (b.priority || 99));
 const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 중' };
-// 태그: 누구나 쓸 수 있는 것 / AI이현만 쓰는 것
-const TAGS = { public: '모두 사용', private: 'AI이현 전용' };
-const tagOf = (p) => (p.private ? 'private' : 'public');
-const FILTERS = [{ k: 'all', label: '전체' }, { k: 'public', label: TAGS.public }, { k: 'private', label: TAGS.private }];
+// 태그: 누구나 쓸 수 있는 것 / 곧 공개할 것(지금은 AI이현만 열림) / AI이현만 쓰는 것
+const TAGS = { public: '모두 사용', wait: '공개 대기', private: 'AI이현 전용' };
+const tagOf = (p) => (p.soon ? 'wait' : p.private ? 'private' : 'public');
+const FILTERS = [{ k: 'all', label: '전체' }, ...Object.entries(TAGS).map(([k, label]) => ({ k, label }))].filter((f) => f.k === 'all' || programs.some((p) => tagOf(p) === f.k));
 ---
 <Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
   <div slot="head" class="page-head">
@@ -39,22 +39,23 @@ const FILTERS = [{ k: 'all', label: '전체' }, { k: 'public', label: TAGS.publi
           ))}
         </div>
         <div class="note-list" id="programList">
-          {programs.map((p) => (
-            <div class="note-card" data-tag={tagOf(p)}>
+          {programs.map((p) => {
+            const Card = p.href ? 'a' : 'div';
+            return (
+            <Card class={`note-card${p.href ? ' linked' : ''}`} data-tag={tagOf(p)} {...(p.href ? { href: p.href, target: '_blank', rel: 'noopener' } : {})}>
               <div class="no">{STATUS[p.status] || ''} <span class={`ptag ${tagOf(p)}`}>{TAGS[tagOf(p)]}</span></div>
-              <h3>{p.name}</h3>
+              <h3>{p.name}{p.href && <span class="go" aria-hidden="true"> ↗</span>}</h3>
               {p.summary && <p>{p.summary}</p>}
               {p.private && !p.href && <div class="facts">직접 쓰는 중</div>}
-              {p.href && (
-                <a class="open" href={p.href} target="_blank" rel="noopener">{p.private ? '열기' : '열기 · Claude 로그인 후 사용'} →</a>
-              )}
+              {tagOf(p) === 'public' && <div class="facts">Claude 로그인 후 사용</div>}
               {(p.from || p.note) && (
                 <div class="facts">
                   {[p.from && `공부: ${plan.find((i) => i.id === p.from)?.title || p.from}`, p.note && `공부노트 #${p.note}`].filter(Boolean).join(' · ')}
                 </div>
               )}
-            </div>
-          ))}
+            </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -120,6 +121,21 @@ const FILTERS = [{ k: 'all', label: '전체' }, { k: 'public', label: TAGS.publi
     color: #fff;
   }
 
+  a.note-card.linked {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.note-card.linked:hover h3 .go {
+    color: var(--ink);
+  }
+
+  .note-card .go {
+    font-size: 0.85em;
+    opacity: 0.55;
+  }
+
   .ptag {
     display: inline-block;
     margin-left: 6px;
@@ -129,6 +145,13 @@ const FILTERS = [{ k: 'all', label: '전체' }, { k: 'public', label: TAGS.publi
     border-radius: 999px;
     background: var(--yellow);
     color: var(--charcoal);
+  }
+
+  .ptag.wait {
+    background: transparent;
+    color: var(--ink, inherit);
+    border: 1px dashed currentColor;
+    padding: 0 7px;
   }
 
   .ptag.private {
