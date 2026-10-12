@@ -32,6 +32,18 @@ const menu = [
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#24272B" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="AI이현" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <!-- 홈 화면 앱으로 켤 때만, 한 번: 제로가 커지고 윙크한 뒤 사라짐 -->
+    <script is:inline>
+      try {
+        var sa = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+        if (sa && !sessionStorage.getItem('zs') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('splash');
+      } catch (e) {}
+    </script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="AI이현" />
@@ -51,6 +63,19 @@ const menu = [
     />
   </head>
   <body>
+    <div id="zsplash" aria-hidden="true">
+      <svg viewBox="0 0 120 120"><rect x="86" y="4" width="14" height="24" rx="3" fill="#F2D53C" transform="rotate(35 93 16)"/><circle cx="60" cy="62" r="44" fill="#24272B" stroke="#F2D53C" stroke-width="16"/><ellipse cx="48" cy="58" rx="5.5" ry="8.5" fill="#F2D53C"/><ellipse class="wink" cx="72" cy="58" rx="5.5" ry="8.5" fill="#F2D53C"/><path d="M51 77 Q60 84 69 77" stroke="#F2D53C" stroke-width="4.5" fill="none" stroke-linecap="round"/></svg>
+    </div>
+    <script is:inline>
+      (function () {
+        var r = document.documentElement, el = document.getElementById('zsplash');
+        if (!r.classList.contains('splash')) return;
+        try { sessionStorage.setItem('zs', '1'); } catch (e) {}
+        var done = function () { r.classList.remove('splash'); };
+        el.addEventListener('animationend', function (e) { if (e.animationName === 'zs-out') done(); });
+        setTimeout(done, 2600);
+      })();
+    </script>
     <header class="top">
       <div class="wrap">
         <div class="top-bar">

@@ -644,3 +644,18 @@ main {
     border-radius: 0 0 2px 2px;
   }
 }
+
+/* 홈 화면 앱 시작: 제로가 커지고 → 윙크 → 사라짐 (벡터라 크게 해도 안 깨짐) */
+#zsplash { display: none; }
+html.splash { overflow: hidden; }
+html.splash #zsplash {
+  display: flex; position: fixed; inset: 0; z-index: 9999;
+  align-items: center; justify-content: center;
+  background: #24272B;
+  animation: zs-out 0.35s ease-in 1.75s forwards;
+}
+#zsplash svg { width: min(56vw, 240px); height: auto; animation: zs-grow 0.7s cubic-bezier(.2, 1.4, .4, 1) both; }
+#zsplash .wink { transform-box: fill-box; transform-origin: center; animation: zs-wink 0.45s ease-in-out 0.95s both; }
+@keyframes zs-grow { from { transform: scale(0.4); } to { transform: scale(1); } }
+@keyframes zs-wink { 0%, 100% { transform: scaleY(1); } 35%, 65% { transform: scaleY(0.12); } }
+@keyframes zs-out { to { opacity: 0; visibility: hidden; } }
