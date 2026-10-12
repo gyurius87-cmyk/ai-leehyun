@@ -70,7 +70,7 @@
               "what": "구조, 문구, 이미지 생성부터 구매 전환 점검까지 상세페이지 전체를 AI로 만들고, 상품 설명 템플릿으로 남깁니다.",
               "status": "todo",
               "yt": "AI 상세페이지 만들기",
-              "priority": 4
+              "priority": 2
             }
           ]
         },
@@ -144,7 +144,7 @@
               "what": "관리자 엑셀만 넣으면 매출, 주문, 정산, 손익이 상품별·기간별 그래프로 정리됩니다.",
               "yt": "AI 매출 대시보드 만들기",
               "status": "todo",
-              "priority": 5,
+              "priority": 2,
               "makesProgram": true
             }
           ]
@@ -242,8 +242,9 @@
               "title": "AI를 이용한 매매일지·매매 관리",
               "what": "매수·매도 이유와 결과를 기록하면 수익률과 실수 패턴이 자동으로 계산되고, 조건 알림과 리스크 점검을 받습니다. 자동 주문은 위험이 커서 뺐습니다.",
               "yt": "AI 주식 매매일지",
-              "status": "wait",
-              "makesProgram": true
+              "status": "todo",
+              "makesProgram": true,
+              "priority": 2
             }
           ]
         }
@@ -263,7 +264,7 @@
               "what": "글이나 사진 하나를 넣으면 채널마다 정해 둔 톤으로 캡션과 글이 나오게 합니다. 채널이 많을수록 시간이 크게 줄어듭니다.",
               "yt": "AI 원소스 멀티유즈 콘텐츠 자동화",
               "status": "todo",
-              "priority": 2,
+              "priority": 1,
               "makesProgram": true
             },
             {
@@ -284,7 +285,7 @@
               "what": "컷편집, 자막, 긴 영상을 쇼츠로 자르기까지 편집 시간을 줄입니다.",
               "status": "todo",
               "yt": "AI 영상 편집",
-              "priority": 3,
+              "priority": 2,
               "makesProgram": false
             },
             {
@@ -311,8 +312,9 @@
               "title": "AI를 이용한 공부 기록 자동화",
               "what": "AI와 나눈 대화를 넣으면 공부노트 초안과 공부한 것 기록이 사이트에 바로 올라갑니다.",
               "yt": "AI 기록 자동화 블로그",
-              "status": "wait",
-              "makesProgram": true
+              "status": "todo",
+              "makesProgram": true,
+              "priority": 2
             }
           ]
         }

@@ -12,7 +12,7 @@ const short = (ymd) => formatDate(ymd).slice(5);
     <div class="pi-top">
       {item.status === 'done' && <span class="badge done">끝냄</span>}
       {item.status === 'doing' && <span class="badge doing">하는 중</span>}
-      {item.status === 'todo' && <span class="badge doing">우선 {item.priority}</span>}
+      {item.status === 'todo' && <span class="badge doing">{item.priority}순위</span>}
       <span class="no">{item.area} › {item.group}</span>
       {item.makesProgram && item.status !== 'done' && <span class="badge ghost">프로그램이 나올 공부</span>}
     </div>

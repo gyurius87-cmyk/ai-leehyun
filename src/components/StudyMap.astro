@@ -12,7 +12,7 @@ const LABEL = { done: '끝냄', doing: '하는 중', wait: '대기' };
   <h2 class="section-title">전체 공부 지도 <span class="mono count">{total}</span></h2>
   <div class="zero-line note">
     <img src="/assets/zero/zero-found.svg" alt="" width="46" height="40" />
-    <span>이미 많은 사람이 AI로 실제로 하고 있는 일만 모았습니다. 체크는 끝낸 공부, 노란 칸은 우선 할 것, 빈 칸은 대기입니다. 유튜브 아이콘을 누르면 최근 4개월 영상이 조회수 높은 순으로 열립니다.</span>
+    <span>이미 많은 사람이 AI로 실제로 하고 있는 일만 모았습니다. 체크는 끝낸 공부, 노란 칸은 우선 할 것(1순위·2순위), 빈 칸은 대기입니다. 유튜브 아이콘을 누르면 최근 4개월 영상이 조회수 높은 순으로 열립니다.</span>
   </div>
 
   <div class="overview">
@@ -43,14 +43,14 @@ const LABEL = { done: '끝냄', doing: '하는 중', wait: '대기' };
             <ul>
               {g.items.map((it) => (
                 <li class={it.status}>
-                  <span class="cb" aria-label={it.status === 'todo' ? `우선 ${it.priority}` : LABEL[it.status]}>
+                  <span class="cb" aria-label={it.status === 'todo' ? `${it.priority}순위` : LABEL[it.status]}>
                     {it.status === 'done' && <Icon name="check" />}
                     {it.status === 'todo' && <span class="mono">{it.priority}</span>}
                   </span>
                   <div class="it">
                     <div class="it-title">
                       {it.title}
-                      {it.status === 'todo' && <span class="badge">우선 {it.priority}</span>}
+                      {it.status === 'todo' && <span class="badge">{it.priority}순위</span>}
                       {it.status === 'doing' && <span class="badge">하는 중</span>}
                       {it.status === 'done' && <span class="badge">끝냄</span>}
                     </div>
