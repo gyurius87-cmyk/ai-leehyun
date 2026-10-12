@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="/favicon.svg">
+<meta name="description" content="걱정을 쏟아내면 AI가 지금 가장 먼저 풀어야 할 병목 하나와 할 일, 기대효과를 한 장으로 정리합니다.">
+<title>생각 병목 찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 레이아웃: 걱정 쓰기 → 결과 한 장(병목 · 할 일 · 기대효과) → 이미지로 저장. 한 줄 흐름. */
+:root {
+  --bg: #eef0f2; --panel: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d5d9de;
+  --charcoal: #24272c; --on-charcoal: #f4f5f6; --sub-charcoal: #b8bdc4; --yellow: #f5d33f; --yellow-ink: #24272c;
+  --block: #d9480f; --good: #2b8a3e;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #a2a9b1; --line: #343840; --charcoal: #0f1113; --block: #ff7a45; --good: #51cf66; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #a2a9b1; --line: #343840; --charcoal: #0f1113; --block: #ff7a45; --good: #51cf66; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 0 64px; }
+header.top { background: var(--charcoal); color: var(--on-charcoal); padding-block: 24px 60px; }
+header.top .wrap { padding-block: 0; }
+.brand { font-family: var(--mono); font-size: 13px; }
+.brand b { color: var(--yellow); font-weight: 500; }
+h1 { font-size: clamp(26px, 6vw, 34px); margin: 10px 0 4px; }
+.lead { color: var(--sub-charcoal); margin: 0; }
+.steps3 { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: var(--sub-charcoal); }
+.steps3 span { border: 1px solid #454a52; border-radius: 999px; padding: 3px 10px; }
+.box { background: var(--panel); border-radius: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.08); padding: 18px; display: grid; gap: 10px; }
+.input { margin-top: -40px; }
+.input label { font-weight: 700; }
+.input label small { color: var(--muted); font-weight: 400; }
+.who { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.who .f { display: grid; gap: 4px; min-width: 0; }
+.who label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.who input, .who select { width: 100%; min-width: 0; font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; }
+.who input:focus-visible, .who select:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+@media (max-width: 600px) { .who { grid-template-columns: 1fr 1fr; } }
+.fit { display: block; font-size: 12px; color: var(--good); }
+.loop { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.loop span { background: var(--bg); border-radius: 999px; padding: 4px 10px; }
+.loop i { color: var(--block); font-style: normal; font-weight: 700; }
+.loop .back { color: var(--block); font-size: 12px; }
+.mind p { margin: 0; }
+.tips { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.tips li::marker { color: var(--good); }
+.forwho { font-size: 12px; color: var(--sub-charcoal); }
+textarea { width: 100%; min-height: 130px; resize: vertical; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer; background: var(--yellow); color: var(--yellow-ink); }
+button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+button:disabled { opacity: .55; cursor: progress; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.msg { font-size: 13px; color: var(--muted); }
+.msg.err { color: var(--block); }
+.result { margin-top: 22px; padding: 0; overflow: hidden; }
+.neck { background: var(--charcoal); color: var(--on-charcoal); padding: 20px; display: grid; gap: 6px; }
+.eyebrow { font-size: 13px; font-weight: 700; color: var(--yellow); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.eyebrow .ex { color: var(--sub-charcoal); }
+.neck h2 { margin: 0; font-size: 24px; text-wrap: balance; }
+.neck p { margin: 0; color: var(--sub-charcoal); }
+.part { padding: 18px 20px; display: grid; gap: 10px; }
+.part + .part { border-top: 1px solid var(--line); }
+.part h3 { margin: 0; font-size: 15px; color: var(--muted); }
+.todos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.todos li { display: flex; gap: 10px; align-items: flex-start; }
+.todos .sq { flex: none; width: 18px; height: 18px; border: 2px solid var(--ink); border-radius: 4px; margin-top: 3px; }
+.todos .tt { font-weight: 500; }
+.todos .meta { display: block; font-size: 12px; color: var(--muted); }
+.effects { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.effects div { background: var(--bg); border-radius: 10px; padding: 12px; display: grid; gap: 2px; min-width: 0; }
+.effects b { font-size: 20px; color: var(--good); font-weight: 700; overflow-wrap: anywhere; }
+.effects span { font-size: 13px; color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); }
+.save { margin-top: 14px; }
+.preview { margin-top: 14px; display: grid; gap: 6px; }
+.preview img { width: 100%; max-width: 360px; border-radius: 10px; border: 1px solid var(--line); }
+@media (max-width: 480px) { .effects { grid-template-columns: 1fr; } }
+.loginLinks { display: inline-flex; gap: 8px; align-items: center; margin-left: 6px; flex-wrap: wrap; }
+.loginLinks a { color: var(--ink); font-weight: 700; background: var(--yellow, #f5d33f); color: #24272c; padding: 4px 10px; border-radius: 999px; text-decoration: none; }
+.loginLinks button { padding: 4px 10px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="/programs" style="color:inherit;text-decoration:none">AI<b>이현</b> · 프로그램</a>
+  <h1>생각 병목 찾기</h1>
+  <p class="lead">걱정을 쏟아내면 AI가 지금 가장 먼저 풀어야 할 병목 하나와 할 일, 기대효과를 한 장으로 정리합니다.</p>
+  <div class="steps3"><span>1 걱정 쓰기</span><span>2 병목 · 할 일 · 기대효과</span><span>3 한 장 이미지로 저장</span></div>
+</div></header>
+
+<main class="wrap">
+  <form class="box input" id="form">
+    <div class="who">
+      <div class="f"><label for="job">직업</label><input id="job" placeholder="예) 프리랜서 디자이너" autocomplete="organization-title"></div>
+      <div class="f"><label for="mbti">MBTI</label><select id="mbti"><option value="">모름</option></select></div>
+      <div class="f"><label for="spare">하루 여유 시간</label><select id="spare"><option value="">선택 안 함</option><option>30분 이하</option><option>1시간 정도</option><option>2시간 이상</option></select></div>
+      <div class="f"><label for="stuck">나는 주로</label><select id="stuck"><option value="">선택 안 함</option><option>시작을 미룬다</option><option>일을 너무 많이 벌린다</option><option>끝까지 마무리를 못 한다</option><option>결정을 못 하고 고민만 한다</option><option>남에게 못 맡기고 혼자 다 한다</option></select></div>
+    </div>
+    <label for="worry">요즘 걱정거리 <small>· 생각나는 대로, 한 줄에 하나</small></label>
+    <textarea id="worry" placeholder="예) 할 일이 너무 많아서 뭐부터 할지 모르겠다&#10;운동을 계속 미루고 있다&#10;이메일 답장이 쌓여 있다"></textarea>
+    <div class="row">
+      <button type="submit" id="goBtn">병목 찾기</button>
+      <button type="button" class="ghost" id="exampleBtn">예시 넣기</button>
+      <span class="msg" id="msg"></span>
+    </div>
+  </form>
+
+  <section class="box result" id="result" aria-live="polite" hidden>
+    <div class="neck">
+      <div class="eyebrow"><span>지금 풀어야 할 병목</span><span class="ex" id="tag">예시</span></div>
+      <h2 id="neckTitle"></h2>
+      <p id="neckWhy"></p>
+      <span class="forwho" id="forWho"></span>
+    </div>
+    <div class="part mind" id="mind"><h3>왜 이 굴레에 빠질까</h3><div class="loop" id="loop"></div><p id="psy"></p><h3>빠져나오는 마음 팁</h3><ul class="tips" id="tips"></ul></div>
+    <div class="part"><h3>할 일</h3><ol class="todos" id="todos"></ol></div>
+    <div class="part"><h3>기대효과</h3><div class="effects" id="effects"></div><div class="note">AI가 계산한 예상치입니다.</div></div>
+  </section>
+
+  <div class="row save" id="saveRow" hidden>
+    <button type="button" id="saveBtn">한 장 이미지로 저장</button>
+    <span class="msg" id="saveMsg"></span>
+  </div>
+  <div class="preview" id="preview" hidden><span class="msg">이미지를 길게 누르거나 오른쪽 클릭해서 저장할 수도 있어요.</span><img id="previewImg" alt="생각 병목 찾기 한 장 이미지"></div>
+</main>
+
+<script>
+const EXAMPLE_PROFILE = { job: "프리랜서 디자이너", mbti: "ENFP", spare: "1시간 정도", stuck: "일을 너무 많이 벌린다" };
+const EXAMPLE_TEXT = `클라이언트 수정 요청이 끝이 안 난다
+포트폴리오 사이트 몇 달째 손도 못 댐
+들어오는 일은 다 받는데 단가가 낮다
+운동을 계속 미루고 있다`;
+
+const EXAMPLE = {
+  profile: EXAMPLE_PROFILE,
+  bottleneck: { title: "수정 횟수를 정하지 않고 일을 받음", why: "끝없는 수정이 하루를 잡아먹어서 포트폴리오도, 단가 올릴 협상도 못 하고 있습니다. 새 아이디어로 일을 넓히는 ENFP는 경계가 없으면 더 쉽게 흩어집니다." },
+  todos: [
+    { t: "다음 견적서에 '수정 2회 포함, 이후 회당 5만원' 한 줄 넣기", when: "오늘", mins: 10, fit: "말로 협상하는 것보다 문서 한 줄이 덜 부담스럽고 바로 효과가 납니다" },
+    { t: "진행 중인 일 중 수정 3회 넘은 1건에 남은 범위 메일 보내기", when: "내일", mins: 20, fit: "벌려둔 일 하나를 닫아야 새 일에 쓸 자리가 생깁니다" },
+    { t: "포트폴리오는 대표작 3개만 올린 한 페이지로 이번 주 마감", when: "이번 주", mins: 60, fit: "완벽한 사이트 대신 하루 1시간 안에 끝나는 크기로 줄였습니다" }
+  ],
+  mind: {
+    loop: ["수정 요청이 옴", "거절하면 일이 끊길까 불안", "일단 다 들어줌", "시간은 사라지고 단가는 그대로"],
+    why: "관계가 깨질까 하는 불안이 '추가 요청은 손해'라는 계산보다 먼저 움직이기 쉽습니다. 사람과 가능성에 끌리는 ENFP는 거절을 관계의 끝처럼 느껴서 경계를 긋는 순간을 미루게 됩니다.",
+    tips: ["거절은 관계를 끊는 게 아니라 '어디까지 해드릴 수 있는지' 알려주는 안내라고 바꿔 말해 보세요.", "수정 요청이 오면 바로 답하지 말고 '확인 후 30분 안에 답드릴게요'로 한 박자 쉬세요."]
+  },
+  effects: [
+    { value: "주 6시간", label: "수정에 새던 시간 회수" },
+    { value: "+20%", label: "다음 견적 단가" },
+    { value: "7일 안", label: "포트폴리오 공개" }
+  ]
+};
+
+const MBTIS = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"];
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+$("mbti").innerHTML += MBTIS.map((m) => `<option>${m}</option>`).join("");
+let current = EXAMPLE, isExample = true;
+const FIELDS = ["job", "mbti", "spare", "stuck"];
+const profile = () => Object.fromEntries(FIELDS.map((k) => [k, $(k).value.trim()]));
+const whoLine = (p) => [p.job, p.mbti, p.spare && `여유 ${p.spare}`, p.stuck].filter(Boolean).join(" · ");
+
+// 내 정보는 이 브라우저에만 기억 (다음에 다시 안 적도록)
+try { const saved = JSON.parse(localStorage.getItem("bn-profile") || "null"); if (saved) FIELDS.forEach((k) => { if (saved[k]) $(k).value = saved[k]; }); } catch {}
+FIELDS.forEach((k) => $(k).addEventListener("change", () => { try { localStorage.setItem("bn-profile", JSON.stringify(profile())); } catch {} }));
+
+function render(r, example) {
+  current = r; isExample = example; if (!example) { $("result").hidden = false; $("saveRow").hidden = false; }
+  $("tag").textContent = example ? "예시" : new Date().toLocaleDateString("ko-KR");
+  $("neckTitle").textContent = r.bottleneck.title;
+  $("neckWhy").textContent = r.bottleneck.why;
+  $("forWho").textContent = whoLine(r.profile || {}) ? `맞춤: ${whoLine(r.profile)}` : "";
+  $("todos").innerHTML = r.todos.map((t) => `<li><span class="sq" aria-hidden="true"></span><span><span class="tt">${esc(t.t)}</span><span class="meta">${esc(t.when)}${t.mins ? ` · ${t.mins}분` : ""}</span>${t.fit ? `<span class="fit">${esc(t.fit)}</span>` : ""}</span></li>`).join("");
+  const m = r.mind || {};
+  $("mind").hidden = !(m.loop?.length || m.why);
+  $("loop").innerHTML = (m.loop || []).map((l) => `<span>${esc(l)}</span>`).join("<i>→</i>") + (m.loop?.length ? `<span class="back">↺ 다시 처음으로</span>` : "");
+  $("psy").textContent = m.why || "";
+  $("tips").innerHTML = (m.tips || []).map((t) => `<li>${esc(t)}</li>`).join("");
+  $("effects").innerHTML = r.effects.map((e) => `<div><b>${esc(e.value)}</b><span>${esc(e.label)}</span></div>`).join("");
+  $("preview").hidden = true;
+}
+
+const valid = (r) => r && r.bottleneck?.title && Array.isArray(r.todos) && r.todos.length && Array.isArray(r.effects) && r.effects.length;
+
+$("exampleBtn").addEventListener("click", () => { FIELDS.forEach((k) => ($(k).value = EXAMPLE_PROFILE[k])); $("worry").value = EXAMPLE_TEXT; $("worry").focus(); });
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("worry").value.trim(), msg = $("msg"), p = profile();
+  if (!text) { msg.className = "msg err"; msg.textContent = "걱정거리를 한 줄 이상 적어 주세요."; return; }
+  $("goBtn").disabled = true;
+  msg.className = "msg"; msg.textContent = "이 사람에게 맞는 병목을 찾는 중이에요…";
+  try {
+    const res = await fetch("/api/bottleneck", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, profile: p }) });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok) throw { code: r.error || "server" };
+    if (!valid(r)) throw new Error("shape");
+    r.todos = r.todos.slice(0, 3); r.effects = r.effects.slice(0, 3); r.profile = p;
+    render(r, false); msg.textContent = "";
+    $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err?.code === "limit" ? "오늘 사용 횟수를 다 썼어요. 내일 다시 써 주세요." : err?.code === "busy" ? "사람이 많아요. 잠시 뒤에 다시 눌러 주세요." : err?.code === "no_key" || err?.code === "api" ? "지금은 준비 중이에요. 조금 뒤에 다시 와 주세요." : "병목을 찾지 못했어요. 다시 한 번 눌러 주세요.";
+  } finally { $("goBtn").disabled = false; }
+});
+
+// 한 장 이미지
+function wrap(ctx, text, maxW, maxLines) {
+  const words = String(text).split(/(\s+)/), lines = []; let line = "";
+  const push = (l) => lines.push(l.trim());
+  for (const w of words) {
+    if (ctx.measureText(line + w).width <= maxW) { line += w; continue; }
+    if (line.trim()) { push(line); line = ""; }
+    let piece = w.trimStart();
+    while (ctx.measureText(piece).width > maxW) { let i = piece.length; while (i > 1 && ctx.measureText(piece.slice(0, i)).width > maxW) i--; push(piece.slice(0, i)); piece = piece.slice(i); }
+    line = piece;
+  }
+  if (line.trim()) push(line);
+  if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (l && ctx.measureText(l + "…").width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + "…"; }
+  return lines;
+}
+async function drawCard() {
+  const F = '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  try { await Promise.all([document.fonts.load(`700 40px ${F}`), document.fonts.load(`400 30px ${F}`), document.fonts.load(`500 30px ${F}`)]); } catch {}
+  // 1080×1920 (릴스·스토리 비율), 위에서 아래로 흐르는 한 장
+  const W = 1080, H = 1920, P = 72, IW = W - P * 2, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"); x.textBaseline = "top";
+  const r = current, m = r.mind || {}, who = whoLine(r.profile || {});
+  const text = (s, font, color, px, py, maxW, lines, lh) => { x.font = font; x.fillStyle = color; const ls = wrap(x, s, maxW, lines); ls.forEach((l, i) => x.fillText(l, px, py + i * lh)); return ls.length * lh; };
+  const label = (s, color, py) => { x.font = `700 26px ${F}`; x.fillStyle = color; x.fillText(s, P, py); return 46; };
+  // 병목
+  x.font = `700 56px ${F}`; const tl = wrap(x, r.bottleneck.title, IW, 2);
+  x.font = `400 28px ${F}`; const wl = wrap(x, r.bottleneck.why, IW, 3);
+  const topH = P + 52 + tl.length * 68 + 16 + wl.length * 40 + (who ? 54 : 0) + 48;
+  x.fillStyle = "#24272c"; x.fillRect(0, 0, W, topH);
+  let y = P + label("지금 풀어야 할 병목", "#f5d33f", P) + 6;
+  y += text(r.bottleneck.title, `700 56px ${F}`, "#f4f5f6", P, y, IW, 2, 68) + 16;
+  y += text(r.bottleneck.why, `400 28px ${F}`, "#b8bdc4", P, y, IW, 3, 40);
+  if (who) text("맞춤: " + who, `400 23px ${F}`, "#8a9099", P, y + 18, IW, 1, 30);
+  x.fillStyle = "#f4f5f6"; x.fillRect(0, topH, W, H - topH);
+  y = topH + 44;
+  // 굴레
+  if (m.loop?.length) {
+    y += label("왜 이 굴레에 빠질까", "#d9480f", y);
+    m.loop.slice(0, 4).forEach((l, i) => {
+      x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(P, y, IW, 58, 14); x.fill();
+      x.fillStyle = "#d9480f"; x.font = `700 24px ${F}`; x.fillText(String(i + 1), P + 22, y + 15);
+      text(l, `500 27px ${F}`, "#1f2328", P + 60, y + 13, IW - 90, 1, 34);
+      y += 58;
+      if (i < m.loop.length - 1) { x.fillStyle = "#d9480f"; x.font = `700 22px ${F}`; x.fillText("↓", P + 22, y + 2); y += 30; }
+    });
+    x.fillStyle = "#d9480f"; x.font = `500 22px ${F}`; x.fillText("↺ 그리고 다시 처음으로", P + 60, y + 8); y += 50;
+  }
+  if (m.why) { y += text(m.why, `400 26px ${F}`, "#3d434b", P, y, IW, 4, 38) + 22; }
+  if (m.tips?.length) {
+    y += label("빠져나오는 마음 팁", "#2b8a3e", y);
+    m.tips.slice(0, 2).forEach((t) => { x.fillStyle = "#2b8a3e"; x.font = `700 26px ${F}`; x.fillText("•", P + 4, y); y += text(t, `400 26px ${F}`, "#1f2328", P + 34, y, IW - 34, 2, 37) + 12; });
+    y += 18;
+  }
+  // 할 일
+  const effTop = H - 280;
+  y += label("할 일", "#5f6670", y);
+  r.todos.forEach((t, i) => {
+    x.font = `500 29px ${F}`; const ls = wrap(x, t.t, IW - 58, 2);
+    x.font = `400 22px ${F}`; const fl = t.fit ? wrap(x, t.fit, IW - 58, 1) : [];
+    if (y + ls.length * 40 + 30 + fl.length * 30 + 18 > effTop - 20) return;
+    x.strokeStyle = "#24272c"; x.lineWidth = 3; x.strokeRect(P, y + 2, 32, 32);
+    x.fillStyle = "#24272c"; x.font = `700 24px ${F}`; x.fillText(String(i + 1), P + 9, y + 6);
+    y += text(t.t, `500 29px ${F}`, "#1f2328", P + 58, y, IW - 58, 2, 40);
+    x.fillStyle = "#6b7480"; x.font = `400 22px ${F}`; x.fillText(`${t.when}${t.mins ? ` · ${t.mins}분` : ""}`, P + 58, y); y += 30;
+    fl.forEach((l) => { x.fillStyle = "#2b8a3e"; x.fillText(l, P + 58, y); y += 30; });
+    y += 18;
+  });
+  // 기대효과
+  const gap = 20, bw = (IW - gap * 2) / 3;
+  label("기대효과", "#5f6670", effTop);
+  r.effects.slice(0, 3).forEach((e, i) => {
+    const bx = P + i * (bw + gap), by = effTop + 46;
+    x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(bx, by, bw, 132, 18); x.fill();
+    text(e.value, `700 34px ${F}`, "#2b8a3e", bx + 22, by + 22, bw - 40, 1, 40);
+    text(e.label, `400 22px ${F}`, "#5f6670", bx + 22, by + 72, bw - 40, 2, 28);
+  });
+  x.fillStyle = "#8a9099"; x.font = `400 22px ${F}`;
+  x.fillText(`AI이현 · 생각 병목 찾기${isExample ? " · 예시" : " · " + new Date().toLocaleDateString("ko-KR")}`, P, H - 56);
+  return c;
+}
+$("saveBtn").addEventListener("click", async () => {
+  const m = $("saveMsg"); m.textContent = "이미지를 만드는 중…";
+  try {
+    const c = await drawCard();
+    const blob = await new Promise((res) => c.toBlob(res, "image/png"));
+    $("previewImg").src = URL.createObjectURL(blob); $("preview").hidden = false;
+    const d = new Date(), name = `생각병목찾기-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.png`;
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    m.textContent = "저장했어요. 안 받아졌다면 아래 이미지를 길게 눌러 저장해 주세요.";
+  } catch (err) {
+    m.textContent = err?.code === "declined" ? "저장을 취소했어요. 아래 이미지를 길게 눌러 저장할 수도 있어요." : "바로 저장은 안 됐어요. 아래 이미지를 길게 눌러 저장해 주세요.";
+  }
+});
+
+render(EXAMPLE, true); // 예시는 그려두되 숨김 (처음엔 입력만 보이게)
+// AI와 저장 기능은 따로 붙임 (하나가 늦어도 다른 하나를 기다리지 않음)
+</script>
+</body>
+</html>
