@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import { programs, plan, stats } from '../lib/data.js';
 
 // 우선 할 것 중, 끝내면 프로그램이 나올 것
-const upcoming = plan.filter((i) => i.makesProgram && (i.status === 'todo' || i.status === 'doing'));
+const upcoming = plan.filter((i) => i.makesProgram && (i.status === 'todo' || i.status === 'doing')).sort((a, b) => (a.priority || 99) - (b.priority || 99));
 const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 중' };
 ---
 <Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
