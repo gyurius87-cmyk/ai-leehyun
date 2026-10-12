@@ -35,6 +35,9 @@ const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 
               <div class="no">{STATUS[p.status] || ''}</div>
               <h3>{p.name}</h3>
               {p.summary && <p>{p.summary}</p>}
+              {p.href && (
+                <a class="open" href={p.href} target="_blank" rel="noopener">{p.private ? '열기 · 비공개, 이현님만 열립니다' : '열기'} →</a>
+              )}
               {(p.from || p.note) && (
                 <div class="facts">
                   {[p.from && `공부: ${plan.find((i) => i.id === p.from)?.title || p.from}`, p.note && `공부노트 #${p.note}`].filter(Boolean).join(' · ')}
@@ -64,6 +67,16 @@ const STATUS = { using: '쓰는 중', making: '만드는 중', resting: '쉬는 
 </Base>
 
 <style>
+  .open {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink, inherit);
+    box-shadow: inset 0 -0.4em 0 var(--yellow);
+    text-decoration: none;
+  }
+
   .soon {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
