@@ -11,9 +11,9 @@
     },
     {
       "id": "mindmap",
-      "name": "AI이현의 병목지도",
+      "name": "AI이현의 프로젝트 플로우",
       "status": "using",
-      "summary": "사업·SNS → 번호 붙은 프로젝트 → 할 일을 마인드맵처럼 펼쳐, 진행·막힘·지금 병목을 한눈에 봅니다. 생각을 채팅으로 쏟아내면 AI가 지도에 정리합니다.",
+      "summary": "사업·SNS → 번호 붙은 프로젝트 → 할 일을 마인드맵처럼 펼쳐, 진행·막힘·지금 병목을 한눈에 보고, 진행 중인 일은 스톱워치로 시간을 잽니다. 생각을 채팅으로 쏟아내면 AI가 지도에 정리합니다.",
       "start": "2026-10-12",
       "private": true,
       "href": "https://claude.ai/artifact/KgWepoNBK8py7jfr8tJG2M"

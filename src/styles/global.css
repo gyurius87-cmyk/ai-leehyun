@@ -298,6 +298,18 @@ main {
   margin-top: 6px;
 }
 
+.day-label .studied {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--charcoal);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .day-items {
   list-style: none;
   margin: 0;
@@ -533,6 +545,11 @@ main {
 
   .day-label .d {
     font-size: 22px;
+  }
+
+  .day-label .studied {
+    margin: 0 0 0 auto;
+    font-size: 12px;
   }
 
   .day-label .date {

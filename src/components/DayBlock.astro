@@ -1,11 +1,14 @@
 ---
 import { formatDate } from '../lib/data.js';
 const { day } = Astro.props;
+const h = Math.floor((day.minutes || 0) / 60), m = (day.minutes || 0) % 60;
+const studied = day.minutes ? (h ? `${h}시간` : '') + (m ? `${h ? ' ' : ''}${m}분` : '') : '';
 ---
 <article class="day-block">
   <div class="day-label">
     <div class="d">D{day.day}</div>
     <div class="date">{formatDate(day.date)} ({day.weekday})</div>
+    {studied && <div class="studied" title="그날 기록 시각으로 잰 공부 시간">{studied} 공부</div>}
   </div>
   <ul class="day-items">
     {day.items.map((item) => (
