@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<title>SNS 통합 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 한 화면: 숫자 카드 → 채널 → 한 줄 입력 → 흐름 보드 → 캘린더 → 댓글 → 분석·추천 */
+:root {
+  --bg: #eef0f2; --panel: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d5d9de; --grid: #e7eaed;
+  --charcoal: #24272c; --on-charcoal: #f4f5f6; --yellow: #f5d33f; --bar: #3d434b; --good: #2b8a3e; --bad: #d9480f;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #9aa1aa; --line: #343840; --grid: #2b2f35; --bar: #aeb5be; --good: #51b768; --bad: #ff7a45;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.top { background: var(--charcoal); color: var(--on-charcoal); padding: 20px 0 54px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+.brand { color: inherit; text-decoration: none; font-family: var(--mono); font-size: 13px; }
+.brand b { color: var(--yellow); font-weight: 500; }
+h1 { margin: 6px 0 0; font-size: 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sync { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 999px; background: #3a3f46; color: #c9ced4; }
+.sync.on { background: var(--yellow); color: var(--charcoal); }
+main { margin-top: -36px; display: grid; gap: 14px; padding-bottom: 60px; }
+.box { background: var(--panel); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); min-width: 0; }
+h2 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+h2 span, .note { font-size: 12px; font-weight: 400; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tile { background: var(--panel); border-radius: 14px; padding: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1.2; margin-top: 2px; }
+.tile .s { font-size: 12px; color: var(--muted); }
+.tile.hot { background: var(--charcoal); color: var(--on-charcoal); }
+.tile.hot .k, .tile.hot .s { color: #b8bdc4; }
+.tile.hot .v { color: var(--yellow); }
+input, button, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 7px 10px; min-width: 0; }
+button { border: 0; border-radius: 10px; padding: 8px 14px; background: var(--yellow); color: #24272c; font-weight: 700; cursor: pointer; }
+button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+button.mini { padding: 3px 9px; font-size: 12px; border-radius: 8px; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.msg { font-size: 13px; color: var(--bad); }
+.gate { max-width: 460px; }
+.gate form { display: flex; gap: 8px; margin-top: 10px; }
+.gate input { flex: 1; }
+/* 채널 */
+.chans { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.chan { flex: none; display: grid; gap: 2px; text-align: left; background: var(--bg); color: var(--ink); border: 2px solid transparent; border-radius: 12px; padding: 8px 12px; font-weight: 500; min-width: 120px; }
+.chan b { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.chan small { font-size: 11px; color: var(--muted); }
+.chan small.late { color: var(--bad); font-weight: 700; }
+.chan[aria-pressed="true"] { border-color: var(--ink); background: var(--panel); }
+.chan.add { place-content: center; color: var(--muted); border: 1px dashed var(--line); background: transparent; min-width: 90px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; background: var(--c, #999); }
+.cedit { margin-left: auto; opacity: .5; font-size: 12px; padding: 0 2px; }
+.cedit:hover { opacity: 1; }
+/* 한 줄 입력 */
+.quick { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.quick input[type=text] { flex: 1 1 260px; padding: 10px 12px; font-size: 15px; }
+.datechip { font-size: 12px; background: var(--grid); border-radius: 999px; padding: 4px 6px 4px 10px; display: inline-flex; gap: 4px; align-items: center; }
+.datechip button { padding: 0 6px; background: transparent; color: var(--muted); }
+/* 흐름 보드 */
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.col { background: var(--bg); border-radius: 12px; padding: 8px; min-height: 80px; }
+.col h3 { margin: 2px 4px 8px; font-size: 13px; display: flex; justify-content: space-between; }
+.col h3 span { font-family: var(--mono); color: var(--muted); font-weight: 500; }
+.card { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: start; background: var(--panel); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--c, var(--line)); cursor: pointer; }
+.card input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--charcoal); cursor: pointer; }
+.card .t { font-size: 14px; font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
+.card .m { grid-column: 2; font-size: 11px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.card .m .late { color: var(--bad); font-weight: 700; }
+.card.done .t { color: var(--muted); }
+.col .more { font-size: 12px; color: var(--muted); text-align: center; padding: 4px; }
+.col .hint { font-size: 12px; color: var(--muted); padding: 4px; }
+/* 캘린더 */
+.calnav { display: flex; gap: 6px; align-items: center; }
+.calnav b { font-family: var(--mono); font-weight: 500; min-width: 80px; text-align: center; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal .wd { font-size: 11px; color: var(--muted); text-align: center; }
+.day { background: var(--bg); border-radius: 8px; min-height: 84px; padding: 4px; cursor: pointer; border: 2px solid transparent; min-width: 0; }
+.day.out { opacity: .4; }
+.day.today { border-color: var(--yellow); }
+.day.pick { border-color: var(--ink); }
+.day .n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.day.sun .n { color: var(--bad); }
+.pill { display: block; font-size: 11px; line-height: 1.35; padding: 1px 5px; margin-top: 2px; border-radius: 5px; background: var(--panel); border-left: 3px solid var(--c, var(--line)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill.done { opacity: .55; text-decoration: line-through; }
+.pill.miss { color: var(--bad); font-weight: 700; }
+/* 댓글 */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cm { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--grid); font-size: 14px; }
+.cm:first-child { border-top: 0; }
+.cm input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--charcoal); }
+.cm .m { grid-column: 2; font-size: 11px; color: var(--muted); }
+.cm.replied { color: var(--muted); }
+.addcm { display: grid; gap: 6px; margin-top: 10px; }
+.addcm .r { display: flex; gap: 6px; }
+.addcm .r select { flex: 1; }
+.plug { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
+/* 분석 */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 4px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 11px; color: var(--muted); font-weight: 500; }
+td { font-family: var(--mono); }
+td:first-child { font-family: var(--sans); font-weight: 500; }
+td.late { color: var(--bad); font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+.weeks { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; align-items: end; height: 90px; margin-top: 14px; border-bottom: 1px solid var(--line); }
+.weeks i { display: block; background: var(--bar); border-radius: 4px 4px 0 0; min-height: 2px; }
+.weeks i.now { background: var(--yellow); }
+.wlab { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; }
+/* 추천 */
+.rec { display: grid; gap: 8px; margin-top: 10px; }
+.idea { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+.idea .w { grid-column: 1; font-size: 12px; color: var(--muted); }
+.idea button { grid-row: 1 / 3; grid-column: 2; }
+.ref { font-size: 13px; }
+.ref a { color: inherit; font-weight: 700; }
+.tipline { font-size: 13px; background: var(--charcoal); color: var(--on-charcoal); border-radius: 10px; padding: 8px 10px; }
+.empty { color: var(--muted); font-size: 13px; display: flex; gap: 10px; align-items: center; }
+.empty img { width: 52px; height: 52px; }
+/* 대화상자 */
+dialog { border: 0; border-radius: 16px; padding: 18px; width: min(460px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+dialog::backdrop { background: rgba(0,0,0,.4); }
+dialog h3 { margin: 0 0 12px; font-size: 17px; }
+dialog form { display: grid; gap: 10px; }
+dialog label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+dialog .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+dialog .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+dialog .acts { display: flex; gap: 8px; justify-content: space-between; margin-top: 4px; }
+dialog .acts .del { background: transparent; color: var(--bad); border: 1px solid var(--line); font-weight: 500; }
+.tog { display: flex; flex-wrap: wrap; gap: 6px; }
+.tog label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 999px; padding: 4px 10px; cursor: pointer; border: 2px solid transparent; }
+.tog label:has(input:checked) { border-color: var(--ink); }
+.tog input { position: absolute; opacity: 0; pointer-events: none; }
+.colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.colors label { width: 26px; height: 26px; border-radius: 50%; background: var(--c); cursor: pointer; border: 3px solid transparent; }
+.colors label:has(input:checked) { border-color: var(--ink); }
+.colors input { position: absolute; opacity: 0; }
+/* 되돌리기 */
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--charcoal); color: var(--on-charcoal); border-radius: 12px; padding: 10px 12px 10px 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); z-index: 10; max-width: calc(100vw - 32px); }
+.toast button { padding: 5px 10px; white-space: nowrap; flex: none; }
+@media (max-width: 900px) {
+  .flow { grid-template-columns: repeat(5, 78vw); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .col { scroll-snap-align: start; }
+  .two { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .tile .v { font-size: 22px; }
+  .day { min-height: 58px; }
+  .pill { font-size: 10px; padding: 0 3px; }
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/programs">AI<b>이현</b> · 프로그램</a>
+  <h1>SNS 통합 관리 <span class="sync" id="sync"></span></h1>
+</div></header>
+
+<main class="wrap">
+  <section class="box gate" id="gate" hidden>
+    <h2>AI이현 전용</h2>
+    <p class="note" style="margin:0">Vercel에 넣은 <code>ADMIN_KEY</code> 값을 입력하면 PC와 폰이 같은 보드를 봅니다. 사이트 애널리틱스에서 넣은 적이 있으면 자동으로 열려요.</p>
+    <form id="gateForm"><input id="keyIn" type="password" placeholder="관리자 키" aria-label="관리자 키" autocomplete="current-password"><button>열기</button></form>
+    <p class="msg" id="gateMsg"></p>
+    <button class="ghost" id="localBtn" type="button">키 없이 이 기기에서만 먼저 써 보기</button>
+  </section>
+
+  <div id="app" hidden style="display:grid;gap:14px">
+    <div class="tiles" id="tiles"></div>
+
+    <section class="box">
+      <h2>채널 <span>누르면 그 채널만 보여요 · 다시 누르면 전체</span></h2>
+      <div class="chans" id="chans"></div>
+    </section>
+
+    <section class="box">
+      <form class="quick" id="quick">
+        <input type="text" id="qText" placeholder="아이디어 한 줄 적고 Enter (여러 줄 붙여넣으면 한 번에)" aria-label="새 아이디어" autocomplete="off">
+        <select id="qChan" aria-label="채널"></select>
+        <span class="datechip" id="qDate" hidden></span>
+        <button>+ 아이디어</button>
+      </form>
+    </section>
+
+    <section class="box">
+      <h2>흐름 <span>체크하면 다음 단계로 · 카드를 누르면 날짜·채널·메모</span></h2>
+      <div class="flow" id="flow"></div>
+    </section>
+
+    <section class="box">
+      <h2>업로드 캘린더
+        <span class="calnav"><button class="ghost mini" id="prevM" type="button" aria-label="이전 달">‹</button><b id="calTitle"></b><button class="ghost mini" id="nextM" type="button" aria-label="다음 달">›</button><button class="ghost mini" id="thisM" type="button">오늘</button></span>
+      </h2>
+      <div class="cal" id="cal"></div>
+      <p class="note" style="margin:8px 0 0">날짜를 누르면 그날로 아이디어를 넣을 수 있어요. 예약 단계 카드는 날짜가 되면 자동 업로드됩니다 (채널 연동 후).</p>
+    </section>
+
+    <div class="two">
+      <section class="box">
+        <h2>댓글 <span id="cmCount"></span></h2>
+        <div class="plug">🔌 채널을 연동하면 댓글을 자동으로 모아 와요. 지금은 붙여넣어서 관리합니다.</div>
+        <div id="comments"></div>
+        <form class="addcm" id="addcm">
+          <textarea id="cmText" rows="2" placeholder="댓글 붙여넣기 (한 줄에 하나, '닉네임: 내용'이면 닉네임도 따로 저장)" aria-label="댓글 붙여넣기"></textarea>
+          <div class="r"><select id="cmChan" aria-label="댓글 채널"></select><button>+ 댓글</button></div>
+        </form>
+      </section>
+
+      <section class="box">
+        <h2>AI 추천 <span>아이디어 3개 · 레퍼런스 찾는 법</span></h2>
+        <div class="quick"><select id="aiChan" aria-label="추천 받을 채널" style="flex:1"></select><button id="aiBtn" type="button">추천 받기</button></div>
+        <div id="rec" class="rec"></div>
+      </section>
+    </div>
+
+    <section class="box">
+      <h2>분석 <span>올림 단계 카드 기준 · 조회·좋아요는 카드에 적은 값 (연동 후 자동)</span></h2>
+      <div class="tablewrap"><table id="stats"></table></div>
+      <div class="weeks" id="weeks"></div>
+      <div class="wlab" id="wlab"></div>
+      <p class="note" style="margin:4px 0 0">최근 8주 · 주마다 올린 개수 (전체 또는 고른 채널)</p>
+    </section>
+  </div>
+</main>
+
+<dialog id="postDlg">
+  <form method="dialog" id="postForm">
+    <h3>콘텐츠</h3>
+    <label>제목<input name="title" required></label>
+    <label>메모 (기획·대본·해시태그)<textarea name="memo" rows="4"></textarea></label>
+    <label>채널 (여러 개 고르면 하나로 여러 채널에)<div class="tog" id="postChans"></div></label>
+    <div class="row">
+      <label>단계<select name="stage"></select></label>
+      <label>올릴 날짜<input name="date" type="date"></label>
+    </div>
+    <div class="row3" id="metrics">
+      <label>조회<input name="views" type="number" min="0" inputmode="numeric"></label>
+      <label>좋아요<input name="likes" type="number" min="0" inputmode="numeric"></label>
+      <label>댓글<input name="cmts" type="number" min="0" inputmode="numeric"></label>
+    </div>
+    <div class="acts"><button type="button" class="del" id="postDel">삭제</button><span style="display:flex;gap:8px"><button type="button" class="ghost" value="cancel" onclick="this.closest('dialog').close()">닫기</button><button value="ok">저장</button></span></div>
+  </form>
+</dialog>
+
+<dialog id="chanDlg">
+  <form method="dialog" id="chanForm">
+    <h3>채널</h3>
+    <div class="row">
+      <label>이름<input name="name" required></label>
+      <label>플랫폼<select name="platform"></select></label>
+    </div>
+    <label>계정 주소<input name="url" type="url" placeholder="https://www.instagram.com/..."></label>
+    <label>톤·주제 (AI 추천에 씀)<input name="tone" placeholder="예: 침구 사장의 솔직한 장사 이야기"></label>
+    <label>색<div class="colors" id="chanColors"></div></label>
+    <p class="plug" style="margin:0">🔌 연동: 아직 안 됨. 다음 단계에서 계정을 연결하면 자동 업로드·댓글·조회수를 가져와요.</p>
+    <div class="acts"><button type="button" class="del" id="chanDel">삭제</button><span style="display:flex;gap:8px"><button type="button" class="ghost" onclick="this.closest('dialog').close()">닫기</button><button value="ok">저장</button></span></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="undoBtn">되돌리기</button></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const num = (n) => Number(n || 0).toLocaleString("ko-KR");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = new Date(s + "T00:00"); d.setDate(d.getDate() + n); return ymd(d); };
+const daysBetween = (a, b) => Math.round((new Date(b + "T00:00") - new Date(a + "T00:00")) / 864e5);
+const md = (s) => s ? `${+s.slice(5, 7)}/${+s.slice(8)}` : "";
+
+const STAGES = [["idea", "아이디어"], ["plan", "기획"], ["make", "제작"], ["sched", "예약"], ["done", "올림"]];
+const STAGE_NAME = Object.fromEntries(STAGES);
+const PLATFORMS = ["", "인스타그램", "유튜브", "틱톡", "스레드", "네이버 블로그", "페이스북", "X", "기타"];
+const COLORS = ["#e8590c", "#f5b400", "#2b8a3e", "#1c7ed6", "#7048e8", "#d6336c", "#0c8599", "#5c940d", "#868e96", "#212529"];
+const SEARCH = {
+  "인스타그램": (q) => `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ""))}/`,
+  "유튜브": (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
+  "틱톡": (q) => `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`,
+  "스레드": (q) => `https://www.threads.net/search?q=${encodeURIComponent(q)}`,
+  "네이버 블로그": (q) => `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(q)}`,
+};
+const searchUrl = (platform, q) => (SEARCH[platform] || ((x) => `https://www.google.com/search?q=${encodeURIComponent(x)}`))(q);
+
+// ── 데이터: 이 기기(localStorage)에 먼저 저장하고, 키가 있으면 서버(Redis)와 맞춤
+const LS = "sns-board";
+const seed = () => ({
+  v: 1, updated: 0,
+  channels: [
+    { id: uid(), name: "AI이현", platform: "인스타그램", url: "https://www.instagram.com/ai_leehyun/", tone: "AI 공부하는 사람의 하루 기록", color: COLORS[0] },
+    { id: uid(), name: "규사장", platform: "", url: "", tone: "", color: COLORS[3] },
+    { id: uid(), name: "이불왕", platform: "", url: "", tone: "침구", color: COLORS[2] },
+    { id: uid(), name: "ENTJ이현", platform: "", url: "", tone: "ENTJ의 일하는 방식", color: COLORS[4] },
+  ],
+  posts: [], comments: [], recs: {},
+});
+let B; try { B = JSON.parse(localStorage.getItem(LS)); } catch {}
+if (!B || !Array.isArray(B.channels)) B = seed();
+let key = ""; try { key = localStorage.getItem("ai-admin-key") || ""; } catch {}
+let online = false, pending = null, filter = "", pickDate = "", calMonth = today().slice(0, 7);
+
+async function api(method, body) {
+  const res = await fetch("/api/sns", { method, headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw data.error || "server";
+  return data;
+}
+function setSync(text, on) { $("sync").textContent = text; $("sync").classList.toggle("on", !!on); }
+function saveLocal() { try { localStorage.setItem(LS, JSON.stringify(B)); } catch {} }
+function save() {
+  B.updated = Date.now(); saveLocal();
+  if (!online) return;
+  clearTimeout(pending); setSync("저장 중…", true);
+  pending = setTimeout(async () => {
+    try { await api("PUT", { board: B }); setSync("PC·폰 동기화", true); } catch { setSync("저장 실패 · 이 기기에는 저장됨"); }
+    pending = null;
+  }, 700);
+}
+async function pull() {
+  if (!online || pending) return;
+  try {
+    const { board } = await api("GET");
+    if (board && (board.updated || 0) > (B.updated || 0)) { B = board; saveLocal(); render(); }
+    else if (!board || (B.updated || 0) > (board.updated || 0)) save();
+  } catch {}
+}
+
+// ── 바꾸기 + 되돌리기
+let undoSnap = null, toastT = null;
+function change(msg, fn) {
+  const snap = JSON.stringify(B);
+  fn(); save(); render();
+  if (!msg) return;
+  undoSnap = snap; $("toastMsg").textContent = msg; $("toast").hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => ($("toast").hidden = true), 6000);
+}
+$("undoBtn").onclick = () => { if (undoSnap) { B = JSON.parse(undoSnap); undoSnap = null; save(); render(); } $("toast").hidden = true; };
+
+const chan = (id) => B.channels.find((c) => c.id === id);
+const inFilter = (p) => !filter || (p.channels || []).includes(filter);
+const postColor = (p) => chan((p.channels || [])[0])?.color || "var(--line)";
+const chanNames = (p) => (p.channels || []).map(chan).filter(Boolean).map((c) => `<span><i class="dot" style="--c:${c.color}"></i> ${esc(c.name)}</span>`).join("");
+const doneDay = (p) => p.doneAt || p.date || "";
+const lastUpload = (cid) => B.posts.filter((p) => p.stage === "done" && p.channels?.includes(cid)).map(doneDay).sort().pop();
+
+// ── 화면
+function render() {
+  const t = today(), weekAgo = addDays(t, -6), posts = B.posts.filter(inFilter);
+  const doneWeek = posts.filter((p) => p.stage === "done" && doneDay(p) >= weekAgo).length;
+  const sched = posts.filter((p) => p.stage === "sched");
+  const missed = sched.filter((p) => p.date && p.date < t).length;
+  const ideas = posts.filter((p) => p.stage === "idea").length;
+  const cms = B.comments.filter((c) => !filter || c.channel === filter), open = cms.filter((c) => !c.replied).length;
+  $("tiles").innerHTML = [
+    ["최근 7일 올림", doneWeek + "개", `채널 ${filter ? 1 : B.channels.length}개`, false],
+    ["업로드 예약", sched.length + "개", missed ? `${missed}개 날짜 지남` : "밀린 것 없음", missed > 0],
+    ["아이디어", ideas + "개", `진행 중 ${posts.filter((p) => p.stage !== "done" && p.stage !== "idea").length}개`, false],
+    ["답 안 한 댓글", open + "개", `전체 ${cms.length}개`, open > 0],
+  ].map(([k, v, s, hot]) => `<div class="tile${hot ? " hot" : ""}"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+
+  $("chans").innerHTML = B.channels.map((c) => {
+    const last = lastUpload(c.id), gap = last ? daysBetween(last, t) : null;
+    const live = B.posts.filter((p) => p.channels?.includes(c.id) && p.stage !== "done").length;
+    return `<button type="button" class="chan" data-ch="${c.id}" aria-pressed="${filter === c.id}">
+      <b><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}<span class="cedit" data-edit="${c.id}" title="채널 설정" role="button">⚙</span></b>
+      <small>${esc(c.platform || "플랫폼 고르기")} · 준비 ${live}</small>
+      <small class="${gap == null || gap > 7 ? "late" : ""}">${gap == null ? "아직 안 올림" : gap === 0 ? "오늘 올림" : `마지막 업로드 ${gap}일 전`}</small></button>`;
+  }).join("") + `<button type="button" class="chan add" id="addChan">+ 채널</button>`;
+
+  const opts = (sel, first) => (first ? `<option value="">${first}</option>` : "") + B.channels.map((c) => `<option value="${c.id}"${c.id === sel ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+  const keepQ = $("qChan").value, keepC = $("cmChan").value, keepA = $("aiChan").value;
+  $("qChan").innerHTML = opts(filter || keepQ, "채널 (나중에)");
+  $("cmChan").innerHTML = opts(filter || keepC);
+  $("aiChan").innerHTML = opts(filter || keepA || B.channels[0]?.id);
+  $("qDate").hidden = !pickDate;
+  $("qDate").innerHTML = pickDate ? `${md(pickDate)}에 넣기 <button type="button" id="qDateX" aria-label="날짜 빼기">✕</button>` : "";
+
+  // 흐름 보드
+  $("flow").innerHTML = STAGES.map(([s, name]) => {
+    let list = posts.filter((p) => p.stage === s);
+    list.sort((a, b) => (a.date || "9") < (b.date || "9") ? -1 : (a.date || "9") > (b.date || "9") ? 1 : (a.createdAt || 0) - (b.createdAt || 0));
+    let more = 0;
+    if (s === "done") { list = list.sort((a, b) => doneDay(b) < doneDay(a) ? -1 : 1); more = Math.max(0, list.length - 8); list = list.slice(0, 8); }
+    return `<div class="col"><h3>${name}<span>${posts.filter((p) => p.stage === s).length}</span></h3>${list.map((p) => {
+      const late = s === "sched" && p.date && p.date < t;
+      return `<div class="card${s === "done" ? " done" : ""}" data-post="${p.id}" style="--c:${postColor(p)}">
+        <input type="checkbox" data-adv="${p.id}" ${s === "done" ? "checked" : ""} aria-label="${s === "done" ? "예약으로 되돌리기" : "다음 단계로"}">
+        <div class="t">${esc(p.title)}</div>
+        <div class="m">${chanNames(p)}${p.date ? `<span class="${late ? "late" : ""}">📅 ${md(s === "done" ? doneDay(p) : p.date)}${late ? " 지남" : ""}</span>` : ""}${s === "done" && p.metrics?.views ? `<span>▶ ${num(p.metrics.views)}</span>` : ""}${s === "sched" ? "<span>🔌 연동 전</span>" : ""}</div>
+      </div>`;
+    }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "idea" ? `<div class="hint">위에 한 줄 적으면 여기로 와요</div>` : ""}</div>`;
+  }).join("");
+
+  // 캘린더
+  const [y, m] = calMonth.split("-").map(Number), first = new Date(y, m - 1, 1), start = new Date(first); start.setDate(1 - first.getDay());
+  $("calTitle").textContent = `${y}.${String(m).padStart(2, "0")}`;
+  const byDay = {};
+  posts.forEach((p) => { const d = p.stage === "done" ? doneDay(p) : p.date; if (d) (byDay[d] ||= []).push(p); });
+  let cells = ["일", "월", "화", "수", "목", "금", "토"].map((w) => `<div class="wd">${w}</div>`).join("");
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const s = ymd(d), list = byDay[s] || [];
+    if (i === 35 && d.getMonth() !== m - 1) break;
+    cells += `<div class="day${d.getMonth() !== m - 1 ? " out" : ""}${s === t ? " today" : ""}${s === pickDate ? " pick" : ""}${d.getDay() === 0 ? " sun" : ""}" data-day="${s}"><div class="n">${d.getDate()}</div>${list.slice(0, 3).map((p) => `<span class="pill${p.stage === "done" ? " done" : ""}${p.stage !== "done" && s < t ? " miss" : ""}" style="--c:${postColor(p)}" data-post="${p.id}" title="${esc(STAGE_NAME[p.stage] + " · " + p.title)}">${esc(p.title)}</span>`).join("")}${list.length > 3 ? `<span class="note">+${list.length - 3}</span>` : ""}</div>`;
+  }
+  $("cal").innerHTML = cells;
+
+  // 댓글
+  const sorted = [...cms].sort((a, b) => (a.replied - b.replied) || (b.at - a.at));
+  const shown = sorted.filter((c) => !c.replied).concat(sorted.filter((c) => c.replied).slice(0, 5));
+  $("cmCount").textContent = `답 안 함 ${open} · 전체 ${cms.length}`;
+  $("comments").innerHTML = shown.length ? shown.map((c) => `<div class="cm${c.replied ? " replied" : ""}"><input type="checkbox" data-cm="${c.id}" ${c.replied ? "checked" : ""} aria-label="답함"><div>${c.author ? `<b>${esc(c.author)}</b> ` : ""}${esc(c.text)}</div><div class="m">${esc(chan(c.channel)?.name || "")} · ${md(ymd(new Date(c.at)))}${c.replied ? " · 답함" : ""} · <a href="#" data-cmdel="${c.id}" style="color:inherit">지우기</a></div></div>`).join("")
+    : `<div class="empty"><img src="/assets/zero/zero-waiting.svg" alt="">아직 모은 댓글이 없어요.</div>`;
+
+  renderStats(posts);
+  renderRec();
+}
+
+function renderStats(posts) {
+  const t = today(), month = t.slice(0, 7), d30 = addDays(t, -29);
+  const rows = (filter ? B.channels.filter((c) => c.id === filter) : B.channels).map((c) => {
+    const done = B.posts.filter((p) => p.stage === "done" && p.channels?.includes(c.id));
+    const m = done.filter((p) => doneDay(p).startsWith(month)).length, l30 = done.filter((p) => doneDay(p) >= d30).length;
+    const withV = done.filter((p) => p.metrics?.views), avg = (k) => withV.length ? Math.round(withV.reduce((s, p) => s + (+p.metrics[k] || 0), 0) / withV.length) : null;
+    const last = lastUpload(c.id), gap = last ? daysBetween(last, t) : null;
+    const live = B.posts.filter((p) => p.channels?.includes(c.id) && p.stage !== "done").length;
+    return `<tr><td><i class="dot" style="--c:${c.color}"></i> ${esc(c.name)}</td><td>${m}</td><td>${(l30 / 30 * 7).toFixed(1)}</td><td class="${gap == null || gap > 7 ? "late" : ""}">${gap == null ? "—" : gap + "일"}</td><td>${live}</td><td>${avg("views") == null ? "—" : num(avg("views"))}</td><td>${avg("likes") == null ? "—" : num(avg("likes"))}</td></tr>`;
+  });
+  $("stats").innerHTML = `<tr><th>채널</th><th>이번 달 올림</th><th>주당 (30일)</th><th>마지막 업로드</th><th>준비 중</th><th>평균 조회</th><th>평균 좋아요</th></tr>${rows.join("")}`;
+  // 최근 8주 (월요일 시작)
+  const now = new Date(t + "T00:00"), mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weeks = Array.from({ length: 8 }, (_, i) => { const s = new Date(mon); s.setDate(mon.getDate() - (7 - i) * 7); const a = ymd(s); return { a, b: addDays(a, 6) }; });
+  const counts = weeks.map((w) => posts.filter((p) => p.stage === "done" && doneDay(p) >= w.a && doneDay(p) <= w.b).length), max = Math.max(1, ...counts);
+  $("weeks").innerHTML = counts.map((n, i) => `<i class="${i === 7 ? "now" : ""}" style="height:${(n / max) * 100}%" title="${md(weeks[i].a)}~ · ${n}개"></i>`).join("");
+  $("wlab").innerHTML = weeks.map((w, i) => `<span>${i === 7 ? "이번 주" : md(w.a)}</span>`).join("");
+}
+
+function renderRec() {
+  const c = chan($("aiChan").value), r = c && B.recs?.[c.id];
+  if (!r) { $("rec").innerHTML = `<div class="empty"><img src="/assets/zero/zero-thinking.svg" alt="">채널의 톤과 최근 올린 것을 보고 다음 콘텐츠와 참고할 레퍼런스를 추천해요.${online ? "" : " (키를 넣어야 쓸 수 있어요)"}</div>`; return; }
+  $("rec").innerHTML = `${r.ideas.map((i, n) => `<div class="idea"><b>${esc(i.title)}</b><button type="button" class="mini" data-recadd="${n}">+ 아이디어</button><span class="w">${esc(i.format)} · ${esc(i.why)}</span></div>`).join("")}
+    ${r.refs.map((x) => `<div class="ref">🔎 ${esc(x.what)} · <a href="${esc(searchUrl(c.platform, x.search))}" target="_blank" rel="noopener">${esc(x.search)}</a></div>`).join("")}
+    ${r.tip ? `<div class="tipline">이번 주 한 가지: ${esc(r.tip)}</div>` : ""}<div class="note">${esc(c.name)} · ${md(ymd(new Date(r.at)))} 추천</div>`;
+}
+
+// ── 한 줄 입력
+function addIdeas(lines) {
+  const titles = lines.map((s) => s.trim()).filter(Boolean);
+  if (!titles.length) return;
+  const ch = $("qChan").value, d = pickDate;
+  change(`아이디어 ${titles.length}개 넣었어요`, () => {
+    titles.forEach((title) => B.posts.push({ id: uid(), title, memo: "", channels: ch ? [ch] : [], stage: "idea", date: d, createdAt: Date.now() }));
+  });
+  $("qText").value = ""; pickDate = ""; render();
+}
+$("quick").onsubmit = (e) => { e.preventDefault(); addIdeas([$("qText").value]); };
+$("qText").addEventListener("paste", (e) => {
+  const txt = e.clipboardData.getData("text");
+  if (/\n/.test(txt.trim())) { e.preventDefault(); addIdeas(txt.split(/\r?\n/)); }
+});
+$("qDate").onclick = (e) => { if (e.target.id === "qDateX") { pickDate = ""; render(); } };
+
+// ── 채널
+document.addEventListener("click", (e) => {
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { e.stopPropagation(); openChan(ed.dataset.edit); return; }
+  if (e.target.closest("#addChan")) { openChan(null); return; }
+  const ch = e.target.closest("[data-ch]");
+  if (ch) { filter = filter === ch.dataset.ch ? "" : ch.dataset.ch; render(); }
+});
+let editChan = null;
+$("chanForm").platform.innerHTML = PLATFORMS.map((p) => `<option value="${p}">${p || "고르기"}</option>`).join("");
+function openChan(id) {
+  editChan = id; const c = id ? chan(id) : { name: "", platform: "", url: "", tone: "", color: COLORS[B.channels.length % COLORS.length] };
+  const f = $("chanForm");
+  f.name.value = c.name; f.platform.value = c.platform || ""; f.url.value = c.url || ""; f.tone.value = c.tone || "";
+  $("chanColors").innerHTML = COLORS.map((col) => `<label style="--c:${col}"><input type="radio" name="color" value="${col}" ${col === c.color ? "checked" : ""} aria-label="${col}"></label>`).join("");
+  $("chanDel").hidden = !id;
+  $("chanDlg").showModal();
+}
+$("chanForm").onsubmit = (e) => {
+  if (e.submitter?.value !== "ok") return;
+  const f = e.target, v = { name: f.name.value.trim(), platform: f.platform.value, url: f.url.value.trim(), tone: f.tone.value.trim(), color: f.color.value || COLORS[0] };
+  if (!v.name) return;
+  change(editChan ? "채널을 바꿨어요" : "채널을 더했어요", () => {
+    if (editChan) Object.assign(chan(editChan), v); else B.channels.push({ id: uid(), ...v });
+  });
+};
+$("chanDel").onclick = () => {
+  const id = editChan; $("chanDlg").close();
+  change("채널을 지웠어요 (콘텐츠는 남아요)", () => {
+    B.channels = B.channels.filter((c) => c.id !== id);
+    B.posts.forEach((p) => (p.channels = (p.channels || []).filter((x) => x !== id)));
+    if (filter === id) filter = "";
+  });
+};
+
+// ── 카드: 체크 = 다음 단계, 누르면 편집
+$("flow").addEventListener("click", (e) => {
+  const cb = e.target.closest("[data-adv]");
+  if (cb) {
+    const p = B.posts.find((x) => x.id === cb.dataset.adv), i = STAGES.findIndex(([s]) => s === p.stage);
+    const next = p.stage === "done" ? "sched" : STAGES[i + 1][0];
+    change(`'${p.title.slice(0, 14)}' → ${STAGE_NAME[next]}`, () => {
+      if (next === "sched" && !p.date) p.date = addDays(today(), 1);
+      if (next === "done") p.doneAt = today();
+      if (p.stage === "done") delete p.doneAt;
+      p.stage = next;
+    });
+    return;
+  }
+  const card = e.target.closest("[data-post]");
+  if (card) openPost(card.dataset.post);
+});
+$("cal").addEventListener("click", (e) => {
+  const pill = e.target.closest("[data-post]");
+  if (pill) { e.stopPropagation(); openPost(pill.dataset.post); return; }
+  const day = e.target.closest("[data-day]");
+  if (day) { pickDate = pickDate === day.dataset.day ? "" : day.dataset.day; render(); if (pickDate) $("qText").focus(); }
+});
+$("prevM").onclick = () => { const [y, m] = calMonth.split("-").map(Number); calMonth = ymd(new Date(y, m - 2, 1)).slice(0, 7); render(); };
+$("nextM").onclick = () => { const [y, m] = calMonth.split("-").map(Number); calMonth = ymd(new Date(y, m, 1)).slice(0, 7); render(); };
+$("thisM").onclick = () => { calMonth = today().slice(0, 7); render(); };
+
+let editPost = null;
+$("postForm").stage.innerHTML = STAGES.map(([s, n]) => `<option value="${s}">${n}</option>`).join("");
+function openPost(id) {
+  editPost = id; const p = B.posts.find((x) => x.id === id), f = $("postForm");
+  f.title.value = p.title; f.memo.value = p.memo || ""; f.stage.value = p.stage; f.date.value = p.stage === "done" ? doneDay(p) : p.date || "";
+  f.views.value = p.metrics?.views || ""; f.likes.value = p.metrics?.likes || ""; f.cmts.value = p.metrics?.cmts || "";
+  $("postChans").innerHTML = B.channels.map((c) => `<label><input type="checkbox" value="${c.id}" ${p.channels?.includes(c.id) ? "checked" : ""}><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</label>`).join("");
+  $("metrics").hidden = p.stage !== "done";
+  $("postDlg").showModal();
+}
+$("postForm").stage.onchange = (e) => ($("metrics").hidden = e.target.value !== "done");
+$("postForm").onsubmit = (e) => {
+  if (e.submitter?.value !== "ok") return;
+  const f = e.target, p = B.posts.find((x) => x.id === editPost);
+  change("저장했어요", () => {
+    p.title = f.title.value.trim() || p.title; p.memo = f.memo.value;
+    p.channels = [...$("postChans").querySelectorAll("input:checked")].map((i) => i.value);
+    if (f.stage.value === "done") { p.doneAt = f.date.value || p.doneAt || today(); p.date = p.date || p.doneAt; }
+    else { p.date = f.date.value; delete p.doneAt; }
+    p.stage = f.stage.value;
+    const mt = { views: +f.views.value || 0, likes: +f.likes.value || 0, cmts: +f.cmts.value || 0 };
+    if (mt.views || mt.likes || mt.cmts) p.metrics = mt; else delete p.metrics;
+  });
+};
+$("postDel").onclick = () => { const id = editPost; $("postDlg").close(); change("지웠어요", () => (B.posts = B.posts.filter((p) => p.id !== id))); };
+
+// ── 댓글
+$("addcm").onsubmit = (e) => {
+  e.preventDefault();
+  const lines = $("cmText").value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean), ch = $("cmChan").value;
+  if (!lines.length || !ch) return;
+  change(`댓글 ${lines.length}개 넣었어요`, () => lines.forEach((l) => {
+    const m = l.match(/^([^:：]{1,30})[:：]\s*(.+)$/);
+    B.comments.push({ id: uid(), channel: ch, author: m ? m[1].trim() : "", text: m ? m[2] : l, at: Date.now(), replied: false });
+  }));
+  $("cmText").value = "";
+};
+$("comments").addEventListener("click", (e) => {
+  const cb = e.target.closest("[data-cm]");
+  if (cb) { const c = B.comments.find((x) => x.id === cb.dataset.cm); change(c.replied ? "답 안 함으로" : "답함", () => (c.replied = !c.replied)); return; }
+  const del = e.target.closest("[data-cmdel]");
+  if (del) { e.preventDefault(); change("댓글을 지웠어요", () => (B.comments = B.comments.filter((c) => c.id !== del.dataset.cmdel))); }
+});
+
+// ── AI 추천
+$("aiChan").onchange = renderRec;
+$("aiBtn").onclick = async () => {
+  const c = chan($("aiChan").value); if (!c) return;
+  if (!online) { $("rec").innerHTML = `<p class="msg">관리자 키를 넣어야 추천을 받을 수 있어요.</p>`; return; }
+  $("aiBtn").disabled = true; $("aiBtn").textContent = "생각 중…";
+  const mine = B.posts.filter((p) => p.channels?.includes(c.id)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const best = mine.filter((p) => p.metrics?.views).sort((a, b) => b.metrics.views - a.metrics.views).slice(0, 5).map((p) => ({ title: p.title, views: p.metrics.views, likes: p.metrics.likes }));
+  try {
+    const r = await api("POST", { action: "ai", channel: c, recent: mine.slice(0, 12).map((p) => p.title), best });
+    change("", () => { (B.recs ||= {})[c.id] = { ...r, at: Date.now() }; });
+  } catch (e) {
+    $("rec").innerHTML = `<p class="msg">${e === "no_key" ? "Vercel에 ANTHROPIC_API_KEY가 없어요." : "추천을 받지 못했어요. 다시 눌러 주세요."}</p>`;
+  }
+  $("aiBtn").disabled = false; $("aiBtn").textContent = "추천 받기";
+};
+$("rec").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-recadd]"); if (!b) return;
+  const c = chan($("aiChan").value), i = B.recs[c.id].ideas[+b.dataset.recadd];
+  change("아이디어에 넣었어요", () => B.posts.push({ id: uid(), title: i.title, memo: `${i.format} · ${i.why}`, channels: [c.id], stage: "idea", date: "", createdAt: Date.now() }));
+});
+
+// ── 시작: 키가 있으면 서버와 맞추고, 없으면 키 입력 (또는 이 기기에서만)
+async function start() {
+  if (key) {
+    try {
+      const { board } = await api("GET");
+      online = true; setSync("PC·폰 동기화", true);
+      if (board && (board.updated || 0) >= (B.updated || 0)) { B = board; saveLocal(); } else save();
+      try { localStorage.setItem("ai-admin-key", key); localStorage.setItem("ai-admin", "1"); } catch {}
+      $("gate").hidden = true; $("app").hidden = false; render(); return;
+    } catch (e) {
+      $("gateMsg").textContent = e === "auth" ? "키가 맞지 않아요." : e === "no_admin_key" ? "Vercel에 ADMIN_KEY가 아직 없어요." : e === "no_redis" ? "저장소(Redis)가 아직 연결되지 않았어요. 이 기기에서만 먼저 쓸 수 있어요." : "서버에 닿지 않아요. 이 기기에서만 먼저 쓸 수 있어요.";
+    }
+  }
+  let local = false; try { local = localStorage.getItem("sns-local") === "1"; } catch {}
+  if (local && !$("gateMsg").textContent) return openLocal();
+  $("gate").hidden = false; $("app").hidden = true;
+}
+function openLocal() {
+  online = false; setSync("이 기기에만 저장");
+  try { localStorage.setItem("sns-local", "1"); } catch {}
+  $("gate").hidden = true; $("app").hidden = false; render();
+}
+$("gateForm").onsubmit = (e) => { e.preventDefault(); key = $("keyIn").value.trim(); $("gateMsg").textContent = ""; start(); };
+$("localBtn").onclick = openLocal;
+$("sync").onclick = () => { if (!online) { $("app").hidden = true; $("gate").hidden = false; $("gateMsg").textContent = ""; } };
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
+start();
+</script>
+</body>
+</html>

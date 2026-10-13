@@ -1,7 +1,7 @@
 // 문제 해결 도우미 (옛 이름 생각 병목 찾기): 사이트 방문자가 로그인 없이 쓰도록 서버에서 Claude API를 부름.
 // 키는 Vercel 환경변수 ANTHROPIC_API_KEY에만 둠. 질문(프롬프트)도 서버에서 만들어 아무 질문이나 못 보내게 함.
 import Anthropic from "@anthropic-ai/sdk";
-import { redis, kstDay, expire } from "./_redis.js";
+import { recordUsage } from "./_usage.js";
 
 export const config = { maxDuration: 60 };
 
@@ -16,18 +16,6 @@ function allow(ip, mode) {
   if (hits.size > 5000) hits.clear();
   hits.set(k, n);
   return n <= (mode === "ask" ? ASK_PER_IP_PER_DAY : PER_IP_PER_DAY);
-}
-
-// 1M 토큰당 달러 (입력, 출력). 애널리틱스의 '쓴 돈'과 '남은 금액 추정'에 씀.
-const PRICE = { "claude-opus-5-5": [4, 20], "claude-sonnet-5-5": [2, 10], "claude-haiku-5-5": [0.1, 0.5] };
-async function recordUsage(u) {
-  const [pi, po] = PRICE[MODEL] || PRICE["claude-haiku-5-5"];
-  const inT = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0), outT = u.output_tokens || 0;
-  const usdMicro = Math.round(inT * pi + outT * po); // 토큰 × ($/1M) = 백만분의 1달러
-  const day = kstDay(), cmds = [];
-  for (const k of [`ai:${day}`, "ai:total"]) cmds.push(["HINCRBY", k, "calls", 1], ["HINCRBY", k, "in", inT], ["HINCRBY", k, "out", outT], ["HINCRBY", k, "usd_u", usdMicro]);
-  cmds.push(expire(`ai:${day}`));
-  try { await redis(cmds); } catch (e) { console.error(e); }
 }
 
 const clip = (s, n) => String(s ?? "").slice(0, n);
@@ -118,7 +106,7 @@ export default async function handler(req, res) {
       output_config: { effort: "low" },
       messages: [{ role: "user", content: ask ? ASK_PROMPT(text, p) : PROMPT(text, p, qa) }],
     });
-    await recordUsage(msg.usage || {});
+    await recordUsage(msg.usage || {}, MODEL);
     if (msg.stop_reason === "refusal") return res.status(422).json({ error: "refusal" });
     const out = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     const r = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
