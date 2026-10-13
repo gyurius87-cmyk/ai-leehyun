@@ -75,6 +75,26 @@
         "비용",
         "배포"
       ]
+    },
+    {
+      "no": "005",
+      "slug": "005",
+      "file": "content/notes/005-telegram-alerts.md",
+      "date": "2026-10-13",
+      "title": "텔레그램으로 내 할 일 알림 받기",
+      "summary": "프로젝트 플로우에 적어둔 할 일을 제로가 텔레그램으로 알려주게 하기까지. 가짜 BotFather 구별법과 막혔던 곳까지.",
+      "minutes": 20,
+      "steps": 5,
+      "tools": [
+        "Claude",
+        "Telegram"
+      ],
+      "tags": [
+        "알림",
+        "텔레그램",
+        "자동화",
+        "봇"
+      ]
     }
   ]
 }
