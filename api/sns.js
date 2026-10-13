@@ -1,11 +1,16 @@
 // SNS 통합 관리 (AI이현 전용). ADMIN_KEY(Vercel 환경변수)를 아는 사람만 씀.
 // GET: 보드 불러오기 / PUT: 보드 저장 / POST {action:"ai"}: 채널 성격에 맞는 아이디어·레퍼런스 추천 / POST {action:"match"}: 소재에 맞는 채널 고르기
-// POST {action:"watch"}: 벤치마크 유튜브 채널의 최근 영상 / POST {action:"watchAi"}: 벤치마크 채널 분석
+// POST {action:"watch"}: 벤치마크 유튜브 채널의 최근 영상 / POST {action:"watchAi"}: 벤치마크 채널 분석 / POST {action:"script"}: 프로젝트 대본
 // 각 플랫폼 연동(자동 업로드, 댓글 가져오기)은 다음 단계. 그때 토큰도 여기(서버)에서만 다룸.
 import Anthropic from "@anthropic-ai/sdk";
 import { redis, hasRedis } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { fetchChannel } from "./_youtube.js";
+import { createRequire } from "node:module";
+
+// 공부하면서 쌓은 콘텐츠 기획 (Claude가 data/sns-ideas.json에 더함). 못 읽어도 나머지는 동작
+let studyIdeas = null;
+try { studyIdeas = createRequire(import.meta.url)("../data/sns-ideas.json"); } catch (e) { console.error("sns-ideas", e.message); }
 
 export const config = { maxDuration: 60 };
 
@@ -17,24 +22,51 @@ const clip = (s, n) => String(s ?? "").slice(0, n);
 const persona = (c) => `- 플랫폼: ${c.platform || "모름"}\n${c.profileText || "- (아직 안 적음)"}`;
 const cleanChan = (c) => ({ id: clip(c?.id, 40), name: clip(c?.name, 40), platform: clip(c?.platform, 20), profileText: clip(c?.profileText, 2500) });
 
-const PROMPT = (c, recent, best, refs) => `너는 SNS 채널 하나만 맡은 기획자야. 이 채널 주인은 침구 쇼핑몰을 14년 운영했고, 주식 전업 투자자이며, 성격이 다른 채널 10개를 혼자 운영해.
+const lines = (arr) => arr.map((t) => "- " + t).join("\n");
+const PROMPT = (c, x) => `너는 SNS 채널 하나만 맡은 기획자야. 이 채널 주인은 침구 쇼핑몰을 14년 운영했고, 주식 전업 투자자이며, 성격이 다른 채널 10개를 혼자 운영해.
+
+채널 "${c.name}"의 성격:
+${persona(c)}
+${x.direction ? `\n이번에 원하는 방향: ${x.direction}\n` : ""}
+이미 있는 기획·콘텐츠 (겹치면 안 됨):
+${x.recent.length ? lines(x.recent) : "- 없음"}
+${x.best.length ? `\n반응이 좋았던 것 (조회·좋아요):\n${x.best.map((b) => `- ${b.title} (${b.views}회, ♥${b.likes})`).join("\n")}\n` : ""}${x.liked.length ? `\n주인이 ⭐ 표시한 기획 (이런 결이 좋음):\n${lines(x.liked)}\n` : ""}${x.dropped.length ? `\n주인이 버린 기획 (이런 결은 피함):\n${lines(x.dropped)}\n` : ""}${x.refs.length ? `\n주인이 모은 레퍼런스에서 좋다고 적은 점:\n${lines(x.refs)}\n` : ""}${x.bench.length ? `\n벤치마크 채널에서 잘 되는 패턴:\n${lines(x.bench)}\n` : ""}
+할 일:
+1. ideas 정확히 5개: 위 채널 성격의 모든 항목(목표, 대상, 말투, 형식, 길이, 촬영 방식)에 맞고, 피할 것은 피하고, 이미 있는 것과 겹치지 않는 콘텐츠 기획. 5개는 서로 각도가 달라야 해 (정보, 후기·사례, 비교, 실수·경고, 비하인드 등).
+   - title 25자 안팎(바로 제목으로 쓸 수 있게)
+   - hook 30자 안팎: 첫 3초에 할 말이나 자막
+   - body 70자 안팎: 무엇을 어떤 순서로 보여 줄지
+   - format은 '릴스 30초', '캐러셀 6장', '쇼츠 45초'처럼 짧게
+   - why 30자 안팎: 왜 이 채널에 맞는지
+2. refs 정확히 3개: 참고할 레퍼런스를 찾는 법. what 30자 안팎, search는 그 플랫폼 검색창에 그대로 넣을 한국어 검색어(15자 안팎, # 없이). 실제 계정 이름을 지어내지 마.
+3. tip 1문장(50자 안팎): 이 채널을 이번 주에 키우는 데 가장 효과 있을 한 가지.
+모든 문장은 한국어 존댓말 (단, hook과 body는 채널 말투를 따라).
+
+JSON만 답해: {"ideas":[{"title":"...","hook":"...","body":"...","format":"...","why":"..."}],"refs":[{"what":"...","search":"..."}],"tip":"..."}`;
+
+const SCRIPT_PROMPT = (c, x) => `너는 SNS 숏폼·콘텐츠 대본 작가야. 아래 채널 성격에 딱 맞는 대본을 써 줘.
 
 채널 "${c.name}"의 성격:
 ${persona(c)}
 
-최근에 올렸거나 준비 중인 것:
-${recent.length ? recent.map((t) => "- " + t).join("\n") : "- 없음"}
-${best.length ? `\n반응이 좋았던 것 (조회·좋아요):\n${best.map((b) => `- ${b.title} (${b.views}회, ♥${b.likes})`).join("\n")}\n` : ""}${refs.length ? `\n주인이 모은 레퍼런스에서 좋다고 적은 점:\n${refs.map((r) => "- " + r).join("\n")}\n` : ""}
-할 일:
-1. ideas 정확히 3개: 위 채널 성격의 모든 항목(목표, 대상, 말투, 형식, 길이, 촬영 방식)에 맞고, 피할 것은 피하고, 최근 것과 겹치지 않는 다음 콘텐츠.
-   - title 25자 안팎(바로 제목으로 쓸 수 있게), format은 '릴스', '캐러셀', '쇼츠', '글'처럼 짧게, why 40자 안팎(왜 이 채널에 맞는지, 어떻게 찍을지 한마디).
-2. refs 정확히 3개: 참고할 레퍼런스를 찾는 법.
-   - what 30자 안팎(어떤 계정·영상 유형을 보라는지), search는 그 플랫폼 검색창에 그대로 넣을 검색어(한국어, 15자 안팎, 해시태그면 # 없이).
-   - 실제 계정 이름을 지어내지 마.
-3. tip 1문장(50자 안팎): 이 채널을 이번 주에 키우는 데 가장 효과 있을 한 가지.
-모든 문장은 한국어 존댓말.
+이 콘텐츠의 기획:
+- 제목: ${x.title}
+- 첫 3초 훅: ${x.plan.hook || "(없음, 네가 만들어)"}
+- 핵심 내용: ${x.plan.body || "(없음, 제목을 보고 짜)"}
+- 형식: ${x.plan.format || "(채널 성격의 형식·길이를 따름)"}
+- 왜 이 채널에: ${x.plan.why || "-"}
+${x.refs.length ? `\n참고 레퍼런스에서 좋았던 점:\n${lines(x.refs)}\n` : ""}${x.prev ? `\n지금 대본 (이걸 고쳐서 다시 써):\n"""\n${x.prev}\n"""\n` : ""}${x.ask ? `\n주인의 요청: ${x.ask}\n` : ""}
+규칙:
+- 채널의 말투(존댓말/반말), 분위기, 자주 쓰는 말, 누가 말하나, 얼굴 노출, 촬영 방식, 자막 스타일을 그대로 따라.
+- 형식이 영상이면 scenes는 시간 순서 장면 4~8개. t는 '0~3초'처럼, visual은 화면에 보이는 것과 촬영 방법(30자 안팎), line은 그 장면의 대사나 자막(40자 안팎, 말하듯이).
+- 형식이 캐러셀·사진이면 scenes는 장(슬라이드)별로, t는 '1장', visual은 이미지 구성, line은 그 장의 문구.
+- 첫 장면은 반드시 훅. 피할 것은 쓰지 마. 과장·허위 효능 표현 금지.
+- cta: 채널의 끝맺음·행동 유도를 반영한 마지막 한마디.
+- caption: 올릴 때 쓸 본문 3~5줄 (줄바꿈 \\n), 채널 말투로.
+- tags: 해시태그 8~12개 (고정 해시태그가 있으면 꼭 포함, # 붙여서).
+- thumb: 썸네일·첫 화면 큰 글씨 문구 15자 안팎.
 
-JSON만 답해: {"ideas":[{"title":"...","format":"...","why":"..."}],"refs":[{"what":"...","search":"..."}],"tip":"..."}`;
+JSON만 답해: {"hook":"...","scenes":[{"t":"...","visual":"...","line":"..."}],"cta":"...","caption":"...","tags":["#..."],"thumb":"..."}`;
 
 const WATCH_PROMPT = (w, mine) => `너는 SNS 벤치마킹 분석가야. 아래 유튜브 채널의 최근 영상을 보고, 내 채널에 가져올 점을 찾아 줘.
 
@@ -93,7 +125,7 @@ export default async function handler(req, res) {
     }
   }
 
-  if (req.method === "POST" && (b.action === "ai" || b.action === "match" || b.action === "watchAi")) {
+  if (req.method === "POST" && ["ai", "match", "watchAi", "script"].includes(b.action)) {
     if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "no_key" });
     try {
       if (b.action === "match") {
@@ -119,13 +151,25 @@ export default async function handler(req, res) {
       }
       const c = cleanChan(b.channel);
       if (!c.name) return res.status(400).json({ error: "channel" });
-      const recent = (Array.isArray(b.recent) ? b.recent : []).slice(0, 12).map((t) => clip(t, 60)).filter(Boolean);
+      const list = (v, n, m) => (Array.isArray(v) ? v : []).slice(0, n).map((t) => clip(t, m)).filter(Boolean);
+      const refs = list(b.refs, 5, 100);
+      if (b.action === "script") {
+        const pl = b.plan || {};
+        const x = { title: clip(b.title, 80), plan: { hook: clip(pl.hook, 200), body: clip(pl.body, 800), format: clip(pl.format, 40), why: clip(pl.why, 200) }, refs, prev: clip(b.prev, 3000), ask: clip(b.ask, 300) };
+        if (!x.title) return res.status(400).json({ error: "title" });
+        const r = await ask(SCRIPT_PROMPT(c, x), 3000);
+        if (!Array.isArray(r?.scenes) || !r.scenes.length) return res.status(502).json({ error: "shape" });
+        return res.status(200).json({
+          hook: clip(r.hook, 200),
+          scenes: r.scenes.slice(0, 12).map((y) => ({ t: clip(y?.t, 20), visual: clip(y?.visual, 200), line: clip(y?.line, 300) })),
+          cta: clip(r.cta, 200), caption: clip(r.caption, 1500), tags: list(r.tags, 15, 40), thumb: clip(r.thumb, 60),
+        });
+      }
       const best = (Array.isArray(b.best) ? b.best : []).slice(0, 5).map((x) => ({ title: clip(x?.title, 60), views: Number(x?.views) || 0, likes: Number(x?.likes) || 0 })).filter((x) => x.title);
-      const refs = (Array.isArray(b.refs) ? b.refs : []).slice(0, 5).map((t) => clip(t, 100)).filter(Boolean);
-      const r = await ask(PROMPT(c, recent, best, refs), 1500);
+      const r = await ask(PROMPT(c, { direction: clip(b.direction, 200), recent: list(b.recent, 25, 60), best, refs, liked: list(b.liked, 5, 60), dropped: list(b.dropped, 5, 60), bench: list(b.bench, 3, 200) }), 2500);
       if (!Array.isArray(r?.ideas) || !r.ideas.length) return res.status(502).json({ error: "shape" });
       return res.status(200).json({
-        ideas: r.ideas.slice(0, 3).map((i) => ({ title: clip(i.title, 60), format: clip(i.format, 12), why: clip(i.why, 100) })),
+        ideas: r.ideas.slice(0, 5).map((i) => ({ title: clip(i.title, 60), hook: clip(i.hook, 120), body: clip(i.body, 300), format: clip(i.format, 20), why: clip(i.why, 100) })),
         refs: (Array.isArray(r.refs) ? r.refs : []).slice(0, 3).map((x) => ({ what: clip(x.what, 80), search: clip(x.search, 40) })),
         tip: clip(r.tip, 120),
       });
@@ -148,7 +192,8 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const [raw] = (await redis([["GET", KEY]])) || [];
     let board = null; try { board = raw ? JSON.parse(raw) : null; } catch {}
-    return res.status(200).json({ board });
+    // 공부하면서 Claude가 저장소에 쌓은 콘텐츠 기획(AI이현 채널 기획실로 들어감)
+    return res.status(200).json({ board, study: studyIdeas });
   }
   return res.status(405).json({ error: "method" });
 }

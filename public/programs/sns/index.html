@@ -219,6 +219,44 @@ td a { text-decoration: none; }
 .rref { font-size: 13px; }
 .rref a { font-weight: 700; }
 .tipline { font-size: 13px; background: var(--charcoal); color: var(--on-charcoal); border-radius: 10px; padding: 8px 10px; }
+/* 기획실 */
+.lab { display: grid; gap: 10px; }
+.labin { display: grid; gap: 8px; }
+.labin .line input[type=text] { flex: 1 1 260px; }
+.labf { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.labf button { background: var(--bg); color: var(--muted); font-weight: 500; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
+.labf button[aria-pressed="true"] { background: var(--charcoal); color: #fff; }
+.ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ic { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; align-content: start; border-left: 4px solid transparent; }
+.ic.star { border-left-color: var(--yellow); }
+.ic.dropped { opacity: .55; }
+.ic .tt { display: flex; gap: 6px; align-items: flex-start; }
+.ic .tt b { flex: 1; font-size: 15px; word-break: keep-all; overflow-wrap: anywhere; }
+.ic .hook { font-size: 13px; }
+.ic .body { font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+.ic .meta { font-size: 11px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.ic .acts { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.ic textarea, .ic input { width: 100%; font-size: 13px; background: var(--panel); }
+.starbtn { background: transparent; padding: 0 2px; font-size: 18px; line-height: 1; color: var(--muted); font-weight: 400; }
+.starbtn[aria-pressed="true"] { color: #e8a400; }
+/* 프로젝트 화면 */
+.pgrid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 14px; align-items: start; }
+.pside { display: grid; gap: 14px; }
+.fld { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.fld input, .fld textarea, .fld select { font-size: 14px; font-weight: 400; color: var(--ink); width: 100%; }
+.fld textarea { min-height: 44px; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.frow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.stack { display: grid; gap: 10px; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chips button { background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-weight: 500; font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+.scenes { display: grid; gap: 6px; }
+.scene { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1.3fr) auto; gap: 6px; align-items: start; }
+.scene textarea, .scene input { font-size: 13px; width: 100%; min-height: 38px; }
+.scene .x { background: transparent; color: var(--muted); padding: 6px 4px; font-weight: 400; }
+.scene.head { font-size: 11px; color: var(--muted); font-weight: 700; }
+.scriptbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.scriptbar input { flex: 1 1 220px; }
 /* 대화상자 */
 dialog { border: 0; border-radius: 16px; padding: 18px; width: min(460px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
 dialog::backdrop { background: rgba(0,0,0,.4); }
@@ -230,9 +268,9 @@ dialog .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 dialog .acts { display: flex; gap: 8px; justify-content: space-between; margin-top: 4px; }
 dialog .acts .del { background: transparent; color: var(--bad); border: 1px solid var(--line); font-weight: 500; }
 .tog { display: flex; flex-wrap: wrap; gap: 6px; }
-.tog label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 999px; padding: 4px 10px; cursor: pointer; border: 2px solid transparent; }
+.tog label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 999px; padding: 4px 10px; cursor: pointer; position: relative; border: 2px solid transparent; }
 .tog label:has(input:checked) { border-color: var(--ink); }
-.tog input { position: absolute; opacity: 0; pointer-events: none; }
+.tog input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
 .colors { display: flex; gap: 6px; flex-wrap: wrap; }
 .colors label { width: 26px; height: 26px; border-radius: 50%; background: var(--c); cursor: pointer; border: 3px solid transparent; }
 .colors label:has(input:checked) { border-color: var(--ink); }
@@ -245,6 +283,7 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
   .col { scroll-snap-align: start; }
   .two { grid-template-columns: 1fr; }
   .persona { grid-template-columns: 1fr 1fr; }
+  .pgrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .tiles { grid-template-columns: 1fr 1fr; }
@@ -253,6 +292,12 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
   .pill { font-size: 10px; padding: 0 3px; }
   .persona { grid-template-columns: 1fr; }
   .chgrid { grid-template-columns: 1fr 1fr; }
+  .ideas { grid-template-columns: 1fr; }
+  .scene { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t x" "v v" "l l"; }
+  .scene > input { grid-area: t; } .scene > .x { grid-area: x; }
+  .scene > textarea:nth-of-type(1) { grid-area: v; } .scene > textarea:nth-of-type(2) { grid-area: l; }
+  .scene.head { display: none; }
+  .frow3 { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
@@ -296,7 +341,7 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
     </section>
 
     <section class="box">
-      <h2>전체 흐름 <span>모든 채널 · 체크하면 다음 단계로 · 카드를 누르면 날짜·채널·메모</span></h2>
+      <h2>전체 프로젝트 <span>모든 채널 · 체크하면 다음 단계로 · 카드를 누르면 프로젝트 화면</span></h2>
       <div class="flow" data-flow></div>
     </section>
 
@@ -334,6 +379,29 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
     </details>
     <div class="chstat box" id="chstat" style="margin-top:0"></div>
 
+    <section class="box lab">
+      <h2>기획실 <span>기획을 계속 쌓고, 괜찮은 건 ⭐ → '프로젝트로'를 눌러 넘겨요</span></h2>
+      <div class="labin">
+        <form class="line" id="quick">
+          <input type="text" id="qText" placeholder="내 기획 한 줄 적고 Enter (여러 줄 붙여넣으면 한 번에)" aria-label="새 기획" autocomplete="off">
+          <span class="datechip" id="qDate" hidden></span>
+          <button>+ 기획</button>
+        </form>
+        <div class="line">
+          <input type="text" id="aiDir" placeholder="AI에게 방향 주기 (선택) · 예: 여름 신상 홍보, 이번 주 할인, 후기 위주" aria-label="AI 기획 방향">
+          <button type="button" id="aiBtn">🤖 기획 5개 더 만들기</button>
+        </div>
+      </div>
+      <div class="labf" id="labf"></div>
+      <div class="ideas" id="ideas"></div>
+      <div id="rec" class="rec"></div>
+    </section>
+
+    <section class="box">
+      <h2>프로젝트 <span>영상 하나 = 프로젝트 · 체크하면 다음 단계로 · 카드를 누르면 기획·대본·STEP 화면</span></h2>
+      <div class="flow" data-flow></div>
+    </section>
+
     <section class="box">
       <h2>벤치마크 채널 <span>참고할 채널을 등록하면 새 영상을 알려 주고 분석해요 · 유튜브는 자동, 인스타·틱톡은 링크로 관리</span></h2>
       <form class="line" id="watchForm">
@@ -365,30 +433,12 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
       </section>
     </div>
 
-    <section class="box">
-      <h2>흐름 <span>체크하면 다음 단계로 · 카드를 누르면 날짜·채널·메모</span></h2>
-      <form class="quick" id="quick">
-        <input type="text" id="qText" placeholder="이 채널 아이디어 한 줄 적고 Enter (여러 줄 붙여넣으면 한 번에)" aria-label="새 아이디어" autocomplete="off">
-        <span class="datechip" id="qDate" hidden></span>
-        <button>+ 아이디어</button>
-      </form>
-      <div class="flow" data-flow></div>
-    </section>
-
     <div class="two">
-      <section class="box">
-        <h2>AI 추천 <span>이 채널 성격·레퍼런스·반응 좋았던 것을 보고</span></h2>
-        <button id="aiBtn" type="button">아이디어·레퍼런스 추천 받기</button>
-        <div id="rec" class="rec"></div>
-      </section>
       <section class="box">
         <h2>업로드 캘린더 <span class="calnav"><button class="ghost mini" data-cal="-1" type="button" aria-label="이전 달">‹</button><b data-caltitle></b><button class="ghost mini" data-cal="1" type="button" aria-label="다음 달">›</button><button class="ghost mini" data-cal="0" type="button">오늘</button></span></h2>
         <div class="cal" data-calgrid></div>
-        <p class="note" style="margin:8px 0 0">날짜를 누르면 그날로 아이디어를 넣어요. 예약 카드는 날짜가 되면 자동 업로드 (연동 후).</p>
+        <p class="note" style="margin:8px 0 0">날짜를 누르면 그날로 기획을 넣어요. 예약 카드는 날짜가 되면 자동 업로드 (연동 후).</p>
       </section>
-    </div>
-
-    <div class="two">
       <section class="box">
         <h2>댓글 <span data-cmcount></span></h2>
         <div class="plug">🔌 연동하면 이 채널 댓글을 자동으로 모아 와요.</div>
@@ -398,6 +448,8 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
           <div class="r"><select aria-label="댓글 채널" hidden></select><button>+ 댓글</button></div>
         </form>
       </section>
+    </div>
+    <div>
       <section class="box">
         <h2>분석 <span>올림 카드 기준 · 조회·좋아요는 카드에 적은 값 (연동 후 자동)</span></h2>
         <div class="tablewrap"><table data-stats></table></div>
@@ -407,28 +459,59 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
       </section>
     </div>
   </div>
-</main>
 
-<dialog id="postDlg">
-  <form method="dialog" id="postForm">
-    <h3>콘텐츠</h3>
-    <label>제목<input name="title" required></label>
-    <label>메모 (기획·대본·해시태그)<textarea name="memo" rows="4"></textarea></label>
-    <label>채널 (여러 개 고르면 하나로 여러 채널에)<div class="tog" id="postChans"></div></label>
-    <label>STEP (이 영상 프로젝트의 진행 순서) <span id="stepMeta"></span><div class="steplist" id="stepList"></div>
-      <span class="line"><input type="text" id="stepNew" placeholder="STEP 더하기 (Enter)" aria-label="STEP 더하기"></span></label>
-    <div class="row">
-      <label>단계<select name="stage"></select></label>
-      <label>올릴 날짜<input name="date" type="date"></label>
+  <!-- 프로젝트 화면 -->
+  <div class="view" id="proj" hidden>
+    <div class="pgrid">
+      <div class="pside">
+        <section class="box stack">
+          <h2>진행</h2>
+          <div class="frow">
+            <label class="fld">단계<select data-pf="stage" id="pStage"></select></label>
+            <label class="fld">올릴 날짜<input type="date" data-pf="date" id="pDate"></label>
+          </div>
+          <div class="fld">채널 (여러 개면 하나로 여러 채널에)<div class="tog" id="pChans"></div></div>
+          <div class="fld">STEP <span class="note" id="stepMeta"></span><div class="steplist" id="stepList"></div>
+            <input type="text" id="stepNew" placeholder="STEP 더하기 (Enter)" aria-label="STEP 더하기"></div>
+        </section>
+        <section class="box stack" id="pMetrics">
+          <h2>성과 <span>올린 뒤 적어 두면 분석·AI 추천에 써요 (연동 후 자동)</span></h2>
+          <div class="frow3">
+            <label class="fld">조회<input type="number" min="0" data-pf="metrics.views"></label>
+            <label class="fld">좋아요<input type="number" min="0" data-pf="metrics.likes"></label>
+            <label class="fld">댓글<input type="number" min="0" data-pf="metrics.cmts"></label>
+          </div>
+        </section>
+        <section class="box stack">
+          <label class="fld">메모<textarea data-pf="memo" rows="4" placeholder="촬영 메모, 준비물, 링크…"></textarea></label>
+          <button type="button" class="ghost" id="pDel">이 프로젝트 지우기</button>
+        </section>
+      </div>
+      <div class="pside">
+        <section class="box stack">
+          <h2>기획 <span>칸을 벗어나면 저장</span></h2>
+          <label class="fld">한 줄 기획 (제목)<input data-pf="title" id="pTitle"></label>
+          <label class="fld">첫 3초 훅<textarea data-pf="plan.hook" rows="2" placeholder="예: '이불 이렇게 빨면 1년 만에 버려요'"></textarea></label>
+          <label class="fld">핵심 내용 (무엇을, 어떤 순서로)<textarea data-pf="plan.body" rows="4"></textarea></label>
+          <div class="frow">
+            <label class="fld">형식<input data-pf="plan.format" placeholder="릴스 30초"></label>
+            <label class="fld">왜 이 채널에<input data-pf="plan.why"></label>
+          </div>
+        </section>
+        <section class="box stack">
+          <h2>대본 <span id="scriptMeta"></span></h2>
+          <div class="scriptbar">
+            <input type="text" id="scriptAsk" placeholder="AI에게 바라는 점 (선택) · 예: 더 짧게, 손님 후기로 시작" aria-label="대본 요청">
+            <button type="button" id="scriptBtn">🤖 대본 쓰기</button>
+          </div>
+          <div class="chips" id="scriptChips"></div>
+          <p class="msg" id="scriptMsg"></p>
+          <div id="scriptBody"></div>
+        </section>
+      </div>
     </div>
-    <div class="row3" id="metrics">
-      <label>조회<input name="views" type="number" min="0" inputmode="numeric"></label>
-      <label>좋아요<input name="likes" type="number" min="0" inputmode="numeric"></label>
-      <label>댓글<input name="cmts" type="number" min="0" inputmode="numeric"></label>
-    </div>
-    <div class="acts"><button type="button" class="del" id="postDel">삭제</button><span style="display:flex;gap:8px"><button type="button" class="ghost" onclick="this.closest('dialog').close()">닫기</button><button value="ok">저장</button></span></div>
-  </form>
-</dialog>
+  </div>
+</main>
 
 <dialog id="chanDlg">
   <form method="dialog" id="chanForm">
@@ -460,11 +543,12 @@ const md = (s) => s ? `${+s.slice(5, 7)}/${+s.slice(8)}` : "";
 const isUrl = (s) => /^https?:\/\/\S+$/i.test(s.trim());
 const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
 
-const STAGES = [["idea", "아이디어"], ["plan", "기획"], ["make", "제작"], ["sched", "예약"], ["done", "올림"]];
+const STAGES = [["plan", "기획"], ["make", "제작"], ["sched", "예약"], ["done", "올림"]];
 const STAGE_NAME = Object.fromEntries(STAGES);
 const PLATFORMS = ["", "인스타그램", "유튜브", "틱톡", "스레드", "네이버 블로그", "페이스북", "X", "기타"];
 const COLORS = ["#e8590c", "#f5b400", "#2b8a3e", "#1c7ed6", "#7048e8", "#d6336c", "#0c8599", "#5c940d", "#868e96", "#212529"];
-const KINDS = { shot: "📷 찍은 것", ref: "🔖 레퍼런스", idea: "💡 아이디어" };
+const KINDS = { shot: "📷 찍은 것", ref: "🔖 레퍼런스", idea: "💡 기획" };
+const SCRIPT_CHIPS = ["더 짧게", "더 길게", "더 웃기게", "더 자극적인 훅", "정보 더 많이", "말투 더 편하게", "후기·사례로 시작", "끝에 구매 유도"];
 // 성격 매트릭스: [묶음, [[키, 이름, 종류(text|multi|one|num), 예시 또는 고를 것]]]
 const PERSONA = [
   ["정체성", [
@@ -512,7 +596,8 @@ const profileFill = (p = {}) => PFIELDS.filter(([k]) => filled(p[k])).length;
 const profileText = (p = {}) => PFIELDS.filter(([k]) => filled(p[k]) && k !== "stepsTpl").map(([k, name]) => `- ${name.replace(/ \(.*\)$/, "")}: ${Array.isArray(p[k]) ? p[k].join(", ") : p[k]}`).join("\n");
 const aiChan = (c) => ({ id: c.id, name: c.name, platform: c.platform, profileText: profileText(c.profile) });
 const stepsFor = (chId) => { const t = (chan(chId)?.profile?.stepsTpl || "").split(/[,，\n]/).map((x) => x.trim()).filter(Boolean); return (t.length ? t : DEFAULT_STEPS).map((name) => ({ t: name, done: false })); };
-const newPost = (o) => ({ id: uid(), memo: "", date: "", createdAt: Date.now(), steps: stepsFor(o.channels?.[0]), ...o });
+const newPost = (o) => ({ id: uid(), memo: "", date: "", createdAt: Date.now(), steps: stepsFor(o.channels?.[0]), stage: "plan", plan: {}, ...o });
+const newIdea = (o) => ({ id: uid(), title: "", hook: "", body: "", format: "", why: "", star: false, by: "me", date: "", at: Date.now(), ...o });
 const SEARCH = {
   "인스타그램": (q) => `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ""))}/`,
   "유튜브": (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
@@ -520,7 +605,7 @@ const SEARCH = {
   "스레드": (q) => `https://www.threads.net/search?q=${encodeURIComponent(q)}`,
   "네이버 블로그": (q) => `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(q)}`,
 };
-const searchUrl = (platform, q) => (SEARCH[platform] || ((x) => `https://www.google.com/search?q=${encodeURIComponent(x)}`))(q);
+const searchUrl = (platform, q = "") => (SEARCH[platform] || ((x) => `https://www.google.com/search?q=${encodeURIComponent(x)}`))(q);
 
 // ── 데이터: 이 기기(localStorage)에 먼저 저장하고, 키가 있으면 서버(Redis)와 맞춤
 const LS = "sns-board";
@@ -533,7 +618,7 @@ const seed = () => ({
     mkChan("이불왕", "", "", COLORS[2], { topics: "이불, 침구, 베개, 수면, 세탁, 침실" }),
     mkChan("ENTJ이현", "", "", COLORS[4], { concept: "ENTJ의 일하는 방식", topics: "ENTJ, 효율, 일하는 법, 자기계발, 책" }),
   ],
-  posts: [], comments: [], recs: {}, refs: [], shoots: [], inbox: [], watch: [],
+  posts: [], comments: [], recs: {}, refs: [], shoots: [], inbox: [], watch: [], ideas: [],
 });
 function migrate(b) {
   b.channels.forEach((c) => {
@@ -543,15 +628,18 @@ function migrate(b) {
     if (typeof p.formats === "string") { const opts = PFIELDS.find(([k]) => k === "formats")[3]; p.formats = opts.filter((o) => p.formats.includes(o)); }
     if (p.tone && !p.concept && b.v < 3) { p.concept = p.tone; p.tone = ""; }
   });
-  for (const k of ["posts", "comments", "refs", "shoots", "inbox", "watch"]) b[k] ||= [];
-  b.posts.forEach((p) => { p.steps ||= DEFAULT_STEPS.map((t) => ({ t, done: p.stage === "done" })); });
-  b.recs ||= {}; b.v = 3;
+  for (const k of ["posts", "comments", "refs", "shoots", "inbox", "watch", "ideas"]) b[k] ||= [];
+  b.posts.forEach((p) => { p.steps ||= DEFAULT_STEPS.map((t) => ({ t, done: p.stage === "done" })); p.plan ||= {}; });
+  // v3의 '아이디어' 단계 카드는 기획실로
+  b.posts.filter((p) => p.stage === "idea").forEach((p) => { (p.channels?.length ? p.channels : [""]).slice(0, 1).forEach((ch) => b.ideas.push(newIdea({ channel: ch, title: p.title, body: p.memo || "", date: p.date || "", at: p.createdAt || Date.now() }))); });
+  b.posts = b.posts.filter((p) => p.stage !== "idea");
+  b.recs ||= {}; b.v = 4;
   return b;
 }
 let B; try { B = JSON.parse(localStorage.getItem(LS)); } catch {}
 B = migrate(B && Array.isArray(B.channels) ? B : seed());
 let key = ""; try { key = localStorage.getItem("ai-admin-key") || ""; } catch {}
-let online = false, pending = null, cur = "", pickDate = "", calMonth = today().slice(0, 7), inKind = "shot";
+let online = false, pending = null, cur = "", curPost = "", pickDate = "", calMonth = today().slice(0, 7), inKind = "shot", labFilter = "new", editIdea = "";
 
 async function api(method, body) {
   const res = await fetch("/api/sns", { method, headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -573,10 +661,24 @@ function save() {
 async function pull() {
   if (!online || pending) return;
   try {
-    const { board } = await api("GET");
+    const { board, study } = await api("GET");
     if (board && (board.updated || 0) > (B.updated || 0)) { B = migrate(board); saveLocal(); render(); }
     else if (!board || (B.updated || 0) > (board.updated || 0)) save();
+    mergeStudy(study);
   } catch {}
+}
+
+// 공부하면서 Claude가 저장소(data/sns-ideas.json)에 쌓은 기획 → 그 채널 기획실로 한 번씩만
+function mergeStudy(study) {
+  const c = B.channels.find((x) => x.name === study?.channel) || B.channels.find((x) => /AI\s*이현/.test(x.name));
+  if (!c || !Array.isArray(study?.ideas)) return;
+  B.studyIn ||= [];
+  const fresh = study.ideas.filter((i) => i?.id && i.title && !B.studyIn.includes(i.id));
+  if (!fresh.length) return;
+  change(`📚 공부에서 나온 기획 ${fresh.length}개가 ${c.name} 기획실에 들어왔어요`, () => fresh.forEach((i) => {
+    B.studyIn.push(i.id);
+    B.ideas.push(newIdea({ channel: c.id, title: i.title, hook: i.hook || "", body: i.body || "", format: i.format || "", why: i.why || "", by: "study", at: i.date ? new Date(i.date + "T12:00").getTime() : Date.now() }));
+  }));
 }
 
 // ── 바꾸기 + 되돌리기
@@ -658,10 +760,24 @@ async function refreshAll(force) {
 
 // ── 화면
 function render() {
-  const route = (location.hash.match(/^#ch=(.+)$/) || [])[1] || "";
+  const pRoute = (location.hash.match(/^#p=(.+)$/) || [])[1] || "";
+  const post = B.posts.find((q) => q.id === pRoute);
+  curPost = post ? post.id : "";
+  const route = post ? post.channels?.[0] || "" : (location.hash.match(/^#ch=(.+)$/) || [])[1] || "";
   cur = chan(route) ? route : "";
-  const c = chan(cur);
-  $("dash").hidden = !!cur || !$("gate").hidden; $("chan").hidden = !cur || !$("gate").hidden;
+  const c = chan(cur), gate = !$("gate").hidden;
+  $("proj").hidden = !post || gate;
+  if (post && !gate) {
+    $("dash").hidden = true; $("chan").hidden = true;
+    $("crumb").innerHTML = `<a href="/programs">AI<b>이현</b> · 프로그램</a> › <a href="#">SNS 대시보드</a>${c ? ` › <a href="${chHref(c.id)}">${esc(c.name)}</a>` : ""}`;
+    $("title").textContent = post.title;
+    $("sub").textContent = `${STAGE_NAME[post.stage] || ""}${post.date ? " · 📅 " + md(post.date) : ""}`;
+    $("top").style.setProperty("--chc", c ? c.color : "var(--charcoal)");
+    document.title = `${post.title} · SNS 통합 관리`;
+    renderProj(post);
+    return;
+  }
+  $("dash").hidden = !!cur || gate; $("chan").hidden = !cur || gate;
   $("crumb").innerHTML = `<a href="/programs">AI<b>이현</b> · 프로그램</a>` + (cur ? ` › <a href="#">SNS 대시보드</a>` : "");
   $("title").textContent = c ? c.name : "SNS 통합 관리";
   $("sub").innerHTML = c ? `${esc(c.platform || "플랫폼 미정")}${c.url ? ` · <a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener">계정 열기 ↗</a>` : ""} · <a href="#" data-edit="${c.id}">⚙ 설정</a>` : "대시보드";
@@ -692,7 +808,7 @@ function renderDash() {
       <b><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</b>
       <span class="pf">${esc(c.platform || "플랫폼 미정")} · <span class="${late ? "late" : ""}">${gap}</span></span>
       <span class="tone">${esc(c.profile?.concept || "성격을 아직 안 적었어요")}</span>
-      <span class="nums"><span>준비 <b>${mine.filter((p) => p.stage !== "done").length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span><span>벤치마크 <b>${B.watch.filter((w) => w.channel === c.id).length}</b>${newCount(c.id) ? ` <span class="badge">새 ${newCount(c.id)}</span>` : ""}</span><span>성격 <b>${profileFill(c.profile)}/${PFIELDS.length}</b></span></span>
+      <span class="nums"><span>기획실 <b>${B.ideas.filter((i) => i.channel === c.id && i.status !== "dropped").length}</b></span><span>프로젝트 <b>${mine.filter((p) => p.stage !== "done").length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span><span>벤치마크 <b>${B.watch.filter((w) => w.channel === c.id).length}</b>${newCount(c.id) ? ` <span class="badge">새 ${newCount(c.id)}</span>` : ""}</span><span>성격 <b>${profileFill(c.profile)}/${PFIELDS.length}</b></span></span>
       <span class="next">${next ? `📅 다음 ${md(next.date)} ${esc(next.title)}` : '<span class="note">예약된 업로드 없음</span>'}</span>
     </a>`;
   }).join("") + `<button type="button" class="chcard add" id="addChan">+ 채널</button>`;
@@ -710,7 +826,7 @@ function renderDash() {
     return `<div class="inb"><div class="t"><span class="kind">${KINDS[it.kind]}</span>${isUrl(it.text) ? `<a href="${esc(it.text)}" target="_blank" rel="noopener">${esc(it.text)}</a>` : esc(it.text)}<button type="button" class="x" data-inx="${it.id}" aria-label="지우기">✕</button></div>
       <div class="match">${ids.length ? `<span class="note">어울리는 채널 →</span>${ids.map((id, i) => btn(chan(id), i === 0)).join("")}` : `<span class="note">어디로 보낼까요? →</span>`}${rest.map((c) => btn(c, false)).join("")}${online ? `<button type="button" class="ghost" data-aimatch="${it.id}">🤖 AI로 고르기</button>` : ""}
       ${ai.length ? `<span class="why">🤖 ${ai.map((a) => `${esc(chan(a.id)?.name || "")}: ${esc(a.why)}`).join(" · ")}</span>` : rules.length ? `<span class="why">주제 키워드: ${rules.slice(0, 2).map((r) => `${esc(chan(r.id).name)} (${r.hits.map(esc).join(", ")})`).join(" · ")}</span>` : ""}</div></div>`;
-  }).join("") : `<div class="empty"><img src="/assets/zero/zero-waiting.svg" alt="">찍어 둔 영상이나 본 레퍼런스를 일단 여기에 넣으세요. 채널을 골라 보내면 📷은 그 채널 흐름의 '제작', 🔖은 레퍼런스 보드, 💡은 '아이디어'로 갑니다.</div>`;
+  }).join("") : `<div class="empty"><img src="/assets/zero/zero-waiting.svg" alt="">찍어 둔 영상이나 본 레퍼런스를 일단 여기에 넣으세요. 채널을 골라 보내면 📷은 그 채널 프로젝트의 '제작', 🔖은 레퍼런스 보드, 💡은 기획실로 갑니다.</div>`;
 }
 
 function renderChan(c) {
@@ -743,8 +859,54 @@ function renderChan(c) {
 
   $("qDate").hidden = !pickDate;
   $("qDate").innerHTML = pickDate ? `${md(pickDate)}에 넣기 <button type="button" id="qDateX" aria-label="날짜 빼기">✕</button>` : "";
+  renderLab(c);
   renderRec(c);
 }
+
+function renderLab(c) {
+  const all = B.ideas.filter((i) => i.channel === c.id), live = all.filter((i) => i.status !== "dropped");
+  const groups = { new: live, star: live.filter((i) => i.star), dropped: all.filter((i) => i.status === "dropped") };
+  $("labf").innerHTML = [["new", "쌓인 기획"], ["star", "⭐ 괜찮은 것"], ["dropped", "버린 것"]].map(([k, n]) => `<button type="button" data-labf="${k}" aria-pressed="${labFilter === k}">${n} ${groups[k].length}</button>`).join("") + `<span class="note">프로젝트로 넘긴 기획 ${B.posts.filter((p) => p.channels?.includes(c.id) && p.fromIdea).length}개</span>`;
+  const list = [...groups[labFilter]].sort((a, b) => (b.star - a.star) || (b.at - a.at));
+  $("ideas").innerHTML = list.length ? list.map((i) => editIdea === i.id
+    ? `<div class="ic" data-idea="${i.id}"><input data-if="title" value="${esc(i.title)}" placeholder="한 줄 기획"><textarea data-if="hook" rows="2" placeholder="첫 3초 훅">${esc(i.hook)}</textarea><textarea data-if="body" rows="3" placeholder="핵심 내용">${esc(i.body)}</textarea><input data-if="format" value="${esc(i.format)}" placeholder="형식 (릴스 30초…)"><span class="acts"><button type="button" class="mini" data-idone="${i.id}">다 고쳤어요</button></span></div>`
+    : `<div class="ic${i.star ? " star" : ""}${i.status === "dropped" ? " dropped" : ""}" data-idea="${i.id}">
+      <span class="tt"><button type="button" class="starbtn" data-istar="${i.id}" aria-pressed="${i.star}" aria-label="괜찮은 기획">${i.star ? "★" : "☆"}</button><b>${esc(i.title)}</b></span>
+      ${i.hook ? `<span class="hook">🎣 ${esc(i.hook)}</span>` : ""}${i.body ? `<span class="body">${esc(i.body)}</span>` : ""}
+      <span class="meta">${i.format ? `<span>${esc(i.format)}</span>` : ""}${i.why ? `<span>${esc(i.why)}</span>` : ""}<span>${i.by === "ai" ? "🤖 AI" : i.by === "study" ? "📚 공부에서" : "✍ 나"} · ${md(ymd(new Date(i.at)))}</span>${i.date ? `<span>📅 ${md(i.date)}</span>` : ""}</span>
+      <span class="acts">${i.status === "dropped" ? `<button type="button" class="ghost mini" data-irestore="${i.id}">다시 살리기</button><button type="button" class="ghost mini" data-idel="${i.id}">완전히 지우기</button>` : `<button type="button" class="mini" data-imove="${i.id}">프로젝트로 →</button><button type="button" class="ghost mini" data-iedit="${i.id}">✎ 고치기</button><button type="button" class="ghost mini" data-idrop="${i.id}">버리기</button>`}</span>
+    </div>`).join("")
+    : `<div class="empty"><img src="/assets/zero/zero-thinking.svg" alt="">${labFilter === "new" ? "기획을 한 줄씩 적거나, 🤖로 이 채널 성격에 맞는 기획을 계속 받아 쌓아 두세요." : labFilter === "star" ? "☆를 누르면 괜찮은 기획만 여기 모여요." : "버린 기획이 없어요."}</div>`;
+}
+
+function renderProj(p) {
+  const c = chan(p.channels?.[0]);
+  $("pStage").innerHTML = STAGES.map(([k, n]) => `<option value="${k}"${k === p.stage ? " selected" : ""}>${n}</option>`).join("");
+  $("pDate").value = p.stage === "done" ? doneDay(p) : p.date || "";
+  $("pChans").innerHTML = B.channels.map((x) => `<label><input type="checkbox" data-pch="${x.id}" ${p.channels?.includes(x.id) ? "checked" : ""}><i class="dot" style="--c:${x.color}"></i>${esc(x.name)}</label>`).join("");
+  const n = (p.steps || []).filter((x) => x.done).length;
+  $("stepMeta").textContent = `${n}/${(p.steps || []).length} · 시작한 지 ${Math.max(0, Math.floor((Date.now() - (p.createdAt || Date.now())) / 864e5))}일째`;
+  $("stepList").innerHTML = (p.steps || []).map((x, i) => `<div class="st${x.done ? " done" : ""}"><input type="checkbox" data-sd="${i}" ${x.done ? "checked" : ""} aria-label="${esc(x.t)} 끝"><span>${i + 1}. ${esc(x.t)}</span><small>${x.at ? md(x.at) : ""}</small><button type="button" data-sdx="${i}" aria-label="빼기">✕</button></div>`).join("");
+  $("pMetrics").hidden = p.stage !== "done";
+  $$("#proj [data-pf]").forEach((el) => { if (el.id === "pStage" || el.id === "pDate" || el === document.activeElement) return; el.value = getPath(p, el.dataset.pf) ?? ""; });
+  $("scriptChips").innerHTML = SCRIPT_CHIPS.map((t) => `<button type="button" data-chip="${esc(t)}">${esc(t)}</button>`).join("");
+  $("scriptBtn").textContent = p.script ? "🤖 다시 쓰기" : "🤖 대본 쓰기";
+  $("scriptMeta").textContent = p.script ? `${md(ymd(new Date(p.script.at)))} · ${c ? c.name + " 성격 반영" : ""}${p.script.v ? ` · ${p.script.v}번째` : ""}` : `${c ? c.name : "채널"} 성격(말투·길이·형식·촬영 방식)을 보고 써요`;
+  const sc = p.script;
+  if (!sc) { if (document.activeElement?.closest("#scriptBody") == null) $("scriptBody").innerHTML = `<div class="empty"><img src="/assets/zero/zero-writing.svg" alt="">기획을 채우고 🤖를 누르면 장면별 화면·대사, 캡션, 해시태그, 썸네일 문구까지 써 드려요. 받은 대본은 여기서 바로 고칠 수 있어요.</div>`; return; }
+  if ($("scriptBody").contains(document.activeElement)) return;
+  $("scriptBody").innerHTML = `<div class="stack">
+    <label class="fld">훅 (첫 문장)<textarea data-pf="script.hook" rows="2">${esc(sc.hook || "")}</textarea></label>
+    <div class="scenes"><div class="scene head"><span>시간</span><span>화면</span><span>대사·자막</span><span></span></div>${(sc.scenes || []).map((x, i) => `<div class="scene"><input data-pf="script.scenes.${i}.t" value="${esc(x.t || "")}" placeholder="시간" aria-label="시간"><textarea data-pf="script.scenes.${i}.visual" placeholder="화면 (무엇을 보여줄지)" aria-label="화면">${esc(x.visual || "")}</textarea><textarea data-pf="script.scenes.${i}.line" placeholder="대사·자막" aria-label="대사·자막">${esc(x.line || "")}</textarea><button type="button" class="x" data-scx="${i}" aria-label="장면 빼기">✕</button></div>`).join("")}</div>
+    <div class="line"><button type="button" class="ghost mini" data-scadd>+ 장면</button><button type="button" class="ghost mini" data-sccopy>📋 대본 복사</button></div>
+    <label class="fld">끝맺음·행동 유도<textarea data-pf="script.cta" rows="2">${esc(sc.cta || "")}</textarea></label>
+    <label class="fld">캡션<textarea data-pf="script.caption" rows="4">${esc(sc.caption || "")}</textarea></label>
+    <div class="frow"><label class="fld">해시태그<textarea data-pf="script.tags" rows="2">${esc(Array.isArray(sc.tags) ? sc.tags.join(" ") : sc.tags || "")}</textarea></label><label class="fld">썸네일 문구<textarea data-pf="script.thumb" rows="2">${esc(sc.thumb || "")}</textarea></label></div>
+  </div>`;
+}
+const getPath = (o, path) => path.split(".").reduce((x, k) => (x == null ? x : x[k]), o);
+function setPath(o, path, v) { const ks = path.split("."), last = ks.pop(); const t = ks.reduce((x, k) => (x[k] ??= /^\d+$/.test(k) ? {} : {}), o); t[last] = v; }
+const scriptText = (p) => { const s = p.script || {}; return [`[${p.title}]`, s.hook && `훅: ${s.hook}`, ...(s.scenes || []).map((x) => `${x.t || ""} | 화면: ${x.visual || ""} | 대사: ${x.line || ""}`), s.cta && `끝: ${s.cta}`, "", s.caption, Array.isArray(s.tags) ? s.tags.join(" ") : s.tags, s.thumb && `썸네일: ${s.thumb}`].filter((x) => x != null).join("\n"); };
 
 function renderFlow(root) {
   const t = today(), posts = B.posts.filter(inCur);
@@ -757,11 +919,11 @@ function renderFlow(root) {
       const late = s === "sched" && p.date && p.date < t;
       return `<div class="card${s === "done" ? " done" : ""}" data-post="${p.id}" style="--c:${postColor(p)}">
         <input type="checkbox" data-adv="${p.id}" ${s === "done" ? "checked" : ""} aria-label="${s === "done" ? "예약으로 되돌리기" : "다음 단계로"}">
-        <div class="t">${esc(p.title)}</div>
+        <div class="t">${esc(p.title)}${p.script ? ' <span title="대본 있음">📝</span>' : ""}</div>
         ${stepLine(p)}
         <div class="m">${cur ? "" : chanNames(p)}${p.date ? `<span class="${late ? "late" : ""}">📅 ${md(s === "done" ? doneDay(p) : p.date)}${late ? " 지남" : ""}</span>` : ""}${s === "done" && p.metrics?.views ? `<span>▶ ${num(p.metrics.views)}</span>` : ""}${s === "sched" ? "<span>🔌 연동 전</span>" : ""}</div>
       </div>`;
-    }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "idea" ? `<div class="hint">${cur ? "위에 한 줄 적으면 여기로 와요" : "채널 공간이나 소재함에서 넣어요"}</div>` : ""}</div>`;
+    }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "plan" ? `<div class="hint">${cur ? "기획실에서 '프로젝트로 →'를 누르면 여기로 와요" : "각 채널의 기획실에서 넘어와요"}</div>` : ""}</div>`;
   }).join("");
 }
 
@@ -812,10 +974,9 @@ function renderStats(root) {
 
 function renderRec(c) {
   const r = B.recs?.[c.id];
-  if (!r) { $("rec").innerHTML = `<div class="empty"><img src="/assets/zero/zero-thinking.svg" alt="">위의 성격 카드를 채울수록 이 채널에 딱 맞는 아이디어와 레퍼런스 검색어가 나와요.${online ? "" : " (관리자 키를 넣어야 쓸 수 있어요)"}</div>`; return; }
-  $("rec").innerHTML = `${r.ideas.map((i, n) => `<div class="idea"><b>${esc(i.title)}</b><span class="acts"><button type="button" class="mini" data-recadd="${n}">+ 아이디어</button><button type="button" class="mini ghost" data-recshoot="${n}">+ 찍을 것</button></span><span class="w">${esc(i.format)} · ${esc(i.why)}</span></div>`).join("")}
-    ${r.refs.map((x) => `<div class="rref">🔎 ${esc(x.what)} · <a href="${esc(searchUrl(c.platform, x.search))}" target="_blank" rel="noopener">${esc(x.search)}</a></div>`).join("")}
-    ${r.tip ? `<div class="tipline">이번 주 한 가지: ${esc(r.tip)}</div>` : ""}<div class="note">${md(ymd(new Date(r.at)))} 추천 · 다시 누르면 새로 받아요</div>`;
+  if (!r || (!r.refs?.length && !r.tip)) { $("rec").innerHTML = online ? "" : `<p class="note">🤖 기획 만들기는 관리자 키를 넣어야 쓸 수 있어요.</p>`; return; }
+  $("rec").innerHTML = `${(r.refs || []).map((x) => `<div class="rref">🔎 ${esc(x.what)} · <a href="${esc(searchUrl(c.platform, x.search))}" target="_blank" rel="noopener">${esc(x.search)}</a></div>`).join("")}
+    ${r.tip ? `<div class="tipline">이번 주 한 가지: ${esc(r.tip)}</div>` : ""}<div class="note">${md(ymd(new Date(r.at)))} 🤖 기획과 함께 받은 레퍼런스 찾는 법</div>`;
 }
 
 // ── 이동
@@ -853,12 +1014,32 @@ document.addEventListener("click", (e) => {
     });
     return;
   }
-  if ((x = el("[data-post]"))) { openPost(x.dataset.post); return; }
+  if ((x = el("[data-post]"))) { location.hash = `p=${x.dataset.post}`; return; }
   if ((x = el("[data-day]"))) {
     if (!cur) return;
     pickDate = pickDate === x.dataset.day ? "" : x.dataset.day; render(); if (pickDate) $("qText").focus(); return;
   }
   if (e.target.id === "qDateX") { pickDate = ""; render(); return; }
+  // 기획실
+  if ((x = el("[data-labf]"))) { labFilter = x.dataset.labf; render(); return; }
+  if ((x = el("[data-istar]"))) { change("", () => { const i = B.ideas.find((q) => q.id === x.dataset.istar); i.star = !i.star; }); return; }
+  if ((x = el("[data-idrop]"))) { change("기획을 버렸어요", () => (B.ideas.find((q) => q.id === x.dataset.idrop).status = "dropped")); return; }
+  if ((x = el("[data-irestore]"))) { change("다시 살렸어요", () => (B.ideas.find((q) => q.id === x.dataset.irestore).status = "")); return; }
+  if ((x = el("[data-idel]"))) { change("완전히 지웠어요", () => (B.ideas = B.ideas.filter((q) => q.id !== x.dataset.idel))); return; }
+  if ((x = el("[data-iedit]"))) { editIdea = x.dataset.iedit; render(); return; }
+  if ((x = el("[data-idone]"))) { editIdea = ""; render(); return; }
+  if ((x = el("[data-imove]"))) {
+    const i = B.ideas.find((q) => q.id === x.dataset.imove), np = newPost({ title: i.title, channels: [i.channel], date: i.date || "", fromIdea: i.id, plan: { hook: i.hook, body: i.body, format: i.format, why: i.why } });
+    np.steps.forEach((st, n) => { if (n === 0 && /기획/.test(st.t)) { st.done = true; st.at = today(); } });
+    change(`'${i.title.slice(0, 14)}' 프로젝트로 넘겼어요`, () => { B.ideas = B.ideas.filter((q) => q.id !== i.id); B.posts.push(np); });
+    location.hash = `p=${np.id}`;
+    return;
+  }
+  // 프로젝트 화면
+  if ((x = el("[data-chip]"))) { const v = $("scriptAsk").value.trim(); $("scriptAsk").value = v ? `${v}, ${x.dataset.chip}` : x.dataset.chip; return; }
+  if ((x = el("[data-scadd]"))) { change("", () => { const p = B.posts.find((q) => q.id === curPost); (p.script.scenes ||= []).push({ t: "", visual: "", line: "" }); }); return; }
+  if ((x = el("[data-scx]"))) { change("장면을 뺐어요", () => B.posts.find((q) => q.id === curPost).script.scenes.splice(+x.dataset.scx, 1)); return; }
+  if ((x = el("[data-sccopy]"))) { const t = scriptText(B.posts.find((q) => q.id === curPost)); navigator.clipboard?.writeText(t).then(() => (x.textContent = "복사했어요 ✓"), () => (x.textContent = "복사 안 됨")); return; }
   if ((x = el("[data-cm]"))) { const c = B.comments.find((q) => q.id === x.dataset.cm); change(c.replied ? "답 안 함으로" : "답함", () => (c.replied = !c.replied)); return; }
   if ((x = el("[data-cmdel]"))) { e.preventDefault(); change("댓글을 지웠어요", () => (B.comments = B.comments.filter((c) => c.id !== x.dataset.cmdel))); return; }
   // 성격 고르기
@@ -885,7 +1066,7 @@ document.addEventListener("click", (e) => {
   if ((x = el("[data-wai]"))) { watchAi(x.dataset.wai, x); return; }
   if ((x = el("[data-wborrow]"))) {
     const w = B.watch.find((q) => q.id === x.dataset.wborrow), i = w.ai.borrow[+x.dataset.i];
-    change("아이디어에 넣었어요", () => B.posts.push(newPost({ title: i.title, memo: `벤치마크: ${w.name}\n${i.why}`, channels: [w.channel], stage: "idea" })));
+    change("기획실에 넣었어요", () => B.ideas.push(newIdea({ channel: w.channel, title: i.title, why: i.why, body: `벤치마크: ${w.name}`, by: "ai" })));
     return;
   }
   // 소재함
@@ -912,11 +1093,6 @@ document.addEventListener("click", (e) => {
     return;
   }
   if ((x = el("[data-shotx]"))) { change("찍을 것을 지웠어요", () => (B.shoots = B.shoots.filter((s) => s.id !== x.dataset.shotx))); return; }
-  if ((x = el("[data-recadd]")) || (x = el("[data-recshoot]"))) {
-    const n = +(x.dataset.recadd ?? x.dataset.recshoot), i = B.recs[cur].ideas[n];
-    if (x.dataset.recadd != null) change("아이디어에 넣었어요", () => B.posts.push(newPost({ title: i.title, memo: `${i.format} · ${i.why}`, channels: [cur], stage: "idea" })));
-    else change("찍을 것에 넣었어요", () => B.shoots.push({ id: uid(), channel: cur, title: i.title, done: false, at: Date.now() }));
-  }
 });
 
 // ── 소재함
@@ -929,11 +1105,12 @@ $("inForm").onsubmit = (e) => {
 };
 function sendInbox(id, to) {
   const it = B.inbox.find((i) => i.id === id), c = chan(to);
-  const where = { shot: "흐름의 '제작'", ref: "레퍼런스 보드", idea: "흐름의 '아이디어'" }[it.kind];
+  const where = { shot: "프로젝트 '제작'", ref: "레퍼런스 보드", idea: "기획실" }[it.kind];
   change(`${c.name} ${where}으로 보냈어요`, () => {
     B.inbox = B.inbox.filter((i) => i.id !== id);
     if (it.kind === "ref") B.refs.push({ id: uid(), channel: to, url: isUrl(it.text) ? it.text : "", title: isUrl(it.text) ? "" : it.text, note: "", at: Date.now() });
-    else B.posts.push(newPost({ title: it.text, channels: [to], stage: it.kind === "shot" ? "make" : "idea" }));
+    else if (it.kind === "idea") B.ideas.push(newIdea({ channel: to, title: it.text }));
+    else B.posts.push(newPost({ title: it.text, channels: [to], stage: "make" }));
   });
 }
 async function aiMatch(id, btn) {
@@ -950,6 +1127,10 @@ $("persona").addEventListener("change", (e) => {
   const k = e.target.dataset.pk; if (!k) return;
   const c = chan(cur), v = e.target.value.trim();
   e.target.blur(); change("", () => { c.profile[k] = v; });
+});
+$("ideas").addEventListener("change", (e) => {
+  const k = e.target.dataset.if, id = e.target.closest("[data-idea]")?.dataset.idea; if (!k || !id) return;
+  const i = B.ideas.find((q) => q.id === id); i[k] = e.target.value.trim(); save();
 });
 $("watchForm").onsubmit = async (e) => {
   e.preventDefault();
@@ -987,7 +1168,7 @@ function addLines(input, fn, lines) {
   fn(list); input.value = "";
 }
 const addShoots = (list) => change(`찍을 것 ${list.length}개`, () => list.forEach((title) => B.shoots.push({ id: uid(), channel: cur, title, done: false, at: Date.now() })));
-const addIdeas = (list) => { const d = pickDate; pickDate = ""; change(`아이디어 ${list.length}개 넣었어요`, () => list.forEach((title) => B.posts.push(newPost({ title, channels: [cur], stage: "idea", date: d })))); };
+const addIdeas = (list) => { const d = pickDate; pickDate = ""; labFilter = "new"; change(`기획 ${list.length}개 넣었어요`, () => list.forEach((title) => B.ideas.push(newIdea({ channel: cur, title, date: d })))); };
 for (const [form, input, fn] of [["shootForm", "shootText", addShoots], ["quick", "qText", addIdeas]]) {
   $(form).onsubmit = (e) => { e.preventDefault(); addLines($(input), fn, [$(input).value]); };
   $(input).addEventListener("paste", (e) => {
@@ -1007,21 +1188,28 @@ $$("[data-addcm]").forEach((f) => (f.onsubmit = (e) => {
   ta.value = "";
 }));
 
-// ── AI 추천
+// ── AI 기획 만들기 (기획실로 계속 쌓임)
 $("aiBtn").onclick = async () => {
   const c = chan(cur); if (!c) return;
-  if (!online) { $("rec").innerHTML = `<p class="msg">관리자 키를 넣어야 추천을 받을 수 있어요.</p>`; return; }
-  $("aiBtn").disabled = true; $("aiBtn").textContent = "생각 중…";
+  if (!online) { $("rec").innerHTML = `<p class="msg">관리자 키를 넣어야 AI 기획을 받을 수 있어요.</p>`; return; }
+  $("aiBtn").disabled = true; $("aiBtn").textContent = "기획 중…";
   const mine = B.posts.filter((p) => p.channels?.includes(c.id)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   const best = mine.filter((p) => p.metrics?.views).sort((a, b) => b.metrics.views - a.metrics.views).slice(0, 5).map((p) => ({ title: p.title, views: p.metrics.views, likes: p.metrics.likes }));
   const refs = B.refs.filter((r) => r.channel === c.id && r.note).slice(-5).map((r) => r.note);
+  const pool = B.ideas.filter((i) => i.channel === c.id);
+  const liked = pool.filter((i) => i.star).slice(-5).map((i) => i.title), dropped = pool.filter((i) => i.status === "dropped").slice(-5).map((i) => i.title);
+  const bench = B.watch.filter((w) => w.channel === c.id && w.ai).map((w) => `${w.name}: ${w.ai.patterns.join(" / ")}`).slice(0, 3);
   try {
-    const r = await api("POST", { action: "ai", channel: aiChan(c), recent: mine.slice(0, 12).map((p) => p.title), best, refs });
-    change("", () => { B.recs[c.id] = { ...r, at: Date.now() }; });
+    const r = await api("POST", { action: "ai", channel: aiChan(c), direction: $("aiDir").value.trim(), recent: [...mine.slice(0, 10).map((p) => p.title), ...pool.slice(-15).map((i) => i.title)], best, refs, liked, dropped, bench });
+    labFilter = "new";
+    change(`🤖 기획 ${r.ideas.length}개가 기획실에 쌓였어요`, () => {
+      r.ideas.forEach((i) => B.ideas.push(newIdea({ channel: c.id, title: i.title, hook: i.hook, body: i.body, format: i.format, why: i.why, by: "ai" })));
+      B.recs[c.id] = { refs: r.refs, tip: r.tip, at: Date.now() };
+    });
   } catch (e) {
-    $("rec").innerHTML = `<p class="msg">${e === "no_key" ? "Vercel에 ANTHROPIC_API_KEY가 없어요." : "추천을 받지 못했어요. 다시 눌러 주세요."}</p>`;
+    $("rec").innerHTML = `<p class="msg">${e === "no_key" ? "Vercel에 ANTHROPIC_API_KEY가 없어요." : "기획을 받지 못했어요. 다시 눌러 주세요."}</p>`;
   }
-  $("aiBtn").disabled = false; $("aiBtn").textContent = "아이디어·레퍼런스 추천 받기";
+  $("aiBtn").disabled = false; $("aiBtn").textContent = "🤖 기획 5개 더 만들기";
 };
 
 // ── 채널 설정
@@ -1051,59 +1239,61 @@ $("chanDel").onclick = () => {
   if (cur === id) location.hash = "";
 };
 
-// ── 콘텐츠 편집
-let editPost = null;
-$("postForm").stage.innerHTML = STAGES.map(([s, n]) => `<option value="${s}">${n}</option>`).join("");
-function openPost(id) {
-  editPost = id; const p = B.posts.find((x) => x.id === id), f = $("postForm");
-  f.title.value = p.title; f.memo.value = p.memo || ""; f.stage.value = p.stage; f.date.value = p.stage === "done" ? doneDay(p) : p.date || "";
-  f.views.value = p.metrics?.views || ""; f.likes.value = p.metrics?.likes || ""; f.cmts.value = p.metrics?.cmts || "";
-  $("postChans").innerHTML = B.channels.map((c) => `<label><input type="checkbox" value="${c.id}" ${p.channels?.includes(c.id) ? "checked" : ""}><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</label>`).join("");
-  $("metrics").hidden = p.stage !== "done";
-  stepDraft = JSON.parse(JSON.stringify(p.steps || [])); renderSteps();
-  $("postDlg").showModal();
-}
-let stepDraft = [];
-function renderSteps() {
-  const n = stepDraft.filter((x) => x.done).length, p = B.posts.find((x) => x.id === editPost);
-  $("stepMeta").textContent = `${n}/${stepDraft.length} · 시작한 지 ${Math.max(0, Math.floor((Date.now() - (p?.createdAt || Date.now())) / 864e5))}일째`;
-  $("stepList").innerHTML = stepDraft.map((x, i) => `<div class="st${x.done ? " done" : ""}"><input type="checkbox" data-sd="${i}" ${x.done ? "checked" : ""} aria-label="${esc(x.t)} 끝"><span>${i + 1}. ${esc(x.t)}</span><small>${x.at ? md(x.at) : ""}</small><button type="button" data-sdx="${i}" aria-label="빼기">✕</button></div>`).join("");
-}
-$("stepList").addEventListener("click", (e) => {
-  const cb = e.target.closest("[data-sd]"), del = e.target.closest("[data-sdx]");
-  if (cb) { const st = stepDraft[+cb.dataset.sd]; st.done = cb.checked; st.at = cb.checked ? today() : ""; renderSteps(); }
-  if (del) { stepDraft.splice(+del.dataset.sdx, 1); renderSteps(); }
+// ── 프로젝트 화면: 칸을 벗어나면 저장 (다시 그리지 않아 입력이 끊기지 않음)
+const curP = () => B.posts.find((q) => q.id === curPost);
+$("proj").addEventListener("change", (e) => {
+  const p = curP(); if (!p) return;
+  const t = e.target;
+  if (t.dataset.pch) { change("", () => { p.channels = $$("#pChans input:checked").map((i) => i.dataset.pch); }); return; }
+  if (t.dataset.sd != null) {
+    const st = p.steps[+t.dataset.sd];
+    change(t.checked ? `'${st.t}' 끝` : "", () => {
+      st.done = t.checked; st.at = t.checked ? today() : "";
+      if (p.steps.length && p.steps.every((q) => q.done) && p.stage !== "done") { p.stage = "done"; p.doneAt = today(); }
+    });
+    return;
+  }
+  const k = t.dataset.pf; if (!k) return;
+  let v = t.value;
+  if (k === "stage") { change(`${STAGE_NAME[v]}(으)로`, () => { if (v === "done") p.doneAt = p.doneAt || today(); else delete p.doneAt; if (v === "sched" && !p.date) p.date = addDays(today(), 1); p.stage = v; }); return; }
+  if (k === "date") { change("", () => { if (p.stage === "done") p.doneAt = v || today(); else p.date = v; }); return; }
+  if (k.startsWith("metrics.")) v = Number(v) || 0;
+  if (k === "script.tags") v = v.split(/\s+/).filter(Boolean);
+  if (k === "title") { v = v.trim() || p.title; $("title").textContent = v; }
+  setPath(p, k, v); save();
 });
 $("stepNew").addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.isComposing) return;
   e.preventDefault(); const t = e.target.value.trim(); if (!t) return;
-  stepDraft.push({ t, done: false }); e.target.value = ""; renderSteps();
+  e.target.value = ""; change("", () => curP().steps.push({ t, done: false }));
 });
-$("postForm").stage.onchange = (e) => ($("metrics").hidden = e.target.value !== "done");
-$("postForm").onsubmit = (e) => {
-  if (e.submitter?.value !== "ok") return;
-  const f = e.target, p = B.posts.find((x) => x.id === editPost);
-  change("저장했어요", () => {
-    p.title = f.title.value.trim() || p.title; p.memo = f.memo.value;
-    p.channels = $$("#postChans input:checked").map((i) => i.value);
-    if (f.stage.value === "done") { p.doneAt = f.date.value || p.doneAt || today(); p.date = p.date || p.doneAt; }
-    else { p.date = f.date.value; delete p.doneAt; }
-    p.stage = f.stage.value;
-    p.steps = stepDraft;
-    if (p.steps.length && p.steps.every((q) => q.done) && p.stage !== "done") { p.stage = "done"; p.doneAt = p.doneAt || today(); }
-    const mt = { views: +f.views.value || 0, likes: +f.likes.value || 0, cmts: +f.cmts.value || 0 };
-    if (mt.views || mt.likes || mt.cmts) p.metrics = mt; else delete p.metrics;
-  });
+$("stepList").addEventListener("click", (e) => { const d = e.target.closest("[data-sdx]"); if (d) change("STEP을 뺐어요", () => curP().steps.splice(+d.dataset.sdx, 1)); });
+$("pDel").onclick = () => { const p = curP(), ch = p.channels?.[0]; change("프로젝트를 지웠어요", () => (B.posts = B.posts.filter((q) => q.id !== p.id))); location.hash = ch ? `ch=${ch}` : ""; };
+$("scriptBtn").onclick = async () => {
+  const p = curP(), c = chan(p?.channels?.[0]); if (!p) return;
+  if (!online) { $("scriptMsg").textContent = "관리자 키를 넣어야 AI 대본을 쓸 수 있어요."; return; }
+  document.activeElement?.blur();
+  $("scriptMsg").textContent = ""; $("scriptBtn").disabled = true; $("scriptBtn").textContent = "쓰는 중… (20초쯤)";
+  try {
+    const refs = B.refs.filter((r) => r.channel === c?.id && r.note).slice(-5).map((r) => r.note);
+    const r = await api("POST", { action: "script", channel: c ? aiChan(c) : { name: "채널", profileText: "" }, title: p.title, plan: p.plan || {}, ask: $("scriptAsk").value.trim(), prev: p.script ? scriptText(p) : "", refs });
+    change(p.script ? "대본을 다시 썼어요" : "대본을 썼어요", () => {
+      p.script = { ...r, at: Date.now(), v: (p.script?.v || 0) + 1 };
+      const st = p.steps.find((q) => /대본/.test(q.t) && !q.done); if (st) { st.done = true; st.at = today(); }
+    });
+    $("scriptAsk").value = "";
+  } catch (e) { $("scriptMsg").textContent = e === "no_key" ? "Vercel에 ANTHROPIC_API_KEY가 없어요." : "대본을 받지 못했어요. 다시 눌러 주세요."; }
+  $("scriptBtn").disabled = false; render();
 };
-$("postDel").onclick = () => { const id = editPost; $("postDlg").close(); change("지웠어요", () => (B.posts = B.posts.filter((p) => p.id !== id))); };
 
 // ── 시작: 키가 있으면 서버와 맞추고, 없으면 키 입력 (또는 이 기기에서만)
 async function start() {
   if (key) {
     try {
-      const { board } = await api("GET");
+      const { board, study } = await api("GET");
       online = true; setSync("PC·폰 동기화", true);
       if (board && (board.updated || 0) >= (B.updated || 0)) { B = migrate(board); saveLocal(); } else save();
+      mergeStudy(study);
       try { localStorage.setItem("ai-admin-key", key); localStorage.setItem("ai-admin", "1"); } catch {}
       $("gate").hidden = true; render(); refreshAll(false); return;
     } catch (e) {
@@ -1112,7 +1302,7 @@ async function start() {
   }
   let local = false; try { local = localStorage.getItem("sns-local") === "1"; } catch {}
   if (local && !$("gateMsg").textContent) return openLocal();
-  $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true;
+  $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true;
 }
 function openLocal() {
   online = false; setSync("이 기기에만 저장");
