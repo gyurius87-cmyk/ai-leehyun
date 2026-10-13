@@ -57,6 +57,9 @@ button:disabled { opacity: .5; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
 .msg { font-size: 13px; color: var(--bad); }
 .gate { max-width: 460px; }
+.moved { display: grid; gap: 8px; margin-bottom: 16px; border: 2px solid var(--yellow); }
+.moved .frow { display: flex; gap: 8px; flex-wrap: wrap; }
+.btnlink { display: inline-block; border-radius: 10px; padding: 8px 14px; background: var(--charcoal); color: var(--on-charcoal); font-weight: 700; text-decoration: none; }
 .gate form { display: flex; gap: 8px; margin-top: 10px; }
 .gate input { flex: 1; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -344,6 +347,11 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
 </div></header>
 
 <main class="wrap">
+  <section class="box moved" id="moved">
+    <b>SNS 통합 관리는 Claude 안으로 이사했어요.</b> 이제 키 없이 Claude 로그인만으로 모든 기기에서 똑같이 보여요.
+    <span class="frow"><a class="btnlink" href="https://claude.ai/artifact/Hh7e1j7MffUzSn73dZQXUC" target="_blank" rel="noopener">새 SNS 관리 열기 ↗</a><button type="button" id="moveBtn">📋 Claude로 옮기기</button></span>
+    <span class="note" id="moveMsg">처음 한 번: 이 보드가 보이는 기기(PC)에서 '📋 Claude로 옮기기'를 누르고, 새 SNS 관리 첫 화면에 붙여넣으세요.</span>
+  </section>
   <section class="box gate" id="gate" hidden>
     <h2>AI이현 전용</h2>
     <p class="note" style="margin:0">Vercel에 넣은 <code>ADMIN_KEY</code> 값을 입력하면 모든 기기가 같은 보드를 봅니다. 이미 연결된 기기(PC)에서 위쪽 <b>동기화</b> 버튼을 누르면 이 기기로 보낼 연결 링크가 나와요. 이 기기에서만 적어 둔 것도 합쳐서 올라가요.</p>
@@ -1527,6 +1535,11 @@ function openLocal() {
 }
 $("gateForm").onsubmit = (e) => { e.preventDefault(); key = $("keyIn").value.trim(); $("gateMsg").textContent = ""; start(); };
 $("localBtn").onclick = openLocal;
+$("moveBtn").onclick = async () => {
+  const text = JSON.stringify(B);
+  try { await navigator.clipboard.writeText(text); $("moveMsg").textContent = `복사했어요 (채널 ${B.channels.length}개 · 기획 ${B.ideas.length}개 · 프로젝트 ${B.posts.length}개). 새 SNS 관리 첫 화면에 붙여넣고 '옮겨 오기'를 누르세요.`; }
+  catch { const t = document.createElement("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); $("moveMsg").textContent = "복사했어요. 새 SNS 관리 첫 화면에 붙여넣으세요."; }
+};
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
 start();
 </script>
