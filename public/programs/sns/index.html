@@ -93,9 +93,58 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .match button.best { border-color: var(--ink); font-weight: 700; }
 .match .why { color: var(--muted); font-size: 12px; flex-basis: 100%; }
 /* 채널 공간: 성격 카드 */
-.persona { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.persona label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700; }
-.persona textarea { font-size: 14px; color: var(--ink); font-weight: 400; min-height: 64px; background: var(--bg); }
+details.pbox > summary { list-style: none; cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+details.pbox > summary::-webkit-details-marker { display: none; }
+details.pbox > summary h2 { margin: 0; }
+details.pbox > summary .fold { margin-left: auto; font-size: 12px; color: var(--muted); }
+details.pbox[open] > summary .fold::after { content: "접기 ▲"; }
+details.pbox:not([open]) > summary .fold::after { content: "펼치기 ▼"; }
+.fill { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.fill i { display: inline-block; width: 80px; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+.fill i b { display: block; height: 100%; background: var(--yellow); }
+.concept { font-size: 14px; flex-basis: 100%; color: var(--ink); }
+.persona { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.pgroup { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; align-content: start; }
+.pgroup h4 { margin: 0; font-size: 13px; }
+.pf-field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.pf-field textarea, .pf-field input { font-size: 14px; color: var(--ink); font-weight: 400; background: var(--panel); }
+.pf-field textarea { min-height: 40px; }
+.pf-field input[type=number] { width: 90px; }
+.opts { display: flex; flex-wrap: wrap; gap: 4px; font-weight: 400; }
+.opts button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-weight: 500; font-size: 12px; padding: 3px 9px; border-radius: 999px; }
+.opts button[aria-pressed="true"] { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+/* 벤치마크 채널 */
+.watch { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
+.watch .hd { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.watch .hd b a { text-decoration: none; }
+.watch .hd .acts { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+.badge { font-size: 11px; font-weight: 700; background: var(--bad); color: #fff; border-radius: 999px; padding: 1px 8px; }
+.wstat { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.wstat b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
+.vids { display: grid; gap: 2px; }
+.vid { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--grid); }
+.vid a { text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vid .v { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.vid.new a::before { content: "NEW "; color: var(--bad); font-weight: 700; font-size: 11px; }
+.anal { background: var(--panel); border-radius: 10px; padding: 10px; display: grid; gap: 6px; font-size: 13px; }
+.anal ul { margin: 0; padding-left: 18px; }
+.anal h5 { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+/* 영상 STEP */
+.steps { grid-column: 2; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--grid); overflow: hidden; max-width: 80px; }
+.steps i b { display: block; height: 100%; background: var(--c, var(--bar)); }
+.steps label { display: inline-flex; gap: 4px; align-items: center; color: var(--ink); cursor: pointer; }
+.steps label input { width: 14px; height: 14px; margin: 0; }
+.steplist { display: grid; gap: 4px; }
+.steplist .st { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); }
+.steplist .st input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--charcoal); }
+.steplist .st.done span { color: var(--muted); text-decoration: line-through; }
+.steplist .st small { font-family: var(--mono); color: var(--muted); font-size: 11px; }
+.steplist .st button { background: transparent; color: var(--muted); padding: 0 4px; font-weight: 400; }
+.newwatch { display: grid; gap: 6px; }
+.nw { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 13px; background: var(--bg); border-radius: 10px; padding: 6px 10px; }
+.nw a { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nw .n { font-size: 11px; color: var(--muted); white-space: nowrap; }
 .chstat { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
 .chstat b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
 /* 레퍼런스·촬영 */
@@ -231,6 +280,11 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
       <div class="chgrid" id="chgrid"></div>
     </section>
 
+    <section class="box" id="newBox">
+      <h2>벤치마크 새 영상 <span id="newMeta"></span></h2>
+      <div class="newwatch" id="newwatch"></div>
+    </section>
+
     <section class="box">
       <h2>소재함 <span>찍은 것·레퍼런스·아이디어를 일단 넣으면, 성격이 맞는 채널을 골라 드려요</span></h2>
       <form class="line" id="inForm">
@@ -273,10 +327,22 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
 
   <!-- 채널 공간 -->
   <div class="view" id="chan" hidden>
-    <section class="box">
-      <h2>이 채널의 성격 <span>적어 두면 소재함 매칭과 AI 추천이 이걸 보고 골라요 · 칸을 벗어나면 저장</span></h2>
+    <details class="box pbox" id="pbox">
+      <summary><h2>이 채널의 성격</h2><span class="fill" id="pfill"></span><span class="fold"></span><span class="concept" id="pconcept"></span></summary>
+      <p class="note" style="margin:8px 0 0">고르거나 적어 두면 소재함 매칭, AI 추천, 벤치마크 분석이 모두 이걸 보고 답해요. 글 칸은 칸을 벗어나면 저장돼요.</p>
       <div class="persona" id="persona"></div>
-      <div class="chstat" id="chstat"></div>
+    </details>
+    <div class="chstat box" id="chstat" style="margin-top:0"></div>
+
+    <section class="box">
+      <h2>벤치마크 채널 <span>참고할 채널을 등록하면 새 영상을 알려 주고 분석해요 · 유튜브는 자동, 인스타·틱톡은 링크로 관리</span></h2>
+      <form class="line" id="watchForm">
+        <input type="url" id="watchUrl" placeholder="채널 주소 (예: https://www.youtube.com/@채널이름)" aria-label="벤치마크 채널 주소">
+        <input type="text" id="watchName" placeholder="이름 (인스타·틱톡은 적어 주세요)" aria-label="채널 이름" style="flex:0 1 200px">
+        <button>+ 등록</button>
+      </form>
+      <p class="msg" id="watchMsg"></p>
+      <div class="list" id="watches"></div>
     </section>
 
     <div class="two">
@@ -349,6 +415,8 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
     <label>제목<input name="title" required></label>
     <label>메모 (기획·대본·해시태그)<textarea name="memo" rows="4"></textarea></label>
     <label>채널 (여러 개 고르면 하나로 여러 채널에)<div class="tog" id="postChans"></div></label>
+    <label>STEP (이 영상 프로젝트의 진행 순서) <span id="stepMeta"></span><div class="steplist" id="stepList"></div>
+      <span class="line"><input type="text" id="stepNew" placeholder="STEP 더하기 (Enter)" aria-label="STEP 더하기"></span></label>
     <div class="row">
       <label>단계<select name="stage"></select></label>
       <label>올릴 날짜<input name="date" type="date"></label>
@@ -397,15 +465,54 @@ const STAGE_NAME = Object.fromEntries(STAGES);
 const PLATFORMS = ["", "인스타그램", "유튜브", "틱톡", "스레드", "네이버 블로그", "페이스북", "X", "기타"];
 const COLORS = ["#e8590c", "#f5b400", "#2b8a3e", "#1c7ed6", "#7048e8", "#d6336c", "#0c8599", "#5c940d", "#868e96", "#212529"];
 const KINDS = { shot: "📷 찍은 것", ref: "🔖 레퍼런스", idea: "💡 아이디어" };
-// 성격 카드 칸: [키, 이름, 예시]
+// 성격 매트릭스: [묶음, [[키, 이름, 종류(text|multi|one|num), 예시 또는 고를 것]]]
 const PERSONA = [
-  ["tone", "톤·말투", "예: 반말, 솔직한 사장님 말투, 웃긴 자막"],
-  ["target", "누구에게", "예: 30~40대 신혼부부, 자취생"],
-  ["topics", "주제 키워드 (쉼표로)", "예: 이불, 베개, 수면, 세탁 · 소재함 매칭에 써요"],
-  ["formats", "형식", "예: 15초 릴스, 캐러셀 5장"],
-  ["shoot", "촬영 스타일", "예: 자연광, 침실 탑뷰, 손만 나오게"],
-  ["avoid", "피할 것", "예: 가격 언급, 과한 효과음"],
+  ["정체성", [
+    ["concept", "한 줄 콘셉트", "text", "예: 14년차 침구 사장이 알려주는 잠 잘 오는 침실"],
+    ["goal", "채널 목표", "multi", ["판매", "브랜딩", "팬 만들기", "정보 전달", "재미", "광고 수익", "기록"]],
+    ["speaker", "누가 말하나", "one", ["사장님", "전문가", "친구", "캐릭터", "나 자신", "말 없음"]],
+  ]],
+  ["대상", [
+    ["age", "나이대", "multi", ["10대", "20대", "30대", "40대", "50대+"]],
+    ["gender", "성별", "one", ["여성 위주", "남성 위주", "모두"]],
+    ["target", "누구에게 (상황·고민)", "text", "예: 신혼집 꾸미는 30대, 잠 못 자는 직장인"],
+  ]],
+  ["말투·분위기", [
+    ["polite", "말투", "one", ["존댓말", "반말", "섞어서"]],
+    ["mood", "분위기", "multi", ["유머", "진지", "감성", "정보형", "솔직", "자극적", "차분"]],
+    ["tone", "자주 쓰는 말·말버릇", "text", "예: '사장이 직접 써봤습니다'"],
+  ]],
+  ["콘텐츠", [
+    ["topics", "주제 키워드 (쉼표로)", "text", "예: 이불, 베개, 수면 · 소재함 매칭에 써요"],
+    ["formats", "형식", "multi", ["릴스", "쇼츠", "롱폼", "캐러셀", "사진 1장", "글", "라이브", "스토리"]],
+    ["length", "길이", "multi", ["15초", "30초", "60초", "3분", "10분+"]],
+    ["perWeek", "주당 업로드 목표 (회)", "num", "3"],
+    ["when", "올리는 시간", "multi", ["아침", "점심", "저녁", "밤"]],
+  ]],
+  ["촬영·편집", [
+    ["place", "장소", "text", "예: 매장 침실 세트, 집 거실"],
+    ["face", "얼굴 나오나", "one", ["얼굴", "손만", "목소리만", "안 나옴"]],
+    ["light", "조명", "multi", ["자연광", "조명", "야간 무드"]],
+    ["shoot", "구도·촬영 방식", "text", "예: 탑뷰, 핸드헬드 1인칭"],
+    ["caption", "자막·썸네일 스타일", "text", "예: 큰 노란 자막, 첫 화면에 결론"],
+    ["music", "음악·효과", "text", "예: 잔잔한 lo-fi, 효과음 최소"],
+  ]],
+  ["규칙", [
+    ["cta", "끝맺음·행동 유도", "text", "예: 프로필 링크에서 구매"],
+    ["tags", "고정 해시태그", "text", "#이불왕 #침구"],
+    ["avoid", "피할 것", "text", "예: 가격 언급, 과한 효과음"],
+    ["stepsTpl", "영상 STEP 순서 (쉼표로)", "text", "기획, 대본, 촬영, 편집, 썸네일·자막, 업로드"],
+  ]],
 ];
+const PFIELDS = PERSONA.flatMap(([, f]) => f);
+const DEFAULT_STEPS = ["기획", "대본", "촬영", "편집", "썸네일·자막", "업로드"];
+const filled = (v) => (Array.isArray(v) ? v.length > 0 : String(v ?? "").trim() !== "");
+const profileFill = (p = {}) => PFIELDS.filter(([k]) => filled(p[k])).length;
+// AI에 보내는 성격 글: 채운 항목만 "- 이름: 값"
+const profileText = (p = {}) => PFIELDS.filter(([k]) => filled(p[k]) && k !== "stepsTpl").map(([k, name]) => `- ${name.replace(/ \(.*\)$/, "")}: ${Array.isArray(p[k]) ? p[k].join(", ") : p[k]}`).join("\n");
+const aiChan = (c) => ({ id: c.id, name: c.name, platform: c.platform, profileText: profileText(c.profile) });
+const stepsFor = (chId) => { const t = (chan(chId)?.profile?.stepsTpl || "").split(/[,，\n]/).map((x) => x.trim()).filter(Boolean); return (t.length ? t : DEFAULT_STEPS).map((name) => ({ t: name, done: false })); };
+const newPost = (o) => ({ id: uid(), memo: "", date: "", createdAt: Date.now(), steps: stepsFor(o.channels?.[0]), ...o });
 const SEARCH = {
   "인스타그램": (q) => `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ""))}/`,
   "유튜브": (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
@@ -417,21 +524,28 @@ const searchUrl = (platform, q) => (SEARCH[platform] || ((x) => `https://www.goo
 
 // ── 데이터: 이 기기(localStorage)에 먼저 저장하고, 키가 있으면 서버(Redis)와 맞춤
 const LS = "sns-board";
-const mkChan = (name, platform, url, color, p = {}) => ({ id: uid(), name, platform, url, color, profile: { tone: "", target: "", topics: "", formats: "", shoot: "", avoid: "", ...p } });
+const mkChan = (name, platform, url, color, p = {}) => ({ id: uid(), name, platform, url, color, profile: { ...p } });
 const seed = () => ({
   v: 2, updated: 0,
   channels: [
-    mkChan("AI이현", "인스타그램", "https://www.instagram.com/ai_leehyun/", COLORS[0], { tone: "AI 공부하는 사람의 하루 기록", topics: "AI, 클로드, 자동화, 공부, 프로그램" }),
+    mkChan("AI이현", "인스타그램", "https://www.instagram.com/ai_leehyun/", COLORS[0], { concept: "AI 공부하는 사람의 하루 기록", topics: "AI, 클로드, 자동화, 공부, 프로그램" }),
     mkChan("규사장", "", "", COLORS[3]),
     mkChan("이불왕", "", "", COLORS[2], { topics: "이불, 침구, 베개, 수면, 세탁, 침실" }),
-    mkChan("ENTJ이현", "", "", COLORS[4], { tone: "ENTJ의 일하는 방식", topics: "ENTJ, 효율, 일하는 법, 자기계발, 책" }),
+    mkChan("ENTJ이현", "", "", COLORS[4], { concept: "ENTJ의 일하는 방식", topics: "ENTJ, 효율, 일하는 법, 자기계발, 책" }),
   ],
-  posts: [], comments: [], recs: {}, refs: [], shoots: [], inbox: [],
+  posts: [], comments: [], recs: {}, refs: [], shoots: [], inbox: [], watch: [],
 });
 function migrate(b) {
-  b.channels.forEach((c) => { c.profile ||= { tone: c.tone || "" }; delete c.tone; });
-  for (const k of ["posts", "comments", "refs", "shoots", "inbox"]) b[k] ||= [];
-  b.recs ||= {}; b.v = 2;
+  b.channels.forEach((c) => {
+    c.profile ||= { tone: c.tone || "" }; delete c.tone;
+    const p = c.profile;
+    // v2의 글 칸 '형식'은 고르는 칸으로: 들어 있던 말과 같은 것만 골라 둠
+    if (typeof p.formats === "string") { const opts = PFIELDS.find(([k]) => k === "formats")[3]; p.formats = opts.filter((o) => p.formats.includes(o)); }
+    if (p.tone && !p.concept && b.v < 3) { p.concept = p.tone; p.tone = ""; }
+  });
+  for (const k of ["posts", "comments", "refs", "shoots", "inbox", "watch"]) b[k] ||= [];
+  b.posts.forEach((p) => { p.steps ||= DEFAULT_STEPS.map((t) => ({ t, done: p.stage === "done" })); });
+  b.recs ||= {}; b.v = 3;
   return b;
 }
 let B; try { B = JSON.parse(localStorage.getItem(LS)); } catch {}
@@ -495,6 +609,53 @@ function ruleMatch(text) {
   }).filter((m) => m.score > 0).sort((a, b) => b.score - a.score);
 }
 
+// ── 벤치마크·STEP 도우미
+const ago = (iso) => { const d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? "오늘" : `${d}일 전`; };
+const weekStart = () => { const n = new Date(today() + "T00:00"); n.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return ymd(n); };
+const isYouTube = (u) => /youtube\.com|youtu\.be/i.test(u || "") || /^@/.test(u || "");
+const newItems = (w) => (w.items || []).filter((v) => v.published > (w.seenAt || ""));
+const newCount = (chId) => B.watch.filter((w) => w.channel === chId).reduce((n, w) => n + newItems(w).length, 0);
+function watchStats(w) {
+  const it = w.items || [];
+  if (!it.length) return null;
+  const dates = it.map((v) => new Date(v.published)).sort((a, b) => a - b);
+  const spanDays = Math.max(7, (Date.now() - dates[0]) / 864e5);
+  const views = it.map((v) => v.views), top = [...it].sort((a, b) => b.views - a.views)[0];
+  return { perWeek: (it.length / spanDays * 7).toFixed(1), avg: Math.round(views.reduce((a, b) => a + b, 0) / it.length), top, shorts: it.filter((v) => v.short).length, n: it.length, last: it.map((v) => v.published).sort().pop() };
+}
+function stepLine(p) {
+  const st = p.steps || [], n = st.filter((x) => x.done).length;
+  if (!st.length || p.stage === "done") return "";
+  const next = st.findIndex((x) => !x.done);
+  return `<div class="steps"><i><b style="width:${(n / st.length) * 100}%"></b></i>${n}/${st.length}${next >= 0 ? `<label title="이 STEP 끝내기"><input type="checkbox" data-step="${p.id}" data-i="${next}">${esc(st[next].t)}</label>` : ""}</div>`;
+}
+function renderWatches(c) {
+  const ws = B.watch.filter((w) => w.channel === c.id);
+  $("watches").innerHTML = ws.length ? ws.map((w) => {
+    const yt = w.kind === "youtube", s = yt && watchStats(w), nw = newItems(w), seen = new Set(nw.map((v) => v.id));
+    return `<div class="watch"><div class="hd"><b><a href="${esc(safeUrl(w.url))}" target="_blank" rel="noopener">${esc(w.name || w.url)} ↗</a></b>${nw.length ? `<span class="badge">새 영상 ${nw.length}</span>` : ""}
+      <span class="acts">${yt ? `<button type="button" class="ghost mini" data-wref="${w.id}">새로 확인</button>${nw.length ? `<button type="button" class="ghost mini" data-wseen="${w.id}">봤어요</button>` : ""}<button type="button" class="mini" data-wai="${w.id}">🤖 분석</button>` : `<button type="button" class="ghost mini" data-wcheck="${w.id}">확인함</button>`}<button type="button" class="x ghost mini" data-wx="${w.id}" aria-label="지우기">✕</button></span></div>
+      ${yt ? (s ? `<div class="wstat"><span>주당 <b>${s.perWeek}</b>개</span><span>평균 조회 <b>${num(s.avg)}</b></span><span>쇼츠 <b>${s.shorts}/${s.n}</b></span><span>마지막 업로드 <b>${ago(s.last)}</b></span><span>확인 ${w.checkedAt ? ago(new Date(w.checkedAt).toISOString()) : "-"}</span></div>
+        <div class="vids">${(w.items || []).slice(0, 5).map((v) => `<div class="vid${seen.has(v.id) ? " new" : ""}"><a href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener" title="${esc(v.title)}">${esc(v.title)}</a><span class="v">${md(v.published.slice(0, 10))} · ${num(v.views)}회${v === s.top ? " 🔥" : ""}</span><button type="button" class="ghost mini" data-vref="${w.id}" data-v="${esc(v.id)}" title="레퍼런스 보드에 넣기">🔖</button></div>`).join("")}</div>` : `<p class="note">아직 영상을 못 가져왔어요. '새로 확인'을 눌러 주세요.</p>`)
+        : `<p class="note">${esc(w.platform || "이 플랫폼")}은 다른 사람 계정을 가져오는 공개 방법이 없어 링크로 관리해요. 들어가 보고 '확인함'을 누르면 기록돼요 · ${w.checkedAt ? `마지막 확인 ${ago(new Date(w.checkedAt).toISOString())}` : "아직 확인 안 함"}</p>`}
+      ${w.ai ? `<div class="anal"><b>🤖 ${md(ymd(new Date(w.ai.at)))} 분석</b>${esc(w.ai.summary)}<h5>잘 되는 영상의 공통점</h5><ul>${w.ai.patterns.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><h5>따라 써 볼 제목 틀</h5><ul>${w.ai.hooks.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><h5>내 채널에 맞게 바꾼 아이디어</h5>${w.ai.borrow.map((x, i) => `<div class="idea"><b>${esc(x.title)}</b><span class="acts"><button type="button" class="mini" data-wborrow="${w.id}" data-i="${i}">+ 아이디어</button></span><span class="w">${esc(x.why)}</span></div>`).join("")}${w.ai.avoid ? `<h5>따라 하면 안 되는 점</h5>${esc(w.ai.avoid)}` : ""}</div>` : ""}
+    </div>`;
+  }).join("") : `<div class="empty"><img src="/assets/zero/zero-found.svg" alt="">이 채널이 참고할 채널을 등록해 두세요. 유튜브는 새 영상과 조회수를 자동으로 가져와 알려 줘요.</div>`;
+}
+async function refreshWatch(w) {
+  const r = await api("POST", { action: "watch", url: w.ytId ? `https://www.youtube.com/channel/${w.ytId}` : w.url });
+  const x = B.watch.find((q) => q.id === w.id); if (!x) return;
+  x.ytId = r.ytId; x.name ||= r.name; x.items = r.items; x.checkedAt = Date.now();
+  if (x.seenAt == null) x.seenAt = r.items.map((v) => v.published).sort().pop() || "";
+}
+async function refreshAll(force) {
+  if (!online) return;
+  const due = B.watch.filter((w) => w.kind === "youtube" && (force || !w.checkedAt || Date.now() - w.checkedAt > 2 * 3600e3));
+  if (!due.length) return;
+  for (const w of due) { try { await refreshWatch(w); } catch {} }
+  change("", () => {});
+}
+
 // ── 화면
 function render() {
   const route = (location.hash.match(/^#ch=(.+)$/) || [])[1] || "";
@@ -530,11 +691,16 @@ function renderDash() {
     return `<a class="chcard" href="${chHref(c.id)}" style="--c:${c.color}">
       <b><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</b>
       <span class="pf">${esc(c.platform || "플랫폼 미정")} · <span class="${late ? "late" : ""}">${gap}</span></span>
-      <span class="tone">${esc(c.profile?.tone || "성격을 아직 안 적었어요")}</span>
-      <span class="nums"><span>준비 <b>${mine.filter((p) => p.stage !== "done").length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span></span>
+      <span class="tone">${esc(c.profile?.concept || "성격을 아직 안 적었어요")}</span>
+      <span class="nums"><span>준비 <b>${mine.filter((p) => p.stage !== "done").length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span><span>벤치마크 <b>${B.watch.filter((w) => w.channel === c.id).length}</b>${newCount(c.id) ? ` <span class="badge">새 ${newCount(c.id)}</span>` : ""}</span><span>성격 <b>${profileFill(c.profile)}/${PFIELDS.length}</b></span></span>
       <span class="next">${next ? `📅 다음 ${md(next.date)} ${esc(next.title)}` : '<span class="note">예약된 업로드 없음</span>'}</span>
     </a>`;
   }).join("") + `<button type="button" class="chcard add" id="addChan">+ 채널</button>`;
+
+  const fresh = B.watch.flatMap((w) => newItems(w).map((v) => ({ v, w }))).sort((a, b) => (a.v.published < b.v.published ? 1 : -1));
+  $("newMeta").innerHTML = `${B.watch.length}개 채널 지켜보는 중${fresh.length ? ` · <button type="button" class="ghost mini" data-seenall>모두 봤어요</button>` : ""} · <button type="button" class="ghost mini" data-refreshall>지금 확인</button>`;
+  $("newwatch").innerHTML = fresh.length ? fresh.slice(0, 12).map(({ v, w }) => `<div class="nw"><i class="dot" style="--c:${chan(w.channel)?.color || "#999"}"></i><a href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener">${esc(v.title)}</a><span class="n">${esc(w.name)} · ${ago(v.published)} · ${num(v.views)}회</span></div>`).join("") + (fresh.length > 12 ? `<p class="note">+ ${fresh.length - 12}개 더</p>` : "")
+    : `<div class="empty"><img src="/assets/zero/zero-check.svg" alt="">${B.watch.length ? "새 영상이 없어요." : "채널 공간에서 참고할 채널을 등록하면 새 영상이 여기 모여요."}</div>`;
 
   $("inbox").innerHTML = B.inbox.length ? B.inbox.map((it) => {
     const ai = it.ai || [], rules = ruleMatch(it.text + " " + (it.note || ""));
@@ -548,15 +714,24 @@ function renderDash() {
 }
 
 function renderChan(c) {
-  const p = c.profile || {};
-  if (!$("persona").contains(document.activeElement) || $("persona").dataset.ch !== c.id) {
+  const p = c.profile || {}, nFill = profileFill(p);
+  $("pfill").innerHTML = `<i><b style="width:${(nFill / PFIELDS.length) * 100}%"></b></i>${nFill}/${PFIELDS.length} 채움`;
+  $("pconcept").textContent = p.concept || "";
+  if ($("persona").dataset.ch !== c.id) $("pbox").open = nFill < PFIELDS.length / 2;
+  if (!$("persona").contains(document.activeElement) || $("persona").dataset.ch !== c.id || !document.activeElement.matches("textarea,input")) {
     $("persona").dataset.ch = c.id;
-    $("persona").innerHTML = PERSONA.map(([k, name, ph]) => `<label>${name}<textarea data-pk="${k}" rows="2" placeholder="${esc(ph)}">${esc(p[k] || "")}</textarea></label>`).join("");
+    $("persona").innerHTML = PERSONA.map(([g, fields]) => `<div class="pgroup"><h4>${g}</h4>${fields.map(([k, name, type, x]) => {
+      if (type === "text") return `<label class="pf-field">${name}<textarea data-pk="${k}" rows="1" placeholder="${esc(x)}">${esc(p[k] || "")}</textarea></label>`;
+      if (type === "num") return `<label class="pf-field">${name}<input type="number" min="0" max="50" data-pk="${k}" placeholder="${x}" value="${esc(p[k] || "")}"></label>`;
+      const sel = Array.isArray(p[k]) ? p[k] : p[k] ? [p[k]] : [];
+      return `<div class="pf-field">${name}${type === "one" ? "" : " (여러 개)"}<span class="opts">${x.map((o) => `<button type="button" data-opt="${k}" data-one="${type === "one" ? 1 : ""}" data-v="${esc(o)}" aria-pressed="${sel.includes(o)}">${esc(o)}</button>`).join("")}</span></div>`;
+    }).join("")}</div>`).join("");
   }
   const t = today(), done = B.posts.filter((x) => x.stage === "done" && x.channels?.includes(c.id));
   const [gap, late] = gapText(c.id);
   const d30 = addDays(t, -29);
-  $("chstat").innerHTML = `<span class="${late ? "late" : ""}">${gap}</span><span>이번 달 올림 <b>${done.filter((x) => doneDay(x).startsWith(t.slice(0, 7))).length}</b></span><span>주당 <b>${(done.filter((x) => doneDay(x) >= d30).length / 30 * 7).toFixed(1)}</b>회 (30일)</span><span>준비 중 <b>${B.posts.filter((x) => x.channels?.includes(c.id) && x.stage !== "done").length}</b></span>`;
+  $("chstat").innerHTML = `<span class="${late ? "late" : ""}">${gap}</span><span>이번 달 올림 <b>${done.filter((x) => doneDay(x).startsWith(t.slice(0, 7))).length}</b></span><span>주당 <b>${(done.filter((x) => doneDay(x) >= d30).length / 30 * 7).toFixed(1)}</b>회 (30일)</span><span>준비 중 <b>${B.posts.filter((x) => x.channels?.includes(c.id) && x.stage !== "done").length}</b></span>${p.perWeek ? `<span>이번 주 <b>${done.filter((x) => doneDay(x) >= weekStart()).length}/${esc(p.perWeek)}</b>회 (목표)</span>` : ""}`;
+  renderWatches(c);
 
   const refs = B.refs.filter((r) => r.channel === c.id).sort((a, b) => b.at - a.at);
   $("refs").innerHTML = refs.length ? refs.map((r) => `<div class="ref"><a href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title || r.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</a><span class="acts"><button type="button" class="mini" data-refshoot="${r.id}" title="이 레퍼런스처럼 찍을 것에 넣기">따라 찍기 →</button><button type="button" class="x" data-refx="${r.id}" aria-label="지우기">✕</button></span><span class="n">${esc(r.note || "")}${r.note ? " · " : ""}${md(ymd(new Date(r.at)))}</span></div>`).join("")
@@ -583,6 +758,7 @@ function renderFlow(root) {
       return `<div class="card${s === "done" ? " done" : ""}" data-post="${p.id}" style="--c:${postColor(p)}">
         <input type="checkbox" data-adv="${p.id}" ${s === "done" ? "checked" : ""} aria-label="${s === "done" ? "예약으로 되돌리기" : "다음 단계로"}">
         <div class="t">${esc(p.title)}</div>
+        ${stepLine(p)}
         <div class="m">${cur ? "" : chanNames(p)}${p.date ? `<span class="${late ? "late" : ""}">📅 ${md(s === "done" ? doneDay(p) : p.date)}${late ? " 지남" : ""}</span>` : ""}${s === "done" && p.metrics?.views ? `<span>▶ ${num(p.metrics.views)}</span>` : ""}${s === "sched" ? "<span>🔌 연동 전</span>" : ""}</div>
       </div>`;
     }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "idea" ? `<div class="hint">${cur ? "위에 한 줄 적으면 여기로 와요" : "채널 공간이나 소재함에서 넣어요"}</div>` : ""}</div>`;
@@ -655,6 +831,17 @@ document.addEventListener("click", (e) => {
     const d = +x.dataset.cal, [y, m] = calMonth.split("-").map(Number);
     calMonth = d === 0 ? today().slice(0, 7) : ymd(new Date(y, m - 1 + d, 1)).slice(0, 7); render(); return;
   }
+  if (el(".steps label") && !e.target.matches("input")) return; // 라벨 글자를 누르면 체크박스 클릭이 따로 옴
+  // 영상 STEP
+  if ((x = el("[data-step]"))) {
+    const p = B.posts.find((q) => q.id === x.dataset.step), st = p.steps[+x.dataset.i];
+    change(`'${st.t}' 끝 · ${p.title.slice(0, 12)}`, () => {
+      st.done = true; st.at = today();
+      if (p.stage === "idea") p.stage = "plan";
+      if (p.steps.every((q) => q.done)) { p.stage = "done"; p.doneAt = today(); }
+    });
+    return;
+  }
   if ((x = el("[data-adv]"))) {
     const p = B.posts.find((q) => q.id === x.dataset.adv), i = STAGES.findIndex(([s]) => s === p.stage);
     const next = p.stage === "done" ? "sched" : STAGES[i + 1][0];
@@ -674,6 +861,33 @@ document.addEventListener("click", (e) => {
   if (e.target.id === "qDateX") { pickDate = ""; render(); return; }
   if ((x = el("[data-cm]"))) { const c = B.comments.find((q) => q.id === x.dataset.cm); change(c.replied ? "답 안 함으로" : "답함", () => (c.replied = !c.replied)); return; }
   if ((x = el("[data-cmdel]"))) { e.preventDefault(); change("댓글을 지웠어요", () => (B.comments = B.comments.filter((c) => c.id !== x.dataset.cmdel))); return; }
+  // 성격 고르기
+  if ((x = el("[data-opt]"))) {
+    const c = chan(cur), k = x.dataset.opt, v = x.dataset.v;
+    change("", () => {
+      if (x.dataset.one) c.profile[k] = c.profile[k] === v ? "" : v;
+      else { const a = Array.isArray(c.profile[k]) ? c.profile[k] : []; c.profile[k] = a.includes(v) ? a.filter((q) => q !== v) : [...a, v]; }
+    });
+    return;
+  }
+  // 벤치마크
+  if ((x = el("[data-wref]"))) { const w = B.watch.find((q) => q.id === x.dataset.wref); x.disabled = true; x.textContent = "확인 중…"; refreshWatch(w).then(() => change("", () => {})).catch(() => { x.textContent = "실패 · 다시"; x.disabled = false; }); return; }
+  if ((x = el("[data-refreshall]"))) { x.disabled = true; x.textContent = "확인 중…"; refreshAll(true).finally(() => render()); return; }
+  if ((x = el("[data-wseen]"))) { change("다 봤어요", () => { const w = B.watch.find((q) => q.id === x.dataset.wseen); w.seenAt = (w.items || []).map((v) => v.published).sort().pop() || ""; }); return; }
+  if (el("[data-seenall]")) { change("모두 봤어요", () => B.watch.forEach((w) => { if (w.items?.length) w.seenAt = w.items.map((v) => v.published).sort().pop(); })); return; }
+  if ((x = el("[data-wcheck]"))) { change("확인함", () => (B.watch.find((q) => q.id === x.dataset.wcheck).checkedAt = Date.now())); return; }
+  if ((x = el("[data-wx]"))) { change("벤치마크 채널을 지웠어요", () => (B.watch = B.watch.filter((q) => q.id !== x.dataset.wx))); return; }
+  if ((x = el("[data-vref]"))) {
+    const w = B.watch.find((q) => q.id === x.dataset.vref), v = w.items.find((q) => q.id === x.dataset.v);
+    change("레퍼런스 보드에 넣었어요", () => B.refs.push({ id: uid(), channel: w.channel, url: v.url, title: v.title, note: `${w.name} · ${num(v.views)}회`, at: Date.now() }));
+    return;
+  }
+  if ((x = el("[data-wai]"))) { watchAi(x.dataset.wai, x); return; }
+  if ((x = el("[data-wborrow]"))) {
+    const w = B.watch.find((q) => q.id === x.dataset.wborrow), i = w.ai.borrow[+x.dataset.i];
+    change("아이디어에 넣었어요", () => B.posts.push(newPost({ title: i.title, memo: `벤치마크: ${w.name}\n${i.why}`, channels: [w.channel], stage: "idea" })));
+    return;
+  }
   // 소재함
   if ((x = el("#inKind button"))) { inKind = x.dataset.k; $$("#inKind button").forEach((b) => b.setAttribute("aria-pressed", String(b === x))); $("inText").focus(); return; }
   if ((x = el("[data-send]"))) { sendInbox(x.dataset.send, x.dataset.to); return; }
@@ -691,14 +905,16 @@ document.addEventListener("click", (e) => {
     change(`찍음 → '${s.title.slice(0, 12)}' 제작으로`, () => {
       s.done = true; s.doneAt = Date.now();
       const ref = B.refs.find((r) => r.id === s.ref);
-      B.posts.push({ id: uid(), title: s.title, memo: ref ? `레퍼런스: ${ref.url}${ref.note ? "\n좋은 점: " + ref.note : ""}` : "", channels: [s.channel], stage: "make", date: "", createdAt: Date.now() });
+      const np = newPost({ title: s.title, memo: ref ? `레퍼런스: ${ref.url}${ref.note ? "\n좋은 점: " + ref.note : ""}` : "", channels: [s.channel], stage: "make" });
+      np.steps.forEach((st) => { if (/촬영|찍/.test(st.t) || np.steps.indexOf(st) < np.steps.findIndex((x) => /촬영|찍/.test(x.t))) { st.done = true; st.at = today(); } });
+      B.posts.push(np);
     });
     return;
   }
   if ((x = el("[data-shotx]"))) { change("찍을 것을 지웠어요", () => (B.shoots = B.shoots.filter((s) => s.id !== x.dataset.shotx))); return; }
   if ((x = el("[data-recadd]")) || (x = el("[data-recshoot]"))) {
     const n = +(x.dataset.recadd ?? x.dataset.recshoot), i = B.recs[cur].ideas[n];
-    if (x.dataset.recadd != null) change("아이디어에 넣었어요", () => B.posts.push({ id: uid(), title: i.title, memo: `${i.format} · ${i.why}`, channels: [cur], stage: "idea", date: "", createdAt: Date.now() }));
+    if (x.dataset.recadd != null) change("아이디어에 넣었어요", () => B.posts.push(newPost({ title: i.title, memo: `${i.format} · ${i.why}`, channels: [cur], stage: "idea" })));
     else change("찍을 것에 넣었어요", () => B.shoots.push({ id: uid(), channel: cur, title: i.title, done: false, at: Date.now() }));
   }
 });
@@ -717,14 +933,14 @@ function sendInbox(id, to) {
   change(`${c.name} ${where}으로 보냈어요`, () => {
     B.inbox = B.inbox.filter((i) => i.id !== id);
     if (it.kind === "ref") B.refs.push({ id: uid(), channel: to, url: isUrl(it.text) ? it.text : "", title: isUrl(it.text) ? "" : it.text, note: "", at: Date.now() });
-    else B.posts.push({ id: uid(), title: it.text, memo: "", channels: [to], stage: it.kind === "shot" ? "make" : "idea", date: "", createdAt: Date.now() });
+    else B.posts.push(newPost({ title: it.text, channels: [to], stage: it.kind === "shot" ? "make" : "idea" }));
   });
 }
 async function aiMatch(id, btn) {
   const it = B.inbox.find((i) => i.id === id);
   btn.disabled = true; btn.textContent = "고르는 중…";
   try {
-    const r = await api("POST", { action: "match", text: it.text, kind: it.kind, channels: B.channels.map((c) => ({ id: c.id, name: c.name, platform: c.platform, ...c.profile })) });
+    const r = await api("POST", { action: "match", text: it.text, kind: it.kind, channels: B.channels.map(aiChan) });
     change("", () => { const x = B.inbox.find((i) => i.id === id); if (x) x.ai = r.picks; });
   } catch { btn.disabled = false; btn.textContent = "다시 시도"; }
 }
@@ -732,8 +948,34 @@ async function aiMatch(id, btn) {
 // ── 채널 공간: 성격, 레퍼런스, 촬영, 아이디어
 $("persona").addEventListener("change", (e) => {
   const k = e.target.dataset.pk; if (!k) return;
-  const c = chan(cur); change("", () => { c.profile[k] = e.target.value.trim(); });
+  const c = chan(cur), v = e.target.value.trim();
+  e.target.blur(); change("", () => { c.profile[k] = v; });
 });
+$("watchForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const url = $("watchUrl").value.trim(), name = $("watchName").value.trim();
+  if (!url) return;
+  const yt = isYouTube(url), host = (url.match(/\/\/(?:www\.)?([^/]+)/) || [])[1] || "";
+  const platform = yt ? "유튜브" : /instagram/.test(host) ? "인스타그램" : /tiktok/.test(host) ? "틱톡" : /threads/.test(host) ? "스레드" : /naver/.test(host) ? "네이버 블로그" : host;
+  const w = { id: uid(), channel: cur, kind: yt ? "youtube" : "link", platform, url: /^@/.test(url) ? `https://www.youtube.com/${url}` : url, name: name || (yt ? "" : url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")), items: [], at: Date.now() };
+  $("watchMsg").textContent = "";
+  change("벤치마크 채널을 등록했어요", () => B.watch.push(w));
+  $("watchUrl").value = ""; $("watchName").value = "";
+  if (yt && online) {
+    try { await refreshWatch(w); change("", () => {}); }
+    catch (err) { $("watchMsg").textContent = err === "not_found" ? "유튜브 채널을 찾지 못했어요. 채널 주소(@이름)를 넣어 주세요." : "영상을 가져오지 못했어요. 잠시 뒤 '새로 확인'을 눌러 주세요."; }
+  } else if (yt) $("watchMsg").textContent = "관리자 키를 넣으면 새 영상을 자동으로 가져와요.";
+};
+async function watchAi(id, btn) {
+  const w = B.watch.find((q) => q.id === id), c = chan(w.channel);
+  if (!online) return;
+  if (!w.items?.length) { btn.textContent = "먼저 새로 확인"; return; }
+  btn.disabled = true; btn.textContent = "분석 중…";
+  try {
+    const r = await api("POST", { action: "watchAi", name: w.name, items: w.items, channel: aiChan(c) });
+    change("", () => { B.watch.find((q) => q.id === id).ai = { ...r, at: Date.now() }; });
+  } catch { btn.disabled = false; btn.textContent = "분석 실패 · 다시"; }
+}
 $("refForm").onsubmit = (e) => {
   e.preventDefault();
   const url = $("refUrl").value.trim(), note = $("refNote").value.trim(); if (!url && !note) return;
@@ -745,7 +987,7 @@ function addLines(input, fn, lines) {
   fn(list); input.value = "";
 }
 const addShoots = (list) => change(`찍을 것 ${list.length}개`, () => list.forEach((title) => B.shoots.push({ id: uid(), channel: cur, title, done: false, at: Date.now() })));
-const addIdeas = (list) => { const d = pickDate; pickDate = ""; change(`아이디어 ${list.length}개 넣었어요`, () => list.forEach((title) => B.posts.push({ id: uid(), title, memo: "", channels: [cur], stage: "idea", date: d, createdAt: Date.now() }))); };
+const addIdeas = (list) => { const d = pickDate; pickDate = ""; change(`아이디어 ${list.length}개 넣었어요`, () => list.forEach((title) => B.posts.push(newPost({ title, channels: [cur], stage: "idea", date: d })))); };
 for (const [form, input, fn] of [["shootForm", "shootText", addShoots], ["quick", "qText", addIdeas]]) {
   $(form).onsubmit = (e) => { e.preventDefault(); addLines($(input), fn, [$(input).value]); };
   $(input).addEventListener("paste", (e) => {
@@ -774,7 +1016,7 @@ $("aiBtn").onclick = async () => {
   const best = mine.filter((p) => p.metrics?.views).sort((a, b) => b.metrics.views - a.metrics.views).slice(0, 5).map((p) => ({ title: p.title, views: p.metrics.views, likes: p.metrics.likes }));
   const refs = B.refs.filter((r) => r.channel === c.id && r.note).slice(-5).map((r) => r.note);
   try {
-    const r = await api("POST", { action: "ai", channel: { name: c.name, platform: c.platform, ...c.profile }, recent: mine.slice(0, 12).map((p) => p.title), best, refs });
+    const r = await api("POST", { action: "ai", channel: aiChan(c), recent: mine.slice(0, 12).map((p) => p.title), best, refs });
     change("", () => { B.recs[c.id] = { ...r, at: Date.now() }; });
   } catch (e) {
     $("rec").innerHTML = `<p class="msg">${e === "no_key" ? "Vercel에 ANTHROPIC_API_KEY가 없어요." : "추천을 받지 못했어요. 다시 눌러 주세요."}</p>`;
@@ -818,8 +1060,25 @@ function openPost(id) {
   f.views.value = p.metrics?.views || ""; f.likes.value = p.metrics?.likes || ""; f.cmts.value = p.metrics?.cmts || "";
   $("postChans").innerHTML = B.channels.map((c) => `<label><input type="checkbox" value="${c.id}" ${p.channels?.includes(c.id) ? "checked" : ""}><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</label>`).join("");
   $("metrics").hidden = p.stage !== "done";
+  stepDraft = JSON.parse(JSON.stringify(p.steps || [])); renderSteps();
   $("postDlg").showModal();
 }
+let stepDraft = [];
+function renderSteps() {
+  const n = stepDraft.filter((x) => x.done).length, p = B.posts.find((x) => x.id === editPost);
+  $("stepMeta").textContent = `${n}/${stepDraft.length} · 시작한 지 ${Math.max(0, Math.floor((Date.now() - (p?.createdAt || Date.now())) / 864e5))}일째`;
+  $("stepList").innerHTML = stepDraft.map((x, i) => `<div class="st${x.done ? " done" : ""}"><input type="checkbox" data-sd="${i}" ${x.done ? "checked" : ""} aria-label="${esc(x.t)} 끝"><span>${i + 1}. ${esc(x.t)}</span><small>${x.at ? md(x.at) : ""}</small><button type="button" data-sdx="${i}" aria-label="빼기">✕</button></div>`).join("");
+}
+$("stepList").addEventListener("click", (e) => {
+  const cb = e.target.closest("[data-sd]"), del = e.target.closest("[data-sdx]");
+  if (cb) { const st = stepDraft[+cb.dataset.sd]; st.done = cb.checked; st.at = cb.checked ? today() : ""; renderSteps(); }
+  if (del) { stepDraft.splice(+del.dataset.sdx, 1); renderSteps(); }
+});
+$("stepNew").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.isComposing) return;
+  e.preventDefault(); const t = e.target.value.trim(); if (!t) return;
+  stepDraft.push({ t, done: false }); e.target.value = ""; renderSteps();
+});
 $("postForm").stage.onchange = (e) => ($("metrics").hidden = e.target.value !== "done");
 $("postForm").onsubmit = (e) => {
   if (e.submitter?.value !== "ok") return;
@@ -830,6 +1089,8 @@ $("postForm").onsubmit = (e) => {
     if (f.stage.value === "done") { p.doneAt = f.date.value || p.doneAt || today(); p.date = p.date || p.doneAt; }
     else { p.date = f.date.value; delete p.doneAt; }
     p.stage = f.stage.value;
+    p.steps = stepDraft;
+    if (p.steps.length && p.steps.every((q) => q.done) && p.stage !== "done") { p.stage = "done"; p.doneAt = p.doneAt || today(); }
     const mt = { views: +f.views.value || 0, likes: +f.likes.value || 0, cmts: +f.cmts.value || 0 };
     if (mt.views || mt.likes || mt.cmts) p.metrics = mt; else delete p.metrics;
   });
@@ -844,7 +1105,7 @@ async function start() {
       online = true; setSync("PC·폰 동기화", true);
       if (board && (board.updated || 0) >= (B.updated || 0)) { B = migrate(board); saveLocal(); } else save();
       try { localStorage.setItem("ai-admin-key", key); localStorage.setItem("ai-admin", "1"); } catch {}
-      $("gate").hidden = true; render(); return;
+      $("gate").hidden = true; render(); refreshAll(false); return;
     } catch (e) {
       $("gateMsg").textContent = e === "auth" ? "키가 맞지 않아요." : e === "no_admin_key" ? "Vercel에 ADMIN_KEY가 아직 없어요." : e === "no_redis" ? "저장소(Redis)가 아직 연결되지 않았어요. 이 기기에서만 먼저 쓸 수 있어요." : "서버에 닿지 않아요. 이 기기에서만 먼저 쓸 수 있어요.";
     }
