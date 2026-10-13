@@ -1,0 +1,1737 @@
+<title>SNS 통합 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 두 층: 대시보드(모든 채널 한눈에 + 소재함) → 채널 공간(성격·레퍼런스·촬영·흐름·캘린더·댓글·AI 추천) */
+:root {
+  --bg: #eef0f2; --panel: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d5d9de; --grid: #e7eaed;
+  --charcoal: #24272c; --on-charcoal: #f4f5f6; --yellow: #f5d33f; --bar: #3d434b; --good: #2b8a3e; --bad: #d9480f;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #9aa1aa; --line: #343840; --grid: #2b2f35; --bar: #aeb5be; --good: #51b768; --bad: #ff7a45; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+    --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #9aa1aa; --line: #343840; --grid: #2b2f35; --bar: #aeb5be; --good: #51b768; --bad: #ff7a45; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+a { color: inherit; }
+.top { background: var(--charcoal); color: var(--on-charcoal); padding: 20px 0 54px; border-top: 6px solid var(--chc, var(--charcoal)); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+.crumb { font-family: var(--mono); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; }
+.crumb a { text-decoration: none; }
+.crumb b { color: var(--yellow); font-weight: 500; }
+h1 { margin: 6px 0 0; font-size: 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+h1 .sub { font-size: 13px; font-weight: 500; color: #b8bdc4; }
+.sync { font: inherit; font-size: 12px; font-weight: 500; padding: 2px 10px; border: 0; border-radius: 999px; background: #e8590c; color: #fff; cursor: pointer; }
+.sync.on { background: var(--yellow); color: var(--charcoal); }
+main { margin-top: -36px; padding-bottom: 60px; }
+.view { display: grid; gap: 14px; }
+.box { background: var(--panel); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); min-width: 0; }
+h2 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+h2 span, .note { font-size: 12px; font-weight: 400; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tile { background: var(--panel); border-radius: 14px; padding: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1.2; margin-top: 2px; }
+.tile .s { font-size: 12px; color: var(--muted); }
+.tile.hot { background: var(--charcoal); color: var(--on-charcoal); }
+.tile.hot .k, .tile.hot .s { color: #b8bdc4; }
+.tile.hot .v { color: var(--yellow); }
+input, button, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 7px 10px; min-width: 0; }
+textarea { resize: vertical; }
+button { border: 0; border-radius: 10px; padding: 8px 14px; background: var(--yellow); color: #24272c; font-weight: 700; cursor: pointer; }
+button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+button.mini { padding: 3px 9px; font-size: 12px; border-radius: 8px; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.msg { font-size: 13px; color: var(--bad); }
+.gate { max-width: 460px; }
+.gate form { display: flex; gap: 8px; margin-top: 10px; }
+.gate input { flex: 1; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; background: var(--c, #999); }
+.late { color: var(--bad); font-weight: 700; }
+.empty { color: var(--muted); font-size: 13px; display: flex; gap: 10px; align-items: center; }
+.empty img { width: 52px; height: 52px; }
+.plug { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
+.line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.line input[type=text], .line input[type=url] { flex: 1 1 220px; }
+/* 대시보드: 채널 카드 */
+.chgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.chcard { display: grid; gap: 4px; text-align: left; text-decoration: none; background: var(--bg); border-radius: 12px; padding: 12px; border-top: 5px solid var(--c); font-weight: 400; color: var(--ink); }
+.chcard:hover { background: var(--grid); }
+.chcard b { font-size: 16px; display: flex; gap: 6px; align-items: center; }
+.chcard .pf { font-size: 12px; color: var(--muted); }
+.chcard .tone { font-size: 13px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.6em; }
+.chcard .nums { display: flex; gap: 10px; font-size: 12px; color: var(--muted); font-family: var(--mono); flex-wrap: wrap; }
+.chcard .nums b { font-size: 12px; color: var(--ink); display: inline; }
+.chcard .next { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chcard.add { place-content: center; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-top-width: 1px; background: transparent; min-height: 140px; cursor: pointer; }
+/* 소재함 */
+.seg { display: inline-flex; background: var(--bg); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { background: transparent; color: var(--muted); font-weight: 500; padding: 5px 10px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.inbox { display: grid; gap: 8px; margin-top: 10px; }
+.inb { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; }
+.inb .t { font-size: 14px; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.inb .kind { font-size: 11px; font-weight: 700; background: var(--panel); border-radius: 6px; padding: 0 6px; }
+.inb .t a { word-break: break-all; }
+.inb .x { margin-left: auto; color: var(--muted); background: transparent; padding: 0 4px; font-weight: 400; }
+.match { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; }
+.match button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-weight: 500; padding: 3px 10px; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+.match button.best { border-color: var(--ink); font-weight: 700; }
+.match .why { color: var(--muted); font-size: 12px; flex-basis: 100%; }
+/* 채널 공간: 성격 카드 */
+details.pbox > summary { list-style: none; cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+details.pbox > summary::-webkit-details-marker { display: none; }
+details.pbox > summary h2 { margin: 0; }
+details.pbox > summary .fold { margin-left: auto; font-size: 12px; color: var(--muted); }
+details.pbox[open] > summary .fold::after { content: "접기 ▲"; }
+details.pbox:not([open]) > summary .fold::after { content: "펼치기 ▼"; }
+.fill { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.fill i { display: inline-block; width: 80px; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+.fill i b { display: block; height: 100%; background: var(--yellow); }
+.concept { font-size: 14px; flex-basis: 100%; color: var(--ink); }
+.persona { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.pgroup { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; align-content: start; }
+.pgroup h4 { margin: 0; font-size: 13px; }
+.pf-field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.pf-field textarea, .pf-field input { font-size: 14px; color: var(--ink); font-weight: 400; background: var(--panel); }
+.pf-field textarea { min-height: 40px; }
+.pf-field input[type=number] { width: 90px; }
+.opts { display: flex; flex-wrap: wrap; gap: 4px; font-weight: 400; }
+.opts button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-weight: 500; font-size: 12px; padding: 3px 9px; border-radius: 999px; }
+.opts button[aria-pressed="true"] { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+/* 벤치마크 채널 */
+.watch { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
+.watch .hd { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.watch .hd b a { text-decoration: none; }
+.watch .hd .acts { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+.badge { font-size: 11px; font-weight: 700; background: var(--bad); color: #fff; border-radius: 999px; padding: 1px 8px; }
+.wstat { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.wstat b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
+.vids { display: grid; gap: 2px; }
+.vid { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--grid); }
+.vid a { text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vid .v { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.vid.new a::before { content: "NEW "; color: var(--bad); font-weight: 700; font-size: 11px; }
+.anal { background: var(--panel); border-radius: 10px; padding: 10px; display: grid; gap: 6px; font-size: 13px; }
+.anal ul { margin: 0; padding-left: 18px; }
+.anal h5 { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+/* 영상 STEP */
+.steps { grid-column: 2; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--grid); overflow: hidden; max-width: 80px; }
+.steps i b { display: block; height: 100%; background: var(--c, var(--bar)); }
+.steps label { display: inline-flex; gap: 4px; align-items: center; color: var(--ink); cursor: pointer; }
+.steps label input { width: 14px; height: 14px; margin: 0; }
+.steplist { display: grid; gap: 4px; }
+.steplist .st { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); }
+.steplist .st input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--charcoal); }
+.steplist .st.done span { color: var(--muted); text-decoration: line-through; }
+.steplist .st small { font-family: var(--mono); color: var(--muted); font-size: 11px; }
+.steplist .st button { background: transparent; color: var(--muted); padding: 0 4px; font-weight: 400; }
+.newwatch { display: grid; gap: 6px; }
+.nw { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 13px; background: var(--bg); border-radius: 10px; padding: 6px 10px; }
+.nw a { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nw .n { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.chstat { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.chstat b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
+/* 레퍼런스·촬영 */
+.list { display: grid; gap: 6px; margin-top: 10px; }
+.ref { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 14px; }
+.ref a { font-weight: 700; word-break: break-all; }
+.ref .n { grid-column: 1; font-size: 12px; color: var(--muted); }
+.ref .acts { grid-row: 1 / 3; grid-column: 2; display: flex; gap: 4px; align-items: center; }
+.shoot { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; padding: 6px 2px; border-top: 1px solid var(--grid); font-size: 14px; }
+.shoot:first-child { border-top: 0; }
+.shoot input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--charcoal); }
+.shoot .n { font-size: 11px; color: var(--muted); display: block; }
+.shoot.done { color: var(--muted); }
+.shoot .x, .ref .x { background: transparent; color: var(--muted); padding: 0 4px; font-weight: 400; }
+/* 흐름 보드 */
+.quick { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.quick input[type=text] { flex: 1 1 260px; padding: 10px 12px; font-size: 15px; }
+.datechip { font-size: 12px; background: var(--grid); border-radius: 999px; padding: 4px 6px 4px 10px; display: inline-flex; gap: 4px; align-items: center; }
+.datechip button { padding: 0 6px; background: transparent; color: var(--muted); }
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.col { background: var(--bg); border-radius: 12px; padding: 8px; min-height: 80px; }
+.col h3 { margin: 2px 4px 8px; font-size: 13px; display: flex; justify-content: space-between; }
+.col h3 span { font-family: var(--mono); color: var(--muted); font-weight: 500; }
+.card { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: start; background: var(--panel); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--c, var(--line)); cursor: pointer; }
+.card input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--charcoal); cursor: pointer; }
+.card .t { font-size: 14px; font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
+.card .m { grid-column: 2; font-size: 11px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.card.done .t { color: var(--muted); }
+.col .more, .col .hint { font-size: 12px; color: var(--muted); padding: 4px; }
+.col .more { text-align: center; }
+.pm { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.pm label { display: grid; gap: 1px; font-size: 10px; color: var(--muted); }
+.pm input { width: 100%; font-size: 13px; padding: 4px 6px; font-family: var(--mono); appearance: textfield; -moz-appearance: textfield; }
+.pm input::-webkit-inner-spin-button, .pm input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* 탭 · DB 관리 리포트 */
+.tabs { display: flex; gap: 6px; margin: 0 0 12px; position: relative; }
+.tabs a { text-decoration: none; background: var(--panel); color: var(--muted); font-weight: 700; font-size: 14px; padding: 8px 16px; border-radius: 10px 10px 0 0; }
+.tabs a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -3px 0 var(--yellow); }
+.tabs a b { font-family: var(--mono); font-weight: 500; color: var(--muted); margin-left: 4px; }
+.rank { display: grid; gap: 6px; }
+.rank a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; text-decoration: none; color: var(--ink); font-size: 13px; }
+.rank a > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank a > span:nth-child(2) { font-family: var(--mono); color: var(--muted); }
+.rank a i { grid-column: 1 / -1; height: 8px; border-radius: 0 4px 4px 0; background: var(--grid); }
+.rank a i b { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); min-width: 2px; }
+.rank a:hover i b { background: var(--ink); }
+#dbTable td:nth-child(2) { font-family: var(--sans); text-align: left; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+#dbTable th:nth-child(2) { text-align: left; }
+/* 캘린더 */
+.calnav { display: flex; gap: 6px; align-items: center; }
+.calnav b { font-family: var(--mono); font-weight: 500; min-width: 80px; text-align: center; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal .wd { font-size: 11px; color: var(--muted); text-align: center; }
+.day { background: var(--bg); border-radius: 8px; min-height: 84px; padding: 4px; cursor: pointer; border: 2px solid transparent; min-width: 0; }
+.day.out { opacity: .4; }
+.day.today { border-color: var(--yellow); }
+.day.pick { border-color: var(--ink); }
+.day .n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.day.sun .n { color: var(--bad); }
+.pill { display: block; font-size: 11px; line-height: 1.35; padding: 1px 5px; margin-top: 2px; border-radius: 5px; background: var(--panel); border-left: 3px solid var(--c, var(--line)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill.done { opacity: .55; text-decoration: line-through; }
+.pill.miss { color: var(--bad); font-weight: 700; }
+/* 댓글 */
+.cm { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--grid); font-size: 14px; }
+.cm:first-child { border-top: 0; }
+.cm input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--charcoal); }
+.cm .m { grid-column: 2; font-size: 11px; color: var(--muted); }
+.cm.replied { color: var(--muted); }
+.addcm { display: grid; gap: 6px; margin-top: 10px; }
+.addcm .r { display: flex; gap: 6px; }
+.addcm .r select { flex: 1; }
+/* 분석 */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 4px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 11px; color: var(--muted); font-weight: 500; }
+td { font-family: var(--mono); }
+td:first-child { font-family: var(--sans); font-weight: 500; }
+td a { text-decoration: none; }
+.tablewrap { overflow-x: auto; }
+.weeks { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; align-items: end; height: 90px; margin-top: 14px; border-bottom: 1px solid var(--line); }
+.weeks i { display: block; background: var(--bar); border-radius: 4px 4px 0 0; min-height: 2px; }
+.weeks i.now { background: var(--yellow); }
+.wlab { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; }
+/* 추천 */
+.rec { display: grid; gap: 8px; margin-top: 10px; }
+.idea { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+.idea .w { grid-column: 1; font-size: 12px; color: var(--muted); }
+.idea .acts { grid-row: 1 / 3; grid-column: 2; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.rref { font-size: 13px; }
+.rref a { font-weight: 700; }
+.tipline { font-size: 13px; background: var(--charcoal); color: var(--on-charcoal); border-radius: 10px; padding: 8px 10px; }
+/* 기획실 */
+.lab { display: grid; gap: 10px; }
+.labin { display: grid; gap: 8px; }
+.labin .line input[type=text] { flex: 1 1 260px; }
+.labf { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.labf button { background: var(--bg); color: var(--muted); font-weight: 500; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
+.labf button[aria-pressed="true"] { background: var(--charcoal); color: #fff; }
+.ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ic { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; align-content: start; border-left: 4px solid transparent; }
+.ic.star { border-left-color: var(--yellow); }
+.ic.dropped { opacity: .55; }
+.ic .tt { display: flex; gap: 6px; align-items: flex-start; }
+.ic .tt b { flex: 1; font-size: 15px; word-break: keep-all; overflow-wrap: anywhere; }
+.ic .hook { font-size: 13px; }
+.ic .body { font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+.ic .meta { font-size: 11px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.ic .acts { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.ic textarea, .ic input { width: 100%; font-size: 13px; background: var(--panel); }
+.starbtn { background: transparent; padding: 0 2px; font-size: 18px; line-height: 1; color: var(--muted); font-weight: 400; }
+.starbtn[aria-pressed="true"] { color: #e8a400; }
+.scorebtn { margin-left: auto; flex: none; font-family: var(--mono); font-size: 13px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--panel); color: var(--muted); border: 2px solid var(--line); }
+.scorebtn.hi { border-color: var(--good); color: var(--good); }
+.scorebtn.mid { border-color: #e8a400; color: var(--ink); }
+.scorebtn.lo { border-color: var(--bad); color: var(--bad); }
+.scorebox { background: var(--panel); border-radius: 10px; padding: 8px 10px; display: grid; gap: 5px; font-size: 12px; }
+.scorebox .sp { display: grid; grid-template-columns: 74px minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
+.scorebox .sp i { display: block; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+.scorebox .sp i b { display: block; height: 100%; background: var(--bar); }
+.scorebox .sp span:last-child { font-family: var(--mono); text-align: right; color: var(--muted); }
+.labf .sep { flex: 1; }
+.labf a.chip { text-decoration: none; background: var(--bg); color: var(--muted); font-weight: 500; font-size: 13px; padding: 4px 12px; border-radius: 999px; display: inline-flex; gap: 6px; align-items: center; }
+.labf a.chip.on { background: var(--charcoal); color: #fff; }
+.track { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; font-size: 13px; }
+.track .tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.track .tr > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track .tr > span:last-child { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.track .ok { color: var(--good); } .track .no { color: var(--bad); }
+.labf .scoreall { background: var(--yellow); color: var(--charcoal); font-weight: 700; }
+/* 프로젝트 화면 */
+.pgrid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 14px; align-items: start; }
+.pside { display: grid; gap: 14px; }
+.fld { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.fld input, .fld textarea, .fld select { font-size: 14px; font-weight: 400; color: var(--ink); width: 100%; }
+.fld textarea { min-height: 44px; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.frow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.stack { display: grid; gap: 10px; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chips button { background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-weight: 500; font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+.scenes { display: grid; gap: 6px; }
+.scene { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1.3fr) auto; gap: 6px; align-items: start; }
+.scene textarea, .scene input { font-size: 13px; width: 100%; min-height: 38px; }
+.scene .x { background: transparent; color: var(--muted); padding: 6px 4px; font-weight: 400; }
+.scene.head { font-size: 11px; color: var(--muted); font-weight: 700; }
+.scriptbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.scriptbar input { flex: 1 1 220px; }
+/* 대화상자 */
+dialog { border: 0; border-radius: 16px; padding: 18px; width: min(460px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+dialog::backdrop { background: rgba(0,0,0,.4); }
+dialog h3 { margin: 0 0 12px; font-size: 17px; }
+dialog form { display: grid; gap: 10px; }
+dialog label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+dialog .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+dialog .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+dialog .acts { display: flex; gap: 8px; justify-content: space-between; margin-top: 4px; }
+dialog .acts .del { background: transparent; color: var(--bad); border: 1px solid var(--line); font-weight: 500; }
+.tog { display: flex; flex-wrap: wrap; gap: 6px; }
+.tog label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 999px; padding: 4px 10px; cursor: pointer; position: relative; border: 2px solid transparent; }
+.tog label:has(input:checked) { border-color: var(--ink); }
+.tog input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+.colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.colors label { width: 26px; height: 26px; border-radius: 50%; background: var(--c); cursor: pointer; border: 3px solid transparent; }
+.colors label:has(input:checked) { border-color: var(--ink); }
+.colors input { position: absolute; opacity: 0; }
+/* 되돌리기 */
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--charcoal); color: var(--on-charcoal); border-radius: 12px; padding: 10px 12px 10px 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); z-index: 10; max-width: calc(100vw - 32px); }
+.toast button { padding: 5px 10px; white-space: nowrap; flex: none; }
+@media (max-width: 900px) {
+  .flow { grid-template-columns: repeat(5, 78vw); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .col { scroll-snap-align: start; }
+  .two { grid-template-columns: 1fr; }
+  .persona { grid-template-columns: 1fr 1fr; }
+  .pgrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .tile .v { font-size: 22px; }
+  .day { min-height: 58px; }
+  .pill { font-size: 10px; padding: 0 3px; }
+  .persona { grid-template-columns: 1fr; }
+  .chgrid { grid-template-columns: 1fr 1fr; }
+  .ideas { grid-template-columns: 1fr; }
+  .scene { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t x" "v v" "l l"; }
+  .scene > input { grid-area: t; } .scene > .x { grid-area: x; }
+  .scene > textarea:nth-of-type(1) { grid-area: v; } .scene > textarea:nth-of-type(2) { grid-area: l; }
+  .scene.head { display: none; }
+  .frow3 { grid-template-columns: 1fr 1fr; }
+}
+</style>
+<header class="top" id="top"><div class="wrap">
+  <div class="crumb" id="crumb"></div>
+  <h1><span id="title">SNS 통합 관리</span><span class="sub" id="sub"></span><button type="button" class="sync" id="sync"></button></h1>
+</div></header>
+
+<main class="wrap">
+  <section class="box gate stack" id="gate" hidden>
+    <h2 id="gateH">불러오는 중…</h2>
+    <p class="note" id="gateNote" style="margin:0">Claude 계정에 저장된 보드를 불러오고 있어요.</p>
+    <div class="stack" id="importBox" hidden>
+      <p class="note" style="margin:0">예전 사이트(ai-leehyun.vercel.app/programs/sns)를 PC에서 열고 위쪽 <b>📋 Claude로 옮기기</b>를 누른 뒤, 여기에 붙여넣으세요. 채널·기획·프로젝트·성과가 그대로 옮겨져요.</p>
+      <textarea id="importIn" rows="5" placeholder="여기에 붙여넣기 (Ctrl+V)" aria-label="옮길 보드"></textarea>
+      <div class="frow"><button type="button" id="importBtn">옮겨 오기</button><button type="button" class="ghost" id="freshBtn">옮길 것 없이 새로 시작</button></div>
+    </div>
+    <p class="msg" id="gateMsg"></p>
+  </section>
+
+  <!-- 대시보드 -->
+  <nav class="tabs" id="tabs" hidden aria-label="보기"></nav>
+
+  <div class="view" id="dash" hidden>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="box">
+      <h2>채널 <span>누르면 그 채널의 공간으로</span></h2>
+      <div class="chgrid" id="chgrid"></div>
+    </section>
+
+    <section class="box" id="newBox">
+      <h2>벤치마크 새 영상 <span id="newMeta"></span></h2>
+      <div class="newwatch" id="newwatch"></div>
+    </section>
+
+    <section class="box">
+      <h2>소재함 <span>찍은 것·레퍼런스·아이디어를 일단 넣으면, 성격이 맞는 채널을 골라 드려요</span></h2>
+      <form class="line" id="inForm">
+        <span class="seg" id="inKind" role="group" aria-label="종류"><button type="button" data-k="shot" aria-pressed="true">📷 찍은 것</button><button type="button" data-k="ref" aria-pressed="false">🔖 레퍼런스</button><button type="button" data-k="idea" aria-pressed="false">💡 아이디어</button></span>
+        <input type="text" id="inText" placeholder="예: 거실 소파에서 차렵이불 덮고 찍은 영상 3컷 · 링크를 붙이면 레퍼런스로" aria-label="소재 한 줄" autocomplete="off">
+        <button>넣기</button>
+      </form>
+      <div class="inbox" id="inbox"></div>
+    </section>
+
+    <section class="box">
+      <h2>전체 프로젝트 <span>모든 채널 · 체크하면 다음 단계로 · 카드를 누르면 프로젝트 화면</span></h2>
+      <div class="flow" data-flow></div>
+    </section>
+
+    <section class="box">
+      <h2>업로드 캘린더 <span class="calnav"><button class="ghost mini" data-cal="-1" type="button" aria-label="이전 달">‹</button><b data-caltitle></b><button class="ghost mini" data-cal="1" type="button" aria-label="다음 달">›</button><button class="ghost mini" data-cal="0" type="button">오늘</button></span></h2>
+      <div class="cal" data-calgrid></div>
+    </section>
+
+    <div class="two">
+      <section class="box">
+        <h2>답 안 한 댓글 <span data-cmcount></span></h2>
+        <div class="plug">🔌 채널을 연동하면 댓글을 자동으로 모아 와요. 지금은 붙여넣어서 관리합니다.</div>
+        <div data-comments></div>
+        <form class="addcm" data-addcm>
+          <textarea rows="2" placeholder="댓글 붙여넣기 (한 줄에 하나, '닉네임: 내용'이면 닉네임도 따로 저장)" aria-label="댓글 붙여넣기"></textarea>
+          <div class="r"><select aria-label="댓글 채널"></select><button>+ 댓글</button></div>
+        </form>
+      </section>
+      <section class="box">
+        <h2>분석 <span>채널 이름을 누르면 그 채널로</span></h2>
+        <div class="tablewrap"><table data-stats></table></div>
+        <div class="weeks" data-weeks></div>
+        <div class="wlab" data-wlab></div>
+        <p class="note" style="margin:4px 0 0">최근 8주 · 주마다 올린 개수 (모든 채널)</p>
+      </section>
+    </div>
+  </div>
+
+  <!-- 채널 공간 -->
+  <div class="view" id="chan" hidden>
+    <details class="box pbox" id="pbox">
+      <summary><h2>이 채널의 성격</h2><span class="fill" id="pfill"></span><span class="fold"></span><span class="concept" id="pconcept"></span></summary>
+      <p class="note" style="margin:8px 0 0">고르거나 적어 두면 소재함 매칭, AI 추천, 벤치마크 분석이 모두 이걸 보고 답해요. 글 칸은 칸을 벗어나면 저장돼요.</p>
+      <div class="persona" id="persona"></div>
+    </details>
+    <div class="chstat box" id="chstat" style="margin-top:0"></div>
+
+    <section class="box lab">
+      <h2>기획실 <span>기획을 계속 쌓고, 괜찮은 건 ⭐ → '프로젝트로'를 눌러 넘겨요</span></h2>
+      <div class="labin">
+        <form class="line" id="quick">
+          <input type="text" id="qText" placeholder="내 기획 한 줄 적고 Enter (여러 줄 붙여넣으면 한 번에)" aria-label="새 기획" autocomplete="off">
+          <span class="datechip" id="qDate" hidden></span>
+          <button>+ 기획</button>
+        </form>
+        <div class="line">
+          <input type="text" id="aiDir" placeholder="AI에게 방향 주기 (선택) · 예: 여름 신상 홍보, 이번 주 할인, 후기 위주" aria-label="AI 기획 방향">
+          <button type="button" id="aiBtn">🤖 기획 5개 더 만들기</button>
+        </div>
+      </div>
+      <div class="labf" id="labf"></div>
+      <div class="track" id="track"></div>
+      <div class="ideas" id="ideas"></div>
+      <div id="rec" class="rec"></div>
+    </section>
+
+    <section class="box">
+      <h2>프로젝트 <span>영상 하나 = 프로젝트 · 체크하면 다음 단계로 · 카드를 누르면 기획·대본·STEP 화면</span></h2>
+      <div class="flow" data-flow></div>
+    </section>
+
+    <section class="box">
+      <h2>벤치마크 채널 <span>참고할 채널을 등록하면 새 영상을 알려 주고 분석해요 · 유튜브는 자동, 인스타·틱톡은 링크로 관리</span></h2>
+      <form class="line" id="watchForm">
+        <input type="url" id="watchUrl" placeholder="채널 주소 (예: https://www.youtube.com/@채널이름)" aria-label="벤치마크 채널 주소">
+        <input type="text" id="watchName" placeholder="이름 (인스타·틱톡은 적어 주세요)" aria-label="채널 이름" style="flex:0 1 200px">
+        <button>+ 등록</button>
+      </form>
+      <p class="msg" id="watchMsg"></p>
+      <div class="list" id="watches"></div>
+    </section>
+
+    <div class="two">
+      <section class="box">
+        <h2>레퍼런스 보드 <span>이 채널 성격에 맞는 참고 콘텐츠</span></h2>
+        <form class="line" id="refForm">
+          <input type="url" id="refUrl" placeholder="링크 붙여넣기" aria-label="레퍼런스 링크">
+          <input type="text" id="refNote" placeholder="좋은 점 (구도, 첫 3초, 자막…)" aria-label="좋은 점">
+          <button>+ 레퍼런스</button>
+        </form>
+        <div class="list" id="refs"></div>
+      </section>
+      <section class="box">
+        <h2>촬영 목록 <span>찍으면 체크 → 흐름의 '제작'으로</span></h2>
+        <form class="line" id="shootForm">
+          <input type="text" id="shootText" placeholder="찍을 것 한 줄 (여러 줄 붙여넣기 가능)" aria-label="찍을 것" autocomplete="off">
+          <button>+ 찍을 것</button>
+        </form>
+        <div class="list" id="shoots" style="gap:0"></div>
+      </section>
+    </div>
+
+    <div class="two">
+      <section class="box">
+        <h2>업로드 캘린더 <span class="calnav"><button class="ghost mini" data-cal="-1" type="button" aria-label="이전 달">‹</button><b data-caltitle></b><button class="ghost mini" data-cal="1" type="button" aria-label="다음 달">›</button><button class="ghost mini" data-cal="0" type="button">오늘</button></span></h2>
+        <div class="cal" data-calgrid></div>
+        <p class="note" style="margin:8px 0 0">날짜를 누르면 그날로 기획을 넣어요. 예약 카드는 날짜가 되면 자동 업로드 (연동 후).</p>
+      </section>
+      <section class="box">
+        <h2>댓글 <span data-cmcount></span></h2>
+        <div class="plug">🔌 연동하면 이 채널 댓글을 자동으로 모아 와요.</div>
+        <div data-comments></div>
+        <form class="addcm" data-addcm>
+          <textarea rows="2" placeholder="댓글 붙여넣기 (한 줄에 하나, '닉네임: 내용')" aria-label="댓글 붙여넣기"></textarea>
+          <div class="r"><select aria-label="댓글 채널" hidden></select><button>+ 댓글</button></div>
+        </form>
+      </section>
+    </div>
+    <div>
+      <section class="box">
+        <h2>분석 <span>올림 카드 기준 · 조회·좋아요는 카드에 적은 값 (연동 후 자동)</span></h2>
+        <div class="tablewrap"><table data-stats></table></div>
+        <div class="weeks" data-weeks></div>
+        <div class="wlab" data-wlab></div>
+        <p class="note" style="margin:4px 0 0">최근 8주 · 이 채널에 주마다 올린 개수</p>
+      </section>
+    </div>
+  </div>
+
+  <!-- DB 관리: 성과까지 적은 콘텐츠를 리포트로 -->
+  <div class="view" id="dbv" hidden>
+    <section class="box stack">
+      <div class="labf" id="dbf"></div>
+      <p class="note" style="margin:0" id="dbNote"></p>
+    </section>
+    <div class="tiles" id="dbTiles"></div>
+    <div class="two">
+      <section class="box"><h2>잘 된 콘텐츠 <span>조회 많은 순</span></h2><div class="rank" id="dbTop"></div></section>
+      <section class="box"><h2>아쉬운 콘텐츠 <span>조회 적은 순</span></h2><div class="rank" id="dbLow"></div></section>
+    </div>
+    <div class="two">
+      <section class="box"><h2 id="dbGroupH">채널별</h2><div class="tablewrap"><table id="dbGroup"></table></div></section>
+      <section class="box"><h2>형식별 <span>기획 때 적은 형식</span></h2><div class="tablewrap"><table id="dbFormat"></table></div></section>
+    </div>
+    <section class="box"><h2>전체 기록 <span>제목을 누르면 프로젝트 화면 · 보통 대비 = 같은 채널 조회 중간값 대비</span></h2><div class="tablewrap"><table id="dbTable"></table></div></section>
+  </div>
+
+  <!-- 프로젝트 화면 -->
+  <div class="view" id="proj" hidden>
+    <div class="pgrid">
+      <div class="pside">
+        <section class="box stack">
+          <h2>진행</h2>
+          <div class="frow">
+            <label class="fld">단계<select data-pf="stage" id="pStage"></select></label>
+            <label class="fld">올릴 날짜<input type="date" data-pf="date" id="pDate"></label>
+          </div>
+          <div class="fld">채널 (여러 개면 하나로 여러 채널에)<div class="tog" id="pChans"></div></div>
+          <div class="fld">STEP <span class="note" id="stepMeta"></span><div class="steplist" id="stepList"></div>
+            <input type="text" id="stepNew" placeholder="STEP 더하기 (Enter)" aria-label="STEP 더하기"></div>
+        </section>
+        <section class="box stack" id="pMetrics">
+          <h2>성과 <span>올린 뒤 적어 두면 분석·AI 추천·채점에 써요 (연동 후 자동)</span></h2>
+          <p class="note" id="pPred"></p>
+          <div class="frow3">
+            <label class="fld">조회<input type="number" min="0" data-pf="metrics.views"></label>
+            <label class="fld">좋아요<input type="number" min="0" data-pf="metrics.likes"></label>
+            <label class="fld">댓글<input type="number" min="0" data-pf="metrics.cmts"></label>
+          </div>
+        </section>
+        <section class="box stack">
+          <label class="fld">메모<textarea data-pf="memo" rows="4" placeholder="촬영 메모, 준비물, 링크…"></textarea></label>
+          <button type="button" class="ghost" id="pDel">이 프로젝트 지우기</button>
+        </section>
+      </div>
+      <div class="pside">
+        <section class="box stack">
+          <h2>기획 <span>칸을 벗어나면 저장</span></h2>
+          <label class="fld">한 줄 기획 (제목)<input data-pf="title" id="pTitle"></label>
+          <label class="fld">첫 3초 훅<textarea data-pf="plan.hook" rows="2" placeholder="예: '이불 이렇게 빨면 1년 만에 버려요'"></textarea></label>
+          <label class="fld">시놉시스 (어떤 이야기인지 처음부터 끝까지)<textarea data-pf="plan.synopsis" rows="4" placeholder="예: 40대 아저씨가 빈 채팅창 앞에 앉는다 → AI가 이름 후보를 쏟아낸다 → 'AI이현'으로 정하고 첫 시안을 본다"></textarea></label>
+          <label class="fld">핵심 내용 (무엇을, 어떤 순서로)<textarea data-pf="plan.body" rows="4"></textarea></label>
+          <div class="frow">
+            <label class="fld">형식<input data-pf="plan.format" placeholder="릴스 30초"></label>
+            <label class="fld">왜 이 채널에<input data-pf="plan.why"></label>
+          </div>
+        </section>
+        <section class="box stack">
+          <h2>대본 <span id="scriptMeta"></span></h2>
+          <div class="scriptbar">
+            <input type="text" id="scriptAsk" placeholder="AI에게 바라는 점 (선택) · 예: 더 짧게, 손님 후기로 시작" aria-label="대본 요청">
+            <button type="button" id="scriptBtn">🤖 대본 쓰기</button>
+          </div>
+          <div class="chips" id="scriptChips"></div>
+          <p class="msg" id="scriptMsg"></p>
+          <div id="scriptBody"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+
+<dialog id="chanDlg">
+  <form method="dialog" id="chanForm">
+    <h3>채널</h3>
+    <div class="row">
+      <label>이름<input name="name" required></label>
+      <label>플랫폼<select name="platform"></select></label>
+    </div>
+    <label>계정 주소<input name="url" type="url" placeholder="https://www.instagram.com/..."></label>
+    <label>색<div class="colors" id="chanColors"></div></label>
+    <p class="plug" style="margin:0">🔌 연동: 아직 안 됨. 다음 단계에서 계정을 연결하면 자동 업로드·댓글·조회수를 가져와요. 성격은 채널 공간에서 적어요.</p>
+    <div class="acts"><button type="button" class="del" id="chanDel">삭제</button><span style="display:flex;gap:8px"><button type="button" class="ghost" onclick="this.closest('dialog').close()">닫기</button><button value="ok">저장</button></span></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="undoBtn">되돌리기</button></div>
+
+<script>
+// 화면 이동: 주소창 대신 페이지 안에서 기억 (#ch=…, #p=…, #db…)
+const loc = { h: "", get hash() { return this.h; }, set hash(v) { v = String(v || ""); this.h = v && v !== "#" ? (v[0] === "#" ? v : "#" + v) : ""; try { history.pushState({ h: this.h }, ""); } catch {} onRoute(); } };
+addEventListener("popstate", (e) => { loc.h = e.state?.h || ""; onRoute(); });
+document.addEventListener("click", (e) => { const a = e.target.closest?.('a[href^="#"]'); if (!a) return; e.preventDefault(); loc.hash = a.getAttribute("href"); }, true);
+const $ = (id) => document.getElementById(id);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const num = (n) => Number(n || 0).toLocaleString("ko-KR");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = new Date(s + "T00:00"); d.setDate(d.getDate() + n); return ymd(d); };
+const daysBetween = (a, b) => Math.round((new Date(b + "T00:00") - new Date(a + "T00:00")) / 864e5);
+const md = (s) => s ? `${+s.slice(5, 7)}/${+s.slice(8)}` : "";
+const isUrl = (s) => /^https?:\/\/\S+$/i.test(s.trim());
+const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
+
+const STAGES = [["plan", "기획"], ["make", "제작"], ["sched", "예약"], ["done", "올림"], ["perf", "성과"], ["db", "DB"]];
+const FLOW = STAGES.slice(0, 5); // DB는 흐름 보드가 아니라 DB 관리 탭에서 리포트로
+const UP = new Set(["done", "perf", "db"]), isUp = (p) => UP.has(p.stage); // 올린 뒤 단계
+const STAGE_NAME = Object.fromEntries(STAGES);
+const PLATFORMS = ["", "인스타그램", "유튜브", "틱톡", "스레드", "네이버 블로그", "페이스북", "X", "기타"];
+const COLORS = ["#e8590c", "#f5b400", "#2b8a3e", "#1c7ed6", "#7048e8", "#d6336c", "#0c8599", "#5c940d", "#868e96", "#212529"];
+const KINDS = { shot: "📷 찍은 것", ref: "🔖 레퍼런스", idea: "💡 기획" };
+const SCORE_PARTS = [["hook", "훅", 25], ["fit", "채널 맞춤", 25], ["react", "반응 예상", 20], ["fresh", "새로움", 15], ["easy", "만들기 쉬움", 15]];
+const SCRIPT_CHIPS = ["더 짧게", "더 길게", "더 웃기게", "더 자극적인 훅", "정보 더 많이", "말투 더 편하게", "후기·사례로 시작", "끝에 구매 유도"];
+// 성격 매트릭스: [묶음, [[키, 이름, 종류(text|multi|one|num), 예시 또는 고를 것]]]
+const PERSONA = [
+  ["정체성", [
+    ["concept", "한 줄 콘셉트", "text", "예: 14년차 침구 사장이 알려주는 잠 잘 오는 침실"],
+    ["goal", "채널 목표", "multi", ["판매", "브랜딩", "팬 만들기", "정보 전달", "재미", "광고 수익", "기록"]],
+    ["speaker", "누가 말하나", "one", ["사장님", "전문가", "친구", "캐릭터", "나 자신", "말 없음"]],
+  ]],
+  ["대상", [
+    ["age", "나이대", "multi", ["10대", "20대", "30대", "40대", "50대+"]],
+    ["gender", "성별", "one", ["여성 위주", "남성 위주", "모두"]],
+    ["target", "누구에게 (상황·고민)", "text", "예: 신혼집 꾸미는 30대, 잠 못 자는 직장인"],
+  ]],
+  ["말투·분위기", [
+    ["polite", "말투", "one", ["존댓말", "반말", "섞어서"]],
+    ["mood", "분위기", "multi", ["유머", "진지", "감성", "정보형", "솔직", "자극적", "차분"]],
+    ["tone", "자주 쓰는 말·말버릇", "text", "예: '사장이 직접 써봤습니다'"],
+  ]],
+  ["콘텐츠", [
+    ["topics", "주제 키워드 (쉼표로)", "text", "예: 이불, 베개, 수면 · 소재함 매칭에 써요"],
+    ["formats", "형식", "multi", ["릴스", "쇼츠", "롱폼", "캐러셀", "사진 1장", "글", "라이브", "스토리"]],
+    ["length", "길이", "multi", ["15초", "30초", "60초", "3분", "10분+"]],
+    ["perWeek", "주당 업로드 목표 (회)", "num", "3"],
+    ["when", "올리는 시간", "multi", ["아침", "점심", "저녁", "밤"]],
+  ]],
+  ["촬영·편집", [
+    ["place", "장소", "text", "예: 매장 침실 세트, 집 거실"],
+    ["face", "얼굴 나오나", "one", ["얼굴", "손만", "목소리만", "안 나옴"]],
+    ["light", "조명", "multi", ["자연광", "조명", "야간 무드"]],
+    ["shoot", "구도·촬영 방식", "text", "예: 탑뷰, 핸드헬드 1인칭"],
+    ["caption", "자막·썸네일 스타일", "text", "예: 큰 노란 자막, 첫 화면에 결론"],
+    ["music", "음악·효과", "text", "예: 잔잔한 lo-fi, 효과음 최소"],
+  ]],
+  ["규칙", [
+    ["cta", "끝맺음·행동 유도", "text", "예: 프로필 링크에서 구매"],
+    ["tags", "고정 해시태그", "text", "#이불왕 #침구"],
+    ["avoid", "피할 것", "text", "예: 가격 언급, 과한 효과음"],
+    ["stepsTpl", "영상 STEP 순서 (쉼표로)", "text", "기획, 대본, 촬영, 편집, 썸네일·자막, 업로드"],
+  ]],
+];
+const PFIELDS = PERSONA.flatMap(([, f]) => f);
+const DEFAULT_STEPS = ["기획", "대본", "촬영", "편집", "썸네일·자막", "업로드"];
+const filled = (v) => (Array.isArray(v) ? v.length > 0 : String(v ?? "").trim() !== "");
+const profileFill = (p = {}) => PFIELDS.filter(([k]) => filled(p[k])).length;
+// AI에 보내는 성격 글: 채운 항목만 "- 이름: 값"
+const profileText = (p = {}) => PFIELDS.filter(([k]) => filled(p[k]) && k !== "stepsTpl").map(([k, name]) => `- ${name.replace(/ \(.*\)$/, "")}: ${Array.isArray(p[k]) ? p[k].join(", ") : p[k]}`).join("\n");
+const aiChan = (c) => ({ id: c.id, name: c.name, platform: c.platform, profileText: profileText(c.profile) });
+const stepsFor = (chId) => { const t = (chan(chId)?.profile?.stepsTpl || "").split(/[,，\n]/).map((x) => x.trim()).filter(Boolean); return (t.length ? t : DEFAULT_STEPS).map((name) => ({ t: name, done: false })); };
+const newPost = (o) => ({ id: uid(), memo: "", date: "", createdAt: Date.now(), steps: stepsFor(o.channels?.[0]), stage: "plan", plan: {}, ...o });
+const newIdea = (o) => ({ id: uid(), title: "", hook: "", synopsis: "", body: "", format: "", why: "", star: false, by: "me", date: "", at: Date.now(), ...o });
+const SEARCH = {
+  "인스타그램": (q) => `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ""))}/`,
+  "유튜브": (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
+  "틱톡": (q) => `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`,
+  "스레드": (q) => `https://www.threads.net/search?q=${encodeURIComponent(q)}`,
+  "네이버 블로그": (q) => `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(q)}`,
+};
+const searchUrl = (platform, q = "") => (SEARCH[platform] || ((x) => `https://www.google.com/search?q=${encodeURIComponent(x)}`))(q);
+
+// ── 데이터: 이 기기(localStorage)에 먼저 저장하고, 키가 있으면 서버(Redis)와 맞춤
+const LS = "sns-board";
+const mkChan = (name, platform, url, color, p = {}) => ({ id: uid(), name, platform, url, color, profile: { ...p } });
+const seed = () => ({
+  v: 2, updated: 0,
+  channels: [
+    mkChan("AI이현", "인스타그램", "https://www.instagram.com/ai_leehyun/", COLORS[0], { concept: "AI 공부하는 사람의 하루 기록", topics: "AI, 클로드, 자동화, 공부, 프로그램" }),
+    mkChan("규사장", "", "", COLORS[3]),
+    mkChan("이불왕", "", "", COLORS[2], { topics: "이불, 침구, 베개, 수면, 세탁, 침실" }),
+    mkChan("ENTJ이현", "", "", COLORS[4], { concept: "ENTJ의 일하는 방식", topics: "ENTJ, 효율, 일하는 법, 자기계발, 책" }),
+  ],
+  posts: [], comments: [], recs: {}, refs: [], shoots: [], inbox: [], watch: [], ideas: [], scoreNotes: {},
+});
+function migrate(b) {
+  b.channels.forEach((c) => {
+    c.profile ||= { tone: c.tone || "" }; delete c.tone;
+    const p = c.profile;
+    // v2의 글 칸 '형식'은 고르는 칸으로: 들어 있던 말과 같은 것만 골라 둠
+    if (typeof p.formats === "string") { const opts = PFIELDS.find(([k]) => k === "formats")[3]; p.formats = opts.filter((o) => p.formats.includes(o)); }
+    if (p.tone && !p.concept && b.v < 3) { p.concept = p.tone; p.tone = ""; }
+  });
+  for (const k of ["posts", "comments", "refs", "shoots", "inbox", "watch", "ideas"]) b[k] ||= [];
+  b.posts.forEach((p) => { p.steps ||= DEFAULT_STEPS.map((t) => ({ t, done: isUp(p) })); p.plan ||= {}; });
+  // v3의 '아이디어' 단계 카드는 기획실로
+  b.posts.filter((p) => p.stage === "idea").forEach((p) => { (p.channels?.length ? p.channels : [""]).slice(0, 1).forEach((ch) => b.ideas.push(newIdea({ channel: ch, title: p.title, body: p.memo || "", date: p.date || "", at: p.createdAt || Date.now() }))); });
+  b.posts = b.posts.filter((p) => p.stage !== "idea");
+  b.recs ||= {}; b.scoreNotes ||= {}; b.v = 4;
+  return b;
+}
+let B; try { B = JSON.parse(localStorage.getItem(LS)); } catch {}
+B = migrate(B && Array.isArray(B.channels) ? B : seed());
+let online = false, cur = "", curPost = "", pickDate = "", calMonth = today().slice(0, 7), inKind = "shot", labFilter = "new", editIdea = "", labSort = "new", openScore = "", scoring = false, dbPeriod = "all";
+
+// ── 저장: Claude 계정(artifact db). 항목 하나 = 문서 하나, 나머지(추천·채점 메모 등)는 meta/board
+// 어느 기기에서 열어도 같은 db를 보고, 다른 기기에서 바꾼 것도 바로 들어옴
+const BKINDS = ["channels", "posts", "comments", "refs", "shoots", "inbox", "watch", "ideas"];
+const COL = (k) => "b_" + k;
+const okId = (id) => typeof id === "string" && /^[A-Za-z0-9_\-~:@+]{1,120}$/.test(id) && !/^\.+$/.test(id);
+let db = null, sample = null, ready = false, saveT = null, writing = false, again = false, syncErr = false;
+let synced = new Map(); // "kind/id" → 마지막으로 db와 맞춘 JSON
+let remote = {}, remoteMeta = undefined, gotSnap = new Set(), applyLater = false;
+const metaOf = (b) => { const m = {}; for (const [k, v] of Object.entries(b)) if (!BKINDS.includes(k) && k !== "updated") m[k] = v; return m; };
+function docsOf(b) {
+  const m = new Map();
+  for (const k of BKINDS) (b[k] || []).forEach((x, i) => { if (!okId(x.id)) x.id = uid(); m.set(`${k}/${x.id}`, JSON.stringify({ ...x, _i: i })); });
+  m.set("meta", JSON.stringify(metaOf(b)));
+  return m;
+}
+const docRef = (key) => key === "meta" ? db.doc("meta/board") : db.collection(COL(key.split("/")[0])).doc(key.slice(key.indexOf("/") + 1));
+async function flush() {
+  if (!ready) return;
+  if (writing) { again = true; return; }
+  writing = true; again = false;
+  const now = docsOf(B), jobs = [];
+  for (const [k, v] of now) if (synced.get(k) !== v) jobs.push(() => docRef(k).set(JSON.parse(v)).then(() => synced.set(k, v)));
+  for (const k of synced.keys()) if (!now.has(k)) jobs.push(() => docRef(k).delete().then(() => synced.delete(k)));
+  syncErr = false;
+  // 서로 다른 문서는 동시에 6개씩
+  for (let i = 0; i < jobs.length; i += 6) {
+    const rs = await Promise.allSettled(jobs.slice(i, i + 6).map((f) => f()));
+    if (rs.some((x) => x.status === "rejected")) { syncErr = true; console.error(rs.find((x) => x.status === "rejected").reason); }
+  }
+  writing = false;
+  setSync(syncErr ? "저장 실패 · 다시 시도해요" : "☁️ Claude 계정에 저장", !syncErr);
+  if (syncErr) { setTimeout(() => save(), 5000); return; }
+  if (again || saveT) return again ? flush() : undefined;
+  if (applyLater) applyRemote();
+}
+// 다른 기기에서 바뀐 것 → 화면에. 이 기기에서 저장 중이면 끝난 뒤에
+function applyRemote() {
+  if (saveT || writing) { applyLater = true; return; }
+  applyLater = false;
+  const nb = { ...(remoteMeta || {}) };
+  for (const k of BKINDS) {
+    const docs = remote[k] || [];
+    docs.forEach((d) => synced.set(`${k}/${d.id}`, JSON.stringify(d.data)));
+    nb[k] = docs.map((d) => d.data).sort((a, b) => (a._i ?? 0) - (b._i ?? 0)).map(({ _i, ...x }) => x);
+  }
+  if (remoteMeta) synced.set("meta", JSON.stringify(remoteMeta));
+  for (const key of [...synced.keys()]) { const k = key.split("/")[0]; if (BKINDS.includes(k) && !(remote[k] || []).some((d) => `${k}/${d.id}` === key)) synced.delete(key); }
+  const before = JSON.stringify([...docsOf(B)]);
+  const next = migrate(JSON.parse(JSON.stringify({ ...nb, updated: B.updated })));
+  if (JSON.stringify([...docsOf(next)]) === before) return;
+  B = next; saveLocal(); render();
+}
+function listen() {
+  const all = [...BKINDS, "meta", "study"];
+  const first = () => { if (gotSnap.size < all.length || ready) return; boot(); };
+  for (const k of BKINDS) db.collection(COL(k)).onSnapshot((q) => {
+    remote[k] = q.docs.map((d) => ({ id: d.id, data: JSON.parse(JSON.stringify(d.data())) }));
+    gotSnap.add(k); ready ? applyRemote() : first();
+  }, (e) => lost(e));
+  db.doc("meta/board").onSnapshot((d) => { remoteMeta = d.exists ? JSON.parse(JSON.stringify(d.data())) : null; gotSnap.add("meta"); ready ? applyRemote() : first(); }, (e) => lost(e));
+  db.collection("study").onSnapshot((q) => {
+    studyDocs = q.docs.map((d) => d.data());
+    gotSnap.add("study"); ready ? mergeStudy({ ideas: studyDocs }) : first();
+  }, (e) => lost(e));
+}
+let studyDocs = [];
+function lost(e) { console.error(e); setSync("연결이 끊겼어요 · 새로고침해 주세요"); }
+function boot() {
+  const empty = remoteMeta == null && BKINDS.every((k) => !(remote[k] || []).length);
+  if (empty) { firstRun(); return; }
+  ready = true; online = true;
+  applyRemote(); applyLater = false;
+  setSync("☁️ Claude 계정에 저장", true);
+  $("gate").hidden = true; render();
+  mergeStudy({ ideas: studyDocs });
+}
+
+// ── AI: Claude가 직접 (예전엔 Vercel 서버가 하던 일)
+const clip = (s, n) => String(s ?? "").slice(0, n);
+async function ask(content) {
+  try { return await sample.json(content, { modelTier: "default" }); }
+  catch (e) { console.error(e); throw e?.code === "not_granted" ? "no_ai" : e?.code === "rate_limited" ? "busy" : "api"; }
+}
+// 채널 성격: 화면에서 채운 항목을 "- 항목: 값" 줄로 만들어 보냄 (profileText)
+const persona = (c) => `- 플랫폼: ${c.platform || "모름"}\n${c.profileText || "- (아직 안 적음)"}`;
+const cleanChan = (c) => ({ id: clip(c?.id, 40), name: clip(c?.name, 40), platform: clip(c?.platform, 20), profileText: clip(c?.profileText, 2500) });
+
+const lines = (arr) => arr.map((t) => "- " + t).join("\n");
+const PROMPT = (c, x) => `너는 SNS 채널 하나만 맡은 기획자야. 이 채널 주인은 침구 쇼핑몰을 14년 운영했고, 주식 전업 투자자이며, 성격이 다른 채널 10개를 혼자 운영해.
+
+채널 "${c.name}"의 성격:
+${persona(c)}
+${x.direction ? `\n이번에 원하는 방향: ${x.direction}\n` : ""}
+이미 있는 기획·콘텐츠 (겹치면 안 됨):
+${x.recent.length ? lines(x.recent) : "- 없음"}
+${x.best.length ? `\n반응이 좋았던 것 (조회·좋아요):\n${x.best.map((b) => `- ${b.title} (${b.views}회, ♥${b.likes})`).join("\n")}\n` : ""}${x.liked.length ? `\n주인이 ⭐ 표시한 기획 (이런 결이 좋음):\n${lines(x.liked)}\n` : ""}${x.dropped.length ? `\n주인이 버린 기획 (이런 결은 피함):\n${lines(x.dropped)}\n` : ""}${x.refs.length ? `\n주인이 모은 레퍼런스에서 좋다고 적은 점:\n${lines(x.refs)}\n` : ""}${x.bench.length ? `\n벤치마크 채널에서 잘 되는 패턴:\n${lines(x.bench)}\n` : ""}
+할 일:
+1. ideas 정확히 5개: 위 채널 성격의 모든 항목(목표, 대상, 말투, 형식, 길이, 촬영 방식)에 맞고, 피할 것은 피하고, 이미 있는 것과 겹치지 않는 콘텐츠 기획. 5개는 서로 각도가 달라야 해 (정보, 후기·사례, 비교, 실수·경고, 비하인드 등).
+   - title 25자 안팎(바로 제목으로 쓸 수 있게)
+   - hook 30자 안팎: 첫 3초에 할 말이나 자막
+   - body 70자 안팎: 무엇을 어떤 순서로 보여 줄지
+   - format은 '릴스 30초', '캐러셀 6장', '쇼츠 45초'처럼 짧게
+   - why 30자 안팎: 왜 이 채널에 맞는지
+2. refs 정확히 3개: 참고할 레퍼런스를 찾는 법. what 30자 안팎, search는 그 플랫폼 검색창에 그대로 넣을 한국어 검색어(15자 안팎, # 없이). 실제 계정 이름을 지어내지 마.
+3. tip 1문장(50자 안팎): 이 채널을 이번 주에 키우는 데 가장 효과 있을 한 가지.
+모든 문장은 한국어 존댓말 (단, hook과 body는 채널 말투를 따라).
+
+JSON만 답해: {"ideas":[{"title":"...","hook":"...","body":"...","format":"...","why":"..."}],"refs":[{"what":"...","search":"..."}],"tip":"..."}`;
+
+const SCRIPT_PROMPT = (c, x) => `너는 SNS 숏폼·콘텐츠 대본 작가야. 아래 채널 성격에 딱 맞는 대본을 써 줘.
+
+채널 "${c.name}"의 성격:
+${persona(c)}
+
+이 콘텐츠의 기획:
+- 제목: ${x.title}
+- 첫 3초 훅: ${x.plan.hook || "(없음, 네가 만들어)"}
+- 시놉시스: ${x.plan.synopsis || "(없음)"}
+- 핵심 내용: ${x.plan.body || "(없음, 제목을 보고 짜)"}
+- 형식: ${x.plan.format || "(채널 성격의 형식·길이를 따름)"}
+- 왜 이 채널에: ${x.plan.why || "-"}
+${x.refs.length ? `\n참고 레퍼런스에서 좋았던 점:\n${lines(x.refs)}\n` : ""}${x.prev ? `\n지금 대본 (이걸 고쳐서 다시 써):\n"""\n${x.prev}\n"""\n` : ""}${x.ask ? `\n주인의 요청: ${x.ask}\n` : ""}
+규칙:
+- 채널의 말투(존댓말/반말), 분위기, 자주 쓰는 말, 누가 말하나, 얼굴 노출, 촬영 방식, 자막 스타일을 그대로 따라.
+- 형식이 영상이면 scenes는 시간 순서 장면 4~8개. t는 '0~3초'처럼, visual은 화면에 보이는 것과 촬영 방법(30자 안팎), line은 그 장면의 대사나 자막(40자 안팎, 말하듯이).
+- 형식이 캐러셀·사진이면 scenes는 장(슬라이드)별로, t는 '1장', visual은 이미지 구성, line은 그 장의 문구.
+- 첫 장면은 반드시 훅. 피할 것은 쓰지 마. 과장·허위 효능 표현 금지.
+- cta: 채널의 끝맺음·행동 유도를 반영한 마지막 한마디.
+- caption: 올릴 때 쓸 본문 3~5줄 (줄바꿈 \\n), 채널 말투로.
+- tags: 해시태그 8~12개 (고정 해시태그가 있으면 꼭 포함, # 붙여서).
+- thumb: 썸네일·첫 화면 큰 글씨 문구 15자 안팎.
+
+JSON만 답해: {"hook":"...","scenes":[{"t":"...","visual":"...","line":"..."}],"cta":"...","caption":"...","tags":["#..."],"thumb":"..."}`;
+
+// 기획 채점: 100점 = 훅 25 + 채널 맞춤 25 + 반응 예상 20 + 새로움 15 + 만들기 쉬움 15 (합계는 서버에서 더함)
+const SCORE_MAX = { hook: 25, fit: 25, react: 20, fresh: 15, easy: 15 };
+const SCORE_PROMPT = (c, x) => `너는 깐깐한 SNS 기획 심사위원이야. 아래 채널에 올릴 기획들을 하나씩 채점해 줘.
+
+채널 "${c.name}"의 성격:
+${persona(c)}
+${x.liked.length ? `\n주인이 ⭐ 표시한 기획 (주인 취향):\n${lines(x.liked)}\n` : ""}${x.dropped.length ? `\n주인이 버린 기획 (주인이 싫어하는 결):\n${lines(x.dropped)}\n` : ""}${x.best.length ? `\n이 채널에서 반응이 좋았던 것:\n${lines(x.best)}\n` : ""}${x.track.length ? `\n지금까지 올린 콘텐츠의 실제 성과 (기획 때 받은 점수 → 올린 뒤 실제 반응, 배수는 이 채널 보통 조회수 대비):\n${lines(x.track)}\n
+먼저 이 기록부터 봐. 점수가 높았는데 반응이 낮았던 것, 점수가 낮았는데 반응이 높았던 것을 비교해서 이 채널에서 실제로 먹히는 요소와 과대평가했던 요소를 찾아. 그 결과대로 이번 채점을 고쳐: 실제로 먹힌 요소가 있는 기획은 점수를 더 주고, 과대평가했던 요소는 덜 줘. (항목과 만점은 그대로)\n` : ""}
+채점할 기획:
+${x.ideas.map((i) => `[${i.id}] 제목: ${i.title}${i.hook ? ` / 훅: ${i.hook}` : ""}${i.body ? ` / 내용: ${i.body}` : ""}${i.format ? ` / 형식: ${i.format}` : ""}`).join("\n")}
+
+채점 기준 (항목별 만점):
+- hook 25: 첫 3초에 멈추게 하는 힘. 훅이 안 적혀 있으면 제목만으로 판단하되 깎아.
+- fit 25: 채널 성격(목표, 대상, 말투, 형식, 피할 것)에 맞는 정도.
+- react 20: 저장·공유·댓글이 나올 만한 정도 (쓸모, 공감, 논쟁거리).
+- fresh 15: 흔한 기획과 다른 각도, 주인만 할 수 있는 이야기인지.
+- easy 15: 혼자 촬영·편집하기 쉬운 정도 (쉬울수록 높음).
+점수는 짜게 줘. 보통 기획은 합계 55~70점, 85점 넘는 건 정말 좋은 것만.
+good은 가장 잘한 점 한 문장(35자 안팎), fix는 점수를 가장 많이 올릴 고칠 점 한 문장(50자 안팎, 구체적으로). 한국어 존댓말.
+${x.track.length ? `lesson: 실제 성과 기록을 보고 채점을 어떻게 바꿨는지 한 문장(70자 안팎, 예: '숫자 제목이 평균 2배라 훅 점수를 더 줌').` : `lesson은 빈 문자열.`}
+
+JSON만 답해: {"lesson":"...","scores":[{"id":"...","hook":0,"fit":0,"react":0,"fresh":0,"easy":0,"good":"...","fix":"..."}]}`;
+
+const WATCH_PROMPT = (w, mine) => `너는 SNS 벤치마킹 분석가야. 아래 유튜브 채널의 최근 영상을 보고, 내 채널에 가져올 점을 찾아 줘.
+
+벤치마크 채널: ${w.name}
+최근 영상 (올린 날, 조회수, 쇼츠 여부, 제목):
+${w.items.map((x) => `- ${x.published.slice(0, 10)} · ${x.views}회${x.short ? " · 쇼츠" : ""} · ${x.title}`).join("\n")}
+
+내 채널 "${mine.name}"의 성격:
+${persona(mine)}
+
+할 일:
+1. summary 2문장: 이 채널이 요즘 무엇을 어떤 방식으로 올리고, 무엇이 잘 되는지 (숫자를 넣어서).
+2. patterns 정확히 3개(각 40자 안팎): 조회수가 높은 영상들의 공통점 (주제, 제목 구조, 길이, 올리는 주기).
+3. hooks 정확히 3개(각 30자 안팎): 따라 써 볼 만한 제목·첫 문장 틀. 원래 제목을 베끼지 말고 틀만.
+4. borrow 정확히 3개: 내 채널 성격에 맞게 바꾼 콘텐츠 아이디어. title 25자 안팎, why 40자 안팎.
+5. avoid 1문장(40자 안팎): 이 채널에서 내 채널이 따라 하면 안 되는 점.
+모든 문장은 한국어 존댓말.
+
+JSON만 답해: {"summary":"...","patterns":["..."],"hooks":["..."],"borrow":[{"title":"...","why":"..."}],"avoid":"..."}`;
+
+const MATCH_PROMPT = (text, kind, chans) => `한 사람이 성격이 다른 SNS 채널 여러 개를 운영해. 새로 생긴 소재를 어느 채널에 올리면 가장 맞는지 골라 줘.
+
+소재 (${kind === "shot" ? "이미 찍은 영상·사진" : kind === "ref" ? "참고할 레퍼런스" : "아이디어"}):
+"""
+${text}
+"""
+
+채널들:
+${chans.map((c) => `[${c.id}] ${c.name}\n${persona(c)}`).join("\n\n")}
+
+가장 잘 맞는 채널 1~2개를 맞는 순서로. why는 25자 안팎 한국어로, 채널 성격의 어떤 점과 맞는지.
+JSON만 답해: {"picks":[{"id":"채널 id","why":"..."}]}`;
+
+
+async function aiCall(b) {
+  if (!sample) throw "no_ai";
+  if (b.action === "match") {
+        const chans = (Array.isArray(b.channels) ? b.channels : []).slice(0, 20).map(cleanChan).filter((c) => c.id && c.name);
+        const text = clip(b.text, 500).trim();
+        if (!text || !chans.length) throw "input";
+        const r = await ask(MATCH_PROMPT(text, b.kind, chans), 400);
+        const ids = new Set(chans.map((c) => c.id));
+        return ({ picks: (Array.isArray(r?.picks) ? r.picks : []).filter((p) => ids.has(p?.id)).slice(0, 2).map((p) => ({ id: p.id, why: clip(p.why, 80) })) });
+      }
+      if (b.action === "watchAi") {
+        const mine = cleanChan(b.channel);
+        const items = (Array.isArray(b.items) ? b.items : []).slice(0, 15).map((x) => ({ title: clip(x?.title, 100), published: clip(x?.published, 25), views: Number(x?.views) || 0, short: !!x?.short })).filter((x) => x.title);
+        if (!mine.name || !items.length) throw "input";
+        const r = await ask(WATCH_PROMPT({ name: clip(b.name, 60), items }, mine), 1500);
+        if (!r?.summary) throw "shape";
+        const arr = (v, n, m) => (Array.isArray(v) ? v : []).slice(0, n).map((t) => clip(t, m));
+        return ({
+          summary: clip(r.summary, 300), patterns: arr(r.patterns, 3, 100), hooks: arr(r.hooks, 3, 80),
+          borrow: (Array.isArray(r.borrow) ? r.borrow : []).slice(0, 3).map((x) => ({ title: clip(x?.title, 60), why: clip(x?.why, 100) })),
+          avoid: clip(r.avoid, 120),
+        });
+      }
+      const c = cleanChan(b.channel);
+      if (!c.name) throw "channel";
+      const list = (v, n, m) => (Array.isArray(v) ? v : []).slice(0, n).map((t) => clip(t, m)).filter(Boolean);
+      const refs = list(b.refs, 5, 100);
+      if (b.action === "score") {
+        const ideas = (Array.isArray(b.ideas) ? b.ideas : []).slice(0, 10).map((i) => ({ id: clip(i?.id, 40), title: clip(i?.title, 80), hook: clip(i?.hook, 150), body: clip(i?.body, 400), format: clip(i?.format, 30) })).filter((i) => i.id && i.title);
+        if (!ideas.length) throw "ideas";
+        const r = await ask(SCORE_PROMPT(c, { ideas, liked: list(b.liked, 5, 60), dropped: list(b.dropped, 5, 60), best: list(b.best, 5, 60), track: list(b.track, 12, 220) }), 2500);
+        const ids = new Set(ideas.map((i) => i.id));
+        const scores = (Array.isArray(r?.scores) ? r.scores : []).filter((x) => ids.has(x?.id)).map((x) => {
+          const p = Object.fromEntries(Object.entries(SCORE_MAX).map(([k, max]) => [k, Math.max(0, Math.min(max, Math.round(Number(x[k]) || 0)))]));
+          return { id: x.id, total: Object.values(p).reduce((a, n) => a + n, 0), p, good: clip(x.good, 100), fix: clip(x.fix, 140) };
+        });
+        if (!scores.length) throw "shape";
+        return ({ scores, lesson: clip(r.lesson, 160) });
+      }
+      if (b.action === "script") {
+        const pl = b.plan || {};
+        const x = { title: clip(b.title, 80), plan: { hook: clip(pl.hook, 200), synopsis: clip(pl.synopsis, 800), body: clip(pl.body, 800), format: clip(pl.format, 40), why: clip(pl.why, 200) }, refs, prev: clip(b.prev, 3000), ask: clip(b.ask, 300) };
+        if (!x.title) throw "title";
+        const r = await ask(SCRIPT_PROMPT(c, x), 3000);
+        if (!Array.isArray(r?.scenes) || !r.scenes.length) throw "shape";
+        return ({
+          hook: clip(r.hook, 200),
+          scenes: r.scenes.slice(0, 12).map((y) => ({ t: clip(y?.t, 20), visual: clip(y?.visual, 200), line: clip(y?.line, 300) })),
+          cta: clip(r.cta, 200), caption: clip(r.caption, 1500), tags: list(r.tags, 15, 40), thumb: clip(r.thumb, 60),
+        });
+      }
+      const best = (Array.isArray(b.best) ? b.best : []).slice(0, 5).map((x) => ({ title: clip(x?.title, 60), views: Number(x?.views) || 0, likes: Number(x?.likes) || 0 })).filter((x) => x.title);
+      const r = await ask(PROMPT(c, { direction: clip(b.direction, 200), recent: list(b.recent, 25, 60), best, refs, liked: list(b.liked, 5, 60), dropped: list(b.dropped, 5, 60), bench: list(b.bench, 3, 200) }), 2500);
+      if (!Array.isArray(r?.ideas) || !r.ideas.length) throw "shape";
+      return ({
+        ideas: r.ideas.slice(0, 5).map((i) => ({ title: clip(i.title, 60), hook: clip(i.hook, 120), body: clip(i.body, 300), format: clip(i.format, 20), why: clip(i.why, 100) })),
+        refs: (Array.isArray(r.refs) ? r.refs : []).slice(0, 3).map((x) => ({ what: clip(x.what, 80), search: clip(x.search, 40) })),
+        tip: clip(r.tip, 120),
+      });
+}
+function showGate() { $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true; $("dbv").hidden = true; $("tabs").hidden = true; window.scrollTo(0, 0); }
+$("sync").onclick = () => { if (!ready) return; flush(true); toast(syncErr ? "저장이 안 됐어요. 인터넷 연결을 확인해 주세요" : "Claude 계정에 저장돼 있어요. 어느 기기에서 열어도 똑같이 보여요"); };
+function setSync(text, on) { $("sync").textContent = text; $("sync").classList.toggle("on", !!on); }
+function saveLocal() { try { localStorage.setItem(LS, JSON.stringify(B)); } catch {} }
+function save() { B.updated = Date.now(); saveLocal(); if (!ready) return; clearTimeout(saveT); setSync("저장 중…", true); saveT = setTimeout(() => { saveT = null; flush(); }, 600); }
+
+// 공부하면서 Claude가 저장소(data/sns-ideas.json)에 쌓은 기획 → 그 채널 기획실로 한 번씩만
+function mergeStudy(study) {
+  const c = B.channels.find((x) => x.name === study?.channel) || B.channels.find((x) => /AI\s*이현/.test(x.name));
+  if (!c || !Array.isArray(study?.ideas)) return;
+  B.studyIn ||= [];
+  // 예전 화면이 열려 있을 때 들어와서 시놉시스·대사가 빠진 기획은 채워 넣기
+  const fill = B.ideas.filter((x) => x.by === "study" && x.channel === c.id).map((x) => [x, study.ideas.find((i) => i.title === x.title)]).filter(([x, i]) => i && ((i.synopsis && !x.synopsis) || (i.script && !x.script)));
+  if (fill.length) change("", () => fill.forEach(([x, i]) => { x.synopsis ||= i.synopsis || ""; if (i.script && !x.script) x.script = i.script; }));
+  // 받은 적은 있는데 기획실에도 프로젝트에도 없으면 (기기끼리 덮어써져 사라진 경우) 다시 넣기
+  const has = (i) => B.ideas.some((x) => x.channel === c.id && x.title === i.title) || B.posts.some((p) => p.title === i.title);
+  const fresh = study.ideas.filter((i) => i?.id && i.title && (!B.studyIn.includes(i.id) || !has(i)));
+  if (!fresh.length) return;
+  change(`📚 공부에서 나온 기획 ${fresh.length}개가 ${c.name} 기획실에 들어왔어요`, () => fresh.forEach((i) => {
+    if (!B.studyIn.includes(i.id)) B.studyIn.push(i.id);
+    B.ideas.push(newIdea({ channel: c.id, title: i.title, hook: i.hook || "", synopsis: i.synopsis || "", body: i.body || "", format: i.format || "", why: i.why || "", ...(i.script ? { script: i.script } : {}), by: "study", at: i.date ? new Date(i.date + "T12:00").getTime() : Date.now() }));
+  }));
+}
+
+// ── 바꾸기 + 되돌리기
+let undoSnap = null, toastT = null;
+function change(msg, fn) {
+  const snap = JSON.stringify(B);
+  fn(); save(); render();
+  if (!msg) return;
+  undoSnap = snap; $("undoBtn").hidden = false; $("toastMsg").textContent = msg; $("toast").hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => ($("toast").hidden = true), 6000);
+}
+function toast(msg) { undoSnap = null; $("undoBtn").hidden = true; $("toastMsg").textContent = msg; $("toast").hidden = false; clearTimeout(toastT); toastT = setTimeout(() => ($("toast").hidden = true), 4000); }
+$("undoBtn").onclick = () => { if (undoSnap) { B = JSON.parse(undoSnap); undoSnap = null; save(); render(); } $("toast").hidden = true; };
+
+const chan = (id) => B.channels.find((c) => c.id === id);
+const inCur = (p) => !cur || (p.channels || []).includes(cur);
+const postColor = (p) => chan((p.channels || [])[0])?.color || "var(--line)";
+const chanNames = (p) => (p.channels || []).map(chan).filter(Boolean).map((c) => `<span><i class="dot" style="--c:${c.color}"></i> ${esc(c.name)}</span>`).join("");
+const doneDay = (p) => p.doneAt || p.date || "";
+const lastUpload = (cid) => B.posts.filter((p) => isUp(p) && p.channels?.includes(cid)).map(doneDay).sort().pop();
+const gapText = (cid) => { const l = lastUpload(cid), g = l ? daysBetween(l, today()) : null; return [g == null ? "아직 안 올림" : g === 0 ? "오늘 올림" : `마지막 업로드 ${g}일 전`, g == null || g > 7]; };
+const chHref = (id) => `#ch=${id}`;
+
+// 소재함 매칭: 채널 이름·주제 키워드·톤이 소재 문장에 얼마나 들어있는지
+function ruleMatch(text) {
+  const t = text.toLowerCase();
+  return B.channels.map((c) => {
+    const words = [c.name, ...(c.profile?.topics || "").split(/[,，\n]/)].map((w) => w.trim().toLowerCase()).filter((w) => w.length >= 1);
+    const hits = words.filter((w) => t.includes(w));
+    return { id: c.id, score: hits.length, hits };
+  }).filter((m) => m.score > 0).sort((a, b) => b.score - a.score);
+}
+
+// ── 벤치마크·STEP 도우미
+const ago = (iso) => { const d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? "오늘" : `${d}일 전`; };
+const weekStart = () => { const n = new Date(today() + "T00:00"); n.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return ymd(n); };
+const isYouTube = (u) => /youtube\.com|youtu\.be/i.test(u || "") || /^@/.test(u || "");
+const newItems = (w) => (w.items || []).filter((v) => v.published > (w.seenAt || ""));
+const newCount = (chId) => B.watch.filter((w) => w.channel === chId).reduce((n, w) => n + newItems(w).length, 0);
+function watchStats(w) {
+  const it = w.items || [];
+  if (!it.length) return null;
+  const dates = it.map((v) => new Date(v.published)).sort((a, b) => a - b);
+  const spanDays = Math.max(7, (Date.now() - dates[0]) / 864e5);
+  const views = it.map((v) => v.views), top = [...it].sort((a, b) => b.views - a.views)[0];
+  return { perWeek: (it.length / spanDays * 7).toFixed(1), avg: Math.round(views.reduce((a, b) => a + b, 0) / it.length), top, shorts: it.filter((v) => v.short).length, n: it.length, last: it.map((v) => v.published).sort().pop() };
+}
+function stepLine(p) {
+  const st = p.steps || [], n = st.filter((x) => x.done).length;
+  if (!st.length || isUp(p)) return "";
+  const next = st.findIndex((x) => !x.done);
+  return `<div class="steps"><i><b style="width:${(n / st.length) * 100}%"></b></i>${n}/${st.length}${next >= 0 ? `<label title="이 STEP 끝내기"><input type="checkbox" data-step="${p.id}" data-i="${next}">${esc(st[next].t)}</label>` : ""}</div>`;
+}
+function renderWatches(c) {
+  const ws = B.watch.filter((w) => w.channel === c.id);
+  $("watches").innerHTML = ws.length ? ws.map((w) => {
+    const yt = w.kind === "youtube", s = yt && watchStats(w), nw = newItems(w), seen = new Set(nw.map((v) => v.id));
+    return `<div class="watch"><div class="hd"><b><a href="${esc(safeUrl(w.url))}" target="_blank" rel="noopener">${esc(w.name || w.url)} ↗</a></b>${nw.length ? `<span class="badge">새 영상 ${nw.length}</span>` : ""}
+      <span class="acts">${yt ? `<button type="button" class="ghost mini" data-wref="${w.id}">새로 확인</button>${nw.length ? `<button type="button" class="ghost mini" data-wseen="${w.id}">봤어요</button>` : ""}<button type="button" class="mini" data-wai="${w.id}">🤖 분석</button>` : `<button type="button" class="ghost mini" data-wcheck="${w.id}">확인함</button>`}<button type="button" class="x ghost mini" data-wx="${w.id}" aria-label="지우기">✕</button></span></div>
+      ${yt ? (s ? `<div class="wstat"><span>주당 <b>${s.perWeek}</b>개</span><span>평균 조회 <b>${num(s.avg)}</b></span><span>쇼츠 <b>${s.shorts}/${s.n}</b></span><span>마지막 업로드 <b>${ago(s.last)}</b></span><span>확인 ${w.checkedAt ? ago(new Date(w.checkedAt).toISOString()) : "-"}</span></div>
+        <div class="vids">${(w.items || []).slice(0, 5).map((v) => `<div class="vid${seen.has(v.id) ? " new" : ""}"><a href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener" title="${esc(v.title)}">${esc(v.title)}</a><span class="v">${md(v.published.slice(0, 10))} · ${num(v.views)}회${v === s.top ? " 🔥" : ""}</span><button type="button" class="ghost mini" data-vref="${w.id}" data-v="${esc(v.id)}" title="레퍼런스 보드에 넣기">🔖</button></div>`).join("")}</div>` : `<p class="note">아직 영상을 못 가져왔어요. '새로 확인'을 눌러 주세요.</p>`)
+        : `<p class="note">${esc(w.platform || "이 플랫폼")}은 다른 사람 계정을 가져오는 공개 방법이 없어 링크로 관리해요. 들어가 보고 '확인함'을 누르면 기록돼요 · ${w.checkedAt ? `마지막 확인 ${ago(new Date(w.checkedAt).toISOString())}` : "아직 확인 안 함"}</p>`}
+      ${w.ai ? `<div class="anal"><b>🤖 ${md(ymd(new Date(w.ai.at)))} 분석</b>${esc(w.ai.summary)}<h5>잘 되는 영상의 공통점</h5><ul>${w.ai.patterns.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><h5>따라 써 볼 제목 틀</h5><ul>${w.ai.hooks.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><h5>내 채널에 맞게 바꾼 아이디어</h5>${w.ai.borrow.map((x, i) => `<div class="idea"><b>${esc(x.title)}</b><span class="acts"><button type="button" class="mini" data-wborrow="${w.id}" data-i="${i}">+ 아이디어</button></span><span class="w">${esc(x.why)}</span></div>`).join("")}${w.ai.avoid ? `<h5>따라 하면 안 되는 점</h5>${esc(w.ai.avoid)}` : ""}</div>` : ""}
+    </div>`;
+  }).join("") : `<div class="empty"><img src="assets/zero/zero-found.svg" alt="">이 채널이 참고할 채널을 등록해 두세요. 유튜브는 새 영상과 조회수를 자동으로 가져와 알려 줘요.</div>`;
+}
+async function refreshWatch(w) {
+  throw "no_fetch"; // Claude 안의 페이지는 다른 사이트(유튜브)에 직접 닿지 못함
+  const r = {};
+  const x = B.watch.find((q) => q.id === w.id); if (!x) return;
+  x.ytId = r.ytId; x.name ||= r.name; x.items = r.items; x.checkedAt = Date.now();
+  if (x.seenAt == null) x.seenAt = r.items.map((v) => v.published).sort().pop() || "";
+}
+async function refreshAll(force) {
+  return;
+  const due = B.watch.filter((w) => w.kind === "youtube" && (force || !w.checkedAt || Date.now() - w.checkedAt > 2 * 3600e3));
+  if (!due.length) return;
+  for (const w of due) { try { await refreshWatch(w); } catch {} }
+  change("", () => {});
+}
+
+// ── 화면
+function render() {
+  const dbm = loc.hash.match(/^#db(?:=(.+))?$/), gate0 = !$("gate").hidden;
+  $("dbv").hidden = !dbm || gate0;
+  $("tabs").hidden = gate0 || /^#p=/.test(loc.hash);
+  if (dbm && !gate0) {
+    cur = chan(dbm[1]) ? dbm[1] : ""; curPost = "";
+    const c = chan(cur);
+    $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true;
+    $("crumb").innerHTML = `<a href="https://ai-leehyun.vercel.app/programs" target="_blank" rel="noopener">AI<b>이현</b> · 프로그램</a> › <a href="#">SNS 대시보드</a>${c ? ` › <a href="${chHref(c.id)}">${esc(c.name)}</a>` : ""}`;
+    $("title").textContent = c ? `${c.name} DB 관리` : "DB 관리";
+    $("sub").textContent = "성과 리포트";
+    $("top").style.setProperty("--chc", c ? c.color : "var(--charcoal)");
+    document.title = `${$("title").textContent} · SNS 통합 관리`;
+    renderTabs("db"); renderDb(c);
+    return;
+  }
+  const pRoute = (loc.hash.match(/^#p=(.+)$/) || [])[1] || "";
+  const post = B.posts.find((q) => q.id === pRoute);
+  curPost = post ? post.id : "";
+  const route = post ? post.channels?.[0] || "" : (loc.hash.match(/^#ch=(.+)$/) || [])[1] || "";
+  cur = chan(route) ? route : "";
+  const c = chan(cur), gate = !$("gate").hidden;
+  $("proj").hidden = !post || gate;
+  if (post && !gate) {
+    $("dash").hidden = true; $("chan").hidden = true;
+    $("crumb").innerHTML = `<a href="https://ai-leehyun.vercel.app/programs" target="_blank" rel="noopener">AI<b>이현</b> · 프로그램</a> › <a href="#">SNS 대시보드</a>${c ? ` › <a href="${chHref(c.id)}">${esc(c.name)}</a>` : ""}`;
+    $("title").textContent = post.title;
+    $("sub").textContent = `${STAGE_NAME[post.stage] || ""}${post.date ? " · 📅 " + md(post.date) : ""}`;
+    $("top").style.setProperty("--chc", c ? c.color : "var(--charcoal)");
+    document.title = `${post.title} · SNS 통합 관리`;
+    renderProj(post);
+    return;
+  }
+  $("dash").hidden = !!cur || gate; $("chan").hidden = !cur || gate;
+  $("crumb").innerHTML = `<a href="https://ai-leehyun.vercel.app/programs" target="_blank" rel="noopener">AI<b>이현</b> · 프로그램</a>` + (cur ? ` › <a href="#">SNS 대시보드</a>` : "");
+  $("title").textContent = c ? c.name : "SNS 통합 관리";
+  $("sub").innerHTML = c ? `${esc(c.platform || "플랫폼 미정")}${c.url ? ` · <a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener">계정 열기 ↗</a>` : ""} · <a href="#" data-edit="${c.id}">⚙ 설정</a>` : "대시보드";
+  $("top").style.setProperty("--chc", c ? c.color : "var(--charcoal)");
+  document.title = c ? `${c.name} · SNS 통합 관리` : "SNS 통합 관리";
+  const root = cur ? $("chan") : $("dash");
+  renderTabs("ops");
+  if (cur) renderChan(c); else renderDash();
+  renderFlow(root); renderCal(root); renderComments(root); renderStats(root);
+}
+
+function renderTabs(on) {
+  const n = B.posts.filter((p) => p.stage === "db" && inCur(p)).length;
+  $("tabs").innerHTML = `<a href="${cur ? chHref(cur) : "#"}"${on === "ops" ? ' aria-current="page"' : ""}>운영</a><a href="${cur ? `#db=${cur}` : "#db"}"${on === "db" ? ' aria-current="page"' : ""}>📚 DB 관리<b>${n}</b></a>`;
+}
+
+// ── DB 관리 리포트: 성과까지 적어 DB로 넘긴 콘텐츠만
+function renderDb(c) {
+  const t = today(), from = dbPeriod === "30" ? addDays(t, -29) : dbPeriod === "month" ? t.slice(0, 7) + "-01" : "";
+  const all = B.posts.filter((p) => p.stage === "db" && inCur(p));
+  const items = all.filter((p) => !from || doneDay(p) >= from).sort((a, b) => (doneDay(b) < doneDay(a) ? -1 : 1));
+  $("dbf").innerHTML = `<a class="chip${cur ? "" : " on"}" href="#db">전체</a>${B.channels.map((x) => `<a class="chip${x.id === cur ? " on" : ""}" href="#db=${x.id}"><i class="dot" style="--c:${x.color}"></i>${esc(x.name)}</a>`).join("")}<span class="sep"></span>`
+    + [["all", "전체 기간"], ["month", "이번 달"], ["30", "최근 30일"]].map(([k, n]) => `<button type="button" data-dbp="${k}" aria-pressed="${dbPeriod === k}">${n}</button>`).join("");
+  const V = (p) => +p.metrics?.views || 0, L = (p) => +p.metrics?.likes || 0, C = (p) => +p.metrics?.cmts || 0;
+  const sum = (arr, f) => arr.reduce((a, p) => a + f(p), 0);
+  const rate = (arr) => { const v = sum(arr, V); return v ? ((sum(arr, L) + sum(arr, C)) / v * 100).toFixed(1) + "%" : "—"; };
+  const median = (arr) => { const v = arr.map(V).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0; };
+  const midOf = {}; B.channels.forEach((x) => (midOf[x.id] = median(B.posts.filter((p) => p.stage === "db" && p.channels?.includes(x.id)))));
+  const ratio = (p) => { const m = midOf[p.channels?.[0]]; return m ? V(p) / m : null; };
+  const scored = items.filter((p) => p.planScore && ratio(p) != null), hits = scored.filter((p) => hit(p.planScore.total, ratio(p))).length;
+  $("dbNote").textContent = items.length ? `${items.length}개 · ${md(doneDay(items[items.length - 1]))} ~ ${md(doneDay(items[0]))} 올린 것` : "";
+  $("dbTiles").innerHTML = [["콘텐츠", items.length + "개", `DB에 있는 것 전체 ${all.length}개`], ["총 조회", num(sum(items, V)), `평균 ${items.length ? num(Math.round(sum(items, V) / items.length)) : "—"} · 중간값 ${num(median(items))}`], ["반응률", rate(items), `(좋아요+댓글)÷조회 · 좋아요 ${num(sum(items, L))} · 댓글 ${num(sum(items, C))}`], ["기획 점수 적중", scored.length ? `${hits}/${scored.length}` : "—", "70점↑이면 보통 이상으로 본 예측이 맞았는지"]]
+    .map(([k, v, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join("");
+  if (!items.length) {
+    const empty = `<div class="empty"><img src="assets/zero/zero-thinking.svg" alt="">${all.length ? "이 기간에 DB로 넘긴 콘텐츠가 없어요." : "프로젝트 흐름의 '성과' 칸에서 조회·좋아요·댓글을 적고 체크하면 여기에 리포트로 쌓여요."}</div>`;
+    ["dbTop", "dbLow"].forEach((id) => ($(id).innerHTML = empty)); ["dbGroup", "dbFormat", "dbTable"].forEach((id) => ($(id).innerHTML = "")); return;
+  }
+  const byV = [...items].sort((a, b) => V(b) - V(a)), max = Math.max(1, V(byV[0]));
+  const bar = (p) => { const r = ratio(p); return `<a href="#p=${p.id}" title="${esc(p.title)} · 조회 ${num(V(p))} · 좋아요 ${num(L(p))} · 댓글 ${num(C(p))}"><span>${esc(p.title)}</span><span>${num(V(p))}${r != null ? ` · ${r.toFixed(1)}배` : ""}</span><i><b style="width:${(V(p) / max) * 100}%"></b></i></a>`; };
+  $("dbTop").innerHTML = byV.slice(0, 5).map(bar).join("");
+  $("dbLow").innerHTML = byV.length > 5 ? byV.slice(-3).reverse().map(bar).join("") : `<p class="note">콘텐츠가 6개 넘게 쌓이면 보여 드려요.</p>`;
+  const groupRows = (groups) => groups.filter((g) => g.list.length).sort((a, b) => sum(b.list, V) / b.list.length - sum(a.list, V) / a.list.length)
+    .map((g) => `<tr><td>${g.label}</td><td>${g.list.length}</td><td>${num(sum(g.list, V))}</td><td>${num(Math.round(sum(g.list, V) / g.list.length))}</td><td>${rate(g.list)}</td></tr>`).join("");
+  const head = (k) => `<tr><th>${k}</th><th>개수</th><th>총 조회</th><th>평균 조회</th><th>반응률</th></tr>`;
+  if (cur) {
+    $("dbGroupH").innerHTML = "점수대별 <span>기획 때 받은 점수</span>";
+    $("dbGroup").innerHTML = head("점수") + groupRows([["80점 이상", (s) => s >= 80], ["60~79점", (s) => s >= 60 && s < 80], ["60점 미만", (s) => s < 60]].map(([label, f]) => ({ label, list: items.filter((p) => p.planScore && f(p.planScore.total)) })).concat([{ label: "채점 안 함", list: items.filter((p) => !p.planScore) }]));
+  } else {
+    $("dbGroupH").innerHTML = "채널별 <span>평균 조회 높은 순</span>";
+    $("dbGroup").innerHTML = head("채널") + groupRows(B.channels.map((x) => ({ label: `<a href="#db=${x.id}"><i class="dot" style="--c:${x.color}"></i> ${esc(x.name)}</a>`, list: items.filter((p) => p.channels?.includes(x.id)) })));
+  }
+  const fmts = [...new Set(items.map((p) => (p.plan?.format || "").trim() || "형식 안 적음"))];
+  $("dbFormat").innerHTML = head("형식") + groupRows(fmts.map((f) => ({ label: esc(f), list: items.filter((p) => ((p.plan?.format || "").trim() || "형식 안 적음") === f) })));
+  $("dbTable").innerHTML = `<tr><th>올린 날</th><th>제목</th><th>채널</th><th>점수</th><th>조회</th><th>좋아요</th><th>댓글</th><th>반응률</th><th>보통 대비</th></tr>` + items.map((p) => { const r = ratio(p); return `<tr><td>${md(doneDay(p))}</td><td><a href="#p=${p.id}">${esc(p.title)}</a></td><td>${chanNames(p) || "—"}</td><td>${p.planScore ? p.planScore.total : "—"}</td><td>${num(V(p))}</td><td>${num(L(p))}</td><td>${num(C(p))}</td><td>${rate([p])}</td><td>${r != null ? r.toFixed(1) + "배" : "—"}</td></tr>`; }).join("");
+}
+
+function renderDash() {
+  const t = today(), weekAgo = addDays(t, -6), P = B.posts;
+  const sched = P.filter((p) => p.stage === "sched"), missed = sched.filter((p) => p.date && p.date < t).length;
+  const open = B.comments.filter((c) => !c.replied).length;
+  const quiet = B.channels.filter((c) => gapText(c.id)[1]).length;
+  $("tiles").innerHTML = [
+    ["최근 7일 올림", P.filter((p) => isUp(p) && doneDay(p) >= weekAgo).length + "개", `채널 ${B.channels.length}개 중 ${quiet}개가 7일 넘게 쉼`, false],
+    ["업로드 예약", sched.length + "개", missed ? `${missed}개 날짜 지남` : "밀린 것 없음", missed > 0],
+    ["소재함", B.inbox.length + "개", "채널로 보내기 전", B.inbox.length > 0],
+    ["답 안 한 댓글", open + "개", `전체 ${B.comments.length}개`, open > 0],
+  ].map(([k, v, s, hot]) => `<div class="tile${hot ? " hot" : ""}"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+
+  $("chgrid").innerHTML = B.channels.map((c) => {
+    const mine = P.filter((p) => p.channels?.includes(c.id)), [gap, late] = gapText(c.id);
+    const next = mine.filter((p) => p.stage === "sched" && p.date >= t).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
+    const shootN = B.shoots.filter((s) => s.channel === c.id && !s.done).length, refN = B.refs.filter((r) => r.channel === c.id).length;
+    return `<a class="chcard" href="${chHref(c.id)}" style="--c:${c.color}">
+      <b><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</b>
+      <span class="pf">${esc(c.platform || "플랫폼 미정")} · <span class="${late ? "late" : ""}">${gap}</span></span>
+      <span class="tone">${esc(c.profile?.concept || "성격을 아직 안 적었어요")}</span>
+      <span class="nums"><span>기획실 <b>${B.ideas.filter((i) => i.channel === c.id && i.status !== "dropped").length}</b></span><span>프로젝트 <b>${mine.filter((p) => !isUp(p)).length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span><span>벤치마크 <b>${B.watch.filter((w) => w.channel === c.id).length}</b>${newCount(c.id) ? ` <span class="badge">새 ${newCount(c.id)}</span>` : ""}</span><span>성격 <b>${profileFill(c.profile)}/${PFIELDS.length}</b></span></span>
+      <span class="next">${next ? `📅 다음 ${md(next.date)} ${esc(next.title)}` : '<span class="note">예약된 업로드 없음</span>'}</span>
+    </a>`;
+  }).join("") + `<button type="button" class="chcard add" id="addChan">+ 채널</button>`;
+
+  const fresh = B.watch.flatMap((w) => newItems(w).map((v) => ({ v, w }))).sort((a, b) => (a.v.published < b.v.published ? 1 : -1));
+  $("newMeta").innerHTML = `${B.watch.length}개 채널 지켜보는 중${fresh.length ? ` · <button type="button" class="ghost mini" data-seenall>모두 봤어요</button>` : ""} · <button type="button" class="ghost mini" data-refreshall>지금 확인</button>`;
+  $("newwatch").innerHTML = fresh.length ? fresh.slice(0, 12).map(({ v, w }) => `<div class="nw"><i class="dot" style="--c:${chan(w.channel)?.color || "#999"}"></i><a href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener">${esc(v.title)}</a><span class="n">${esc(w.name)} · ${ago(v.published)} · ${num(v.views)}회</span></div>`).join("") + (fresh.length > 12 ? `<p class="note">+ ${fresh.length - 12}개 더</p>` : "")
+    : `<div class="empty"><img src="assets/zero/zero-check.svg" alt="">${B.watch.length ? "새 영상이 없어요." : "채널 공간에서 참고할 채널을 등록하면 새 영상이 여기 모여요."}</div>`;
+
+  $("inbox").innerHTML = B.inbox.length ? B.inbox.map((it) => {
+    const ai = it.ai || [], rules = ruleMatch(it.text + " " + (it.note || ""));
+    const ids = [...ai.map((a) => a.id), ...rules.map((r) => r.id)].filter((id, i, a) => chan(id) && a.indexOf(id) === i);
+    const rest = B.channels.filter((c) => !ids.includes(c.id));
+    const btn = (c, best) => `<button type="button" class="${best ? "best" : ""}" data-send="${it.id}" data-to="${c.id}"><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</button>`;
+    return `<div class="inb"><div class="t"><span class="kind">${KINDS[it.kind]}</span>${isUrl(it.text) ? `<a href="${esc(it.text)}" target="_blank" rel="noopener">${esc(it.text)}</a>` : esc(it.text)}<button type="button" class="x" data-inx="${it.id}" aria-label="지우기">✕</button></div>
+      <div class="match">${ids.length ? `<span class="note">어울리는 채널 →</span>${ids.map((id, i) => btn(chan(id), i === 0)).join("")}` : `<span class="note">어디로 보낼까요? →</span>`}${rest.map((c) => btn(c, false)).join("")}${sample ? `<button type="button" class="ghost" data-aimatch="${it.id}">🤖 AI로 고르기</button>` : ""}
+      ${ai.length ? `<span class="why">🤖 ${ai.map((a) => `${esc(chan(a.id)?.name || "")}: ${esc(a.why)}`).join(" · ")}</span>` : rules.length ? `<span class="why">주제 키워드: ${rules.slice(0, 2).map((r) => `${esc(chan(r.id).name)} (${r.hits.map(esc).join(", ")})`).join(" · ")}</span>` : ""}</div></div>`;
+  }).join("") : `<div class="empty"><img src="assets/zero/zero-waiting.svg" alt="">찍어 둔 영상이나 본 레퍼런스를 일단 여기에 넣으세요. 채널을 골라 보내면 📷은 그 채널 프로젝트의 '제작', 🔖은 레퍼런스 보드, 💡은 기획실로 갑니다.</div>`;
+}
+
+function renderChan(c) {
+  const p = c.profile || {}, nFill = profileFill(p);
+  $("pfill").innerHTML = `<i><b style="width:${(nFill / PFIELDS.length) * 100}%"></b></i>${nFill}/${PFIELDS.length} 채움`;
+  $("pconcept").textContent = p.concept || "";
+  if ($("persona").dataset.ch !== c.id) $("pbox").open = nFill < PFIELDS.length / 2;
+  if (!$("persona").contains(document.activeElement) || $("persona").dataset.ch !== c.id || !document.activeElement.matches("textarea,input")) {
+    $("persona").dataset.ch = c.id;
+    $("persona").innerHTML = PERSONA.map(([g, fields]) => `<div class="pgroup"><h4>${g}</h4>${fields.map(([k, name, type, x]) => {
+      if (type === "text") return `<label class="pf-field">${name}<textarea data-pk="${k}" rows="1" placeholder="${esc(x)}">${esc(p[k] || "")}</textarea></label>`;
+      if (type === "num") return `<label class="pf-field">${name}<input type="number" min="0" max="50" data-pk="${k}" placeholder="${x}" value="${esc(p[k] || "")}"></label>`;
+      const sel = Array.isArray(p[k]) ? p[k] : p[k] ? [p[k]] : [];
+      return `<div class="pf-field">${name}${type === "one" ? "" : " (여러 개)"}<span class="opts">${x.map((o) => `<button type="button" data-opt="${k}" data-one="${type === "one" ? 1 : ""}" data-v="${esc(o)}" aria-pressed="${sel.includes(o)}">${esc(o)}</button>`).join("")}</span></div>`;
+    }).join("")}</div>`).join("");
+  }
+  const t = today(), done = B.posts.filter((x) => isUp(x) && x.channels?.includes(c.id));
+  const [gap, late] = gapText(c.id);
+  const d30 = addDays(t, -29);
+  $("chstat").innerHTML = `<span class="${late ? "late" : ""}">${gap}</span><span>이번 달 올림 <b>${done.filter((x) => doneDay(x).startsWith(t.slice(0, 7))).length}</b></span><span>주당 <b>${(done.filter((x) => doneDay(x) >= d30).length / 30 * 7).toFixed(1)}</b>회 (30일)</span><span>준비 중 <b>${B.posts.filter((x) => x.channels?.includes(c.id) && !isUp(x)).length}</b></span>${p.perWeek ? `<span>이번 주 <b>${done.filter((x) => doneDay(x) >= weekStart()).length}/${esc(p.perWeek)}</b>회 (목표)</span>` : ""}`;
+  renderWatches(c);
+
+  const refs = B.refs.filter((r) => r.channel === c.id).sort((a, b) => b.at - a.at);
+  $("refs").innerHTML = refs.length ? refs.map((r) => `<div class="ref"><a href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title || r.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</a><span class="acts"><button type="button" class="mini" data-refshoot="${r.id}" title="이 레퍼런스처럼 찍을 것에 넣기">따라 찍기 →</button><button type="button" class="x" data-refx="${r.id}" aria-label="지우기">✕</button></span><span class="n">${esc(r.note || "")}${r.note ? " · " : ""}${md(ymd(new Date(r.at)))}</span></div>`).join("")
+    : `<div class="empty"><img src="assets/zero/zero-found.svg" alt="">이 채널에 맞는 레퍼런스를 모아 두면 촬영할 때 바로 꺼내 봐요.</div>`;
+
+  const sh = B.shoots.filter((s) => s.channel === c.id), todo = sh.filter((s) => !s.done), did = sh.filter((s) => s.done).sort((a, b) => b.doneAt - a.doneAt).slice(0, 4);
+  $("shoots").innerHTML = (todo.length || did.length) ? [...todo, ...did].map((s) => `<div class="shoot${s.done ? " done" : ""}"><input type="checkbox" data-shot="${s.id}" ${s.done ? "checked disabled" : ""} aria-label="찍음"><span>${esc(s.title)}${s.ref ? `<span class="n">🔖 ${esc(B.refs.find((r) => r.id === s.ref)?.note || "레퍼런스 따라")}</span>` : ""}${s.done ? '<span class="n">찍음 → 제작으로 보냄</span>' : ""}</span>${s.done ? "" : `<button type="button" class="x" data-shotx="${s.id}" aria-label="지우기">✕</button>`}</div>`).join("")
+    : `<div class="empty"><img src="assets/zero/zero-writing.svg" alt="">찍을 것을 적어 두세요. 촬영 스타일: ${esc(p.shoot || "아직 안 적음")}</div>`;
+
+  $("qDate").hidden = !pickDate;
+  $("qDate").innerHTML = pickDate ? `${md(pickDate)}에 넣기 <button type="button" id="qDateX" aria-label="날짜 빼기">✕</button>` : "";
+  renderLab(c);
+  renderRec(c);
+}
+
+function renderLab(c) {
+  const all = B.ideas.filter((i) => i.channel === c.id), live = all.filter((i) => i.status !== "dropped");
+  const groups = { new: live, star: live.filter((i) => i.star), dropped: all.filter((i) => i.status === "dropped") };
+  $("labf").innerHTML = [["new", "쌓인 기획"], ["star", "⭐ 괜찮은 것"], ["dropped", "버린 것"]].map(([k, n]) => `<button type="button" data-labf="${k}" aria-pressed="${labFilter === k}">${n} ${groups[k].length}</button>`).join("") + `<span class="note">프로젝트로 넘긴 기획 ${B.posts.filter((p) => p.channels?.includes(c.id) && p.fromIdea).length}개</span><span class="sep"></span>`
+    + [["new", "최신순"], ["score", "점수순"]].map(([k, n]) => `<button type="button" data-labsort="${k}" aria-pressed="${labSort === k}">${n}</button>`).join("")
+    + (live.some((i) => !i.score) ? `<button type="button" class="scoreall" data-scoreall ${scoring ? "disabled" : ""}>${scoring ? "채점 중…" : `🎯 채점하기 ${live.filter((i) => !i.score).length}개`}</button>` : "");
+  const tr = trackOf(c), scored = tr.filter((x) => x.p.planScore), note = B.scoreNotes[c.id];
+  const waiting = B.posts.filter((p) => p.channels?.includes(c.id) && isUp(p) && !(p.metrics?.views > 0) && doneDay(p) <= addDays(today(), -3)).length;
+  $("track").innerHTML = `<b>🎯 채점 성적표 <span class="note">올린 뒤 성과 ${tr.length}개를 보고 채점 기준을 고쳐요${scored.length ? ` · 예측 적중 ${scored.filter((x) => hit(x.p.planScore.total, x.ratio)).length}/${scored.length}` : ""}</span></b>
+    ${scored.slice(0, 4).map((x) => { const ok = hit(x.p.planScore.total, x.ratio); return `<div class="tr"><span>${esc(x.p.title)}</span><span>${x.p.planScore.total}점 → 조회 ${num(x.p.metrics.views)} (보통의 ${x.ratio.toFixed(1)}배) <b class="${ok ? "ok" : "no"}">${ok ? "✓" : "✗"}</b></span></div>`; }).join("")}
+    ${note?.lesson ? `<div>📈 채점이 배운 것: ${esc(note.lesson)} <span class="note">(${md(ymd(new Date(note.at)))} · 성과 ${note.n}개 반영)</span></div>` : ""}
+    ${waiting ? `<div class="note">📊 올린 지 3일 넘은 프로젝트 ${waiting}개에 성과가 비어 있어요. 적으면 다음 채점부터 반영돼요.</div>` : !tr.length ? `<div class="note">프로젝트를 올리고 며칠 뒤 성과(조회·좋아요·댓글)를 적으면, 점수 예측이 맞았는지 비교해서 다음 채점부터 기준을 고쳐요.</div>` : ""}`;
+  const list = [...groups[labFilter]].sort(labSort === "score" ? (a, b) => (b.score?.total ?? -1) - (a.score?.total ?? -1) || (b.at - a.at) : (a, b) => (b.star - a.star) || (b.at - a.at));
+  $("ideas").innerHTML = list.length ? list.map((i) => editIdea === i.id
+    ? `<div class="ic" data-idea="${i.id}"><input data-if="title" value="${esc(i.title)}" placeholder="한 줄 기획"><textarea data-if="hook" rows="2" placeholder="첫 3초 훅">${esc(i.hook)}</textarea><textarea data-if="synopsis" rows="3" placeholder="시놉시스 (어떤 이야기인지 처음부터 끝까지)">${esc(i.synopsis || "")}</textarea><textarea data-if="body" rows="3" placeholder="핵심 내용">${esc(i.body)}</textarea><input data-if="format" value="${esc(i.format)}" placeholder="형식 (릴스 30초…)"><span class="acts"><button type="button" class="mini" data-idone="${i.id}">다 고쳤어요</button></span></div>`
+    : `<div class="ic${i.star ? " star" : ""}${i.status === "dropped" ? " dropped" : ""}" data-idea="${i.id}">
+      <span class="tt"><button type="button" class="starbtn" data-istar="${i.id}" aria-pressed="${i.star}" aria-label="괜찮은 기획">${i.star ? "★" : "☆"}</button><b>${esc(i.title)}</b>${i.score ? `<button type="button" class="scorebtn ${i.score.total >= 80 ? "hi" : i.score.total >= 60 ? "mid" : "lo"}" data-iscore="${i.id}" aria-expanded="${openScore === i.id}" aria-label="점수 자세히">${i.score.total}점</button>` : ""}</span>
+      ${i.score && openScore === i.id ? `<div class="scorebox">${SCORE_PARTS.map(([k, n, max]) => `<div class="sp"><span>${n}</span><i><b style="width:${(i.score.p[k] / max) * 100}%"></b></i><span>${i.score.p[k]}/${max}</span></div>`).join("")}${i.score.good ? `<div>👍 ${esc(i.score.good)}</div>` : ""}${i.score.fix ? `<div>🔧 ${esc(i.score.fix)}</div>` : ""}</div>` : ""}
+      ${i.hook ? `<span class="hook">🎣 ${esc(i.hook)}</span>` : ""}${i.synopsis ? `<span class="body">📖 ${esc(i.synopsis)}</span>` : ""}${i.body ? `<span class="body">${esc(i.body)}</span>` : ""}
+      <span class="meta">${i.script ? `<span>📝 대사 있음</span>` : ""}${i.format ? `<span>${esc(i.format)}</span>` : ""}${i.why ? `<span>${esc(i.why)}</span>` : ""}<span>${i.by === "ai" ? "🤖 AI" : i.by === "study" ? "📚 공부에서" : "✍ 나"} · ${md(ymd(new Date(i.at)))}</span>${i.date ? `<span>📅 ${md(i.date)}</span>` : ""}</span>
+      <span class="acts">${i.status === "dropped" ? `<button type="button" class="ghost mini" data-irestore="${i.id}">다시 살리기</button><button type="button" class="ghost mini" data-idel="${i.id}">완전히 지우기</button>` : `<button type="button" class="mini" data-imove="${i.id}">프로젝트로 →</button><button type="button" class="ghost mini" data-iedit="${i.id}">✎ 고치기</button><button type="button" class="ghost mini" data-idrop="${i.id}">버리기</button>`}</span>
+    </div>`).join("")
+    : `<div class="empty"><img src="assets/zero/zero-thinking.svg" alt="">${labFilter === "new" ? "기획을 한 줄씩 적거나, 🤖로 이 채널 성격에 맞는 기획을 계속 받아 쌓아 두세요." : labFilter === "star" ? "☆를 누르면 괜찮은 기획만 여기 모여요." : "버린 기획이 없어요."}</div>`;
+}
+
+function renderProj(p) {
+  const c = chan(p.channels?.[0]);
+  $("pStage").innerHTML = STAGES.map(([k, n]) => `<option value="${k}"${k === p.stage ? " selected" : ""}>${n}</option>`).join("");
+  $("pDate").value = isUp(p) ? doneDay(p) : p.date || "";
+  $("pChans").innerHTML = B.channels.map((x) => `<label><input type="checkbox" data-pch="${x.id}" ${p.channels?.includes(x.id) ? "checked" : ""}><i class="dot" style="--c:${x.color}"></i>${esc(x.name)}</label>`).join("");
+  const n = (p.steps || []).filter((x) => x.done).length;
+  $("stepMeta").textContent = `${n}/${(p.steps || []).length} · 시작한 지 ${Math.max(0, Math.floor((Date.now() - (p.createdAt || Date.now())) / 864e5))}일째`;
+  $("stepList").innerHTML = (p.steps || []).map((x, i) => `<div class="st${x.done ? " done" : ""}"><input type="checkbox" data-sd="${i}" ${x.done ? "checked" : ""} aria-label="${esc(x.t)} 끝"><span>${i + 1}. ${esc(x.t)}</span><small>${x.at ? md(x.at) : ""}</small><button type="button" data-sdx="${i}" aria-label="빼기">✕</button></div>`).join("");
+  $("pMetrics").hidden = !isUp(p);
+  const tx = c && trackOf(c).find((x) => x.p.id === p.id);
+  $("pPred").textContent = (p.planScore ? `기획 때 점수 ${p.planScore.total}점` : "기획실에서 채점하고 넘긴 기획이 아니에요") + (tx ? ` · 실제 조회는 이 채널 보통의 ${tx.ratio.toFixed(1)}배` : "") + " · 적은 성과는 다음 기획 채점 기준에 반영돼요";
+  $$("#proj [data-pf]").forEach((el) => { if (el.id === "pStage" || el.id === "pDate" || el === document.activeElement) return; el.value = getPath(p, el.dataset.pf) ?? ""; });
+  $("scriptChips").innerHTML = SCRIPT_CHIPS.map((t) => `<button type="button" data-chip="${esc(t)}">${esc(t)}</button>`).join("");
+  $("scriptBtn").textContent = p.script ? "🤖 다시 쓰기" : "🤖 대본 쓰기";
+  $("scriptMeta").textContent = p.script ? `${md(ymd(new Date(p.script.at)))} · ${c ? c.name + " 성격 반영" : ""}${p.script.v ? ` · ${p.script.v}번째` : ""}` : `${c ? c.name : "채널"} 성격(말투·길이·형식·촬영 방식)을 보고 써요`;
+  const sc = p.script;
+  if (!sc) { if (document.activeElement?.closest("#scriptBody") == null) $("scriptBody").innerHTML = `<div class="empty"><img src="assets/zero/zero-writing.svg" alt="">기획을 채우고 🤖를 누르면 장면별 화면·대사, 캡션, 해시태그, 썸네일 문구까지 써 드려요. 받은 대본은 여기서 바로 고칠 수 있어요.</div>`; return; }
+  if ($("scriptBody").contains(document.activeElement)) return;
+  $("scriptBody").innerHTML = `<div class="stack">
+    <label class="fld">훅 (첫 문장)<textarea data-pf="script.hook" rows="2">${esc(sc.hook || "")}</textarea></label>
+    <div class="scenes"><div class="scene head"><span>시간</span><span>화면</span><span>대사·자막</span><span></span></div>${(sc.scenes || []).map((x, i) => `<div class="scene"><input data-pf="script.scenes.${i}.t" value="${esc(x.t || "")}" placeholder="시간" aria-label="시간"><textarea data-pf="script.scenes.${i}.visual" placeholder="화면 (무엇을 보여줄지)" aria-label="화면">${esc(x.visual || "")}</textarea><textarea data-pf="script.scenes.${i}.line" placeholder="대사·자막" aria-label="대사·자막">${esc(x.line || "")}</textarea><button type="button" class="x" data-scx="${i}" aria-label="장면 빼기">✕</button></div>`).join("")}</div>
+    <div class="line"><button type="button" class="ghost mini" data-scadd>+ 장면</button><button type="button" class="ghost mini" data-sccopy>📋 대본 복사</button></div>
+    <label class="fld">끝맺음·행동 유도<textarea data-pf="script.cta" rows="2">${esc(sc.cta || "")}</textarea></label>
+    <label class="fld">캡션<textarea data-pf="script.caption" rows="4">${esc(sc.caption || "")}</textarea></label>
+    <div class="frow"><label class="fld">해시태그<textarea data-pf="script.tags" rows="2">${esc(Array.isArray(sc.tags) ? sc.tags.join(" ") : sc.tags || "")}</textarea></label><label class="fld">썸네일 문구<textarea data-pf="script.thumb" rows="2">${esc(sc.thumb || "")}</textarea></label></div>
+  </div>`;
+}
+const getPath = (o, path) => path.split(".").reduce((x, k) => (x == null ? x : x[k]), o);
+function setPath(o, path, v) { const ks = path.split("."), last = ks.pop(); const t = ks.reduce((x, k) => (x[k] ??= /^\d+$/.test(k) ? {} : {}), o); t[last] = v; }
+const scriptText = (p) => { const s = p.script || {}; return [`[${p.title}]`, s.hook && `훅: ${s.hook}`, ...(s.scenes || []).map((x) => `${x.t || ""} | 화면: ${x.visual || ""} | 대사: ${x.line || ""}`), s.cta && `끝: ${s.cta}`, "", s.caption, Array.isArray(s.tags) ? s.tags.join(" ") : s.tags, s.thumb && `썸네일: ${s.thumb}`].filter((x) => x != null).join("\n"); };
+
+function renderFlow(root) {
+  const t = today(), posts = B.posts.filter(inCur);
+  root.querySelector("[data-flow]").innerHTML = FLOW.map(([s, name]) => {
+    let list = posts.filter((p) => p.stage === s);
+    list.sort((a, b) => (a.date || "9") < (b.date || "9") ? -1 : (a.date || "9") > (b.date || "9") ? 1 : (a.createdAt || 0) - (b.createdAt || 0));
+    let more = 0;
+    if (s === "done") { list.sort((a, b) => (doneDay(b) < doneDay(a) ? -1 : 1)); more = Math.max(0, list.length - 8); list = list.slice(0, 8); }
+    return `<div class="col"><h3>${name}<span>${posts.filter((p) => p.stage === s).length}</span></h3>${list.map((p) => {
+      const late = s === "sched" && p.date && p.date < t;
+      return `<div class="card${s === "done" ? " done" : ""}" data-post="${p.id}" style="--c:${postColor(p)}">
+        <input type="checkbox" data-adv="${p.id}" aria-label="${s === "perf" ? "성과 다 적음 · DB로 보내기" : s === "done" ? "성과 칸으로" : "다음 단계로"}">
+        <div class="t">${esc(p.title)}${p.script ? ' <span title="대본 있음">📝</span>' : ""}</div>
+        ${stepLine(p)}
+        <div class="m">${cur ? "" : chanNames(p)}${doneDay(p) || p.date ? `<span class="${late ? "late" : ""}">📅 ${md(isUp(p) ? doneDay(p) : p.date)}${late ? " 지남" : ""}</span>` : ""}${p.planScore ? `<span>🎯 ${p.planScore.total}</span>` : ""}${s === "done" && p.metrics?.views ? `<span>▶ ${num(p.metrics.views)}</span>` : ""}${s === "done" && !p.metrics?.views && doneDay(p) <= addDays(t, -3) ? `<span class="late">📊 성과 적을 차례</span>` : ""}${s === "sched" ? "<span>🔌 연동 전</span>" : ""}</div>
+        ${s === "perf" ? `<div class="pm">${[["views", "조회"], ["likes", "좋아요"], ["cmts", "댓글"]].map(([k, n]) => `<label>${n}<input type="number" min="0" inputmode="numeric" data-pm="${k}" data-pid="${p.id}" value="${p.metrics?.[k] ?? ""}"></label>`).join("")}</div>` : ""}
+      </div>`;
+    }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "perf" ? `<div class="hint">올림에서 체크하면 여기로 와요. 며칠 뒤 조회·좋아요·댓글을 적고 체크하면 DB 관리로 넘어가요</div>` : ""}${!list.length && s === "plan" ? `<div class="hint">${cur ? "기획실에서 '프로젝트로 →'를 누르면 여기로 와요" : "각 채널의 기획실에서 넘어와요"}</div>` : ""}</div>`;
+  }).join("");
+}
+
+function renderCal(root) {
+  const t = today(), posts = B.posts.filter(inCur);
+  const [y, m] = calMonth.split("-").map(Number), first = new Date(y, m - 1, 1), start = new Date(first); start.setDate(1 - first.getDay());
+  root.querySelector("[data-caltitle]").textContent = `${y}.${String(m).padStart(2, "0")}`;
+  const byDay = {};
+  posts.forEach((p) => { const d = isUp(p) ? doneDay(p) : p.date; if (d) (byDay[d] ||= []).push(p); });
+  let cells = ["일", "월", "화", "수", "목", "금", "토"].map((w) => `<div class="wd">${w}</div>`).join("");
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    if (i === 35 && d.getMonth() !== m - 1) break;
+    const s = ymd(d), list = byDay[s] || [];
+    cells += `<div class="day${d.getMonth() !== m - 1 ? " out" : ""}${s === t ? " today" : ""}${cur && s === pickDate ? " pick" : ""}${d.getDay() === 0 ? " sun" : ""}" data-day="${s}"><div class="n">${d.getDate()}</div>${list.slice(0, 3).map((p) => `<span class="pill${isUp(p) ? " done" : ""}${!isUp(p) && s < t ? " miss" : ""}" style="--c:${postColor(p)}" data-post="${p.id}" title="${esc(STAGE_NAME[p.stage] + " · " + p.title)}">${esc(p.title)}</span>`).join("")}${list.length > 3 ? `<span class="note">+${list.length - 3}</span>` : ""}</div>`;
+  }
+  root.querySelector("[data-calgrid]").innerHTML = cells;
+}
+
+function renderComments(root) {
+  const cms = B.comments.filter((c) => !cur || c.channel === cur), open = cms.filter((c) => !c.replied).length;
+  const sorted = [...cms].sort((a, b) => (a.replied - b.replied) || (b.at - a.at));
+  const shown = sorted.filter((c) => !c.replied).concat(cur ? sorted.filter((c) => c.replied).slice(0, 5) : []);
+  root.querySelector("[data-cmcount]").textContent = `답 안 함 ${open} · 전체 ${cms.length}`;
+  root.querySelector("[data-comments]").innerHTML = shown.length ? shown.map((c) => `<div class="cm${c.replied ? " replied" : ""}"><input type="checkbox" data-cm="${c.id}" ${c.replied ? "checked" : ""} aria-label="답함"><div>${c.author ? `<b>${esc(c.author)}</b> ` : ""}${esc(c.text)}</div><div class="m">${cur ? "" : `<a href="${chHref(c.channel)}">${esc(chan(c.channel)?.name || "")}</a> · `}${md(ymd(new Date(c.at)))}${c.replied ? " · 답함" : ""} · <a href="#" data-cmdel="${c.id}">지우기</a></div></div>`).join("")
+    : `<div class="empty"><img src="assets/zero/zero-rest.svg" alt="">답할 댓글이 없어요.</div>`;
+  const sel = root.querySelector("[data-addcm] select");
+  const keep = sel.value;
+  sel.innerHTML = B.channels.map((c) => `<option value="${c.id}"${c.id === (cur || keep) ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+}
+
+function renderStats(root) {
+  const t = today(), month = t.slice(0, 7), d30 = addDays(t, -29), posts = B.posts.filter(inCur);
+  const rows = (cur ? B.channels.filter((c) => c.id === cur) : B.channels).map((c) => {
+    const done = B.posts.filter((p) => isUp(p) && p.channels?.includes(c.id));
+    const m = done.filter((p) => doneDay(p).startsWith(month)).length, l30 = done.filter((p) => doneDay(p) >= d30).length;
+    const withV = done.filter((p) => p.metrics?.views), avg = (k) => withV.length ? Math.round(withV.reduce((s, p) => s + (+p.metrics[k] || 0), 0) / withV.length) : null;
+    const last = lastUpload(c.id), gap = last ? daysBetween(last, t) : null;
+    return `<tr><td><a href="${chHref(c.id)}"><i class="dot" style="--c:${c.color}"></i> ${esc(c.name)}</a></td><td>${m}</td><td>${(l30 / 30 * 7).toFixed(1)}</td><td class="${gap == null || gap > 7 ? "late" : ""}">${gap == null ? "—" : gap + "일"}</td><td>${avg("views") == null ? "—" : num(avg("views"))}</td><td>${avg("likes") == null ? "—" : num(avg("likes"))}</td></tr>`;
+  });
+  root.querySelector("[data-stats]").innerHTML = `<tr><th>채널</th><th>이번 달</th><th>주당</th><th>쉰 날</th><th>평균 조회</th><th>평균 ♥</th></tr>${rows.join("")}`;
+  const now = new Date(t + "T00:00"), mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weeks = Array.from({ length: 8 }, (_, i) => { const s = new Date(mon); s.setDate(mon.getDate() - (7 - i) * 7); const a = ymd(s); return { a, b: addDays(a, 6) }; });
+  const counts = weeks.map((w) => posts.filter((p) => isUp(p) && doneDay(p) >= w.a && doneDay(p) <= w.b).length), max = Math.max(1, ...counts);
+  root.querySelector("[data-weeks]").innerHTML = counts.map((n, i) => `<i class="${i === 7 ? "now" : ""}" style="height:${(n / max) * 100}%" title="${md(weeks[i].a)}~ · ${n}개"></i>`).join("");
+  root.querySelector("[data-wlab]").innerHTML = weeks.map((w, i) => `<span>${i === 7 ? "이번 주" : md(w.a)}</span>`).join("");
+}
+
+function renderRec(c) {
+  const r = B.recs?.[c.id];
+  if (!r || (!r.refs?.length && !r.tip)) { $("rec").innerHTML = sample ? "" : `<p class="note">🤖 기획 만들기는 Claude 앱이나 claude.ai에서 열어야 쓸 수 있어요.</p>`; return; }
+  $("rec").innerHTML = `${(r.refs || []).map((x) => `<div class="rref">🔎 ${esc(x.what)} · <a href="${esc(searchUrl(c.platform, x.search))}" target="_blank" rel="noopener">${esc(x.search)}</a></div>`).join("")}
+    ${r.tip ? `<div class="tipline">이번 주 한 가지: ${esc(r.tip)}</div>` : ""}<div class="note">${md(ymd(new Date(r.at)))} 🤖 기획과 함께 받은 레퍼런스 찾는 법</div>`;
+}
+
+// ── 이동
+function onRoute() { pickDate = ""; render(); window.scrollTo(0, 0); }
+
+// ── 클릭 한 곳에서 처리
+document.addEventListener("click", (e) => {
+  const el = (sel) => e.target.closest(sel);
+  let x;
+  if ((x = el("[data-edit]"))) { e.preventDefault(); openChan(x.dataset.edit); return; }
+  if (el("#addChan")) { openChan(null); return; }
+  if ((x = el("[data-cal]"))) {
+    const d = +x.dataset.cal, [y, m] = calMonth.split("-").map(Number);
+    calMonth = d === 0 ? today().slice(0, 7) : ymd(new Date(y, m - 1 + d, 1)).slice(0, 7); render(); return;
+  }
+  if (el(".steps label") && !e.target.matches("input")) return; // 라벨 글자를 누르면 체크박스 클릭이 따로 옴
+  // 영상 STEP
+  if ((x = el("[data-step]"))) {
+    const p = B.posts.find((q) => q.id === x.dataset.step), st = p.steps[+x.dataset.i];
+    change(`'${st.t}' 끝 · ${p.title.slice(0, 12)}`, () => {
+      st.done = true; st.at = today();
+      if (p.stage === "idea") p.stage = "plan";
+      if (p.steps.every((q) => q.done)) { p.stage = "done"; p.doneAt = today(); }
+    });
+    return;
+  }
+  if ((x = el("[data-adv]"))) {
+    const p = B.posts.find((q) => q.id === x.dataset.adv), i = STAGES.findIndex(([s]) => s === p.stage);
+    const next = STAGES[i + 1]?.[0]; if (!next) return;
+    if (next === "db" && !(p.metrics?.views > 0)) { x.checked = false; toast("조회수를 적으면 DB로 넘길 수 있어요"); return; }
+    change(next === "db" ? `'${p.title.slice(0, 14)}' 성과를 DB 관리에 넣었어요` : `'${p.title.slice(0, 14)}' → ${STAGE_NAME[next]}`, () => {
+      if (next === "sched" && !p.date) p.date = addDays(today(), 1);
+      if (next === "done") p.doneAt = today();
+      p.stage = next;
+    });
+    return;
+  }
+  if (el(".pm")) return; // 성과 칸 카드의 숫자 입력
+  if ((x = el("[data-post]"))) { loc.hash = `p=${x.dataset.post}`; return; }
+  if ((x = el("[data-day]"))) {
+    if (!cur) return;
+    pickDate = pickDate === x.dataset.day ? "" : x.dataset.day; render(); if (pickDate) $("qText").focus(); return;
+  }
+  if (e.target.id === "qDateX") { pickDate = ""; render(); return; }
+  // 기획실
+  if ((x = el("[data-dbp]"))) { dbPeriod = x.dataset.dbp; render(); return; }
+  if ((x = el("[data-labsort]"))) { labSort = x.dataset.labsort; render(); return; }
+  if ((x = el("[data-iscore]"))) { openScore = openScore === x.dataset.iscore ? "" : x.dataset.iscore; render(); return; }
+  if ((x = el("[data-scoreall]"))) { const c = chan(cur); scoreIdeas(c, B.ideas.filter((i) => i.channel === c.id && i.status !== "dropped" && !i.score)); return; }
+  if ((x = el("[data-labf]"))) { labFilter = x.dataset.labf; render(); return; }
+  if ((x = el("[data-istar]"))) { change("", () => { const i = B.ideas.find((q) => q.id === x.dataset.istar); i.star = !i.star; }); return; }
+  if ((x = el("[data-idrop]"))) { change("기획을 버렸어요", () => (B.ideas.find((q) => q.id === x.dataset.idrop).status = "dropped")); return; }
+  if ((x = el("[data-irestore]"))) { change("다시 살렸어요", () => (B.ideas.find((q) => q.id === x.dataset.irestore).status = "")); return; }
+  if ((x = el("[data-idel]"))) { change("완전히 지웠어요", () => (B.ideas = B.ideas.filter((q) => q.id !== x.dataset.idel))); return; }
+  if ((x = el("[data-iedit]"))) { editIdea = x.dataset.iedit; render(); return; }
+  if ((x = el("[data-idone]"))) { editIdea = ""; render(); return; }
+  if ((x = el("[data-imove]"))) {
+    const i = B.ideas.find((q) => q.id === x.dataset.imove), np = newPost({ title: i.title, channels: [i.channel], date: i.date || "", fromIdea: i.id, planScore: i.score, plan: { hook: i.hook, synopsis: i.synopsis || "", body: i.body, format: i.format, why: i.why }, ...(i.script ? { script: { ...i.script, at: Date.now(), v: 1 } } : {}) });
+    np.steps.forEach((st, n) => { if (n === 0 && /기획/.test(st.t)) { st.done = true; st.at = today(); } });
+    change(`'${i.title.slice(0, 14)}' 프로젝트로 넘겼어요`, () => { B.ideas = B.ideas.filter((q) => q.id !== i.id); B.posts.push(np); });
+    loc.hash = `p=${np.id}`;
+    return;
+  }
+  // 프로젝트 화면
+  if ((x = el("[data-chip]"))) { const v = $("scriptAsk").value.trim(); $("scriptAsk").value = v ? `${v}, ${x.dataset.chip}` : x.dataset.chip; return; }
+  if ((x = el("[data-scadd]"))) { change("", () => { const p = B.posts.find((q) => q.id === curPost); (p.script.scenes ||= []).push({ t: "", visual: "", line: "" }); }); return; }
+  if ((x = el("[data-scx]"))) { change("장면을 뺐어요", () => B.posts.find((q) => q.id === curPost).script.scenes.splice(+x.dataset.scx, 1)); return; }
+  if ((x = el("[data-sccopy]"))) { const t = scriptText(B.posts.find((q) => q.id === curPost)); navigator.clipboard?.writeText(t).then(() => (x.textContent = "복사했어요 ✓"), () => (x.textContent = "복사 안 됨")); return; }
+  if ((x = el("[data-cm]"))) { const c = B.comments.find((q) => q.id === x.dataset.cm); change(c.replied ? "답 안 함으로" : "답함", () => (c.replied = !c.replied)); return; }
+  if ((x = el("[data-cmdel]"))) { e.preventDefault(); change("댓글을 지웠어요", () => (B.comments = B.comments.filter((c) => c.id !== x.dataset.cmdel))); return; }
+  // 성격 고르기
+  if ((x = el("[data-opt]"))) {
+    const c = chan(cur), k = x.dataset.opt, v = x.dataset.v;
+    change("", () => {
+      if (x.dataset.one) c.profile[k] = c.profile[k] === v ? "" : v;
+      else { const a = Array.isArray(c.profile[k]) ? c.profile[k] : []; c.profile[k] = a.includes(v) ? a.filter((q) => q !== v) : [...a, v]; }
+    });
+    return;
+  }
+  // 벤치마크
+  if ((x = el("[data-wref]"))) { const w = B.watch.find((q) => q.id === x.dataset.wref); x.disabled = true; x.textContent = "확인 중…"; refreshWatch(w).then(() => change("", () => {})).catch(() => { x.textContent = "실패 · 다시"; x.disabled = false; }); return; }
+  if ((x = el("[data-refreshall]"))) { x.disabled = true; x.textContent = "확인 중…"; refreshAll(true).finally(() => render()); return; }
+  if ((x = el("[data-wseen]"))) { change("다 봤어요", () => { const w = B.watch.find((q) => q.id === x.dataset.wseen); w.seenAt = (w.items || []).map((v) => v.published).sort().pop() || ""; }); return; }
+  if (el("[data-seenall]")) { change("모두 봤어요", () => B.watch.forEach((w) => { if (w.items?.length) w.seenAt = w.items.map((v) => v.published).sort().pop(); })); return; }
+  if ((x = el("[data-wcheck]"))) { change("확인함", () => (B.watch.find((q) => q.id === x.dataset.wcheck).checkedAt = Date.now())); return; }
+  if ((x = el("[data-wx]"))) { change("벤치마크 채널을 지웠어요", () => (B.watch = B.watch.filter((q) => q.id !== x.dataset.wx))); return; }
+  if ((x = el("[data-vref]"))) {
+    const w = B.watch.find((q) => q.id === x.dataset.vref), v = w.items.find((q) => q.id === x.dataset.v);
+    change("레퍼런스 보드에 넣었어요", () => B.refs.push({ id: uid(), channel: w.channel, url: v.url, title: v.title, note: `${w.name} · ${num(v.views)}회`, at: Date.now() }));
+    return;
+  }
+  if ((x = el("[data-wai]"))) { watchAi(x.dataset.wai, x); return; }
+  if ((x = el("[data-wborrow]"))) {
+    const w = B.watch.find((q) => q.id === x.dataset.wborrow), i = w.ai.borrow[+x.dataset.i];
+    change("기획실에 넣었어요", () => B.ideas.push(newIdea({ channel: w.channel, title: i.title, why: i.why, body: `벤치마크: ${w.name}`, by: "ai" })));
+    return;
+  }
+  // 소재함
+  if ((x = el("#inKind button"))) { inKind = x.dataset.k; $$("#inKind button").forEach((b) => b.setAttribute("aria-pressed", String(b === x))); $("inText").focus(); return; }
+  if ((x = el("[data-send]"))) { sendInbox(x.dataset.send, x.dataset.to); return; }
+  if ((x = el("[data-inx]"))) { change("소재를 지웠어요", () => (B.inbox = B.inbox.filter((i) => i.id !== x.dataset.inx))); return; }
+  if ((x = el("[data-aimatch]"))) { aiMatch(x.dataset.aimatch, x); return; }
+  // 채널 공간
+  if ((x = el("[data-refx]"))) { change("레퍼런스를 지웠어요", () => (B.refs = B.refs.filter((r) => r.id !== x.dataset.refx))); return; }
+  if ((x = el("[data-refshoot]"))) {
+    const r = B.refs.find((q) => q.id === x.dataset.refshoot);
+    change("찍을 것에 넣었어요", () => B.shoots.push({ id: uid(), channel: cur, title: (r.note ? r.note + " 따라 찍기" : "레퍼런스 따라 찍기"), ref: r.id, done: false, at: Date.now() }));
+    return;
+  }
+  if ((x = el("[data-shot]"))) {
+    const s = B.shoots.find((q) => q.id === x.dataset.shot);
+    change(`찍음 → '${s.title.slice(0, 12)}' 제작으로`, () => {
+      s.done = true; s.doneAt = Date.now();
+      const ref = B.refs.find((r) => r.id === s.ref);
+      const np = newPost({ title: s.title, memo: ref ? `레퍼런스: ${ref.url}${ref.note ? "\n좋은 점: " + ref.note : ""}` : "", channels: [s.channel], stage: "make" });
+      np.steps.forEach((st) => { if (/촬영|찍/.test(st.t) || np.steps.indexOf(st) < np.steps.findIndex((x) => /촬영|찍/.test(x.t))) { st.done = true; st.at = today(); } });
+      B.posts.push(np);
+    });
+    return;
+  }
+  if ((x = el("[data-shotx]"))) { change("찍을 것을 지웠어요", () => (B.shoots = B.shoots.filter((s) => s.id !== x.dataset.shotx))); return; }
+});
+
+// ── 소재함
+$("inForm").onsubmit = (e) => {
+  e.preventDefault();
+  const text = $("inText").value.trim(); if (!text) return;
+  const kind = isUrl(text) ? "ref" : inKind;
+  change("소재함에 넣었어요", () => B.inbox.unshift({ id: uid(), kind, text, at: Date.now() }));
+  $("inText").value = "";
+};
+function sendInbox(id, to) {
+  const it = B.inbox.find((i) => i.id === id), c = chan(to);
+  const where = { shot: "프로젝트 '제작'", ref: "레퍼런스 보드", idea: "기획실" }[it.kind];
+  change(`${c.name} ${where}으로 보냈어요`, () => {
+    B.inbox = B.inbox.filter((i) => i.id !== id);
+    if (it.kind === "ref") B.refs.push({ id: uid(), channel: to, url: isUrl(it.text) ? it.text : "", title: isUrl(it.text) ? "" : it.text, note: "", at: Date.now() });
+    else if (it.kind === "idea") B.ideas.push(newIdea({ channel: to, title: it.text }));
+    else B.posts.push(newPost({ title: it.text, channels: [to], stage: "make" }));
+  });
+}
+async function aiMatch(id, btn) {
+  const it = B.inbox.find((i) => i.id === id);
+  btn.disabled = true; btn.textContent = "고르는 중…";
+  try {
+    const r = await aiCall({ action: "match", text: it.text, kind: it.kind, channels: B.channels.map(aiChan) });
+    change("", () => { const x = B.inbox.find((i) => i.id === id); if (x) x.ai = r.picks; });
+  } catch { btn.disabled = false; btn.textContent = "다시 시도"; }
+}
+
+// ── 채널 공간: 성격, 레퍼런스, 촬영, 아이디어
+$("persona").addEventListener("change", (e) => {
+  const k = e.target.dataset.pk; if (!k) return;
+  const c = chan(cur), v = e.target.value.trim();
+  e.target.blur(); change("", () => { c.profile[k] = v; });
+});
+// 성과 칸 카드에서 바로 숫자 적기 (다시 그리지 않아 다음 칸으로 이어서 입력)
+document.addEventListener("change", (e) => {
+  const k = e.target.dataset?.pm; if (!k) return;
+  const p = B.posts.find((q) => q.id === e.target.dataset.pid); if (!p) return;
+  (p.metrics ||= {})[k] = Math.max(0, Number(e.target.value) || 0); save();
+});
+$("ideas").addEventListener("change", (e) => {
+  const k = e.target.dataset.if, id = e.target.closest("[data-idea]")?.dataset.idea; if (!k || !id) return;
+  const i = B.ideas.find((q) => q.id === id); i[k] = e.target.value.trim(); delete i.score; save();
+});
+$("watchForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const url = $("watchUrl").value.trim(), name = $("watchName").value.trim();
+  if (!url) return;
+  const yt = isYouTube(url), host = (url.match(/\/\/(?:www\.)?([^/]+)/) || [])[1] || "";
+  const platform = yt ? "유튜브" : /instagram/.test(host) ? "인스타그램" : /tiktok/.test(host) ? "틱톡" : /threads/.test(host) ? "스레드" : /naver/.test(host) ? "네이버 블로그" : host;
+  const w = { id: uid(), channel: cur, kind: yt ? "youtube" : "link", platform, url: /^@/.test(url) ? `https://www.youtube.com/${url}` : url, name: name || (yt ? "" : url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")), items: [], at: Date.now() };
+  $("watchMsg").textContent = "";
+  change("벤치마크 채널을 등록했어요", () => B.watch.push(w));
+  $("watchUrl").value = ""; $("watchName").value = "";
+  if (yt && online) {
+    try { await refreshWatch(w); change("", () => {}); }
+    catch (err) { $("watchMsg").textContent = err === "no_fetch" ? "유튜브 새 영상은 링크로 들어가서 확인해 주세요. 확인한 뒤 '확인함'을 누르면 기록돼요." : err === "not_found" ? "유튜브 채널을 찾지 못했어요. 채널 주소(@이름)를 넣어 주세요." : "영상을 가져오지 못했어요. 잠시 뒤 '새로 확인'을 눌러 주세요."; }
+  }
+};
+async function watchAi(id, btn) {
+  const w = B.watch.find((q) => q.id === id), c = chan(w.channel);
+  if (!sample) return;
+  if (!w.items?.length) { btn.textContent = "먼저 새로 확인"; return; }
+  btn.disabled = true; btn.textContent = "분석 중…";
+  try {
+    const r = await aiCall({ action: "watchAi", name: w.name, items: w.items, channel: aiChan(c) });
+    change("", () => { B.watch.find((q) => q.id === id).ai = { ...r, at: Date.now() }; });
+  } catch { btn.disabled = false; btn.textContent = "분석 실패 · 다시"; }
+}
+$("refForm").onsubmit = (e) => {
+  e.preventDefault();
+  const url = $("refUrl").value.trim(), note = $("refNote").value.trim(); if (!url && !note) return;
+  change("레퍼런스를 넣었어요", () => B.refs.push({ id: uid(), channel: cur, url: isUrl(url) ? url : "", title: isUrl(url) ? "" : url, note, at: Date.now() }));
+  $("refUrl").value = ""; $("refNote").value = "";
+};
+function addLines(input, fn, lines) {
+  const list = lines.map((s) => s.trim()).filter(Boolean); if (!list.length) return;
+  fn(list); input.value = "";
+}
+const addShoots = (list) => change(`찍을 것 ${list.length}개`, () => list.forEach((title) => B.shoots.push({ id: uid(), channel: cur, title, done: false, at: Date.now() })));
+const addIdeas = (list) => { const d = pickDate; pickDate = ""; labFilter = "new"; change(`기획 ${list.length}개 넣었어요`, () => list.forEach((title) => B.ideas.push(newIdea({ channel: cur, title, date: d })))); };
+for (const [form, input, fn] of [["shootForm", "shootText", addShoots], ["quick", "qText", addIdeas]]) {
+  $(form).onsubmit = (e) => { e.preventDefault(); addLines($(input), fn, [$(input).value]); };
+  $(input).addEventListener("paste", (e) => {
+    const txt = e.clipboardData.getData("text");
+    if (/\n/.test(txt.trim())) { e.preventDefault(); addLines($(input), fn, txt.split(/\r?\n/)); }
+  });
+}
+$$("[data-addcm]").forEach((f) => (f.onsubmit = (e) => {
+  e.preventDefault();
+  const ta = f.querySelector("textarea"), ch = cur || f.querySelector("select").value;
+  const lines = ta.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  if (!lines.length || !ch) return;
+  change(`댓글 ${lines.length}개 넣었어요`, () => lines.forEach((l) => {
+    const m = l.match(/^([^:：]{1,30})[:：]\s*(.+)$/);
+    B.comments.push({ id: uid(), channel: ch, author: m ? m[1].trim() : "", text: m ? m[2] : l, at: Date.now(), replied: false });
+  }));
+  ta.value = "";
+}));
+
+// ── AI 기획 만들기 (기획실로 계속 쌓임)
+// 실제 성과 기록: 올린 뒤 적은 조회와 기획 때 점수를 나란히 (채점이 이걸 보고 기준을 고침)
+function trackOf(c) {
+  const done = B.posts.filter((p) => p.channels?.includes(c.id) && isUp(p) && p.metrics?.views > 0).sort((a, b) => (doneDay(b) < doneDay(a) ? -1 : 1));
+  const vs = done.map((p) => p.metrics.views).sort((a, b) => a - b), mid = vs.length ? vs[Math.floor(vs.length / 2)] : 0;
+  return done.slice(0, 12).map((p) => ({ p, ratio: mid ? p.metrics.views / mid : 1 }));
+}
+const trackText = ({ p, ratio }) => { const s = p.planScore; return `${p.title} | 기획 점수 ${s ? `${s.total}점 (${SCORE_PARTS.map(([k, n]) => `${n} ${s.p[k]}`).join(", ")})` : "채점 안 함"} → 조회 ${p.metrics.views}, 좋아요 ${p.metrics.likes || 0}, 댓글 ${p.metrics.cmts || 0} (보통의 ${ratio.toFixed(1)}배)`; };
+const hit = (s, ratio) => (s >= 70) === (ratio >= 1);
+
+// 기획 채점: 10개씩 AI에게 보내 100점 만점 점수를 받음 (고치면 점수가 지워져 다시 채점)
+async function scoreIdeas(c, ideas, quiet) {
+  if (!c || !ideas.length || scoring) return;
+  if (!sample) { $("rec").innerHTML = `<p class="msg">Claude 안에서 열어야 채점할 수 있어요.</p>`; return; }
+  scoring = true; render();
+  const pool = B.ideas.filter((i) => i.channel === c.id);
+  const ctx = { liked: pool.filter((i) => i.star).slice(-5).map((i) => i.title), dropped: pool.filter((i) => i.status === "dropped").slice(-5).map((i) => i.title), best: B.posts.filter((p) => p.channels?.includes(c.id) && p.metrics?.views).sort((a, b) => b.metrics.views - a.metrics.views).slice(0, 5).map((p) => `${p.title} (${p.metrics.views}회)`), track: trackOf(c).map(trackText) };
+  let n = 0, failed = false;
+  for (let k = 0; k < ideas.length; k += 10) {
+    const batch = ideas.slice(k, k + 10);
+    try {
+      const r = await aiCall({ action: "score", channel: aiChan(c), ideas: batch.map(({ id, title, hook, body, format }) => ({ id, title, hook, body, format })), ...ctx });
+      if (r.lesson) B.scoreNotes[c.id] = { lesson: r.lesson, n: ctx.track.length, at: Date.now() };
+      r.scores.forEach((x) => { const i = B.ideas.find((q) => q.id === x.id); if (i) { i.score = { total: x.total, p: x.p, good: x.good, fix: x.fix, at: Date.now() }; n++; } });
+    } catch { failed = true; }
+  }
+  scoring = false;
+  if (n && !quiet) change(`🎯 기획 ${n}개를 채점했어요`, () => {}); else { if (n) save(); render(); }
+  if (failed) $("rec").insertAdjacentHTML("afterbegin", `<p class="msg">채점을 다 받지 못했어요. 🎯를 다시 눌러 주세요.</p>`);
+}
+
+$("aiBtn").onclick = async () => {
+  const c = chan(cur); if (!c) return;
+  if (!sample) { $("rec").innerHTML = `<p class="msg">Claude 안에서 열어야 AI 기획을 받을 수 있어요.</p>`; return; }
+  $("aiBtn").disabled = true; $("aiBtn").textContent = "기획 중…";
+  const mine = B.posts.filter((p) => p.channels?.includes(c.id)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const best = mine.filter((p) => p.metrics?.views).sort((a, b) => b.metrics.views - a.metrics.views).slice(0, 5).map((p) => ({ title: p.title, views: p.metrics.views, likes: p.metrics.likes }));
+  const refs = B.refs.filter((r) => r.channel === c.id && r.note).slice(-5).map((r) => r.note);
+  const pool = B.ideas.filter((i) => i.channel === c.id);
+  const liked = pool.filter((i) => i.star).slice(-5).map((i) => i.title), dropped = pool.filter((i) => i.status === "dropped").slice(-5).map((i) => i.title);
+  const bench = B.watch.filter((w) => w.channel === c.id && w.ai).map((w) => `${w.name}: ${w.ai.patterns.join(" / ")}`).slice(0, 3);
+  try {
+    const r = await aiCall({ action: "ai", channel: aiChan(c), direction: $("aiDir").value.trim(), recent: [...mine.slice(0, 10).map((p) => p.title), ...pool.slice(-15).map((i) => i.title)], best, refs, liked, dropped, bench });
+    labFilter = "new";
+    const made = r.ideas.map((i) => newIdea({ channel: c.id, title: i.title, hook: i.hook, body: i.body, format: i.format, why: i.why, by: "ai" }));
+    change(`🤖 기획 ${made.length}개가 기획실에 쌓였어요`, () => {
+      B.ideas.push(...made);
+      B.recs[c.id] = { refs: r.refs, tip: r.tip, at: Date.now() };
+    });
+    scoreIdeas(c, made, true); // 되돌리기는 기획 5개 받은 것에 남겨 둠
+  } catch (e) {
+    $("rec").innerHTML = `<p class="msg">${e === "no_ai" ? "Claude AI를 쓸 수 없어요. 권한을 허용했는지 확인해 주세요." : "기획을 받지 못했어요. 다시 눌러 주세요."}</p>`;
+  }
+  $("aiBtn").disabled = false; $("aiBtn").textContent = "🤖 기획 5개 더 만들기";
+};
+
+// ── 채널 설정
+let editChan = null;
+$("chanForm").platform.innerHTML = PLATFORMS.map((p) => `<option value="${p}">${p || "고르기"}</option>`).join("");
+function openChan(id) {
+  editChan = id; const c = id ? chan(id) : { name: "", platform: "", url: "", color: COLORS[B.channels.length % COLORS.length] };
+  const f = $("chanForm");
+  f.name.value = c.name; f.platform.value = c.platform || ""; f.url.value = c.url || "";
+  $("chanColors").innerHTML = COLORS.map((col) => `<label style="--c:${col}"><input type="radio" name="color" value="${col}" ${col === c.color ? "checked" : ""} aria-label="${col}"></label>`).join("");
+  $("chanDel").hidden = !id;
+  $("chanDlg").showModal();
+}
+$("chanForm").onsubmit = (e) => {
+  if (e.submitter?.value !== "ok") return;
+  const f = e.target, v = { name: f.name.value.trim(), platform: f.platform.value, url: f.url.value.trim(), color: f.color.value || COLORS[0] };
+  if (!v.name) return;
+  if (editChan) change("채널을 바꿨어요", () => Object.assign(chan(editChan), v));
+  else { const c = mkChan(v.name, v.platform, v.url, v.color); change("채널을 더했어요 · 성격을 적어 주세요", () => B.channels.push(c)); loc.hash = `ch=${c.id}`; }
+};
+$("chanDel").onclick = () => {
+  const id = editChan; $("chanDlg").close();
+  change("채널을 지웠어요 (콘텐츠는 남아요)", () => {
+    B.channels = B.channels.filter((c) => c.id !== id);
+    B.posts.forEach((p) => (p.channels = (p.channels || []).filter((x) => x !== id)));
+  });
+  if (cur === id) loc.hash = "";
+};
+
+// ── 프로젝트 화면: 칸을 벗어나면 저장 (다시 그리지 않아 입력이 끊기지 않음)
+const curP = () => B.posts.find((q) => q.id === curPost);
+$("proj").addEventListener("change", (e) => {
+  const p = curP(); if (!p) return;
+  const t = e.target;
+  if (t.dataset.pch) { change("", () => { p.channels = $$("#pChans input:checked").map((i) => i.dataset.pch); }); return; }
+  if (t.dataset.sd != null) {
+    const st = p.steps[+t.dataset.sd];
+    change(t.checked ? `'${st.t}' 끝` : "", () => {
+      st.done = t.checked; st.at = t.checked ? today() : "";
+      if (p.steps.length && p.steps.every((q) => q.done) && !isUp(p)) { p.stage = "done"; p.doneAt = today(); }
+    });
+    return;
+  }
+  const k = t.dataset.pf; if (!k) return;
+  let v = t.value;
+  if (k === "stage") { change(`${STAGE_NAME[v]}(으)로`, () => { if (UP.has(v)) p.doneAt = p.doneAt || today(); else delete p.doneAt; if (v === "sched" && !p.date) p.date = addDays(today(), 1); p.stage = v; }); return; }
+  if (k === "date") { change("", () => { if (isUp(p)) p.doneAt = v || today(); else p.date = v; }); return; }
+  if (k.startsWith("metrics.")) v = Number(v) || 0;
+  if (k === "script.tags") v = v.split(/\s+/).filter(Boolean);
+  if (k === "title") { v = v.trim() || p.title; $("title").textContent = v; }
+  setPath(p, k, v); save();
+});
+$("stepNew").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.isComposing) return;
+  e.preventDefault(); const t = e.target.value.trim(); if (!t) return;
+  e.target.value = ""; change("", () => curP().steps.push({ t, done: false }));
+});
+$("stepList").addEventListener("click", (e) => { const d = e.target.closest("[data-sdx]"); if (d) change("STEP을 뺐어요", () => curP().steps.splice(+d.dataset.sdx, 1)); });
+$("pDel").onclick = () => { const p = curP(), ch = p.channels?.[0]; change("프로젝트를 지웠어요", () => (B.posts = B.posts.filter((q) => q.id !== p.id))); loc.hash = ch ? `ch=${ch}` : ""; };
+$("scriptBtn").onclick = async () => {
+  const p = curP(), c = chan(p?.channels?.[0]); if (!p) return;
+  if (!sample) { $("scriptMsg").textContent = "Claude 안에서 열어야 AI 대본을 쓸 수 있어요."; return; }
+  document.activeElement?.blur();
+  $("scriptMsg").textContent = ""; $("scriptBtn").disabled = true; $("scriptBtn").textContent = "쓰는 중… (20초쯤)";
+  try {
+    const refs = B.refs.filter((r) => r.channel === c?.id && r.note).slice(-5).map((r) => r.note);
+    const r = await aiCall({ action: "script", channel: c ? aiChan(c) : { name: "채널", profileText: "" }, title: p.title, plan: p.plan || {}, ask: $("scriptAsk").value.trim(), prev: p.script ? scriptText(p) : "", refs });
+    change(p.script ? "대본을 다시 썼어요" : "대본을 썼어요", () => {
+      p.script = { ...r, at: Date.now(), v: (p.script?.v || 0) + 1 };
+      const st = p.steps.find((q) => /대본/.test(q.t) && !q.done); if (st) { st.done = true; st.at = today(); }
+    });
+    $("scriptAsk").value = "";
+  } catch (e) { $("scriptMsg").textContent = e === "no_ai" ? "Claude AI를 쓸 수 없어요. 권한을 허용했는지 확인해 주세요." : "대본을 받지 못했어요. 다시 눌러 주세요."; }
+  $("scriptBtn").disabled = false; render();
+};
+
+// ── 시작: Claude 계정 저장소에 연결 (키 없음, 로그인한 Claude 계정이 곧 열쇠)
+function firstRun() {
+  showGate();
+  $("gateH").textContent = "SNS 통합 관리가 Claude 안으로 이사 왔어요";
+  $("gateNote").textContent = "이제 키 없이, Claude에 로그인한 기기 어디서나 똑같이 보여요. 처음 한 번만 예전 보드를 옮겨 와 주세요.";
+  $("importBox").hidden = false;
+}
+async function takeBoard(b) {
+  B = migrate(b); B.updated = Date.now(); saveLocal();
+  ready = true; online = true; $("gate").hidden = true; render();
+  setSync("옮기는 중…", true);
+  mergeStudy({ ideas: studyDocs });
+  await flush();
+  toast("옮겼어요. 이제 어느 기기에서 열어도 똑같이 보여요");
+}
+$("importBtn").onclick = () => {
+  let b; try { b = JSON.parse($("importIn").value.trim()); } catch {}
+  if (!b || !Array.isArray(b.channels)) { $("gateMsg").textContent = "붙여넣은 내용을 읽지 못했어요. 예전 사이트에서 '📋 Claude로 옮기기'를 다시 눌러 복사해 주세요."; return; }
+  $("gateMsg").textContent = ""; takeBoard(b);
+};
+$("freshBtn").onclick = () => takeBoard(seed());
+async function start() {
+  showGate(); setSync("불러오는 중…");
+  const use = (n) => (window.claude?.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
+  const [d, smp] = await Promise.all([use("db"), use("sample")]);
+  sample = smp;
+  if (!d) {
+    $("gateH").textContent = "Claude에 로그인해서 열어 주세요";
+    $("gateNote").textContent = "이 보드는 Claude 계정에 저장돼요. claude.ai나 Claude 앱에서 로그인한 상태로 열면 보여요.";
+    return;
+  }
+  db = d; listen();
+}
+start();
+</script>
