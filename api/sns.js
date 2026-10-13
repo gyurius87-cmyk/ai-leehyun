@@ -132,6 +132,8 @@ async function ask(content, maxTokens) {
 }
 
 export default async function handler(req, res) {
+  // 공부 기획은 비밀이 아니라서 키 없이도 (이 기기에서만 쓰는 모드용)
+  if (req.method === "GET" && req.query?.study) return res.status(200).json({ study: studyIdeas });
   const admin = process.env.ADMIN_KEY;
   if (!admin) return res.status(503).json({ error: "no_admin_key" });
   if (req.headers["x-admin-key"] !== admin) return res.status(401).json({ error: "auth" });
