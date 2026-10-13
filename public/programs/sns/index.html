@@ -32,7 +32,7 @@ a { color: inherit; }
 .crumb b { color: var(--yellow); font-weight: 500; }
 h1 { margin: 6px 0 0; font-size: 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 h1 .sub { font-size: 13px; font-weight: 500; color: #b8bdc4; }
-.sync { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 999px; background: #3a3f46; color: #c9ced4; cursor: default; }
+.sync { font: inherit; font-size: 12px; font-weight: 500; padding: 2px 10px; border: 0; border-radius: 999px; background: #e8590c; color: #fff; cursor: pointer; }
 .sync.on { background: var(--yellow); color: var(--charcoal); }
 main { margin-top: -36px; padding-bottom: 60px; }
 .view { display: grid; gap: 14px; }
@@ -340,13 +340,13 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
 <body>
 <header class="top" id="top"><div class="wrap">
   <div class="crumb" id="crumb"></div>
-  <h1><span id="title">SNS 통합 관리</span><span class="sub" id="sub"></span><span class="sync" id="sync"></span></h1>
+  <h1><span id="title">SNS 통합 관리</span><span class="sub" id="sub"></span><button type="button" class="sync" id="sync"></button></h1>
 </div></header>
 
 <main class="wrap">
   <section class="box gate" id="gate" hidden>
     <h2>AI이현 전용</h2>
-    <p class="note" style="margin:0">Vercel에 넣은 <code>ADMIN_KEY</code> 값을 입력하면 PC와 폰이 같은 보드를 봅니다. 사이트 애널리틱스에서 넣은 적이 있으면 자동으로 열려요.</p>
+    <p class="note" style="margin:0">Vercel에 넣은 <code>ADMIN_KEY</code> 값을 입력하면 모든 기기가 같은 보드를 봅니다. 이미 연결된 기기(PC)에서 위쪽 <b>동기화</b> 버튼을 누르면 이 기기로 보낼 연결 링크가 나와요. 이 기기에서만 적어 둔 것도 합쳐서 올라가요.</p>
     <form id="gateForm"><input id="keyIn" type="password" placeholder="관리자 키" aria-label="관리자 키" autocomplete="current-password"><button>열기</button></form>
     <p class="msg" id="gateMsg"></p>
     <button class="ghost" id="localBtn" type="button">키 없이 이 기기에서만 먼저 써 보기</button>
@@ -701,6 +701,8 @@ function migrate(b) {
 let B; try { B = JSON.parse(localStorage.getItem(LS)); } catch {}
 B = migrate(B && Array.isArray(B.channels) ? B : seed());
 let key = ""; try { key = localStorage.getItem("ai-admin-key") || ""; } catch {}
+// 다른 기기에서 보낸 연결 링크(#k=키)로 열면 키를 저장하고 주소에서 지움
+{ const m = location.hash.match(/^#k=(.+)$/); if (m) { key = decodeURIComponent(m[1]); history.replaceState(null, "", location.pathname); } }
 let online = false, pending = null, cur = "", curPost = "", pickDate = "", calMonth = today().slice(0, 7), inKind = "shot", labFilter = "new", editIdea = "", labSort = "new", openScore = "", scoring = false, dbPeriod = "all";
 
 async function api(method, body) {
@@ -709,6 +711,32 @@ async function api(method, body) {
   if (!res.ok) throw data.error || "server";
   return data;
 }
+// 이 기기에서만 쓰던 보드를 서버 보드에 합치기 (같은 이름 채널끼리, 이미 있는 건 그대로)
+function mergeLocal(sv, lo) {
+  const chMap = {};
+  lo.channels.forEach((c) => { const t = sv.channels.find((x) => x.name === c.name); if (t) chMap[c.id] = t.id; else sv.channels.push(c); });
+  const fix = (x) => { if (chMap[x.channel]) x.channel = chMap[x.channel]; if (Array.isArray(x.channels)) x.channels = x.channels.map((id) => chMap[id] || id); return x; };
+  for (const k of ["posts", "comments", "refs", "shoots", "inbox", "watch", "ideas"]) {
+    const seen = new Set(sv[k].map((x) => x.id || JSON.stringify(x)));
+    lo[k].map(fix).forEach((x) => {
+      if (seen.has(x.id || JSON.stringify(x))) return;
+      if (k === "ideas" && sv.ideas.some((y) => y.channel === x.channel && y.title === x.title)) return;
+      if (k === "posts" && sv.posts.some((y) => y.title === x.title && y.channels?.[0] === x.channels?.[0])) return;
+      sv[k].push(x);
+    });
+  }
+  sv.studyIn = [...new Set([...(sv.studyIn || []), ...(lo.studyIn || [])])];
+  sv.updated = Date.now();
+  return sv;
+}
+function showGate() { $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true; $("dbv").hidden = true; $("tabs").hidden = true; window.scrollTo(0, 0); }
+$("sync").onclick = async () => {
+  if (!online) { $("gateMsg").textContent = ""; showGate(); $("keyIn").focus(); return; }
+  const url = `${location.origin}${location.pathname}#k=${encodeURIComponent(key)}`;
+  if (!confirm("다른 기기(폰 등)를 연결할 링크를 보낼까요?\n링크에 관리자 키가 들어 있으니 나에게만 보내세요 (카톡 나와의 채팅 등).")) return;
+  try { if (navigator.share) { await navigator.share({ title: "SNS 통합 관리 연결", url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(url); toast("연결 링크를 복사했어요. 다른 기기에서 열면 바로 동기화돼요"); } catch { prompt("이 링크를 다른 기기에서 열어 주세요", url); }
+};
 function setSync(text, on) { $("sync").textContent = text; $("sync").classList.toggle("on", !!on); }
 function saveLocal() { try { localStorage.setItem(LS, JSON.stringify(B)); } catch {} }
 function save() {
@@ -716,7 +744,7 @@ function save() {
   if (!online) return;
   clearTimeout(pending); setSync("저장 중…", true);
   pending = setTimeout(async () => {
-    try { await api("PUT", { board: B }); setSync("PC·폰 동기화", true); } catch { setSync("저장 실패 · 이 기기에는 저장됨"); }
+    try { await api("PUT", { board: B }); setSync("🔄 모든 기기 동기화", true); } catch { setSync("저장 실패 · 이 기기에는 저장됨"); }
     pending = null;
   }, 700);
 }
@@ -1119,7 +1147,7 @@ function renderRec(c) {
 }
 
 // ── 이동
-window.addEventListener("hashchange", () => { pickDate = ""; render(); window.scrollTo(0, 0); });
+window.addEventListener("hashchange", () => { const k = location.hash.match(/^#k=(.+)$/); if (k) { key = decodeURIComponent(k[1]); history.replaceState(null, "", location.pathname); start(); return; } pickDate = ""; render(); window.scrollTo(0, 0); });
 
 // ── 클릭 한 곳에서 처리
 document.addEventListener("click", (e) => {
@@ -1473,8 +1501,10 @@ async function start() {
   if (key) {
     try {
       const { board, study } = await api("GET");
-      online = true; setSync("PC·폰 동기화", true);
-      if (board && (board.updated || 0) >= (B.updated || 0)) { B = migrate(board); saveLocal(); } else save();
+      online = true; setSync("🔄 모든 기기 동기화", true);
+      let wasLocal = false; try { wasLocal = localStorage.getItem("sns-local") === "1"; localStorage.removeItem("sns-local"); } catch {}
+      if (board && wasLocal) { B = mergeLocal(migrate(board), B); save(); }
+      else if (board && (board.updated || 0) >= (B.updated || 0)) { B = migrate(board); saveLocal(); } else save();
       mergeStudy(study);
       try { localStorage.setItem("ai-admin-key", key); localStorage.setItem("ai-admin", "1"); } catch {}
       $("gate").hidden = true; render(); refreshAll(false); return;
@@ -1484,10 +1514,10 @@ async function start() {
   }
   let local = false; try { local = localStorage.getItem("sns-local") === "1"; } catch {}
   if (local && !$("gateMsg").textContent) return openLocal();
-  $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true; $("dbv").hidden = true; $("tabs").hidden = true;
+  showGate();
 }
 function openLocal() {
-  online = false; setSync("이 기기에만 저장");
+  online = false; setSync("📱 이 기기에만 저장 · 동기화 켜기");
   try { localStorage.setItem("sns-local", "1"); } catch {}
   $("gate").hidden = true; render();
   fetch("/api/sns?study=1").then((r) => r.json()).then((d) => mergeStudy(d.study)).catch(() => {});
