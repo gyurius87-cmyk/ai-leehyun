@@ -175,6 +175,24 @@ details.pbox:not([open]) > summary .fold::after { content: "펼치기 ▼"; }
 .card.done .t { color: var(--muted); }
 .col .more, .col .hint { font-size: 12px; color: var(--muted); padding: 4px; }
 .col .more { text-align: center; }
+.pm { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.pm label { display: grid; gap: 1px; font-size: 10px; color: var(--muted); }
+.pm input { width: 100%; font-size: 13px; padding: 4px 6px; font-family: var(--mono); appearance: textfield; -moz-appearance: textfield; }
+.pm input::-webkit-inner-spin-button, .pm input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* 탭 · DB 관리 리포트 */
+.tabs { display: flex; gap: 6px; margin: 0 0 12px; position: relative; }
+.tabs a { text-decoration: none; background: var(--panel); color: var(--muted); font-weight: 700; font-size: 14px; padding: 8px 16px; border-radius: 10px 10px 0 0; }
+.tabs a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -3px 0 var(--yellow); }
+.tabs a b { font-family: var(--mono); font-weight: 500; color: var(--muted); margin-left: 4px; }
+.rank { display: grid; gap: 6px; }
+.rank a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; text-decoration: none; color: var(--ink); font-size: 13px; }
+.rank a > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank a > span:nth-child(2) { font-family: var(--mono); color: var(--muted); }
+.rank a i { grid-column: 1 / -1; height: 8px; border-radius: 0 4px 4px 0; background: var(--grid); }
+.rank a i b { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); min-width: 2px; }
+.rank a:hover i b { background: var(--ink); }
+#dbTable td:nth-child(2) { font-family: var(--sans); text-align: left; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+#dbTable th:nth-child(2) { text-align: left; }
 /* 캘린더 */
 .calnav { display: flex; gap: 6px; align-items: center; }
 .calnav b { font-family: var(--mono); font-weight: 500; min-width: 80px; text-align: center; }
@@ -249,6 +267,8 @@ td a { text-decoration: none; }
 .scorebox .sp i b { display: block; height: 100%; background: var(--bar); }
 .scorebox .sp span:last-child { font-family: var(--mono); text-align: right; color: var(--muted); }
 .labf .sep { flex: 1; }
+.labf a.chip { text-decoration: none; background: var(--bg); color: var(--muted); font-weight: 500; font-size: 13px; padding: 4px 12px; border-radius: 999px; display: inline-flex; gap: 6px; align-items: center; }
+.labf a.chip.on { background: var(--charcoal); color: #fff; }
 .track { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; font-size: 13px; }
 .track .tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .track .tr > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -333,6 +353,8 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
   </section>
 
   <!-- 대시보드 -->
+  <nav class="tabs" id="tabs" hidden aria-label="보기"></nav>
+
   <div class="view" id="dash" hidden>
     <div class="tiles" id="tiles"></div>
 
@@ -477,6 +499,24 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
     </div>
   </div>
 
+  <!-- DB 관리: 성과까지 적은 콘텐츠를 리포트로 -->
+  <div class="view" id="dbv" hidden>
+    <section class="box stack">
+      <div class="labf" id="dbf"></div>
+      <p class="note" style="margin:0" id="dbNote"></p>
+    </section>
+    <div class="tiles" id="dbTiles"></div>
+    <div class="two">
+      <section class="box"><h2>잘 된 콘텐츠 <span>조회 많은 순</span></h2><div class="rank" id="dbTop"></div></section>
+      <section class="box"><h2>아쉬운 콘텐츠 <span>조회 적은 순</span></h2><div class="rank" id="dbLow"></div></section>
+    </div>
+    <div class="two">
+      <section class="box"><h2 id="dbGroupH">채널별</h2><div class="tablewrap"><table id="dbGroup"></table></div></section>
+      <section class="box"><h2>형식별 <span>기획 때 적은 형식</span></h2><div class="tablewrap"><table id="dbFormat"></table></div></section>
+    </div>
+    <section class="box"><h2>전체 기록 <span>제목을 누르면 프로젝트 화면 · 보통 대비 = 같은 채널 조회 중간값 대비</span></h2><div class="tablewrap"><table id="dbTable"></table></div></section>
+  </div>
+
   <!-- 프로젝트 화면 -->
   <div class="view" id="proj" hidden>
     <div class="pgrid">
@@ -561,7 +601,9 @@ const md = (s) => s ? `${+s.slice(5, 7)}/${+s.slice(8)}` : "";
 const isUrl = (s) => /^https?:\/\/\S+$/i.test(s.trim());
 const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
 
-const STAGES = [["plan", "기획"], ["make", "제작"], ["sched", "예약"], ["done", "올림"]];
+const STAGES = [["plan", "기획"], ["make", "제작"], ["sched", "예약"], ["done", "올림"], ["perf", "성과"], ["db", "DB"]];
+const FLOW = STAGES.slice(0, 5); // DB는 흐름 보드가 아니라 DB 관리 탭에서 리포트로
+const UP = new Set(["done", "perf", "db"]), isUp = (p) => UP.has(p.stage); // 올린 뒤 단계
 const STAGE_NAME = Object.fromEntries(STAGES);
 const PLATFORMS = ["", "인스타그램", "유튜브", "틱톡", "스레드", "네이버 블로그", "페이스북", "X", "기타"];
 const COLORS = ["#e8590c", "#f5b400", "#2b8a3e", "#1c7ed6", "#7048e8", "#d6336c", "#0c8599", "#5c940d", "#868e96", "#212529"];
@@ -648,7 +690,7 @@ function migrate(b) {
     if (p.tone && !p.concept && b.v < 3) { p.concept = p.tone; p.tone = ""; }
   });
   for (const k of ["posts", "comments", "refs", "shoots", "inbox", "watch", "ideas"]) b[k] ||= [];
-  b.posts.forEach((p) => { p.steps ||= DEFAULT_STEPS.map((t) => ({ t, done: p.stage === "done" })); p.plan ||= {}; });
+  b.posts.forEach((p) => { p.steps ||= DEFAULT_STEPS.map((t) => ({ t, done: isUp(p) })); p.plan ||= {}; });
   // v3의 '아이디어' 단계 카드는 기획실로
   b.posts.filter((p) => p.stage === "idea").forEach((p) => { (p.channels?.length ? p.channels : [""]).slice(0, 1).forEach((ch) => b.ideas.push(newIdea({ channel: ch, title: p.title, body: p.memo || "", date: p.date || "", at: p.createdAt || Date.now() }))); });
   b.posts = b.posts.filter((p) => p.stage !== "idea");
@@ -658,7 +700,7 @@ function migrate(b) {
 let B; try { B = JSON.parse(localStorage.getItem(LS)); } catch {}
 B = migrate(B && Array.isArray(B.channels) ? B : seed());
 let key = ""; try { key = localStorage.getItem("ai-admin-key") || ""; } catch {}
-let online = false, pending = null, cur = "", curPost = "", pickDate = "", calMonth = today().slice(0, 7), inKind = "shot", labFilter = "new", editIdea = "", labSort = "new", openScore = "", scoring = false;
+let online = false, pending = null, cur = "", curPost = "", pickDate = "", calMonth = today().slice(0, 7), inKind = "shot", labFilter = "new", editIdea = "", labSort = "new", openScore = "", scoring = false, dbPeriod = "all";
 
 async function api(method, body) {
   const res = await fetch("/api/sns", { method, headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -706,9 +748,10 @@ function change(msg, fn) {
   const snap = JSON.stringify(B);
   fn(); save(); render();
   if (!msg) return;
-  undoSnap = snap; $("toastMsg").textContent = msg; $("toast").hidden = false;
+  undoSnap = snap; $("undoBtn").hidden = false; $("toastMsg").textContent = msg; $("toast").hidden = false;
   clearTimeout(toastT); toastT = setTimeout(() => ($("toast").hidden = true), 6000);
 }
+function toast(msg) { undoSnap = null; $("undoBtn").hidden = true; $("toastMsg").textContent = msg; $("toast").hidden = false; clearTimeout(toastT); toastT = setTimeout(() => ($("toast").hidden = true), 4000); }
 $("undoBtn").onclick = () => { if (undoSnap) { B = JSON.parse(undoSnap); undoSnap = null; save(); render(); } $("toast").hidden = true; };
 
 const chan = (id) => B.channels.find((c) => c.id === id);
@@ -716,7 +759,7 @@ const inCur = (p) => !cur || (p.channels || []).includes(cur);
 const postColor = (p) => chan((p.channels || [])[0])?.color || "var(--line)";
 const chanNames = (p) => (p.channels || []).map(chan).filter(Boolean).map((c) => `<span><i class="dot" style="--c:${c.color}"></i> ${esc(c.name)}</span>`).join("");
 const doneDay = (p) => p.doneAt || p.date || "";
-const lastUpload = (cid) => B.posts.filter((p) => p.stage === "done" && p.channels?.includes(cid)).map(doneDay).sort().pop();
+const lastUpload = (cid) => B.posts.filter((p) => isUp(p) && p.channels?.includes(cid)).map(doneDay).sort().pop();
 const gapText = (cid) => { const l = lastUpload(cid), g = l ? daysBetween(l, today()) : null; return [g == null ? "아직 안 올림" : g === 0 ? "오늘 올림" : `마지막 업로드 ${g}일 전`, g == null || g > 7]; };
 const chHref = (id) => `#ch=${id}`;
 
@@ -746,7 +789,7 @@ function watchStats(w) {
 }
 function stepLine(p) {
   const st = p.steps || [], n = st.filter((x) => x.done).length;
-  if (!st.length || p.stage === "done") return "";
+  if (!st.length || isUp(p)) return "";
   const next = st.findIndex((x) => !x.done);
   return `<div class="steps"><i><b style="width:${(n / st.length) * 100}%"></b></i>${n}/${st.length}${next >= 0 ? `<label title="이 STEP 끝내기"><input type="checkbox" data-step="${p.id}" data-i="${next}">${esc(st[next].t)}</label>` : ""}</div>`;
 }
@@ -779,6 +822,21 @@ async function refreshAll(force) {
 
 // ── 화면
 function render() {
+  const dbm = location.hash.match(/^#db(?:=(.+))?$/), gate0 = !$("gate").hidden;
+  $("dbv").hidden = !dbm || gate0;
+  $("tabs").hidden = gate0 || /^#p=/.test(location.hash);
+  if (dbm && !gate0) {
+    cur = chan(dbm[1]) ? dbm[1] : ""; curPost = "";
+    const c = chan(cur);
+    $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true;
+    $("crumb").innerHTML = `<a href="/programs">AI<b>이현</b> · 프로그램</a> › <a href="#">SNS 대시보드</a>${c ? ` › <a href="${chHref(c.id)}">${esc(c.name)}</a>` : ""}`;
+    $("title").textContent = c ? `${c.name} DB 관리` : "DB 관리";
+    $("sub").textContent = "성과 리포트";
+    $("top").style.setProperty("--chc", c ? c.color : "var(--charcoal)");
+    document.title = `${$("title").textContent} · SNS 통합 관리`;
+    renderTabs("db"); renderDb(c);
+    return;
+  }
   const pRoute = (location.hash.match(/^#p=(.+)$/) || [])[1] || "";
   const post = B.posts.find((q) => q.id === pRoute);
   curPost = post ? post.id : "";
@@ -803,8 +861,54 @@ function render() {
   $("top").style.setProperty("--chc", c ? c.color : "var(--charcoal)");
   document.title = c ? `${c.name} · SNS 통합 관리` : "SNS 통합 관리";
   const root = cur ? $("chan") : $("dash");
+  renderTabs("ops");
   if (cur) renderChan(c); else renderDash();
   renderFlow(root); renderCal(root); renderComments(root); renderStats(root);
+}
+
+function renderTabs(on) {
+  const n = B.posts.filter((p) => p.stage === "db" && inCur(p)).length;
+  $("tabs").innerHTML = `<a href="${cur ? chHref(cur) : "#"}"${on === "ops" ? ' aria-current="page"' : ""}>운영</a><a href="${cur ? `#db=${cur}` : "#db"}"${on === "db" ? ' aria-current="page"' : ""}>📚 DB 관리<b>${n}</b></a>`;
+}
+
+// ── DB 관리 리포트: 성과까지 적어 DB로 넘긴 콘텐츠만
+function renderDb(c) {
+  const t = today(), from = dbPeriod === "30" ? addDays(t, -29) : dbPeriod === "month" ? t.slice(0, 7) + "-01" : "";
+  const all = B.posts.filter((p) => p.stage === "db" && inCur(p));
+  const items = all.filter((p) => !from || doneDay(p) >= from).sort((a, b) => (doneDay(b) < doneDay(a) ? -1 : 1));
+  $("dbf").innerHTML = `<a class="chip${cur ? "" : " on"}" href="#db">전체</a>${B.channels.map((x) => `<a class="chip${x.id === cur ? " on" : ""}" href="#db=${x.id}"><i class="dot" style="--c:${x.color}"></i>${esc(x.name)}</a>`).join("")}<span class="sep"></span>`
+    + [["all", "전체 기간"], ["month", "이번 달"], ["30", "최근 30일"]].map(([k, n]) => `<button type="button" data-dbp="${k}" aria-pressed="${dbPeriod === k}">${n}</button>`).join("");
+  const V = (p) => +p.metrics?.views || 0, L = (p) => +p.metrics?.likes || 0, C = (p) => +p.metrics?.cmts || 0;
+  const sum = (arr, f) => arr.reduce((a, p) => a + f(p), 0);
+  const rate = (arr) => { const v = sum(arr, V); return v ? ((sum(arr, L) + sum(arr, C)) / v * 100).toFixed(1) + "%" : "—"; };
+  const median = (arr) => { const v = arr.map(V).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0; };
+  const midOf = {}; B.channels.forEach((x) => (midOf[x.id] = median(B.posts.filter((p) => p.stage === "db" && p.channels?.includes(x.id)))));
+  const ratio = (p) => { const m = midOf[p.channels?.[0]]; return m ? V(p) / m : null; };
+  const scored = items.filter((p) => p.planScore && ratio(p) != null), hits = scored.filter((p) => hit(p.planScore.total, ratio(p))).length;
+  $("dbNote").textContent = items.length ? `${items.length}개 · ${md(doneDay(items[items.length - 1]))} ~ ${md(doneDay(items[0]))} 올린 것` : "";
+  $("dbTiles").innerHTML = [["콘텐츠", items.length + "개", `DB에 있는 것 전체 ${all.length}개`], ["총 조회", num(sum(items, V)), `평균 ${items.length ? num(Math.round(sum(items, V) / items.length)) : "—"} · 중간값 ${num(median(items))}`], ["반응률", rate(items), `(좋아요+댓글)÷조회 · 좋아요 ${num(sum(items, L))} · 댓글 ${num(sum(items, C))}`], ["기획 점수 적중", scored.length ? `${hits}/${scored.length}` : "—", "70점↑이면 보통 이상으로 본 예측이 맞았는지"]]
+    .map(([k, v, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join("");
+  if (!items.length) {
+    const empty = `<div class="empty"><img src="/assets/zero/zero-thinking.svg" alt="">${all.length ? "이 기간에 DB로 넘긴 콘텐츠가 없어요." : "프로젝트 흐름의 '성과' 칸에서 조회·좋아요·댓글을 적고 체크하면 여기에 리포트로 쌓여요."}</div>`;
+    ["dbTop", "dbLow"].forEach((id) => ($(id).innerHTML = empty)); ["dbGroup", "dbFormat", "dbTable"].forEach((id) => ($(id).innerHTML = "")); return;
+  }
+  const byV = [...items].sort((a, b) => V(b) - V(a)), max = Math.max(1, V(byV[0]));
+  const bar = (p) => { const r = ratio(p); return `<a href="#p=${p.id}" title="${esc(p.title)} · 조회 ${num(V(p))} · 좋아요 ${num(L(p))} · 댓글 ${num(C(p))}"><span>${esc(p.title)}</span><span>${num(V(p))}${r != null ? ` · ${r.toFixed(1)}배` : ""}</span><i><b style="width:${(V(p) / max) * 100}%"></b></i></a>`; };
+  $("dbTop").innerHTML = byV.slice(0, 5).map(bar).join("");
+  $("dbLow").innerHTML = byV.length > 5 ? byV.slice(-3).reverse().map(bar).join("") : `<p class="note">콘텐츠가 6개 넘게 쌓이면 보여 드려요.</p>`;
+  const groupRows = (groups) => groups.filter((g) => g.list.length).sort((a, b) => sum(b.list, V) / b.list.length - sum(a.list, V) / a.list.length)
+    .map((g) => `<tr><td>${g.label}</td><td>${g.list.length}</td><td>${num(sum(g.list, V))}</td><td>${num(Math.round(sum(g.list, V) / g.list.length))}</td><td>${rate(g.list)}</td></tr>`).join("");
+  const head = (k) => `<tr><th>${k}</th><th>개수</th><th>총 조회</th><th>평균 조회</th><th>반응률</th></tr>`;
+  if (cur) {
+    $("dbGroupH").innerHTML = "점수대별 <span>기획 때 받은 점수</span>";
+    $("dbGroup").innerHTML = head("점수") + groupRows([["80점 이상", (s) => s >= 80], ["60~79점", (s) => s >= 60 && s < 80], ["60점 미만", (s) => s < 60]].map(([label, f]) => ({ label, list: items.filter((p) => p.planScore && f(p.planScore.total)) })).concat([{ label: "채점 안 함", list: items.filter((p) => !p.planScore) }]));
+  } else {
+    $("dbGroupH").innerHTML = "채널별 <span>평균 조회 높은 순</span>";
+    $("dbGroup").innerHTML = head("채널") + groupRows(B.channels.map((x) => ({ label: `<a href="#db=${x.id}"><i class="dot" style="--c:${x.color}"></i> ${esc(x.name)}</a>`, list: items.filter((p) => p.channels?.includes(x.id)) })));
+  }
+  const fmts = [...new Set(items.map((p) => (p.plan?.format || "").trim() || "형식 안 적음"))];
+  $("dbFormat").innerHTML = head("형식") + groupRows(fmts.map((f) => ({ label: esc(f), list: items.filter((p) => ((p.plan?.format || "").trim() || "형식 안 적음") === f) })));
+  $("dbTable").innerHTML = `<tr><th>올린 날</th><th>제목</th><th>채널</th><th>점수</th><th>조회</th><th>좋아요</th><th>댓글</th><th>반응률</th><th>보통 대비</th></tr>` + items.map((p) => { const r = ratio(p); return `<tr><td>${md(doneDay(p))}</td><td><a href="#p=${p.id}">${esc(p.title)}</a></td><td>${chanNames(p) || "—"}</td><td>${p.planScore ? p.planScore.total : "—"}</td><td>${num(V(p))}</td><td>${num(L(p))}</td><td>${num(C(p))}</td><td>${rate([p])}</td><td>${r != null ? r.toFixed(1) + "배" : "—"}</td></tr>`; }).join("");
 }
 
 function renderDash() {
@@ -813,7 +917,7 @@ function renderDash() {
   const open = B.comments.filter((c) => !c.replied).length;
   const quiet = B.channels.filter((c) => gapText(c.id)[1]).length;
   $("tiles").innerHTML = [
-    ["최근 7일 올림", P.filter((p) => p.stage === "done" && doneDay(p) >= weekAgo).length + "개", `채널 ${B.channels.length}개 중 ${quiet}개가 7일 넘게 쉼`, false],
+    ["최근 7일 올림", P.filter((p) => isUp(p) && doneDay(p) >= weekAgo).length + "개", `채널 ${B.channels.length}개 중 ${quiet}개가 7일 넘게 쉼`, false],
     ["업로드 예약", sched.length + "개", missed ? `${missed}개 날짜 지남` : "밀린 것 없음", missed > 0],
     ["소재함", B.inbox.length + "개", "채널로 보내기 전", B.inbox.length > 0],
     ["답 안 한 댓글", open + "개", `전체 ${B.comments.length}개`, open > 0],
@@ -827,7 +931,7 @@ function renderDash() {
       <b><i class="dot" style="--c:${c.color}"></i>${esc(c.name)}</b>
       <span class="pf">${esc(c.platform || "플랫폼 미정")} · <span class="${late ? "late" : ""}">${gap}</span></span>
       <span class="tone">${esc(c.profile?.concept || "성격을 아직 안 적었어요")}</span>
-      <span class="nums"><span>기획실 <b>${B.ideas.filter((i) => i.channel === c.id && i.status !== "dropped").length}</b></span><span>프로젝트 <b>${mine.filter((p) => p.stage !== "done").length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span><span>벤치마크 <b>${B.watch.filter((w) => w.channel === c.id).length}</b>${newCount(c.id) ? ` <span class="badge">새 ${newCount(c.id)}</span>` : ""}</span><span>성격 <b>${profileFill(c.profile)}/${PFIELDS.length}</b></span></span>
+      <span class="nums"><span>기획실 <b>${B.ideas.filter((i) => i.channel === c.id && i.status !== "dropped").length}</b></span><span>프로젝트 <b>${mine.filter((p) => !isUp(p)).length}</b></span><span>찍을 것 <b>${shootN}</b></span><span>레퍼런스 <b>${refN}</b></span><span>벤치마크 <b>${B.watch.filter((w) => w.channel === c.id).length}</b>${newCount(c.id) ? ` <span class="badge">새 ${newCount(c.id)}</span>` : ""}</span><span>성격 <b>${profileFill(c.profile)}/${PFIELDS.length}</b></span></span>
       <span class="next">${next ? `📅 다음 ${md(next.date)} ${esc(next.title)}` : '<span class="note">예약된 업로드 없음</span>'}</span>
     </a>`;
   }).join("") + `<button type="button" class="chcard add" id="addChan">+ 채널</button>`;
@@ -862,10 +966,10 @@ function renderChan(c) {
       return `<div class="pf-field">${name}${type === "one" ? "" : " (여러 개)"}<span class="opts">${x.map((o) => `<button type="button" data-opt="${k}" data-one="${type === "one" ? 1 : ""}" data-v="${esc(o)}" aria-pressed="${sel.includes(o)}">${esc(o)}</button>`).join("")}</span></div>`;
     }).join("")}</div>`).join("");
   }
-  const t = today(), done = B.posts.filter((x) => x.stage === "done" && x.channels?.includes(c.id));
+  const t = today(), done = B.posts.filter((x) => isUp(x) && x.channels?.includes(c.id));
   const [gap, late] = gapText(c.id);
   const d30 = addDays(t, -29);
-  $("chstat").innerHTML = `<span class="${late ? "late" : ""}">${gap}</span><span>이번 달 올림 <b>${done.filter((x) => doneDay(x).startsWith(t.slice(0, 7))).length}</b></span><span>주당 <b>${(done.filter((x) => doneDay(x) >= d30).length / 30 * 7).toFixed(1)}</b>회 (30일)</span><span>준비 중 <b>${B.posts.filter((x) => x.channels?.includes(c.id) && x.stage !== "done").length}</b></span>${p.perWeek ? `<span>이번 주 <b>${done.filter((x) => doneDay(x) >= weekStart()).length}/${esc(p.perWeek)}</b>회 (목표)</span>` : ""}`;
+  $("chstat").innerHTML = `<span class="${late ? "late" : ""}">${gap}</span><span>이번 달 올림 <b>${done.filter((x) => doneDay(x).startsWith(t.slice(0, 7))).length}</b></span><span>주당 <b>${(done.filter((x) => doneDay(x) >= d30).length / 30 * 7).toFixed(1)}</b>회 (30일)</span><span>준비 중 <b>${B.posts.filter((x) => x.channels?.includes(c.id) && !isUp(x)).length}</b></span>${p.perWeek ? `<span>이번 주 <b>${done.filter((x) => doneDay(x) >= weekStart()).length}/${esc(p.perWeek)}</b>회 (목표)</span>` : ""}`;
   renderWatches(c);
 
   const refs = B.refs.filter((r) => r.channel === c.id).sort((a, b) => b.at - a.at);
@@ -889,7 +993,7 @@ function renderLab(c) {
     + [["new", "최신순"], ["score", "점수순"]].map(([k, n]) => `<button type="button" data-labsort="${k}" aria-pressed="${labSort === k}">${n}</button>`).join("")
     + (live.some((i) => !i.score) ? `<button type="button" class="scoreall" data-scoreall ${scoring ? "disabled" : ""}>${scoring ? "채점 중…" : `🎯 채점하기 ${live.filter((i) => !i.score).length}개`}</button>` : "");
   const tr = trackOf(c), scored = tr.filter((x) => x.p.planScore), note = B.scoreNotes[c.id];
-  const waiting = B.posts.filter((p) => p.channels?.includes(c.id) && p.stage === "done" && !(p.metrics?.views > 0) && doneDay(p) <= addDays(today(), -3)).length;
+  const waiting = B.posts.filter((p) => p.channels?.includes(c.id) && isUp(p) && !(p.metrics?.views > 0) && doneDay(p) <= addDays(today(), -3)).length;
   $("track").innerHTML = `<b>🎯 채점 성적표 <span class="note">올린 뒤 성과 ${tr.length}개를 보고 채점 기준을 고쳐요${scored.length ? ` · 예측 적중 ${scored.filter((x) => hit(x.p.planScore.total, x.ratio)).length}/${scored.length}` : ""}</span></b>
     ${scored.slice(0, 4).map((x) => { const ok = hit(x.p.planScore.total, x.ratio); return `<div class="tr"><span>${esc(x.p.title)}</span><span>${x.p.planScore.total}점 → 조회 ${num(x.p.metrics.views)} (보통의 ${x.ratio.toFixed(1)}배) <b class="${ok ? "ok" : "no"}">${ok ? "✓" : "✗"}</b></span></div>`; }).join("")}
     ${note?.lesson ? `<div>📈 채점이 배운 것: ${esc(note.lesson)} <span class="note">(${md(ymd(new Date(note.at)))} · 성과 ${note.n}개 반영)</span></div>` : ""}
@@ -910,12 +1014,12 @@ function renderLab(c) {
 function renderProj(p) {
   const c = chan(p.channels?.[0]);
   $("pStage").innerHTML = STAGES.map(([k, n]) => `<option value="${k}"${k === p.stage ? " selected" : ""}>${n}</option>`).join("");
-  $("pDate").value = p.stage === "done" ? doneDay(p) : p.date || "";
+  $("pDate").value = isUp(p) ? doneDay(p) : p.date || "";
   $("pChans").innerHTML = B.channels.map((x) => `<label><input type="checkbox" data-pch="${x.id}" ${p.channels?.includes(x.id) ? "checked" : ""}><i class="dot" style="--c:${x.color}"></i>${esc(x.name)}</label>`).join("");
   const n = (p.steps || []).filter((x) => x.done).length;
   $("stepMeta").textContent = `${n}/${(p.steps || []).length} · 시작한 지 ${Math.max(0, Math.floor((Date.now() - (p.createdAt || Date.now())) / 864e5))}일째`;
   $("stepList").innerHTML = (p.steps || []).map((x, i) => `<div class="st${x.done ? " done" : ""}"><input type="checkbox" data-sd="${i}" ${x.done ? "checked" : ""} aria-label="${esc(x.t)} 끝"><span>${i + 1}. ${esc(x.t)}</span><small>${x.at ? md(x.at) : ""}</small><button type="button" data-sdx="${i}" aria-label="빼기">✕</button></div>`).join("");
-  $("pMetrics").hidden = p.stage !== "done";
+  $("pMetrics").hidden = !isUp(p);
   const tx = c && trackOf(c).find((x) => x.p.id === p.id);
   $("pPred").textContent = (p.planScore ? `기획 때 점수 ${p.planScore.total}점` : "기획실에서 채점하고 넘긴 기획이 아니에요") + (tx ? ` · 실제 조회는 이 채널 보통의 ${tx.ratio.toFixed(1)}배` : "") + " · 적은 성과는 다음 기획 채점 기준에 반영돼요";
   $$("#proj [data-pf]").forEach((el) => { if (el.id === "pStage" || el.id === "pDate" || el === document.activeElement) return; el.value = getPath(p, el.dataset.pf) ?? ""; });
@@ -940,7 +1044,7 @@ const scriptText = (p) => { const s = p.script || {}; return [`[${p.title}]`, s.
 
 function renderFlow(root) {
   const t = today(), posts = B.posts.filter(inCur);
-  root.querySelector("[data-flow]").innerHTML = STAGES.map(([s, name]) => {
+  root.querySelector("[data-flow]").innerHTML = FLOW.map(([s, name]) => {
     let list = posts.filter((p) => p.stage === s);
     list.sort((a, b) => (a.date || "9") < (b.date || "9") ? -1 : (a.date || "9") > (b.date || "9") ? 1 : (a.createdAt || 0) - (b.createdAt || 0));
     let more = 0;
@@ -948,12 +1052,13 @@ function renderFlow(root) {
     return `<div class="col"><h3>${name}<span>${posts.filter((p) => p.stage === s).length}</span></h3>${list.map((p) => {
       const late = s === "sched" && p.date && p.date < t;
       return `<div class="card${s === "done" ? " done" : ""}" data-post="${p.id}" style="--c:${postColor(p)}">
-        <input type="checkbox" data-adv="${p.id}" ${s === "done" ? "checked" : ""} aria-label="${s === "done" ? "예약으로 되돌리기" : "다음 단계로"}">
+        <input type="checkbox" data-adv="${p.id}" aria-label="${s === "perf" ? "성과 다 적음 · DB로 보내기" : s === "done" ? "성과 칸으로" : "다음 단계로"}">
         <div class="t">${esc(p.title)}${p.script ? ' <span title="대본 있음">📝</span>' : ""}</div>
         ${stepLine(p)}
-        <div class="m">${cur ? "" : chanNames(p)}${p.date ? `<span class="${late ? "late" : ""}">📅 ${md(s === "done" ? doneDay(p) : p.date)}${late ? " 지남" : ""}</span>` : ""}${p.planScore ? `<span>🎯 ${p.planScore.total}</span>` : ""}${s === "done" && p.metrics?.views ? `<span>▶ ${num(p.metrics.views)}</span>` : ""}${s === "done" && !p.metrics?.views && doneDay(p) <= addDays(t, -3) ? `<span class="late">📊 성과 적을 차례</span>` : ""}${s === "sched" ? "<span>🔌 연동 전</span>" : ""}</div>
+        <div class="m">${cur ? "" : chanNames(p)}${doneDay(p) || p.date ? `<span class="${late ? "late" : ""}">📅 ${md(isUp(p) ? doneDay(p) : p.date)}${late ? " 지남" : ""}</span>` : ""}${p.planScore ? `<span>🎯 ${p.planScore.total}</span>` : ""}${s === "done" && p.metrics?.views ? `<span>▶ ${num(p.metrics.views)}</span>` : ""}${s === "done" && !p.metrics?.views && doneDay(p) <= addDays(t, -3) ? `<span class="late">📊 성과 적을 차례</span>` : ""}${s === "sched" ? "<span>🔌 연동 전</span>" : ""}</div>
+        ${s === "perf" ? `<div class="pm">${[["views", "조회"], ["likes", "좋아요"], ["cmts", "댓글"]].map(([k, n]) => `<label>${n}<input type="number" min="0" inputmode="numeric" data-pm="${k}" data-pid="${p.id}" value="${p.metrics?.[k] ?? ""}"></label>`).join("")}</div>` : ""}
       </div>`;
-    }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "plan" ? `<div class="hint">${cur ? "기획실에서 '프로젝트로 →'를 누르면 여기로 와요" : "각 채널의 기획실에서 넘어와요"}</div>` : ""}</div>`;
+    }).join("")}${more ? `<div class="more">+ ${more}개 더 (캘린더에 있어요)</div>` : ""}${!list.length && s === "perf" ? `<div class="hint">올림에서 체크하면 여기로 와요. 며칠 뒤 조회·좋아요·댓글을 적고 체크하면 DB 관리로 넘어가요</div>` : ""}${!list.length && s === "plan" ? `<div class="hint">${cur ? "기획실에서 '프로젝트로 →'를 누르면 여기로 와요" : "각 채널의 기획실에서 넘어와요"}</div>` : ""}</div>`;
   }).join("");
 }
 
@@ -962,13 +1067,13 @@ function renderCal(root) {
   const [y, m] = calMonth.split("-").map(Number), first = new Date(y, m - 1, 1), start = new Date(first); start.setDate(1 - first.getDay());
   root.querySelector("[data-caltitle]").textContent = `${y}.${String(m).padStart(2, "0")}`;
   const byDay = {};
-  posts.forEach((p) => { const d = p.stage === "done" ? doneDay(p) : p.date; if (d) (byDay[d] ||= []).push(p); });
+  posts.forEach((p) => { const d = isUp(p) ? doneDay(p) : p.date; if (d) (byDay[d] ||= []).push(p); });
   let cells = ["일", "월", "화", "수", "목", "금", "토"].map((w) => `<div class="wd">${w}</div>`).join("");
   for (let i = 0; i < 42; i++) {
     const d = new Date(start); d.setDate(start.getDate() + i);
     if (i === 35 && d.getMonth() !== m - 1) break;
     const s = ymd(d), list = byDay[s] || [];
-    cells += `<div class="day${d.getMonth() !== m - 1 ? " out" : ""}${s === t ? " today" : ""}${cur && s === pickDate ? " pick" : ""}${d.getDay() === 0 ? " sun" : ""}" data-day="${s}"><div class="n">${d.getDate()}</div>${list.slice(0, 3).map((p) => `<span class="pill${p.stage === "done" ? " done" : ""}${p.stage !== "done" && s < t ? " miss" : ""}" style="--c:${postColor(p)}" data-post="${p.id}" title="${esc(STAGE_NAME[p.stage] + " · " + p.title)}">${esc(p.title)}</span>`).join("")}${list.length > 3 ? `<span class="note">+${list.length - 3}</span>` : ""}</div>`;
+    cells += `<div class="day${d.getMonth() !== m - 1 ? " out" : ""}${s === t ? " today" : ""}${cur && s === pickDate ? " pick" : ""}${d.getDay() === 0 ? " sun" : ""}" data-day="${s}"><div class="n">${d.getDate()}</div>${list.slice(0, 3).map((p) => `<span class="pill${isUp(p) ? " done" : ""}${!isUp(p) && s < t ? " miss" : ""}" style="--c:${postColor(p)}" data-post="${p.id}" title="${esc(STAGE_NAME[p.stage] + " · " + p.title)}">${esc(p.title)}</span>`).join("")}${list.length > 3 ? `<span class="note">+${list.length - 3}</span>` : ""}</div>`;
   }
   root.querySelector("[data-calgrid]").innerHTML = cells;
 }
@@ -988,7 +1093,7 @@ function renderComments(root) {
 function renderStats(root) {
   const t = today(), month = t.slice(0, 7), d30 = addDays(t, -29), posts = B.posts.filter(inCur);
   const rows = (cur ? B.channels.filter((c) => c.id === cur) : B.channels).map((c) => {
-    const done = B.posts.filter((p) => p.stage === "done" && p.channels?.includes(c.id));
+    const done = B.posts.filter((p) => isUp(p) && p.channels?.includes(c.id));
     const m = done.filter((p) => doneDay(p).startsWith(month)).length, l30 = done.filter((p) => doneDay(p) >= d30).length;
     const withV = done.filter((p) => p.metrics?.views), avg = (k) => withV.length ? Math.round(withV.reduce((s, p) => s + (+p.metrics[k] || 0), 0) / withV.length) : null;
     const last = lastUpload(c.id), gap = last ? daysBetween(last, t) : null;
@@ -997,7 +1102,7 @@ function renderStats(root) {
   root.querySelector("[data-stats]").innerHTML = `<tr><th>채널</th><th>이번 달</th><th>주당</th><th>쉰 날</th><th>평균 조회</th><th>평균 ♥</th></tr>${rows.join("")}`;
   const now = new Date(t + "T00:00"), mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   const weeks = Array.from({ length: 8 }, (_, i) => { const s = new Date(mon); s.setDate(mon.getDate() - (7 - i) * 7); const a = ymd(s); return { a, b: addDays(a, 6) }; });
-  const counts = weeks.map((w) => posts.filter((p) => p.stage === "done" && doneDay(p) >= w.a && doneDay(p) <= w.b).length), max = Math.max(1, ...counts);
+  const counts = weeks.map((w) => posts.filter((p) => isUp(p) && doneDay(p) >= w.a && doneDay(p) <= w.b).length), max = Math.max(1, ...counts);
   root.querySelector("[data-weeks]").innerHTML = counts.map((n, i) => `<i class="${i === 7 ? "now" : ""}" style="height:${(n / max) * 100}%" title="${md(weeks[i].a)}~ · ${n}개"></i>`).join("");
   root.querySelector("[data-wlab]").innerHTML = weeks.map((w, i) => `<span>${i === 7 ? "이번 주" : md(w.a)}</span>`).join("");
 }
@@ -1035,15 +1140,16 @@ document.addEventListener("click", (e) => {
   }
   if ((x = el("[data-adv]"))) {
     const p = B.posts.find((q) => q.id === x.dataset.adv), i = STAGES.findIndex(([s]) => s === p.stage);
-    const next = p.stage === "done" ? "sched" : STAGES[i + 1][0];
-    change(`'${p.title.slice(0, 14)}' → ${STAGE_NAME[next]}`, () => {
+    const next = STAGES[i + 1]?.[0]; if (!next) return;
+    if (next === "db" && !(p.metrics?.views > 0)) { x.checked = false; toast("조회수를 적으면 DB로 넘길 수 있어요"); return; }
+    change(next === "db" ? `'${p.title.slice(0, 14)}' 성과를 DB 관리에 넣었어요` : `'${p.title.slice(0, 14)}' → ${STAGE_NAME[next]}`, () => {
       if (next === "sched" && !p.date) p.date = addDays(today(), 1);
       if (next === "done") p.doneAt = today();
-      if (p.stage === "done") delete p.doneAt;
       p.stage = next;
     });
     return;
   }
+  if (el(".pm")) return; // 성과 칸 카드의 숫자 입력
   if ((x = el("[data-post]"))) { location.hash = `p=${x.dataset.post}`; return; }
   if ((x = el("[data-day]"))) {
     if (!cur) return;
@@ -1051,6 +1157,7 @@ document.addEventListener("click", (e) => {
   }
   if (e.target.id === "qDateX") { pickDate = ""; render(); return; }
   // 기획실
+  if ((x = el("[data-dbp]"))) { dbPeriod = x.dataset.dbp; render(); return; }
   if ((x = el("[data-labsort]"))) { labSort = x.dataset.labsort; render(); return; }
   if ((x = el("[data-iscore]"))) { openScore = openScore === x.dataset.iscore ? "" : x.dataset.iscore; render(); return; }
   if ((x = el("[data-scoreall]"))) { const c = chan(cur); scoreIdeas(c, B.ideas.filter((i) => i.channel === c.id && i.status !== "dropped" && !i.score)); return; }
@@ -1161,6 +1268,12 @@ $("persona").addEventListener("change", (e) => {
   const c = chan(cur), v = e.target.value.trim();
   e.target.blur(); change("", () => { c.profile[k] = v; });
 });
+// 성과 칸 카드에서 바로 숫자 적기 (다시 그리지 않아 다음 칸으로 이어서 입력)
+document.addEventListener("change", (e) => {
+  const k = e.target.dataset?.pm; if (!k) return;
+  const p = B.posts.find((q) => q.id === e.target.dataset.pid); if (!p) return;
+  (p.metrics ||= {})[k] = Math.max(0, Number(e.target.value) || 0); save();
+});
 $("ideas").addEventListener("change", (e) => {
   const k = e.target.dataset.if, id = e.target.closest("[data-idea]")?.dataset.idea; if (!k || !id) return;
   const i = B.ideas.find((q) => q.id === id); i[k] = e.target.value.trim(); delete i.score; save();
@@ -1224,7 +1337,7 @@ $$("[data-addcm]").forEach((f) => (f.onsubmit = (e) => {
 // ── AI 기획 만들기 (기획실로 계속 쌓임)
 // 실제 성과 기록: 올린 뒤 적은 조회와 기획 때 점수를 나란히 (채점이 이걸 보고 기준을 고침)
 function trackOf(c) {
-  const done = B.posts.filter((p) => p.channels?.includes(c.id) && p.stage === "done" && p.metrics?.views > 0).sort((a, b) => (doneDay(b) < doneDay(a) ? -1 : 1));
+  const done = B.posts.filter((p) => p.channels?.includes(c.id) && isUp(p) && p.metrics?.views > 0).sort((a, b) => (doneDay(b) < doneDay(a) ? -1 : 1));
   const vs = done.map((p) => p.metrics.views).sort((a, b) => a - b), mid = vs.length ? vs[Math.floor(vs.length / 2)] : 0;
   return done.slice(0, 12).map((p) => ({ p, ratio: mid ? p.metrics.views / mid : 1 }));
 }
@@ -1314,14 +1427,14 @@ $("proj").addEventListener("change", (e) => {
     const st = p.steps[+t.dataset.sd];
     change(t.checked ? `'${st.t}' 끝` : "", () => {
       st.done = t.checked; st.at = t.checked ? today() : "";
-      if (p.steps.length && p.steps.every((q) => q.done) && p.stage !== "done") { p.stage = "done"; p.doneAt = today(); }
+      if (p.steps.length && p.steps.every((q) => q.done) && !isUp(p)) { p.stage = "done"; p.doneAt = today(); }
     });
     return;
   }
   const k = t.dataset.pf; if (!k) return;
   let v = t.value;
-  if (k === "stage") { change(`${STAGE_NAME[v]}(으)로`, () => { if (v === "done") p.doneAt = p.doneAt || today(); else delete p.doneAt; if (v === "sched" && !p.date) p.date = addDays(today(), 1); p.stage = v; }); return; }
-  if (k === "date") { change("", () => { if (p.stage === "done") p.doneAt = v || today(); else p.date = v; }); return; }
+  if (k === "stage") { change(`${STAGE_NAME[v]}(으)로`, () => { if (UP.has(v)) p.doneAt = p.doneAt || today(); else delete p.doneAt; if (v === "sched" && !p.date) p.date = addDays(today(), 1); p.stage = v; }); return; }
+  if (k === "date") { change("", () => { if (isUp(p)) p.doneAt = v || today(); else p.date = v; }); return; }
   if (k.startsWith("metrics.")) v = Number(v) || 0;
   if (k === "script.tags") v = v.split(/\s+/).filter(Boolean);
   if (k === "title") { v = v.trim() || p.title; $("title").textContent = v; }
@@ -1367,7 +1480,7 @@ async function start() {
   }
   let local = false; try { local = localStorage.getItem("sns-local") === "1"; } catch {}
   if (local && !$("gateMsg").textContent) return openLocal();
-  $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true;
+  $("gate").hidden = false; $("dash").hidden = true; $("chan").hidden = true; $("proj").hidden = true; $("dbv").hidden = true; $("tabs").hidden = true;
 }
 function openLocal() {
   online = false; setSync("이 기기에만 저장");
