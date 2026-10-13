@@ -52,6 +52,7 @@ ${persona(c)}
 이 콘텐츠의 기획:
 - 제목: ${x.title}
 - 첫 3초 훅: ${x.plan.hook || "(없음, 네가 만들어)"}
+- 시놉시스: ${x.plan.synopsis || "(없음)"}
 - 핵심 내용: ${x.plan.body || "(없음, 제목을 보고 짜)"}
 - 형식: ${x.plan.format || "(채널 성격의 형식·길이를 따름)"}
 - 왜 이 채널에: ${x.plan.why || "-"}
@@ -190,7 +191,7 @@ export default async function handler(req, res) {
       }
       if (b.action === "script") {
         const pl = b.plan || {};
-        const x = { title: clip(b.title, 80), plan: { hook: clip(pl.hook, 200), body: clip(pl.body, 800), format: clip(pl.format, 40), why: clip(pl.why, 200) }, refs, prev: clip(b.prev, 3000), ask: clip(b.ask, 300) };
+        const x = { title: clip(b.title, 80), plan: { hook: clip(pl.hook, 200), synopsis: clip(pl.synopsis, 800), body: clip(pl.body, 800), format: clip(pl.format, 40), why: clip(pl.why, 200) }, refs, prev: clip(b.prev, 3000), ask: clip(b.ask, 300) };
         if (!x.title) return res.status(400).json({ error: "title" });
         const r = await ask(SCRIPT_PROMPT(c, x), 3000);
         if (!Array.isArray(r?.scenes) || !r.scenes.length) return res.status(502).json({ error: "shape" });

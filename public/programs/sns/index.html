@@ -550,6 +550,7 @@ dialog .acts .del { background: transparent; color: var(--bad); border: 1px soli
           <h2>기획 <span>칸을 벗어나면 저장</span></h2>
           <label class="fld">한 줄 기획 (제목)<input data-pf="title" id="pTitle"></label>
           <label class="fld">첫 3초 훅<textarea data-pf="plan.hook" rows="2" placeholder="예: '이불 이렇게 빨면 1년 만에 버려요'"></textarea></label>
+          <label class="fld">시놉시스 (어떤 이야기인지 처음부터 끝까지)<textarea data-pf="plan.synopsis" rows="4" placeholder="예: 40대 아저씨가 빈 채팅창 앞에 앉는다 → AI가 이름 후보를 쏟아낸다 → 'AI이현'으로 정하고 첫 시안을 본다"></textarea></label>
           <label class="fld">핵심 내용 (무엇을, 어떤 순서로)<textarea data-pf="plan.body" rows="4"></textarea></label>
           <div class="frow">
             <label class="fld">형식<input data-pf="plan.format" placeholder="릴스 30초"></label>
@@ -658,7 +659,7 @@ const profileText = (p = {}) => PFIELDS.filter(([k]) => filled(p[k]) && k !== "s
 const aiChan = (c) => ({ id: c.id, name: c.name, platform: c.platform, profileText: profileText(c.profile) });
 const stepsFor = (chId) => { const t = (chan(chId)?.profile?.stepsTpl || "").split(/[,，\n]/).map((x) => x.trim()).filter(Boolean); return (t.length ? t : DEFAULT_STEPS).map((name) => ({ t: name, done: false })); };
 const newPost = (o) => ({ id: uid(), memo: "", date: "", createdAt: Date.now(), steps: stepsFor(o.channels?.[0]), stage: "plan", plan: {}, ...o });
-const newIdea = (o) => ({ id: uid(), title: "", hook: "", body: "", format: "", why: "", star: false, by: "me", date: "", at: Date.now(), ...o });
+const newIdea = (o) => ({ id: uid(), title: "", hook: "", synopsis: "", body: "", format: "", why: "", star: false, by: "me", date: "", at: Date.now(), ...o });
 const SEARCH = {
   "인스타그램": (q) => `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ""))}/`,
   "유튜브": (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
@@ -738,7 +739,7 @@ function mergeStudy(study) {
   if (!fresh.length) return;
   change(`📚 공부에서 나온 기획 ${fresh.length}개가 ${c.name} 기획실에 들어왔어요`, () => fresh.forEach((i) => {
     B.studyIn.push(i.id);
-    B.ideas.push(newIdea({ channel: c.id, title: i.title, hook: i.hook || "", body: i.body || "", format: i.format || "", why: i.why || "", by: "study", at: i.date ? new Date(i.date + "T12:00").getTime() : Date.now() }));
+    B.ideas.push(newIdea({ channel: c.id, title: i.title, hook: i.hook || "", synopsis: i.synopsis || "", body: i.body || "", format: i.format || "", why: i.why || "", ...(i.script ? { script: i.script } : {}), by: "study", at: i.date ? new Date(i.date + "T12:00").getTime() : Date.now() }));
   }));
 }
 
@@ -1000,12 +1001,12 @@ function renderLab(c) {
     ${waiting ? `<div class="note">📊 올린 지 3일 넘은 프로젝트 ${waiting}개에 성과가 비어 있어요. 적으면 다음 채점부터 반영돼요.</div>` : !tr.length ? `<div class="note">프로젝트를 올리고 며칠 뒤 성과(조회·좋아요·댓글)를 적으면, 점수 예측이 맞았는지 비교해서 다음 채점부터 기준을 고쳐요.</div>` : ""}`;
   const list = [...groups[labFilter]].sort(labSort === "score" ? (a, b) => (b.score?.total ?? -1) - (a.score?.total ?? -1) || (b.at - a.at) : (a, b) => (b.star - a.star) || (b.at - a.at));
   $("ideas").innerHTML = list.length ? list.map((i) => editIdea === i.id
-    ? `<div class="ic" data-idea="${i.id}"><input data-if="title" value="${esc(i.title)}" placeholder="한 줄 기획"><textarea data-if="hook" rows="2" placeholder="첫 3초 훅">${esc(i.hook)}</textarea><textarea data-if="body" rows="3" placeholder="핵심 내용">${esc(i.body)}</textarea><input data-if="format" value="${esc(i.format)}" placeholder="형식 (릴스 30초…)"><span class="acts"><button type="button" class="mini" data-idone="${i.id}">다 고쳤어요</button></span></div>`
+    ? `<div class="ic" data-idea="${i.id}"><input data-if="title" value="${esc(i.title)}" placeholder="한 줄 기획"><textarea data-if="hook" rows="2" placeholder="첫 3초 훅">${esc(i.hook)}</textarea><textarea data-if="synopsis" rows="3" placeholder="시놉시스 (어떤 이야기인지 처음부터 끝까지)">${esc(i.synopsis || "")}</textarea><textarea data-if="body" rows="3" placeholder="핵심 내용">${esc(i.body)}</textarea><input data-if="format" value="${esc(i.format)}" placeholder="형식 (릴스 30초…)"><span class="acts"><button type="button" class="mini" data-idone="${i.id}">다 고쳤어요</button></span></div>`
     : `<div class="ic${i.star ? " star" : ""}${i.status === "dropped" ? " dropped" : ""}" data-idea="${i.id}">
       <span class="tt"><button type="button" class="starbtn" data-istar="${i.id}" aria-pressed="${i.star}" aria-label="괜찮은 기획">${i.star ? "★" : "☆"}</button><b>${esc(i.title)}</b>${i.score ? `<button type="button" class="scorebtn ${i.score.total >= 80 ? "hi" : i.score.total >= 60 ? "mid" : "lo"}" data-iscore="${i.id}" aria-expanded="${openScore === i.id}" aria-label="점수 자세히">${i.score.total}점</button>` : ""}</span>
       ${i.score && openScore === i.id ? `<div class="scorebox">${SCORE_PARTS.map(([k, n, max]) => `<div class="sp"><span>${n}</span><i><b style="width:${(i.score.p[k] / max) * 100}%"></b></i><span>${i.score.p[k]}/${max}</span></div>`).join("")}${i.score.good ? `<div>👍 ${esc(i.score.good)}</div>` : ""}${i.score.fix ? `<div>🔧 ${esc(i.score.fix)}</div>` : ""}</div>` : ""}
-      ${i.hook ? `<span class="hook">🎣 ${esc(i.hook)}</span>` : ""}${i.body ? `<span class="body">${esc(i.body)}</span>` : ""}
-      <span class="meta">${i.format ? `<span>${esc(i.format)}</span>` : ""}${i.why ? `<span>${esc(i.why)}</span>` : ""}<span>${i.by === "ai" ? "🤖 AI" : i.by === "study" ? "📚 공부에서" : "✍ 나"} · ${md(ymd(new Date(i.at)))}</span>${i.date ? `<span>📅 ${md(i.date)}</span>` : ""}</span>
+      ${i.hook ? `<span class="hook">🎣 ${esc(i.hook)}</span>` : ""}${i.synopsis ? `<span class="body">📖 ${esc(i.synopsis)}</span>` : ""}${i.body ? `<span class="body">${esc(i.body)}</span>` : ""}
+      <span class="meta">${i.script ? `<span>📝 대사 있음</span>` : ""}${i.format ? `<span>${esc(i.format)}</span>` : ""}${i.why ? `<span>${esc(i.why)}</span>` : ""}<span>${i.by === "ai" ? "🤖 AI" : i.by === "study" ? "📚 공부에서" : "✍ 나"} · ${md(ymd(new Date(i.at)))}</span>${i.date ? `<span>📅 ${md(i.date)}</span>` : ""}</span>
       <span class="acts">${i.status === "dropped" ? `<button type="button" class="ghost mini" data-irestore="${i.id}">다시 살리기</button><button type="button" class="ghost mini" data-idel="${i.id}">완전히 지우기</button>` : `<button type="button" class="mini" data-imove="${i.id}">프로젝트로 →</button><button type="button" class="ghost mini" data-iedit="${i.id}">✎ 고치기</button><button type="button" class="ghost mini" data-idrop="${i.id}">버리기</button>`}</span>
     </div>`).join("")
     : `<div class="empty"><img src="/assets/zero/zero-thinking.svg" alt="">${labFilter === "new" ? "기획을 한 줄씩 적거나, 🤖로 이 채널 성격에 맞는 기획을 계속 받아 쌓아 두세요." : labFilter === "star" ? "☆를 누르면 괜찮은 기획만 여기 모여요." : "버린 기획이 없어요."}</div>`;
@@ -1169,7 +1170,7 @@ document.addEventListener("click", (e) => {
   if ((x = el("[data-iedit]"))) { editIdea = x.dataset.iedit; render(); return; }
   if ((x = el("[data-idone]"))) { editIdea = ""; render(); return; }
   if ((x = el("[data-imove]"))) {
-    const i = B.ideas.find((q) => q.id === x.dataset.imove), np = newPost({ title: i.title, channels: [i.channel], date: i.date || "", fromIdea: i.id, planScore: i.score, plan: { hook: i.hook, body: i.body, format: i.format, why: i.why } });
+    const i = B.ideas.find((q) => q.id === x.dataset.imove), np = newPost({ title: i.title, channels: [i.channel], date: i.date || "", fromIdea: i.id, planScore: i.score, plan: { hook: i.hook, synopsis: i.synopsis || "", body: i.body, format: i.format, why: i.why }, ...(i.script ? { script: { ...i.script, at: Date.now(), v: 1 } } : {}) });
     np.steps.forEach((st, n) => { if (n === 0 && /기획/.test(st.t)) { st.done = true; st.at = today(); } });
     change(`'${i.title.slice(0, 14)}' 프로젝트로 넘겼어요`, () => { B.ideas = B.ideas.filter((q) => q.id !== i.id); B.posts.push(np); });
     location.hash = `p=${np.id}`;
