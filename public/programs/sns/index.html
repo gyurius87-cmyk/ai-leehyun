@@ -754,11 +754,12 @@ async function pull() {
     const { board, study } = await api("GET");
     if (board && (board.updated || 0) > (B.updated || 0)) { B = migrate(board); saveLocal(); render(); }
     else if (!board || (B.updated || 0) > (board.updated || 0)) save();
-    mergeStudy(study);
+    mergeStudy(study); loadStudy();
   } catch {}
 }
 
 // 공부하면서 Claude가 저장소(data/sns-ideas.json)에 쌓은 기획 → 그 채널 기획실로 한 번씩만
+const loadStudy = () => fetch("/sns-ideas.json", { cache: "no-store" }).then((r) => r.json()).then(mergeStudy).catch(() => {});
 function mergeStudy(study) {
   const c = B.channels.find((x) => x.name === study?.channel) || B.channels.find((x) => /AI\s*이현/.test(x.name));
   if (!c || !Array.isArray(study?.ideas)) return;
@@ -766,10 +767,12 @@ function mergeStudy(study) {
   // 예전 화면이 열려 있을 때 들어와서 시놉시스·대사가 빠진 기획은 채워 넣기
   const fill = B.ideas.filter((x) => x.by === "study" && x.channel === c.id).map((x) => [x, study.ideas.find((i) => i.title === x.title)]).filter(([x, i]) => i && ((i.synopsis && !x.synopsis) || (i.script && !x.script)));
   if (fill.length) change("", () => fill.forEach(([x, i]) => { x.synopsis ||= i.synopsis || ""; if (i.script && !x.script) x.script = i.script; }));
-  const fresh = study.ideas.filter((i) => i?.id && i.title && !B.studyIn.includes(i.id));
+  // 받은 적은 있는데 기획실에도 프로젝트에도 없으면 (기기끼리 덮어써져 사라진 경우) 다시 넣기
+  const has = (i) => B.ideas.some((x) => x.channel === c.id && x.title === i.title) || B.posts.some((p) => p.title === i.title);
+  const fresh = study.ideas.filter((i) => i?.id && i.title && (!B.studyIn.includes(i.id) || !has(i)));
   if (!fresh.length) return;
   change(`📚 공부에서 나온 기획 ${fresh.length}개가 ${c.name} 기획실에 들어왔어요`, () => fresh.forEach((i) => {
-    B.studyIn.push(i.id);
+    if (!B.studyIn.includes(i.id)) B.studyIn.push(i.id);
     B.ideas.push(newIdea({ channel: c.id, title: i.title, hook: i.hook || "", synopsis: i.synopsis || "", body: i.body || "", format: i.format || "", why: i.why || "", ...(i.script ? { script: i.script } : {}), by: "study", at: i.date ? new Date(i.date + "T12:00").getTime() : Date.now() }));
   }));
 }
@@ -1505,7 +1508,7 @@ async function start() {
       let wasLocal = false; try { wasLocal = localStorage.getItem("sns-local") === "1"; localStorage.removeItem("sns-local"); } catch {}
       if (board && wasLocal) { B = mergeLocal(migrate(board), B); save(); }
       else if (board && (board.updated || 0) >= (B.updated || 0)) { B = migrate(board); saveLocal(); } else save();
-      mergeStudy(study);
+      mergeStudy(study); loadStudy();
       try { localStorage.setItem("ai-admin-key", key); localStorage.setItem("ai-admin", "1"); } catch {}
       $("gate").hidden = true; render(); refreshAll(false); return;
     } catch (e) {
@@ -1520,7 +1523,7 @@ function openLocal() {
   online = false; setSync("📱 이 기기에만 저장 · 동기화 켜기");
   try { localStorage.setItem("sns-local", "1"); } catch {}
   $("gate").hidden = true; render();
-  fetch("/api/sns?study=1").then((r) => r.json()).then((d) => mergeStudy(d.study)).catch(() => {});
+  loadStudy();
 }
 $("gateForm").onsubmit = (e) => { e.preventDefault(); key = $("keyIn").value.trim(); $("gateMsg").textContent = ""; start(); };
 $("localBtn").onclick = openLocal;
