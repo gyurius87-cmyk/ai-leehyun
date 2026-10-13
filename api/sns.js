@@ -1,6 +1,6 @@
 // SNS 통합 관리 (AI이현 전용). ADMIN_KEY(Vercel 환경변수)를 아는 사람만 씀.
 // GET: 보드 불러오기 / PUT: 보드 저장 / POST {action:"ai"}: 채널 성격에 맞는 아이디어·레퍼런스 추천 / POST {action:"match"}: 소재에 맞는 채널 고르기
-// POST {action:"watch"}: 벤치마크 유튜브 채널의 최근 영상 / POST {action:"watchAi"}: 벤치마크 채널 분석 / POST {action:"script"}: 프로젝트 대본
+// POST {action:"watch"}: 벤치마크 유튜브 채널의 최근 영상 / POST {action:"watchAi"}: 벤치마크 채널 분석 / POST {action:"script"}: 프로젝트 대본 / POST {action:"score"}: 기획 100점 채점
 // 각 플랫폼 연동(자동 업로드, 댓글 가져오기)은 다음 단계. 그때 토큰도 여기(서버)에서만 다룸.
 import Anthropic from "@anthropic-ai/sdk";
 import { redis, hasRedis } from "./_redis.js";
@@ -68,6 +68,29 @@ ${x.refs.length ? `\n참고 레퍼런스에서 좋았던 점:\n${lines(x.refs)}\
 
 JSON만 답해: {"hook":"...","scenes":[{"t":"...","visual":"...","line":"..."}],"cta":"...","caption":"...","tags":["#..."],"thumb":"..."}`;
 
+// 기획 채점: 100점 = 훅 25 + 채널 맞춤 25 + 반응 예상 20 + 새로움 15 + 만들기 쉬움 15 (합계는 서버에서 더함)
+const SCORE_PARTS = { hook: 25, fit: 25, react: 20, fresh: 15, easy: 15 };
+const SCORE_PROMPT = (c, x) => `너는 깐깐한 SNS 기획 심사위원이야. 아래 채널에 올릴 기획들을 하나씩 채점해 줘.
+
+채널 "${c.name}"의 성격:
+${persona(c)}
+${x.liked.length ? `\n주인이 ⭐ 표시한 기획 (주인 취향):\n${lines(x.liked)}\n` : ""}${x.dropped.length ? `\n주인이 버린 기획 (주인이 싫어하는 결):\n${lines(x.dropped)}\n` : ""}${x.best.length ? `\n이 채널에서 반응이 좋았던 것:\n${lines(x.best)}\n` : ""}${x.track.length ? `\n지금까지 올린 콘텐츠의 실제 성과 (기획 때 받은 점수 → 올린 뒤 실제 반응, 배수는 이 채널 보통 조회수 대비):\n${lines(x.track)}\n
+먼저 이 기록부터 봐. 점수가 높았는데 반응이 낮았던 것, 점수가 낮았는데 반응이 높았던 것을 비교해서 이 채널에서 실제로 먹히는 요소와 과대평가했던 요소를 찾아. 그 결과대로 이번 채점을 고쳐: 실제로 먹힌 요소가 있는 기획은 점수를 더 주고, 과대평가했던 요소는 덜 줘. (항목과 만점은 그대로)\n` : ""}
+채점할 기획:
+${x.ideas.map((i) => `[${i.id}] 제목: ${i.title}${i.hook ? ` / 훅: ${i.hook}` : ""}${i.body ? ` / 내용: ${i.body}` : ""}${i.format ? ` / 형식: ${i.format}` : ""}`).join("\n")}
+
+채점 기준 (항목별 만점):
+- hook 25: 첫 3초에 멈추게 하는 힘. 훅이 안 적혀 있으면 제목만으로 판단하되 깎아.
+- fit 25: 채널 성격(목표, 대상, 말투, 형식, 피할 것)에 맞는 정도.
+- react 20: 저장·공유·댓글이 나올 만한 정도 (쓸모, 공감, 논쟁거리).
+- fresh 15: 흔한 기획과 다른 각도, 주인만 할 수 있는 이야기인지.
+- easy 15: 혼자 촬영·편집하기 쉬운 정도 (쉬울수록 높음).
+점수는 짜게 줘. 보통 기획은 합계 55~70점, 85점 넘는 건 정말 좋은 것만.
+good은 가장 잘한 점 한 문장(35자 안팎), fix는 점수를 가장 많이 올릴 고칠 점 한 문장(50자 안팎, 구체적으로). 한국어 존댓말.
+${x.track.length ? `lesson: 실제 성과 기록을 보고 채점을 어떻게 바꿨는지 한 문장(70자 안팎, 예: '숫자 제목이 평균 2배라 훅 점수를 더 줌').` : `lesson은 빈 문자열.`}
+
+JSON만 답해: {"lesson":"...","scores":[{"id":"...","hook":0,"fit":0,"react":0,"fresh":0,"easy":0,"good":"...","fix":"..."}]}`;
+
 const WATCH_PROMPT = (w, mine) => `너는 SNS 벤치마킹 분석가야. 아래 유튜브 채널의 최근 영상을 보고, 내 채널에 가져올 점을 찾아 줘.
 
 벤치마크 채널: ${w.name}
@@ -125,7 +148,7 @@ export default async function handler(req, res) {
     }
   }
 
-  if (req.method === "POST" && ["ai", "match", "watchAi", "script"].includes(b.action)) {
+  if (req.method === "POST" && ["ai", "match", "watchAi", "script", "score"].includes(b.action)) {
     if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "no_key" });
     try {
       if (b.action === "match") {
@@ -153,6 +176,18 @@ export default async function handler(req, res) {
       if (!c.name) return res.status(400).json({ error: "channel" });
       const list = (v, n, m) => (Array.isArray(v) ? v : []).slice(0, n).map((t) => clip(t, m)).filter(Boolean);
       const refs = list(b.refs, 5, 100);
+      if (b.action === "score") {
+        const ideas = (Array.isArray(b.ideas) ? b.ideas : []).slice(0, 10).map((i) => ({ id: clip(i?.id, 40), title: clip(i?.title, 80), hook: clip(i?.hook, 150), body: clip(i?.body, 400), format: clip(i?.format, 30) })).filter((i) => i.id && i.title);
+        if (!ideas.length) return res.status(400).json({ error: "ideas" });
+        const r = await ask(SCORE_PROMPT(c, { ideas, liked: list(b.liked, 5, 60), dropped: list(b.dropped, 5, 60), best: list(b.best, 5, 60), track: list(b.track, 12, 220) }), 2500);
+        const ids = new Set(ideas.map((i) => i.id));
+        const scores = (Array.isArray(r?.scores) ? r.scores : []).filter((x) => ids.has(x?.id)).map((x) => {
+          const p = Object.fromEntries(Object.entries(SCORE_PARTS).map(([k, max]) => [k, Math.max(0, Math.min(max, Math.round(Number(x[k]) || 0)))]));
+          return { id: x.id, total: Object.values(p).reduce((a, n) => a + n, 0), p, good: clip(x.good, 100), fix: clip(x.fix, 140) };
+        });
+        if (!scores.length) return res.status(502).json({ error: "shape" });
+        return res.status(200).json({ scores, lesson: clip(r.lesson, 160) });
+      }
       if (b.action === "script") {
         const pl = b.plan || {};
         const x = { title: clip(b.title, 80), plan: { hook: clip(pl.hook, 200), body: clip(pl.body, 800), format: clip(pl.format, 40), why: clip(pl.why, 200) }, refs, prev: clip(b.prev, 3000), ask: clip(b.ask, 300) };
