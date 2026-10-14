@@ -1,0 +1,47 @@
+---
+import Base from '../layouts/Base.astro';
+
+const faces = [
+  ['basic', '기본'], ['writing', '정리 중'], ['waiting', '기다리는 중'], ['celebrate', '축하'],
+  ['question', '모르겠음'], ['thinking', '생각 중'], ['found', '발견'], ['check', '확인 중'],
+  ['oops', '실수'], ['key', '핵심'], ['number', '숫자'], ['rest', '쉬는 중'],
+];
+const extras = [
+  ['/icons/icon-512.png', '폰 앱 아이콘', '사이트를 폰에 설치하면 보이는 아이콘'],
+  ['/assets/zero/profile/charcoal.png', '프로필 · 차콜', '텔레그램 봇 프로필'],
+  ['/assets/zero/profile/yellow.png', '프로필 · 노랑', 'SNS용'],
+  ['/assets/zero/profile/white.png', '프로필 · 흰색', '밝은 화면용'],
+];
+---
+<Base title="제로" description="이현님의 비서 제로. 표정 12개와 앱 아이콘, 프로필 이미지를 모았습니다.">
+  <div slot="head" class="page-head">
+    <h1 class="page-title">비서 제로</h1>
+    <p class="page-desc">AI 공부를 함께하는 이현님의 비서입니다. 지금까지 만든 표정 {faces.length}개와 아이콘, 프로필 이미지를 모았습니다.</p>
+  </div>
+  <section class="wrap zg">
+    <h2>표정 {faces.length}개</h2>
+    <div class="grid">
+      {faces.map(([k, label]) => (
+        <figure><img src={`/assets/zero/zero-${k}.svg`} alt={`제로 ${label}`} loading="lazy" /><figcaption>{label}</figcaption></figure>
+      ))}
+    </div>
+    <h2>아이콘과 프로필</h2>
+    <div class="grid big">
+      {extras.map(([src, label, use]) => (
+        <figure><img class="round" src={src} alt={`제로 ${label}`} loading="lazy" /><figcaption>{label}<small>{use}</small></figcaption></figure>
+      ))}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .zg h2 { font-size: 1.05rem; margin: 28px 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+  .grid.big { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  figure { margin: 0; background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 16px 10px 12px; text-align: center; }
+  figure img { width: 100%; max-width: 96px; height: 96px; object-fit: contain; }
+  .big figure img { max-width: 120px; height: 120px; }
+  img.round { border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+  figcaption { margin-top: 8px; font-size: .9rem; font-weight: 600; }
+  figcaption small { display: block; font-weight: 400; color: var(--muted); font-size: .78rem; margin-top: 2px; }
+</style>
