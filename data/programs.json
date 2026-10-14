@@ -35,6 +35,15 @@
       "start": "2026-10-13",
       "private": true,
       "href": "https://claude.ai/artifact/Hh7e1j7MffUzSn73dZQXUC"
+    },
+    {
+      "id": "daily",
+      "name": "데일리 리포트",
+      "status": "using",
+      "summary": "30분마다 계획과 실제를 대조하고, 잘한 것·못한 것·병목과 마감 일기를 쓰면 Claude가 읽고 행복도와 나아갈 방향을 짚어 줍니다.",
+      "start": "2026-10-14",
+      "private": true,
+      "href": "https://claude.ai/artifact/BJDnvDXK8foeZPPvMw3C6V"
     }
   ]
 }
