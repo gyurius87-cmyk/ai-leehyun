@@ -312,9 +312,9 @@
               "title": "AI를 이용한 공부 기록 자동화",
               "what": "AI와 나눈 대화를 넣으면 공부노트 초안과 공부한 것 기록이 사이트에 바로 올라갑니다.",
               "yt": "AI 기록 자동화 블로그",
-              "status": "todo",
+              "status": "doing",
               "makesProgram": true,
-              "priority": 2
+              "start": "2026-10-15"
             }
           ]
         }
