@@ -34,6 +34,12 @@ async function fromPlaylist() {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.debug) {
+    const r = await fetch(`https://www.youtube.com/playlist?list=${UPLOADS}&hl=ko`, { headers: HEAD });
+    const h = await r.text();
+    const i = h.indexOf('"videoId"');
+    return res.status(200).json({ status: r.status, len: h.length, ids: (h.match(/"videoId":"[\w-]{11}"/g) || []).length, title: (h.match(/<title>[^<]*/) || [""])[0], keys: [...new Set(h.match(/"\w+(Renderer|ViewModel)"/g) || [])].slice(0, 40), near: h.slice(Math.max(0, i - 300), i + 600) });
+  }
   let items = null, from = "";
   try { items = await fromFeed(); from = "feed"; } catch (e) { console.error(e); }
   if (!items || !items.length) {
