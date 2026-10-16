@@ -14,7 +14,8 @@ import { days, stats } from '../lib/data.js';
   </div>
 
   <div class="wrap">
-    <div class="stat-grid" style="--cols: 4">
+    <div class="stat-grid" style="--cols: 5">
+      <div class="stat total"><div class="label">총 공부 시간</div><div class="num">{Math.floor(stats.totalMinutes / 60)}<small>시간</small>{stats.totalMinutes % 60 ? <span class="mm">{stats.totalMinutes % 60}</span><small>분</small> : null}</div></div>
       <div class="stat"><div class="label">총 기록일</div><div class="num">{stats.recordDays}<small>일</small></div></div>
       <div class="stat"><div class="label">연속 기록일</div><div class="num"><span class="hl">{stats.streak}</span><small>일</small></div></div>
       <div class="stat"><div class="label">공부노트</div><div class="num">{stats.notes}<small>편</small></div></div>

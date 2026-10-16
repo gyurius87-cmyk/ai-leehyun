@@ -1,6 +1,6 @@
 ---
 // 다음 공부를 보여주고 인스타 팔로우로 이어 주는 한 줄
-import { nextStudy, INSTAGRAM } from '../lib/data.js';
+import { nextStudy, INSTAGRAM, YOUTUBE } from '../lib/data.js';
 ---
 {nextStudy && (
   <aside class="follow">
@@ -8,7 +8,7 @@ import { nextStudy, INSTAGRAM } from '../lib/data.js';
     <p>
       <span class="label">다음 공부</span>
       <a class="next" href="/plan"><span class="hl">{nextStudy.title}</span></a>
-      <span class="ask">결과가 궁금하면 <a href={INSTAGRAM} target="_blank" rel="noopener">@ai_leehyun</a> 팔로우</span>
+      <span class="ask">결과가 궁금하면 <a href={INSTAGRAM} target="_blank" rel="noopener">@ai_leehyun</a> 팔로우 · <a href={YOUTUBE} target="_blank" rel="noopener">유튜브</a> 구독</span>
     </p>
   </aside>
 )}

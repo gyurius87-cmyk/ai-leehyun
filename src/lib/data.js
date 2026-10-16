@@ -4,6 +4,7 @@ import programsData from '../../data/programs.json';
 import planData from '../../data/plan.json';
 
 export const INSTAGRAM = 'https://www.instagram.com/ai_leehyun/';
+export const YOUTUBE = 'https://www.youtube.com/@AI%EC%9D%B4%ED%98%84';
 export const START_DATE = timeline.startDate;
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -83,6 +84,7 @@ export const ytSearch = (q) => {
 
 export const stats = {
   recordDays: days.length,
+  totalMinutes: days.reduce((sum, d) => sum + (d.minutes || 0), 0),
   streak,
   notes: notes.length,
   programs: programs.length,

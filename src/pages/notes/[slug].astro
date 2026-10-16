@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import FollowCta from '../../components/FollowCta.astro';
-import { notes, formatDate, INSTAGRAM } from '../../lib/data.js';
+import { notes, formatDate, INSTAGRAM, YOUTUBE } from '../../lib/data.js';
 
 export function getStaticPaths() {
   return notes.map((note) => ({ params: { slug: note.slug }, props: { note } }));
@@ -51,7 +51,7 @@ const html = (await note.module.compiledContent())
 
     <div class="end">
       <a href="/notes">← 공부노트 목록</a>
-      <a href={INSTAGRAM} target="_blank" rel="noopener">인스타그램 @ai_leehyun</a>
+      <span class="sns"><a href={INSTAGRAM} target="_blank" rel="noopener">인스타그램 @ai_leehyun</a> · <a href={YOUTUBE} target="_blank" rel="noopener">유튜브 @AI이현</a></span>
     </div>
   </div>
 </Base>

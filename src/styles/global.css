@@ -121,6 +121,16 @@ img {
   margin-left: 6px;
 }
 
+.nav .insta.sns2 {
+  margin-left: 0;
+}
+
+.footer .sns {
+  display: inline-flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
 .page-head {
   padding: 48px 0 56px;
 }
@@ -510,6 +520,10 @@ main {
     margin-top: -24px;
   }
 
+  .stat-grid .stat.total {
+    grid-column: 1 / -1;
+  }
+
   .stat-grid[style*='--cols: 3'] {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -659,3 +673,7 @@ html.splash #zsplash {
 @keyframes zs-grow { from { transform: scale(0.4); } to { transform: scale(1); } }
 @keyframes zs-wink { 0%, 100% { transform: scaleY(1); } 35%, 65% { transform: scaleY(0.12); } }
 @keyframes zs-out { to { opacity: 0; visibility: hidden; } }
+
+.stat .num .mm {
+  margin-left: 0.3em;
+}

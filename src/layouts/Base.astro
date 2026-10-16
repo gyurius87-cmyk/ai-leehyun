@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
 import Icon from '../components/Icon.astro';
-import { INSTAGRAM } from '../lib/data.js';
+import { INSTAGRAM, YOUTUBE } from '../lib/data.js';
 
 const {
   title,
@@ -87,6 +87,9 @@ const menu = [
             <a class="insta" href={INSTAGRAM} target="_blank" rel="noopener" aria-label="인스타그램 @ai_leehyun">
               <Icon name="insta" />
             </a>
+            <a class="insta sns2" href={YOUTUBE} target="_blank" rel="noopener" aria-label="유튜브 @AI이현">
+              <Icon name="yt" />
+            </a>
           </nav>
         </div>
         <slot name="head" />
@@ -101,7 +104,10 @@ const menu = [
       <div class="wrap">
         <span class="logo">AI<span class="y">이현</span></span>
         <span>기록 정리 · 이현님의 비서 제로</span>
-        <a href={INSTAGRAM} target="_blank" rel="noopener"><Icon name="insta" /> @ai_leehyun</a>
+        <span class="sns">
+          <a href={INSTAGRAM} target="_blank" rel="noopener"><Icon name="insta" /> @ai_leehyun</a>
+          <a href={YOUTUBE} target="_blank" rel="noopener"><Icon name="yt" /> @AI이현</a>
+        </span>
       </div>
     </footer>
 
