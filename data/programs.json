@@ -53,6 +53,23 @@
       "start": "2026-10-15",
       "private": true,
       "href": "https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi"
+    },
+    {
+      "id": "biz-office",
+      "name": "사업 운영실",
+      "status": "making",
+      "summary": "쇼핑몰의 상품 DB, 광고, 주문, 인사를 한곳에서 보는 사내 사이트입니다.",
+      "start": "2026-10-13",
+      "private": true,
+      "href": "https://claude.ai/artifact/DV6RBJkofZco8bVUeATUqC"
+    },
+    {
+      "id": "stock",
+      "name": "주식 프로그램",
+      "status": "making",
+      "summary": "관심 종목 정보와 매매일지를 한곳에서 관리할 주식 프로그램입니다.",
+      "start": "2026-10-16",
+      "private": true
     }
   ]
 }
