@@ -110,9 +110,9 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
           return;
         }
         row.innerHTML = items.map((v) => `
-          <a class="yt-card" href="${esc(v.url)}" data-id="${esc(v.id)}" target="_blank" rel="noopener">
-            <div class="yt-thumb"><img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="" loading="lazy" /><span class="yt-play">▶</span></div>
-            <p class="yt-title">${v.short ? '[쇼츠] ' : ''}${esc(v.title)}</p>
+          <a class="yt-card${v.short ? ' short' : ''}" href="${esc(v.url)}" data-id="${esc(v.id)}" target="_blank" rel="noopener">
+            <div class="yt-thumb"><img src="https://i.ytimg.com/vi/${esc(v.id)}/${v.short ? 'oar2' : 'hqdefault'}.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg'" alt="" loading="lazy" /><span class="yt-play">▶</span></div>
+            <p class="yt-title">${esc(v.title)}</p>
             <p class="yt-date">${ymd(v.published)}</p>
           </a>`).join('');
         row.addEventListener('click', (e) => {
@@ -121,7 +121,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
           e.preventDefault();
           const box = card.querySelector('.yt-thumb');
           if (box.querySelector('iframe')) return;
-          box.innerHTML = `<iframe src="https://www.youtube.com/embed/${card.dataset.id}?autoplay=1&playsinline=1" title="${esc(card.querySelector('.yt-title').textContent)}" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`;
+          box.innerHTML = `<iframe src="https://www.youtube.com/embed/${card.dataset.id}?autoplay=1&playsinline=1&loop=1&playlist=${card.dataset.id}" title="${esc(card.querySelector('.yt-title').textContent)}" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`;
         });
       })
       .catch(() => { row.innerHTML = '<p class="yt-empty">영상을 불러오지 못했어요. 아래 채널에서 볼 수 있어요.</p>'; });
@@ -130,9 +130,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
 
 <style>
   .yt-row {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(220px, calc((100% - 32px) / 3));
+    display: flex;
     gap: 16px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -140,6 +138,9 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
   }
 
   .yt-row :global(.yt-card) {
+    flex: none;
+    width: 320px;
+    max-width: 78%;
     scroll-snap-align: start;
     display: block;
     text-decoration: none;
@@ -152,6 +153,15 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
     border-radius: 14px;
     overflow: hidden;
     background: var(--charcoal);
+  }
+
+  .yt-row :global(.yt-card.short) {
+    width: 180px;
+    max-width: 46%;
+  }
+
+  .yt-row :global(.yt-card.short .yt-thumb) {
+    aspect-ratio: 9 / 16;
   }
 
   .yt-row :global(.yt-thumb img),
@@ -204,7 +214,6 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
 
   @media (max-width: 760px) {
     .yt-row {
-      grid-auto-columns: 78%;
       gap: 12px;
     }
   }
