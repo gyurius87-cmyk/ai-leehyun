@@ -40,6 +40,14 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
 
   <div class="wrap">
     <section class="section">
+      <h2 class="section-title">유튜브 최신 영상</h2>
+      <div class="yt-row" id="ytRow" aria-live="polite">
+        <p class="yt-empty">영상을 불러오는 중이에요.</p>
+      </div>
+      <a class="more" href={YOUTUBE} target="_blank" rel="noopener">유튜브 @AI이현 채널 보러가기 →</a>
+    </section>
+
+    <section class="section">
       <h2 class="section-title">공부할 것</h2>
       {nextStudy && (
         <a class="next-study" href="/plan">
@@ -81,14 +89,6 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
         {recent.map((note) => <NoteCard note={note} />)}
       </div>
       <a class="more" href="/notes">공부노트 전체 보기 →</a>
-    </section>
-
-    <section class="section">
-      <h2 class="section-title">유튜브 최신 영상</h2>
-      <div class="yt-row" id="ytRow" aria-live="polite">
-        <p class="yt-empty">영상을 불러오는 중이에요.</p>
-      </div>
-      <a class="more" href={YOUTUBE} target="_blank" rel="noopener">유튜브 @AI이현 채널 보러가기 →</a>
     </section>
   </div>
 </Base>
@@ -156,7 +156,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
   }
 
   .yt-row :global(.yt-card.short) {
-    width: 180px;
+    width: 270px;
     max-width: 46%;
   }
 
