@@ -341,6 +341,27 @@
               "priority": 2
             }
           ]
+        },
+        {
+          "name": "자산 관리",
+          "items": [
+            {
+              "id": "money-book",
+              "title": "AI를 이용한 가계부·자산 관리",
+              "what": "한 줄로 적거나 은행 알림·엑셀을 넣으면 수입·지출을 나누고, 실제로 번 돈과 순자산 흐름을 보여줍니다.",
+              "yt": "AI 가계부 자동화",
+              "status": "doing",
+              "start": "2026-10-16",
+              "result": {
+                "label": "AI 가계부",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude 아티팩트",
+                "Claude 예약 작업"
+              ]
+            }
+          ]
         }
       ]
     },
