@@ -70,6 +70,15 @@
       "summary": "관심 종목 정보와 매매일지를 한곳에서 관리할 주식 프로그램입니다.",
       "start": "2026-10-16",
       "private": true
+    },
+    {
+      "id": "money",
+      "name": "AI 가계부",
+      "status": "making",
+      "summary": "사업, 주식, SNS로 실제로 얼마를 버는지 한 줄로 적어 모으고, 달마다 번 돈과 쓴 곳을 통계로 봅니다.",
+      "start": "2026-10-16",
+      "private": true,
+      "href": "https://claude.ai/artifact/NbiaJUdZbPPDW5vRNRy4WD"
     }
   ]
 }
