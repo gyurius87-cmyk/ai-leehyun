@@ -24,22 +24,30 @@ async function fromPlaylist() {
   if (!r.ok) return null;
   const html = await r.text();
   const out = [], seen = new Set();
-  const re = /"playlistVideoRenderer":\{"videoId":"([\w-]{11})"[\s\S]{0,4000}?"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/g;
-  for (let m; (m = re.exec(html)); ) {
-    if (seen.has(m[1])) continue;
-    seen.add(m[1]);
-    out.push({ id: m[1], title: unjson(m[2]), url: `https://www.youtube.com/watch?v=${m[1]}`, short: false, published: "" });
-  }
+  const add = (id, title, short) => {
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push({ id, title: unjson(title || "").replace(/,\s*조회수.*$/, ""), url: short ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`, short, published: "" });
+  };
+  // 페이지에 나온 순서(새 영상 먼저)대로 일반 영상·쇼츠 칸을 하나씩 읽음
+  const re = /"(playlistVideoRenderer|shortsLockupViewModel|lockupViewModel)":\{/g;
+  const marks = [...html.matchAll(re)].map((m) => ({ kind: m[1], at: m.index }));
+  marks.forEach(({ kind, at }, n) => {
+    const block = html.slice(at, marks[n + 1] ? marks[n + 1].at : at + 6000);
+    const T = '((?:[^"\\\\]|\\\\.)*)';
+    if (kind === "playlistVideoRenderer") {
+      add((block.match(/"videoId":"([\w-]{11})"/) || [])[1], (block.match(new RegExp(`"title":\\{"runs":\\[\\{"text":"${T}"`)) || [])[1], false);
+    } else if (kind === "shortsLockupViewModel") {
+      const id = (block.match(/"videoId":"([\w-]{11})"/) || block.match(/\/shorts\/([\w-]{11})/) || [])[1];
+      add(id, (block.match(new RegExp(`"primaryText":\\{"content":"${T}"`)) || block.match(new RegExp(`"accessibilityText":"${T}"`)) || [])[1], true);
+    } else {
+      add((block.match(/"contentId":"([\w-]{11})"/) || [])[1], (block.match(new RegExp(`"title":\\{"content":"${T}"`)) || [])[1], false);
+    }
+  });
   return out;
 }
 
 export default async function handler(req, res) {
-  if (req.query?.debug) {
-    const r = await fetch(`https://www.youtube.com/playlist?list=${UPLOADS}&hl=ko`, { headers: HEAD });
-    const h = await r.text();
-    const i = h.indexOf('"videoId"');
-    return res.status(200).json({ status: r.status, len: h.length, ids: (h.match(/"videoId":"[\w-]{11}"/g) || []).length, title: (h.match(/<title>[^<]*/) || [""])[0], keys: [...new Set(h.match(/"\w+(Renderer|ViewModel)"/g) || [])].slice(0, 40), near: h.slice(Math.max(0, i - 300), i + 600) });
-  }
   let items = null, from = "";
   try { items = await fromFeed(); from = "feed"; } catch (e) { console.error(e); }
   if (!items || !items.length) {
