@@ -4,77 +4,89 @@ import { formatDate, ytSearch } from '../lib/data.js';
 const { item } = Astro.props;
 const short = (ymd) => formatDate(ymd).slice(5);
 ---
-<article class={`plan-item ${item.status}`}>
-  <div class="mark" aria-hidden="true">
-    {item.status === 'done' ? <span class="box checked"><Icon name="check" /></span> : <span class="box" />}
-  </div>
-  <div class="body">
-    <div class="pi-top">
+<details class={`plan-item ${item.status}`}>
+  <summary>
+    <span class="mark" aria-hidden="true">
+      {item.status === 'done' ? <span class="box checked"><Icon name="check" /></span> : <span class="box" />}
+    </span>
+    <span class="line1">
       {item.status === 'done' && <span class="badge done">끝냄</span>}
       {item.status === 'doing' && <span class="badge doing">하는 중</span>}
       {item.status === 'todo' && <span class="badge doing">{item.priority}순위</span>}
-      <span class="no">{item.area} › {item.group}</span>
-      {item.makesProgram && item.status !== 'done' && <span class="badge ghost">프로그램이 나올 공부</span>}
+      <h3 title={item.title}>{item.title.replace(/^AI를 이용한\s*/, "")}</h3>
+      <span class="no">{item.group}</span>
+    </span>
+    <span class="side mono">
+      {item.status === 'done' && item.end && <span class="when">{short(item.end)}</span>}
+      {item.status !== 'done' && item.yt && (
+        <a class="yt" href={ytSearch(item.yt)} data-yt={item.yt} target="_blank" rel="noopener" aria-label={`${item.title} 유튜브 영상 (최근 4개월, 조회수순)`} title="유튜브: 최근 4개월, 조회수순">
+          <Icon name="youtube" />
+        </a>
+      )}
+      <span class="chev" aria-hidden="true">▾</span>
+    </span>
+    {(item.what || item.why) && <span class="why">{item.what || item.why}</span>}
+  </summary>
+
+  <div class="pi-more">
+    {(item.what || item.why) && <p class="why-full">{item.what || item.why}</p>}
+    <div class="meta mono">
+      {item.area} › {item.group}
+      {item.status === 'done' && item.start && <> · {short(item.start)} → {short(item.end)} · {item.days}일{item.minutes ? ` · 총 ${item.minutes}분` : ''}</>}
+      {item.makesProgram && item.status !== 'done' && <> · 프로그램이 나올 공부</>}
     </div>
-    <h3>{item.title}</h3>
-    {(item.what || item.why) && <p class="why">{item.what || item.why}</p>}
-    {item.status !== 'done' && item.yt && (
+    {item.status === 'done' && item.facts && (
+      <dl class="facts">
+        {item.facts.map((f) => (
+          <div>
+            <dt>{f.label}</dt>
+            <dd>{f.value}<small>{f.unit}</small></dd>
+          </div>
+        ))}
+      </dl>
+    )}
+    {item.status === 'done' && (item.notes?.length || item.result) && (
       <div class="links">
-        {item.yt && (
-          <a class="yt" href={ytSearch(item.yt)} data-yt={item.yt} target="_blank" rel="noopener" aria-label={`${item.title} 유튜브 영상 (최근 4개월, 조회수순)`} title="유튜브: 최근 4개월, 조회수순">
-            <Icon name="youtube" />
-          </a>
-        )}
+        {item.notes?.map((n) => <a href={`/notes/${n}`}>공부노트 #{n} →</a>)}
+        {item.result && <a href={item.result.href}>{item.result.label} →</a>}
       </div>
     )}
-
-    {item.status === 'done' && (
-      <>
-        <div class="when mono">
-          {short(item.start)} → {short(item.end)} · {item.days}일{item.minutes ? ` · 총 ${item.minutes}분` : ''}
-        </div>
-        {item.facts && (
-          <dl class="facts">
-            {item.facts.map((f) => (
-              <div>
-                <dt>{f.label}</dt>
-                <dd>{f.value}<small>{f.unit}</small></dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        <div class="links">
-          {item.notes?.map((n) => <a href={`/notes/${n}`}>공부노트 #{n} →</a>)}
-          {item.result && <a href={item.result.href}>{item.result.label} →</a>}
-        </div>
-      </>
-    )}
   </div>
-</article>
+</details>
 
 <style>
+  /* 한 항목 = 한두 줄. 누르면 설명·숫자·링크가 펼쳐짐 */
   .plan-item {
-    display: grid;
-    grid-template-columns: 36px 1fr;
-    gap: 16px;
     background: var(--white);
-    border-radius: 16px;
-    padding: 24px 28px;
+    border-radius: 14px;
   }
 
   .plan-item.doing {
     box-shadow: inset 0 0 0 2px var(--yellow);
   }
 
+  summary {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
   .box {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin-top: 2px;
+    width: 24px;
+    height: 24px;
     border: 2px solid #c9cdd3;
-    border-radius: 7px;
+    border-radius: 6px;
   }
 
   .box.checked {
@@ -84,31 +96,39 @@ const short = (ymd) => formatDate(ymd).slice(5);
   }
 
   .box :global(svg) {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 
-  .pi-top {
+  .line1 {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .no {
-    font-family: var(--mono);
+    flex: none;
     font-size: 13px;
-    font-weight: 500;
     color: var(--muted);
   }
 
   .badge {
+    flex: none;
     font-size: 12px;
     line-height: 1;
-    padding: 6px 9px;
+    padding: 5px 8px;
     border-radius: 999px;
-    background: var(--paper);
-    color: var(--muted);
     font-weight: 500;
   }
 
@@ -122,44 +142,79 @@ const short = (ymd) => formatDate(ymd).slice(5);
     color: var(--ink);
   }
 
-  .badge.ghost {
-    background: transparent;
-    border: 1px solid #d3d6db;
-  }
-
-  h3 {
-    margin: 8px 0 0;
-    font-size: 21px;
-    line-height: 1.4;
-  }
-
-  .why {
-    margin: 4px 0 0;
-    font-size: 16px;
-    line-height: 1.65;
+  .side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
     color: var(--muted);
   }
 
-  .when {
-    margin-top: 14px;
+  .side .yt {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+  }
+
+  .side .yt :global(svg) {
+    width: 26px;
+    height: auto;
+  }
+
+  .chev {
+    transition: transform 0.15s;
+  }
+
+  details[open] .chev {
+    transform: rotate(180deg);
+  }
+
+  .why {
+    grid-column: 2 / 4;
+    margin-top: 2px;
     font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  details[open] .why {
+    display: none;
+  }
+
+  .pi-more {
+    padding: 0 16px 14px 54px;
+  }
+
+  .why-full {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .meta {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
   }
 
   .facts {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin: 12px 0 0;
+    gap: 8px;
+    margin: 10px 0 0;
   }
 
   .facts div {
     background: var(--paper);
-    border-radius: 12px;
-    padding: 12px 14px;
+    border-radius: 10px;
+    padding: 8px 12px;
   }
 
   .facts dt {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--muted);
   }
 
@@ -167,13 +222,13 @@ const short = (ymd) => formatDate(ymd).slice(5);
     margin: 0;
     font-family: var(--mono);
     font-weight: 500;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1.3;
   }
 
   .facts small {
     font-family: var(--sans);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--muted);
     margin-left: 3px;
@@ -183,21 +238,16 @@ const short = (ymd) => formatDate(ymd).slice(5);
     display: flex;
     flex-wrap: wrap;
     gap: 4px 18px;
-    margin-top: 10px;
+    margin-top: 6px;
   }
 
   .links a {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
+    min-height: 40px;
     font-size: 15px;
     font-weight: 500;
     text-decoration: none;
-  }
-
-  .links .yt :global(svg) {
-    width: 28px;
-    height: auto;
   }
 
   .links a:hover {
@@ -205,37 +255,29 @@ const short = (ymd) => formatDate(ymd).slice(5);
   }
 
   @media (max-width: 760px) {
-    .plan-item {
-      grid-template-columns: 28px 1fr;
-      gap: 12px;
-      padding: 18px;
-      border-radius: 14px;
-    }
-
-    .box {
-      width: 24px;
-      height: 24px;
+    summary {
+      padding: 10px 12px;
+      column-gap: 10px;
     }
 
     h3 {
-      font-size: 17px;
+      font-size: 15.5px;
+    }
+
+    .no {
+      display: none;
     }
 
     .why {
-      font-size: 14px;
+      font-size: 13px;
     }
 
-    .when {
-      font-size: 12px;
+    .pi-more {
+      padding: 0 12px 12px 48px;
     }
 
     .facts {
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
-    .facts dd {
-      font-size: 22px;
     }
   }
 </style>
