@@ -105,9 +105,27 @@
             {
               "id": "marketing",
               "title": "AI를 이용한 마케팅·광고 분석",
-              "what": "광고 성과와 고객 데이터를 분석하고 광고 소재를 대량으로 만들어 시험합니다.",
+              "what": "네이버 검색광고를 연결해 ROAS로 잘 나오는 광고와 못 나오는 광고를 나누고, 제외 검색어 추천과 바꾼 광고를 3일 동안 따라가며 좋음/나쁨을 판정하게 했습니다.",
               "yt": "AI 마케팅 광고 분석",
-              "status": "wait"
+              "status": "done",
+              "start": "2026-10-14",
+              "end": "2026-10-15",
+              "facts": [
+                {
+                  "label": "변경 추적",
+                  "value": "3",
+                  "unit": "일"
+                },
+                {
+                  "label": "입찰가 조정",
+                  "value": "±%",
+                  "unit": "버튼"
+                }
+              ],
+              "tools": [
+                "Claude Code",
+                "네이버 검색광고 API"
+              ]
             }
           ]
         },
@@ -176,17 +194,93 @@
             {
               "id": "automation",
               "title": "AI를 이용한 업무 자동화",
-              "what": "주문, 시트, 메일, 메신저를 잇고 AI 에이전트에게 반복 업무를 맡깁니다.",
+              "what": "텔레그램 알림, 스마트스토어 주문 연결, 매일 밤 12시 자동 기록처럼 반복되는 일을 AI와 예약 작업에 맡겼습니다.",
               "yt": "AI 업무 자동화",
-              "status": "wait"
+              "status": "done",
+              "start": "2026-10-13",
+              "end": "2026-10-15",
+              "facts": [
+                {
+                  "label": "알림",
+                  "value": "텔레그램",
+                  "unit": ""
+                },
+                {
+                  "label": "자동 기록",
+                  "value": "매일 0",
+                  "unit": "시"
+                }
+              ],
+              "notes": [
+                "005"
+              ],
+              "tools": [
+                "Claude Code",
+                "텔레그램 봇",
+                "예약 작업"
+              ]
             },
             {
               "id": "inhouse-app",
               "title": "AI를 이용한 업무 프로그램 만들기",
-              "what": "엑셀로 하던 일을 작은 웹 프로그램으로 만들어 직원이 씁니다.",
+              "what": "구글 시트와 엑셀로 하던 일을 사내 운영실 사이트로 옮겼습니다. 4단계 권한 로그인, 상품 DB와 순마진, 연차·비품 신청을 직원이 같이 씁니다.",
               "yt": "AI 업무 프로그램 만들기",
-              "status": "wait",
-              "makesProgram": true
+              "status": "done",
+              "makesProgram": true,
+              "start": "2026-10-13",
+              "end": "2026-10-15",
+              "facts": [
+                {
+                  "label": "권한",
+                  "value": "4",
+                  "unit": "단계"
+                },
+                {
+                  "label": "판매 채널",
+                  "value": "11",
+                  "unit": "곳"
+                },
+                {
+                  "label": "남은 공사",
+                  "value": "40",
+                  "unit": "개"
+                }
+              ],
+              "tools": [
+                "Claude Code",
+                "Vercel",
+                "Supabase",
+                "Apps Script"
+              ]
+            },
+            {
+              "id": "ai-office",
+              "title": "AI를 이용한 AI 직원 관리",
+              "what": "Claude 스레드를 부서별 AI 직원으로 묶고, 제로를 부서장으로 앉혀 한눈에 보는 AI 사무실 현황판을 만들었습니다.",
+              "yt": "AI 에이전트 팀 관리",
+              "status": "done",
+              "start": "2026-10-15",
+              "end": "2026-10-15",
+              "facts": [
+                {
+                  "label": "스레드",
+                  "value": "12",
+                  "unit": "개"
+                },
+                {
+                  "label": "팀",
+                  "value": "5",
+                  "unit": "개"
+                }
+              ],
+              "result": {
+                "label": "AI 사무실",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude Code",
+                "Claude 아티팩트"
+              ]
             }
           ]
         }
@@ -291,9 +385,36 @@
             {
               "id": "visual-content",
               "title": "AI를 이용한 이미지·캐릭터 콘텐츠 제작",
-              "what": "카드뉴스, 썸네일, 움직이는 제로 캐릭터 영상을 만듭니다.",
+              "what": "비서 제로(표정 12개, 앱 아이콘, 프로필)와 사업용 알림 캐릭터 아르(표정 7개)를 AI로 만들었습니다.",
               "yt": "AI 이미지 콘텐츠 만들기",
-              "status": "wait"
+              "status": "done",
+              "start": "2026-10-11",
+              "end": "2026-10-14",
+              "facts": [
+                {
+                  "label": "제로 표정",
+                  "value": "12",
+                  "unit": "개"
+                },
+                {
+                  "label": "아르 표정",
+                  "value": "7",
+                  "unit": "개"
+                },
+                {
+                  "label": "아르 시안",
+                  "value": "11",
+                  "unit": "개"
+                }
+              ],
+              "result": {
+                "label": "비서 제로",
+                "href": "/zero"
+              },
+              "tools": [
+                "Claude",
+                "Claude Code"
+              ]
             }
           ]
         },
@@ -310,11 +431,32 @@
             {
               "id": "study-log",
               "title": "AI를 이용한 공부 기록 자동화",
-              "what": "AI와 나눈 대화를 넣으면 공부노트 초안과 공부한 것 기록이 사이트에 바로 올라갑니다.",
+              "what": "매일 밤 12시에 Claude가 그날 한 일을 공부한 것에 적고, 다른 Claude 세션도 한 일을 스스로 기록하게 했습니다.",
               "yt": "AI 기록 자동화 블로그",
-              "status": "doing",
+              "status": "done",
               "makesProgram": true,
-              "start": "2026-10-15"
+              "start": "2026-10-10",
+              "end": "2026-10-15",
+              "facts": [
+                {
+                  "label": "자동 기록",
+                  "value": "매일 0",
+                  "unit": "시"
+                },
+                {
+                  "label": "기록 규칙 안내문",
+                  "value": "1",
+                  "unit": "개"
+                }
+              ],
+              "result": {
+                "label": "공부한 것",
+                "href": "/timeline"
+              },
+              "tools": [
+                "Claude Code",
+                "예약 작업"
+              ]
             }
           ]
         }
@@ -371,6 +513,34 @@
               },
               "tools": [
                 "Claude Code",
+                "Claude 아티팩트"
+              ]
+            },
+            {
+              "id": "daily-report",
+              "title": "AI를 이용한 하루 계획·회고",
+              "what": "30분 단위 계획과 실제를 대조하고, 마감 일기를 Claude가 읽어 행복도와 내일 방향을 짚어 주는 데일리 리포트를 만들었습니다.",
+              "yt": "AI 하루 계획 회고",
+              "status": "done",
+              "start": "2026-10-14",
+              "end": "2026-10-14",
+              "facts": [
+                {
+                  "label": "계획 단위",
+                  "value": "30",
+                  "unit": "분"
+                },
+                {
+                  "label": "통계",
+                  "value": "주간·월간",
+                  "unit": ""
+                }
+              ],
+              "result": {
+                "label": "데일리 리포트",
+                "href": "/programs"
+              },
+              "tools": [
                 "Claude 아티팩트"
               ]
             }
