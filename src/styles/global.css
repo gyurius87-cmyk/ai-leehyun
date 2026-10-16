@@ -677,3 +677,23 @@ html.splash #zsplash {
 .stat .num .mm {
   margin-left: 0.3em;
 }
+
+/* 공부한 것 카테고리 */
+.day-items .cat {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: 1px;
+  white-space: nowrap;
+  background: #eef0f2;
+  color: var(--charcoal);
+}
+.day-items .cat[data-c='프로그램'] { background: #fff3c4; }
+.day-items .cat[data-c='자동화'] { background: #e3efff; color: #1d4f91; }
+.day-items .cat[data-c='브랜드'] { background: #ffe6dc; color: #9a3412; }
+.day-items .cat[data-c='공부노트'] { background: #e5f5e8; color: #1f6b35; }
+.day-items .cat[data-c='사업'] { background: var(--charcoal); color: var(--yellow); }

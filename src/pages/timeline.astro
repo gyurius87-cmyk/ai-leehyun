@@ -1,7 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import DayBlock from '../components/DayBlock.astro';
-import { days, stats } from '../lib/data.js';
+import { TL_CATS, days, stats } from '../lib/data.js';
+const all = days.flatMap((d) => d.items);
+const cats = TL_CATS.map((c) => ({ c, n: all.filter((i) => i.cat === c).length })).filter((x) => x.n);
 ---
 <Base current="timeline" title="공부한 것" description="하루 한 블록. 중요한 것만 남깁니다.">
   <div slot="head" class="page-head">
@@ -23,6 +25,12 @@ import { days, stats } from '../lib/data.js';
     </div>
 
     <div class="toolbar">
+      <div class="cat-filter" role="group" aria-label="카테고리로 보기">
+        <button type="button" class="chip" data-f="" aria-pressed="true">전체 <small>{all.length}</small></button>
+        {cats.map(({ c, n }) => (
+          <button type="button" class="chip" data-f={c} aria-pressed="false">{c === '사업' ? '사업 운영실' : c} <small>{n}</small></button>
+        ))}
+      </div>
       <button type="button" class="order-btn" aria-pressed="false">1일째부터 보기</button>
     </div>
 
@@ -35,8 +43,70 @@ import { days, stats } from '../lib/data.js';
 <style>
   .toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
     margin: 36px 0 14px;
+  }
+
+  .cat-filter {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+
+  .chip {
+    flex: none;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--white);
+    color: var(--ink);
+    font: 500 14px var(--sans);
+    cursor: pointer;
+  }
+
+  .chip small {
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-left: 2px;
+  }
+
+  .chip[aria-pressed='true'] {
+    background: var(--charcoal);
+    border-color: var(--charcoal);
+    color: var(--white);
+  }
+
+  .chip[aria-pressed='true'] small {
+    color: var(--yellow);
+  }
+
+  .order-btn {
+    flex: none;
+  }
+
+  :global(.day-items li.first) {
+    border-top: 0;
+  }
+
+  :global(.day-items li.off),
+  :global(.day-block.off) {
+    display: none;
+  }
+
+  @media (max-width: 760px) {
+    .toolbar {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .order-btn {
+      align-self: flex-end;
+    }
   }
 
   .order-btn {
@@ -78,4 +148,23 @@ import { days, stats } from '../lib/data.js';
     btn.setAttribute('aria-pressed', String(reversed));
     btn.textContent = reversed ? '최신부터 보기' : '1일째부터 보기';
   });
+
+  // 카테고리 필터: 고른 카테고리 항목만 남기고, 남는 항목이 없는 날은 숨김
+  const chips = document.querySelectorAll<HTMLButtonElement>('.cat-filter .chip');
+  const apply = (f: string) => {
+    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.f === f)));
+    document.querySelectorAll<HTMLElement>('#days .day-block').forEach((day) => {
+      let shown = 0;
+      day.querySelectorAll<HTMLElement>('.day-items li').forEach((li) => {
+        const on = !f || li.dataset.cat === f;
+        li.classList.toggle('off', !on);
+        li.classList.toggle('first', on && !shown);
+        if (on) shown++;
+      });
+      day.classList.toggle('off', !shown);
+    });
+    try { f ? localStorage.setItem('tl-cat', f) : localStorage.removeItem('tl-cat'); } catch {}
+  };
+  chips.forEach((c) => c.addEventListener('click', () => apply(c.dataset.f || '')));
+  try { const saved = localStorage.getItem('tl-cat'); if (saved && document.querySelector(`.chip[data-f="${saved}"]`)) apply(saved); } catch {}
 </script>

@@ -28,10 +28,27 @@ export const todayDayNumber = () => {
   return Math.max(1, dayNumber(kst));
 };
 
+// 공부한 것 카테고리. 항목에 cat 이 없으면 글로 추정 (밤 기록 작업이 cat 을 빠뜨려도 보이게)
+export const TL_CATS = ['사이트', '프로그램', '자동화', '브랜드', '공부노트', '사업'];
+const guessCat = (i) => {
+  const t = i.text || '', l = i.link || '';
+  if (t.startsWith('사업 운영실')) return '사업';
+  if (l.startsWith('/notes') || t.includes('공부노트')) return '공부노트';
+  if (/텔레그램|자동|예약 작업/.test(t)) return '자동화';
+  if (/제로|캐릭터|브랜드/.test(t)) return '브랜드';
+  if (/프로그램|프로젝트 플로우|문제 해결|애널리틱스|데일리 리포트|AI 사무실/.test(t) || l.startsWith('/programs')) return '프로그램';
+  return '사이트';
+};
+const withCat = (i) => {
+  const cat = TL_CATS.includes(i.cat) ? i.cat : guessCat(i);
+  // 사업 항목은 앞의 '사업 운영실 · '를 빼고 카테고리 칸으로 보여줌
+  return { ...i, cat, text: cat === '사업' ? i.text.replace(/^사업 운영실\s*·\s*/, '') : i.text };
+};
+
 export const days = [...timeline.days]
   .filter((d) => d.items && d.items.length)
   .sort((a, b) => (a.date < b.date ? 1 : -1))
-  .map((d) => ({ ...d, items: [...d.items].sort((a, b) => (a.time < b.time ? 1 : -1)), day: dayNumber(d.date), weekday: weekday(d.date) }));
+  .map((d) => ({ ...d, items: d.items.map(withCat).sort((a, b) => (a.time < b.time ? 1 : -1)), day: dayNumber(d.date), weekday: weekday(d.date) }));
 
 // 실제로 원고 파일이 있는 공부노트만 셉니다.
 const mdFiles = import.meta.glob('../../content/notes/*.md', { eager: true });

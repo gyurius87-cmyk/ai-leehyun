@@ -12,9 +12,10 @@ const studied = day.minutes ? (h ? `${h}시간` : '') + (m ? `${h ? ' ' : ''}${m
   </div>
   <ul class="day-items">
     {day.items.map((item) => (
-      <li>
+      <li data-cat={item.cat}>
         <time>{item.time}</time>
         <span>
+          <b class="cat" data-c={item.cat}>{item.cat === '사업' ? '사업 운영실' : item.cat}</b>
           {item.text}
           {item.link && <a href={item.link}>보러가기 →</a>}
         </span>
