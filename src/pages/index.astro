@@ -101,8 +101,14 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
   if (row) {
     fetch('/api/youtube')
       .then((r) => r.json())
-      .then(({ items = [] }) => {
-        if (!items.length) { row.innerHTML = '<p class="yt-empty">아직 올린 영상이 없어요.</p>'; return; }
+      .then(({ items = [], playlist }) => {
+        // 목록을 못 읽으면 채널 업로드 재생목록 플레이어 하나로 대신 (새 영상이 맨 앞)
+        if (!items.length) {
+          row.innerHTML = playlist
+            ? `<div class="yt-card"><div class="yt-thumb"><iframe src="https://www.youtube.com/embed/videoseries?list=${esc(playlist)}" title="AI이현 유튜브 최신 영상" loading="lazy" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div></div>`
+            : '<p class="yt-empty">아직 올린 영상이 없어요.</p>';
+          return;
+        }
         row.innerHTML = items.map((v) => `
           <a class="yt-card" href="${esc(v.url)}" data-id="${esc(v.id)}" target="_blank" rel="noopener">
             <div class="yt-thumb"><img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="" loading="lazy" /><span class="yt-play">▶</span></div>
