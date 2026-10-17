@@ -79,6 +79,15 @@
       "start": "2026-10-16",
       "private": true,
       "href": "https://claude.ai/artifact/NbiaJUdZbPPDW5vRNRy4WD"
+    },
+    {
+      "id": "studio",
+      "name": "유튜브 영상 촬영실",
+      "status": "using",
+      "summary": "지금까지 한 것을 모아, 누르면 그때 시작한 프롬프트와 나눈 스레드를 보여줍니다. 유튜브 롱폼 촬영용 화면입니다.",
+      "start": "2026-10-17",
+      "private": true,
+      "href": "https://claude.ai/artifact/Ws925B8xLyKgrHk6db2va6"
     }
   ]
 }
