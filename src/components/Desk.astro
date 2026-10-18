@@ -4,7 +4,8 @@
 // acc: 직원마다 다른 소품 (glasses heart beret pencil tie bowtie cap ribbon headset helmet crown)
 // status: working(타이핑) / waiting(커피 들고 기다림) / done(기지개 + ✓)
 // since: 확인 대기를 시작한 날(YYYY-MM-DD). 화면에서 며칠째인지 세어 data-age 0(하루) / 1(2~3일, 땀) / 2(4일+, 졸고 거미줄)
-const { kind = 'zero', acc = '', status = 'done', prop = '', since = '' } = Astro.props;
+const { kind = 'zero', acc = '', status = 'done', prop = '', since = '', papers = 0 } = Astro.props;
+// papers: 대표 책상에 쌓을 서류 장수 (확인할 건수)
 const BODY = { zero: '#F2D53C', are: '#9cc3f0', bull: '#a78bfa', human: '#3b4150' };
 const ey = kind === 'bull' ? 27 : 29;
 // 얼굴 위치와 색 (눈 x, 눈 y, 눈 크기, 눈동자 색, 눈썹/감은 눈 색, 입 y, 입 색)
@@ -113,6 +114,14 @@ const petals = Array.from({ length: 12 }, (_, i) => {
   <rect x="14" y="71" width="4" height="8" fill="#6b5442" />
   <rect x="102" y="71" width="4" height="8" fill="#6b5442" />
   {prop && <text x="104" y="64" font-size="13" text-anchor="middle">{prop}</text>}
+  {papers > 0 && (
+    <g class="papers">
+      {Array.from({ length: papers }, (_, i) => (
+        <rect x={98.6 + ((i * 37) % 3) - 1} y={63 - i * 3} width="13" height="3" rx=".6" fill={i % 2 ? '#f3f4f6' : '#ffffff'} stroke="#25282d" stroke-width=".6" transform={`rotate(${((i * 53) % 7) - 3} ${105} ${64.5 - i * 3})`} />
+      ))}
+      <rect x="101" y={63 - (papers - 1) * 3 - 2.4} width="6" height="2.4" rx="1" fill="#ef4444" />
+    </g>
+  )}
 
   <!-- 말풍선 -->
   {status === 'working' && (
