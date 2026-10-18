@@ -1,0 +1,490 @@
+---
+import Base from '../layouts/Base.astro';
+import FollowCta from '../components/FollowCta.astro';
+import office from '../../data/office.json';
+import { formatDate } from '../lib/data.js';
+
+// 공개용 현황. 사업 이름·주소·금액·스레드 링크는 data/office.json 에 넣지 않습니다.
+const { depts, projects, updated } = office;
+const live = depts.filter((d) => !d.planned);
+const planned = depts.filter((d) => d.planned);
+const staff = live.flatMap((d) => d.teams);
+const LAMP = { working: '일하는 중', waiting: '확인 대기', done: '마침' };
+const STATES = [
+  { k: 'doing', label: '진행 중' },
+  { k: 'done', label: '끝낸' },
+  { k: 'planned', label: '예정' },
+];
+const deptName = (id) => depts.find((d) => d.id === id)?.name || '';
+const count = (k) => projects.filter((p) => p.state === k).length;
+const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
+---
+<Base current="office" title="AI 사무실" description="이현이 만든 AI 부서와 AI 직원들, 지금 하는 일과 앞으로 할 프로젝트를 한눈에 봅니다.">
+  <div slot="head" class="page-head">
+    <div class="row">
+      <h1 class="page-title">이현의 AI 사무실</h1>
+      <div class="big-count">{staff.length}<small>명</small></div>
+    </div>
+    <p class="page-desc">대표는 이현, 직원은 AI입니다. 말로 일을 맡기면 부서장이 AI 직원에게 나눠 주고, 직원은 만들고 기록합니다.</p>
+  </div>
+
+  <div class="wrap">
+    <!-- 1. 부서별 현황판 -->
+    <section class="board" aria-labelledby="boardTitle">
+      <div class="board-head">
+        <h2 id="boardTitle">부서별 현황판</h2>
+        <span class="legend">
+          <span><i class="lamp working"></i>일하는 중 {staff.filter((s) => s.status === 'working').length}</span>
+          <span><i class="lamp waiting"></i>확인 대기 {staff.filter((s) => s.status === 'waiting').length}</span>
+          <span><i class="lamp done"></i>마침 {staff.filter((s) => s.status === 'done').length}</span>
+        </span>
+      </div>
+
+      <div class="ceo">
+        <span class="ceo-badge">대표</span><b>이현</b><span class="ceo-sub">쇼핑몰 14년 · 전업 투자 · AI 공부 중</span>
+      </div>
+
+      <div class="rooms">
+        {live.map((d) => (
+          <article class={`room ${d.id}`}>
+            <header>
+              {d.id === 'ai' ? (
+                <img src="/assets/zero/zero-basic.svg" alt="" width="44" height="44" />
+              ) : (
+                <span class="av">{d.head.slice(0, 1)}</span>
+              )}
+              <div>
+                <h3>{d.name}</h3>
+                <p>부서장 <b>{d.head}</b> · {d.about}</p>
+              </div>
+              <span class="n">{d.teams.length}<small>명</small></span>
+            </header>
+            {groups(d).map((g) => (
+              <div class="team">
+                <div class="team-name">{g}</div>
+                <ul>
+                  {d.teams.filter((t) => t.team === g).map((t) => (
+                    <li>
+                      <i class={`lamp ${t.status}`} title={LAMP[t.status]}></i>
+                      <span class="who">{t.name}</span>
+                      <span class="doing">{t.doing}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </article>
+        ))}
+        {planned.map((d) => (
+          <article class="room planned">
+            <header>
+              <span class="av">+</span>
+              <div>
+                <h3>{d.name} <span class="soon">예정</span></h3>
+                <p>{d.about}</p>
+              </div>
+            </header>
+            <div class="first">첫 할 일 · {d.first}</div>
+          </article>
+        ))}
+      </div>
+      <p class="board-foot">{formatDate(updated)} 기준 · 매일 밤 갱신</p>
+    </section>
+
+    <!-- 2. 숫자 -->
+    <div class="stat-grid nums">
+      <div class="stat"><div class="label">부서</div><div class="num">{live.length}<small>개 + 예정 {planned.length}</small></div></div>
+      <div class="stat"><div class="label">끝낸 프로젝트</div><div class="num">{count('done')}<small>개</small></div></div>
+      <div class="stat"><div class="label">진행 중</div><div class="num">{count('doing')}<small>개</small></div></div>
+      <div class="stat"><div class="label">예정</div><div class="num">{count('planned')}<small>개</small></div></div>
+    </div>
+
+    <!-- 3. 프로젝트 지도 -->
+    <section class="proj" aria-labelledby="projTitle">
+      <h2 id="projTitle" class="sec-title">프로젝트</h2>
+      <div class="pfilter" role="group" aria-label="프로젝트 나눠 보기">
+        {STATES.map((s, i) => (
+          <button type="button" data-f={s.k} aria-pressed={i === 0 ? 'true' : 'false'}>{s.label} <span>{count(s.k)}</span></button>
+        ))}
+      </div>
+      <ul class="plist" id="projList">
+        {projects.map((p) => {
+          const Tag = p.href ? 'a' : 'div';
+          return (
+            <li data-s={p.state} hidden={p.state !== 'doing'}>
+              <Tag class={`pcard ${p.dept}`} {...(p.href ? { href: p.href } : {})}>
+                <span class="dot"></span>
+                <span class="pname">{p.name}{p.href && <span aria-hidden="true"> →</span>}</span>
+                <span class="pmeta">{deptName(p.dept)}{p.team && ` · ${p.team}`}</span>
+                <span class="pstep">{p.state === 'done' ? `${formatDate(p.start).slice(5)} 시작 · 완성` : p.start ? `${formatDate(p.start).slice(5)} 시작 · ${p.step}` : p.step}</span>
+              </Tag>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+
+    <!-- 4. 어떻게 일하나 -->
+    <section class="how" aria-labelledby="howTitle">
+      <h2 id="howTitle" class="sec-title">이렇게 일해요</h2>
+      <ol>
+        <li><b>1</b><span>이현이 채팅으로 말로 맡겨요</span></li>
+        <li><b>2</b><span>부서장이 맞는 AI 직원에게 나눠요</span></li>
+        <li><b>3</b><span>AI 직원이 만들고, 공부한 것에 기록해요</span></li>
+      </ol>
+    </section>
+
+    <FollowCta />
+  </div>
+</Base>
+
+<script>
+  const btns = document.querySelectorAll<HTMLButtonElement>('.proj .pfilter button');
+  const items = document.querySelectorAll<HTMLLIElement>('#projList li');
+  btns.forEach((b) =>
+    b.addEventListener('click', () => {
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      items.forEach((li) => (li.hidden = li.dataset.s !== b.dataset.f));
+    })
+  );
+</script>
+
+<style>
+  .board {
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 18px;
+    padding: 24px;
+    margin-top: -28px;
+  }
+  .board-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+  .board-head h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--muted-dark);
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lamp {
+    flex: none;
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #6b7280;
+  }
+  .lamp.working {
+    background: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.22);
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  .lamp.waiting {
+    background: var(--yellow);
+  }
+  @keyframes blink {
+    50% { opacity: 0.45; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lamp.working { animation: none; }
+  }
+  .ceo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 14px;
+    padding: 12px 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    font-size: 15px;
+  }
+  .ceo-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--yellow);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 1px 7px;
+  }
+  .ceo-sub {
+    color: var(--muted-dark);
+    font-size: 13px;
+  }
+  .rooms {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .room {
+    background: #2f3338;
+    border-radius: 14px;
+    padding: 16px;
+    border-top: 4px solid var(--yellow);
+    min-width: 0;
+  }
+  .room.company { border-top-color: #60a5fa; }
+  .room.stock { border-top-color: #a78bfa; }
+  .room header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .room header > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .room h3 {
+    margin: 0;
+    font-size: 17px;
+  }
+  .room header p {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted-dark);
+  }
+  .room header p b {
+    color: var(--white);
+  }
+  .av {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-weight: 700;
+    background: #60a5fa;
+    color: var(--ink);
+  }
+  .room.stock .av { background: #a78bfa; }
+  .room.planned .av {
+    background: transparent;
+    border: 2px dashed var(--muted-dark);
+    color: var(--muted-dark);
+  }
+  .n {
+    font-family: var(--mono);
+    font-size: 22px;
+  }
+  .n small {
+    font-size: 12px;
+    color: var(--muted-dark);
+  }
+  .team + .team {
+    margin-top: 8px;
+  }
+  .team-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted-dark);
+    margin-bottom: 2px;
+  }
+  .team ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .team li {
+    display: grid;
+    grid-template-columns: 9px auto 1fr;
+    align-items: baseline;
+    gap: 0 8px;
+    padding: 5px 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .team li .lamp {
+    align-self: start;
+    margin-top: 7px;
+  }
+  .who {
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .doing {
+    color: var(--muted-dark);
+    min-width: 0;
+  }
+  .room.planned {
+    background: transparent;
+    border: 2px dashed rgba(255, 255, 255, 0.22);
+    border-top-width: 2px;
+  }
+  .soon {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--muted-dark);
+    color: var(--muted-dark);
+    border-radius: 6px;
+    padding: 0 6px;
+    vertical-align: 2px;
+  }
+  .first {
+    font-size: 13px;
+    color: var(--yellow);
+  }
+  .board-foot {
+    margin: 14px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted-dark);
+  }
+  .nums {
+    margin-top: 20px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .sec-title {
+    margin: 40px 0 12px;
+    font-size: 22px;
+  }
+  .pfilter {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pfilter button {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #d5d9de;
+    background: var(--white);
+    color: inherit;
+    cursor: pointer;
+  }
+  .pfilter button span {
+    font-family: var(--mono);
+    opacity: 0.6;
+    margin-left: 2px;
+  }
+  .pfilter button[aria-pressed='true'] {
+    background: var(--charcoal);
+    border-color: var(--charcoal);
+    color: #fff;
+  }
+  .plist {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .plist li[hidden] {
+    display: none;
+  }
+  .pcard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+    box-sizing: border-box;
+    background: var(--white);
+    border-radius: 14px;
+    padding: 18px 20px 18px 30px;
+    text-decoration: none;
+    border: 2px solid transparent;
+  }
+  a.pcard:hover {
+    border-color: var(--charcoal);
+  }
+  .pcard .dot {
+    position: absolute;
+    left: 14px;
+    top: 26px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--yellow);
+  }
+  .pcard.company .dot { background: #60a5fa; }
+  .pcard.stock .dot { background: #a78bfa; }
+  .pcard.market .dot,
+  .pcard.ebook .dot {
+    background: transparent;
+    border: 2px dashed var(--muted);
+  }
+  .pname {
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .pmeta {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .pstep {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  .how ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .how {
+    margin-bottom: 28px;
+  }
+  .how li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--white);
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 15px;
+  }
+  .how b {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--yellow);
+    font-family: var(--mono);
+  }
+  @media (max-width: 1000px) {
+    .rooms,
+    .plist {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 760px) {
+    .board {
+      padding: 18px 16px;
+    }
+    .rooms,
+    .plist,
+    .how ol {
+      grid-template-columns: 1fr;
+    }
+    .nums {
+      grid-template-columns: repeat(2, 1fr);
+      margin-top: 16px;
+    }
+  }
+</style>
