@@ -436,6 +436,22 @@
                 "Claude",
                 "Claude Code"
               ]
+            },
+            {
+              "id": "video-download",
+              "title": "AI로 만든 영상받기 프로그램",
+              "what": "영상 링크를 넣으면 PC로 받아 주는 윈도우 프로그램과 사이트 연동 페이지를 만들었습니다.",
+              "yt": "AI로 영상 다운로드 프로그램 만들기",
+              "status": "done",
+              "start": "2026-10-18",
+              "end": "2026-10-18",
+              "result": {
+                "label": "영상받기",
+                "href": "/programs/downloader"
+              },
+              "tools": [
+                "Claude Code"
+              ]
             }
           ]
         },
@@ -618,6 +634,25 @@
               "title": "AI를 이용한 모임 운영 자동화",
               "what": "스터디·투자 모임 공지, 자료 정리, 참석 관리를 자동으로 돌립니다.",
               "yt": "AI 모임 운영 자동화",
+              "status": "wait"
+            }
+          ]
+        },
+        {
+          "name": "수익화",
+          "items": [
+            {
+              "id": "program-market",
+              "title": "AI로 만든 프로그램 990원 마켓",
+              "what": "직접 만든 프로그램을 990원에 파는 마켓을 기획했습니다. AI 사무실에 예정 부서로 올려 두었습니다.",
+              "yt": "AI로 만든 프로그램 팔아 보기",
+              "status": "wait"
+            },
+            {
+              "id": "ebook",
+              "title": "AI를 이용한 전자책 만들기",
+              "what": "공부한 내용을 전자책으로 묶어 내는 프로젝트입니다. AI 사무실 프로젝트 탭에 예정으로 올라 있습니다.",
+              "yt": "AI로 전자책 만들기",
               "status": "wait"
             }
           ]
