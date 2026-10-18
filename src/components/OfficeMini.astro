@@ -1,0 +1,159 @@
+---
+// 홈 맨 위: 사무실 한 블록 요약. 부서마다 방 하나, 그 안에 부서장 + 직원 캐릭터만 (자세한 건 /office)
+import Desk from './Desk.astro';
+import office from '../../data/office.json';
+
+const live = office.depts.filter((d) => !d.planned);
+const planned = office.depts.filter((d) => d.planned);
+const staff = live.flatMap((d) => d.teams);
+const n = (s) => staff.filter((t) => t.status === s).length;
+const LAMP = { working: '일하는 중', waiting: '확인 대기', done: '마침' };
+---
+<a class="om" href="/office" aria-label="이현의 AI 사무실 자세히 보기">
+  <div class="om-top">
+    <span class="om-sign">이현의 AI 사무실</span>
+    <span class="om-sum">
+      <span><i class="lamp working"></i>일하는 중 {n('working')}</span>
+      <span><i class="lamp waiting"></i>확인 대기 {n('waiting')}</span>
+      <span><i class="lamp done"></i>마침 {n('done')}</span>
+    </span>
+  </div>
+  <div class="om-rooms">
+    {live.map((d) => (
+      <div class={`om-room ${d.id}`} style={`--n:${d.teams.length + 1}`}>
+        <div class="om-label">{d.name} <span>부서장 {d.head} · {d.teams.length}명</span></div>
+        <div class="om-desks">
+          <span class="om-d boss" title={`부서장 ${d.head}`}><Desk kind={d.kind} acc="crown" status="working" /></span>
+          {d.teams.map((t) => (
+            <span class="om-d" title={`${t.name} · ${LAMP[t.status]} · ${t.doing}`}><Desk kind={d.kind} acc={t.acc} status={t.status} since={t.since} /></span>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+  <div class="om-foot">
+    <span class="om-plan">공사 중 · {planned.map((d) => d.name).join(' · ')}</span>
+    <span class="om-go">사무실 자세히 보기 →</span>
+  </div>
+</a>
+
+<style>
+  .om {
+    display: block;
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 18px;
+    padding: 16px;
+    text-decoration: none;
+    border: 2px solid transparent;
+  }
+  .om:hover {
+    border-color: var(--yellow);
+  }
+  .om-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .om-sign {
+    background: var(--yellow);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 3px 12px;
+    border-radius: 6px;
+  }
+  .om-sum {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--muted-dark);
+  }
+  .om-sum span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .lamp {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6b7280;
+  }
+  .lamp.working { background: #4ade80; }
+  .lamp.waiting { background: var(--yellow); }
+  .om-rooms {
+    display: flex;
+    gap: 0;
+    border: 4px solid #41464d;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .om-room {
+    flex: var(--n) 1 0;
+    min-width: 0;
+    padding: 8px 8px 0;
+    border-bottom: 6px solid #6b5442;
+  }
+  .om-room + .om-room {
+    border-left: 4px solid #41464d;
+  }
+  .om-room.ai { background: #39351f; }
+  .om-room.company { background: #233041; }
+  .om-room.stock { background: #2e2843; }
+  .om-label {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .om-label span {
+    font-weight: 400;
+    font-size: 11.5px;
+    color: var(--muted-dark);
+  }
+  .om-desks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 2px 4px;
+    padding-top: 4px;
+  }
+  .om-d.boss {
+    filter: drop-shadow(0 0 6px rgba(242, 213, 60, 0.35));
+  }
+  .om-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .om-plan {
+    color: var(--muted-dark);
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    padding: 1px 8px;
+  }
+  .om-go {
+    color: var(--yellow);
+    font-weight: 700;
+  }
+  @media (max-width: 760px) {
+    .om-rooms {
+      flex-direction: column;
+    }
+    .om-room + .om-room {
+      border-left: 0;
+      border-top: 4px solid #41464d;
+    }
+    .om-desks {
+      grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    }
+  }
+</style>

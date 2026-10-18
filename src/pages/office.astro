@@ -44,16 +44,6 @@ const count = (k) => projects.filter((p) => p.state === k).length;
         <div class="roof-flag" aria-hidden="true"><img src="/assets/zero/zero-basic.svg" alt="" width="34" height="34" /></div>
         <div class="roof"><span class="sign">이현의 AI 사무실</span></div>
 
-        <div class="story plan">
-          {planned.map((d) => (
-            <div class="lot">
-              <div class="plate"><b>{d.name}</b><span class="soon">공사 중</span></div>
-              <p>{d.about}</p>
-              <div class="first">첫 할 일 · {d.first}</div>
-            </div>
-          ))}
-        </div>
-
         {live.map((d) => (
           <div class={`story ${d.id}`}>
             <div class="plate"><b>{d.name}</b><span>{d.teams.length}명</span></div>
@@ -66,9 +56,9 @@ const count = (k) => projects.filter((p) => p.state === k).length;
               <ul class="floor">
                 {d.teams.map((t) => (
                   <li class="tile">
-                    <Desk kind={d.kind} acc={t.acc} status={t.status} prop={t.prop} />
+                    <Desk kind={d.kind} acc={t.acc} status={t.status} prop={t.prop} since={t.since} />
                     <div class="card">
-                      <div class="meta"><span class="team-chip">{t.team}</span><i class={`lamp ${t.status}`} title={LAMP[t.status]}></i><span class="stx">{LAMP[t.status]}</span></div>
+                      <div class="meta"><span class="team-chip">{t.team}</span><i class={`lamp ${t.status}`} title={LAMP[t.status]}></i><span class="stx" data-since={t.since}>{LAMP[t.status]}</span></div>
                       <b class="who">{t.name}</b>
                       <span class="doing">{t.doing}</span>
                     </div>
@@ -78,6 +68,16 @@ const count = (k) => projects.filter((p) => p.state === k).length;
             </div>
           </div>
         ))}
+
+        <div class="story plan">
+          {planned.map((d) => (
+            <div class="lot">
+              <div class="plate"><b>{d.name}</b><span class="soon">공사 중</span></div>
+              <p>{d.about}</p>
+              <div class="first">첫 할 일 · {d.first}</div>
+            </div>
+          ))}
+        </div>
 
         <div class="story lobby">
           <div class="plate"><b>대표실</b><span>1층</span></div>
@@ -358,6 +358,8 @@ const count = (k) => projects.filter((p) => p.state === k).length;
     font-size: 11.5px;
     color: var(--muted-dark);
   }
+  .stx[data-age='1'] { color: #fb923c; font-weight: 700; }
+  .stx[data-age='2'] { color: #f87171; font-weight: 700; }
   .team-chip, .stx {
     white-space: nowrap;
   }

@@ -4,6 +4,7 @@ import DayBlock from '../components/DayBlock.astro';
 import NoteCard from '../components/NoteCard.astro';
 import DayCount from '../components/DayCount.astro';
 import Icon from '../components/Icon.astro';
+import OfficeMini from '../components/OfficeMini.astro';
 import { days, notes, stats, planDoing, planTodo, planDone, nextStudy, YOUTUBE } from '../lib/data.js';
 
 const latest = days[0];
@@ -39,6 +40,10 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
   </div>
 
   <div class="wrap">
+    <section class="section">
+      <OfficeMini />
+    </section>
+
     <section class="section">
       <h2 class="section-title">유튜브 최신 영상</h2>
       <div class="yt-row" id="ytRow" aria-live="polite">

@@ -3,7 +3,8 @@
 // kind: zero(AI 부서, 제로 가족) / are(사업 부서, 아르 가족 양) / bull(주식 부서, 불리 가족 황소)
 // acc: 직원마다 다른 소품 (glasses heart beret pencil tie bowtie cap ribbon headset helmet crown)
 // status: working(타이핑) / waiting(커피 들고 기다림) / done(기지개 + ✓)
-const { kind = 'zero', acc = '', status = 'done', prop = '' } = Astro.props;
+// since: 확인 대기를 시작한 날(YYYY-MM-DD). 화면에서 며칠째인지 세어 data-age 0(하루) / 1(2~3일, 땀) / 2(4일+, 졸고 거미줄)
+const { kind = 'zero', acc = '', status = 'done', prop = '', since = '' } = Astro.props;
 const BODY = { zero: '#F2D53C', are: '#9cc3f0', bull: '#a78bfa', human: '#3b4150' };
 const ey = kind === 'bull' ? 27 : 29;
 // 얼굴 위치와 색 (눈 x, 눈 y, 눈 크기, 눈동자 색, 눈썹/감은 눈 색, 입 y, 입 색)
@@ -18,7 +19,7 @@ const petals = Array.from({ length: 12 }, (_, i) => {
   return [38 + Math.cos(a) * 12.5, 30 + Math.sin(a) * 12.5];
 });
 ---
-<svg class={`desk ${status}`} viewBox="0 0 120 84" style={`--c:${BODY[kind]}`} role="img" aria-hidden="true">
+<svg class={`desk ${status}`} data-since={status === 'waiting' && since ? since : undefined} viewBox="0 0 120 84" style={`--c:${BODY[kind]}`} role="img" aria-hidden="true">
   <ellipse cx="60" cy="80" rx="52" ry="3" fill="rgba(0,0,0,.18)" />
 
   <g class="me">
@@ -73,6 +74,7 @@ const petals = Array.from({ length: 12 }, (_, i) => {
             ))}
           </g>
         )}
+        {status === 'waiting' && <path class="zz-eyes" d={`M${F.xs[0] - 1.8} ${F.ey} h3.6 M${F.xs[1] - 1.8} ${F.ey} h3.6`} stroke={F.ec} stroke-width="1.3" stroke-linecap="round" />}
         {status === 'working' && <path d={`M${F.xs[0] - 2.2} ${F.ey - 4} l3.4 1.3 M${F.xs[1] + 2.2} ${F.ey - 4} l-3.4 1.3`} stroke={F.ec} stroke-width="1.1" stroke-linecap="round" />}
         {status === 'waiting' && <path d={`M${F.xs[0] - 2} ${F.ey - 4.6} q2 -1.6 4 0 M${F.xs[1] - 2} ${F.ey - 3.4} h4`} stroke={F.ec} stroke-width="1.1" fill="none" stroke-linecap="round" />}
         {status === 'working' && <path d={`M${36.4} ${F.my} h3.2`} stroke={F.mc} stroke-width="1.2" stroke-linecap="round" />}
@@ -80,6 +82,8 @@ const petals = Array.from({ length: 12 }, (_, i) => {
         {status === 'done' && <path d={`M35.4 ${F.my - 0.6} q2.6 3.6 5.2 0 z`} fill={F.mc} stroke={F.mc} stroke-width=".8" stroke-linejoin="round" />}
         {status === 'done' && kind !== 'are' && <><circle cx={F.xs[0] - 2.2} cy={F.ey + 3.6} r="1.4" fill="#F6B7AE" opacity=".8" /><circle cx={F.xs[1] + 2.2} cy={F.ey + 3.6} r="1.4" fill="#F6B7AE" opacity=".8" /></>}
       </g>
+
+      {status === 'waiting' && <path class="sweat" d="M52 22 q-2.4 3.6 0 5 q2.4 -1.4 0 -5z" fill="#7dd3fc" stroke="#25282d" stroke-width=".6" />}
 
       <!-- 직원마다 다른 소품 -->
       {acc === 'glasses' && <g fill="none" stroke="#25282d" stroke-width="1.2"><rect x="30.5" y={ey - 3.2} width="7" height="6" rx="1.5" fill="rgba(255,255,255,.25)" /><rect x="38.5" y={ey - 3.2} width="7" height="6" rx="1.5" fill="rgba(255,255,255,.25)" /><path d={`M37.5 ${ey} h1`} /></g>}
@@ -115,7 +119,11 @@ const petals = Array.from({ length: 12 }, (_, i) => {
     <g class="bub"><rect x="66" y="10" width="30" height="16" rx="8" fill="#fff" stroke="#25282d" stroke-width=".8" /><circle class="d1" cx="74" cy="18" r="2" fill="#24272B" /><circle class="d2" cx="81" cy="18" r="2" fill="#24272B" /><circle class="d3" cx="88" cy="18" r="2" fill="#24272B" /></g>
   )}
   {status === 'waiting' && (
-    <g class="bub"><rect x="66" y="10" width="22" height="16" rx="8" fill="#F2D53C" stroke="#25282d" stroke-width=".8" /><text x="77" y="22" font-size="12" font-weight="700" text-anchor="middle" fill="#24272B">?</text></g>
+    <>
+      <g class="bub"><rect class="bub-bg" x="66" y="10" width="26" height="16" rx="8" fill="#F2D53C" stroke="#25282d" stroke-width=".8" /><text class="age-txt" x="79" y="22" font-size="11" font-weight="700" text-anchor="middle" fill="#24272B">?</text></g>
+      <g class="web" fill="none" stroke="#cbd5e1" stroke-width=".6" opacity=".8"><path d="M98 34 l-12 0 M98 34 l0 12 M98 34 l-9 9 M90 34 q2 2 0 0 M86 34 q4 4 0 0" /><path d="M92 34 q0 6 6 6 M88 34 q0 10 10 10" /></g>
+      <text class="zzz" x="18" y="16" font-size="9" font-weight="700" fill="#a3a9b2">z<tspan dy="-4" font-size="11">Z</tspan></text>
+    </>
   )}
   {status === 'done' && (
     <g class="bub"><circle cx="78" cy="18" r="9" fill="#4ade80" stroke="#25282d" stroke-width=".8" /><path d="M74 18 l3 3 l5 -6" stroke="#15171a" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></g>
@@ -129,7 +137,7 @@ const petals = Array.from({ length: 12 }, (_, i) => {
     height: auto;
     overflow: visible;
   }
-  .eyes, .hd, .me, .arm, .ln, .bub, .steam, .float {
+  .eyes, .hd, .me, .arm, .ln, .bub, .steam, .float, .sweat, .zzz {
     transform-box: fill-box;
   }
   .eyes {
@@ -179,6 +187,26 @@ const petals = Array.from({ length: 12 }, (_, i) => {
   @keyframes bob {
     50% { transform: translateY(-2px); }
   }
+  /* 확인 대기 기간: 0 하루 이내 / 1 2~3일(주황, 땀) / 2 4일 이상(빨강, 졸고 거미줄) */
+  .sweat, .web, .zzz, .zz-eyes { display: none; }
+  .waiting[data-age='1'] .bub-bg { fill: #fb923c; }
+  .waiting[data-age='1'] .sweat { display: inline; animation: drip 1.6s ease-in infinite; }
+  .waiting[data-age='1'] .hd { animation-duration: 1.6s; }
+  .waiting[data-age='2'] .bub-bg { fill: #ef4444; }
+  .waiting[data-age='2'] .age-txt { fill: #fff; }
+  .waiting[data-age='2'] .web, .waiting[data-age='2'] .zzz, .waiting[data-age='2'] .zz-eyes { display: inline; }
+  .waiting[data-age='2'] .eyes, .waiting[data-age='2'] .steam { display: none; }
+  .waiting[data-age='2'] .hd { animation: doze 3.6s ease-in-out infinite; }
+  .waiting[data-age='2'] .zzz { animation: bob 2.4s ease-in-out infinite; }
+  .waiting[data-age='2'] .ln { opacity: 0.25; }
+  @keyframes drip {
+    0% { opacity: 0; transform: translateY(-2px); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(4px); }
+  }
+  @keyframes doze {
+    50% { transform: rotate(10deg) translateY(1px); }
+  }
   .done .me { transform-origin: center bottom; animation: stretch 3.6s ease-in-out infinite; }
   @keyframes stretch {
     50% { transform: translateY(-1.5px); }
@@ -188,3 +216,15 @@ const petals = Array.from({ length: 12 }, (_, i) => {
     .desk * { animation: none !important; }
   }
 </style>
+
+<script>
+  // 확인 대기 며칠째인지 한국 날짜로 세어 표시 (빌드 뒤에도 날마다 맞게)
+  const today = Date.parse(new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10));
+  document.querySelectorAll<HTMLElement>('[data-since]').forEach((el) => {
+    const days = Math.max(0, Math.round((today - Date.parse(el.dataset.since!)) / 864e5));
+    el.dataset.age = days >= 4 ? '2' : days >= 2 ? '1' : '0';
+    const t = el.querySelector('.age-txt');
+    if (t) t.textContent = days >= 1 ? `${days}일` : '?';
+    if (el.classList.contains('stx')) el.textContent = days >= 1 ? `${days}일째 대기` : '확인 대기';
+  });
+</script>
