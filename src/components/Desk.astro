@@ -13,9 +13,9 @@ const F = {
   human: { xs: [34.6, 41.4], ey: 30, er: [1.2, 1.5], pc: '#25282d', ec: '#25282d', my: 35, mc: '#9a3412' },
   bull: { xs: [33.5, 42.5], ey, er: [1.1, 1.1], pc: '#25282d', ec: '#25282d', my: 39.6, mc: '#25282d' },
 }[kind];
-const petals = Array.from({ length: 10 }, (_, i) => {
-  const a = (i / 10) * Math.PI * 2;
-  return [38 + Math.cos(a) * 12, 30 + Math.sin(a) * 12];
+const petals = Array.from({ length: 12 }, (_, i) => {
+  const a = (i / 12) * Math.PI * 2;
+  return [38 + Math.cos(a) * 12.5, 30 + Math.sin(a) * 12.5];
 });
 ---
 <svg class={`desk ${status}`} viewBox="0 0 120 84" style={`--c:${BODY[kind]}`} role="img" aria-hidden="true">
@@ -38,7 +38,7 @@ const petals = Array.from({ length: 10 }, (_, i) => {
       )}
       {kind === 'are' && (
         <>
-          {petals.map(([x, y]) => <circle cx={x} cy={y} r="5.2" fill="#fff" stroke="#25282d" stroke-width=".9" />)}
+          {petals.map(([x, y]) => <circle cx={x} cy={y} r="4.8" fill="#fff" stroke="#25282d" stroke-width=".9" />)}
           <circle cx="38" cy="30" r="12" fill="#fff" />
           <ellipse cx="23" cy="32" rx="5" ry="2.6" fill="#F4CDBB" stroke="#25282d" stroke-width=".7" transform="rotate(-20 23 32)" />
           <ellipse cx="53" cy="32" rx="5" ry="2.6" fill="#F4CDBB" stroke="#25282d" stroke-width=".7" transform="rotate(20 53 32)" />
