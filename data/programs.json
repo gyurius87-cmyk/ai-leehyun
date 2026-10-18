@@ -88,6 +88,15 @@
       "start": "2026-10-17",
       "private": true,
       "href": "https://claude.ai/artifact/Ws925B8xLyKgrHk6db2va6"
+    },
+    {
+      "id": "downloader",
+      "name": "영상받기",
+      "status": "using",
+      "summary": "유튜브·인스타그램 주소를 넣으면 내 PC로 원본 영상을 받아 둡니다. PC 프로그램과 연동돼요.",
+      "start": "2026-10-18",
+      "private": true,
+      "href": "/programs/downloader"
     }
   ]
 }
