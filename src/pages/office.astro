@@ -3,6 +3,8 @@ import Base from '../layouts/Base.astro';
 import FollowCta from '../components/FollowCta.astro';
 import Desk from '../components/Desk.astro';
 import office from '../../data/office.json';
+import quotesData from '../../data/quotes.json';
+const QUOTES = quotesData.quotes;
 import { formatDate } from '../lib/data.js';
 
 // 공개용 현황. 사업 이름·주소·금액·스레드 링크는 data/office.json 에 넣지 않습니다.
@@ -88,7 +90,21 @@ const count = (k) => projects.filter((p) => p.state === k).length;
               <b class="who">대표 이현</b>
               <span class="doing">쇼핑몰 14년 · 전업 투자 · AI 공부 중. 말로 일을 맡겨요</span>
             </div>
+            <figure class="tv" id="tv" title="눌러서 다른 명언 보기">
+              <div class="tv-screen">
+                <div class="tv-top"><span class="tv-on">● 오늘의 명언</span><span class="tv-date" id="tvDate"></span></div>
+                <blockquote id="tvText">{QUOTES[0].text}</blockquote>
+                <figcaption id="tvWho">{QUOTES[0].who}{QUOTES[0].src && ` · ${QUOTES[0].src}`}</figcaption>
+              </div>
+              <div class="tv-stand" aria-hidden="true"></div>
+            </figure>
             <div class="decor" aria-hidden="true"><span class="plant">🪴</span><span class="sofa">🛋️</span><div class="door"><span>입구</span></div></div>
+            <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 비서가 챙긴 할 일 보기">
+              <Desk kind="sec" acc="headset" status="working" prop="🗂️" />
+              <b class="who">비서</b>
+              <span class="doing">직원들이 올린 확인 요청과 대표님 할 일을 모아 빠짐없이 챙겨요</span>
+              <span class="sec-tag">대표 전용 창구 ↗</span>
+            </a>
           </div>
         </div>
         <div class="ground" aria-hidden="true"><span>🌳</span><span>🌷</span><span>🌳</span></div>
@@ -142,6 +158,30 @@ const count = (k) => projects.filter((p) => p.state === k).length;
     <FollowCta />
   </div>
 </Base>
+
+<script define:vars={{ QUOTES }}>
+  // 대표실 TV: 한국 날짜로 하루에 하나씩, 누르면 다음 명언
+  (function () {
+    var kst = new Date(Date.now() + 9 * 3600e3);
+    var day = Math.floor(kst.getTime() / 864e5);
+    var i = day % QUOTES.length;
+    var tv = document.getElementById('tv');
+    var show = function () {
+      var q = QUOTES[i];
+      document.getElementById('tvText').textContent = q.text;
+      document.getElementById('tvWho').textContent = q.who + (q.src ? ' · ' + q.src : '');
+    };
+    document.getElementById('tvDate').textContent = (kst.getUTCMonth() + 1) + '월 ' + kst.getUTCDate() + '일';
+    show();
+    tv.addEventListener('click', function () {
+      i = (i + 1) % QUOTES.length;
+      tv.classList.remove('flip');
+      void tv.offsetWidth;
+      tv.classList.add('flip');
+      show();
+    });
+  })();
+</script>
 
 <script>
   const btns = document.querySelectorAll<HTMLButtonElement>('.proj .pfilter button');
@@ -392,6 +432,119 @@ const count = (k) => projects.filter((p) => p.state === k).length;
     gap: 14px;
     font-size: 34px;
     line-height: 1;
+  }
+  .lobby .room-in {
+    gap: 20px;
+  }
+  .tv {
+    flex: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    align-self: center;
+    cursor: pointer;
+  }
+  .tv-screen {
+    background: radial-gradient(ellipse at 50% 40%, #1f2937, #0b0d10);
+    border: 8px solid #15171a;
+    outline: 2px solid #41464d;
+    border-radius: 10px;
+    padding: 16px 22px 18px;
+    box-shadow: 0 0 28px rgba(242, 213, 60, 0.18);
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .tv-top {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted-dark);
+    margin-bottom: 8px;
+  }
+  .tv-on {
+    color: #f87171;
+  }
+  .tv blockquote {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.55;
+    color: var(--white);
+    word-break: keep-all;
+  }
+  .tv figcaption {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--yellow);
+  }
+  .tv-stand {
+    width: 60px;
+    height: 10px;
+    margin: 0 auto;
+    background: #41464d;
+    border-radius: 0 0 6px 6px;
+  }
+  .tv.flip .tv-screen {
+    animation: tvflip 0.35s ease-out;
+  }
+  @keyframes tvflip {
+    0% { filter: brightness(2.2); transform: scaleY(0.04); }
+    100% { filter: none; transform: none; }
+  }
+  @media (max-width: 760px) {
+    .lobby .room-in {
+      flex-wrap: wrap;
+    }
+    .tv {
+      order: -1;
+      flex-basis: 100%;
+      max-width: none;
+    }
+    .tv blockquote {
+      font-size: 16px;
+    }
+  }
+  .sec-desk {
+    flex: none;
+    width: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 14px;
+    border-left: 3px solid #41464d;
+    color: inherit;
+    text-decoration: none;
+  }
+  .sec-desk:hover .who {
+    color: var(--yellow);
+  }
+  .sec-tag {
+    align-self: flex-start;
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: #2dd4bf;
+    border: 1px solid #2dd4bf;
+    border-radius: 6px;
+    padding: 0 6px;
+  }
+  @media (max-width: 760px) {
+    .sec-desk {
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 10px 0 0;
+      border-left: 0;
+      border-top: 3px solid #41464d;
+    }
+    .sec-desk :global(svg) {
+      width: 110px;
+    }
+    .sec-desk .doing {
+      flex-basis: 100%;
+    }
   }
   .pile {
     align-self: flex-start;
