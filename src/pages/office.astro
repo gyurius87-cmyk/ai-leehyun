@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import FollowCta from '../components/FollowCta.astro';
+import Desk from '../components/Desk.astro';
 import office from '../../data/office.json';
 import { formatDate } from '../lib/data.js';
 
@@ -17,7 +18,7 @@ const STATES = [
 ];
 const deptName = (id) => depts.find((d) => d.id === id)?.name || '';
 const count = (k) => projects.filter((p) => p.state === k).length;
-const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
+const COL = { ai: '#F2D53C', company: '#60a5fa', stock: '#a78bfa' };
 ---
 <Base current="office" title="AI 사무실" description="이현이 만든 AI 부서와 AI 직원들, 지금 하는 일과 앞으로 할 프로젝트를 한눈에 봅니다.">
   <div slot="head" class="page-head">
@@ -48,45 +49,39 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
         {live.map((d) => (
           <article class={`room ${d.id}`}>
             <header>
-              {d.id === 'ai' ? (
-                <img src="/assets/zero/zero-basic.svg" alt="" width="44" height="44" />
-              ) : (
-                <span class="av">{d.head.slice(0, 1)}</span>
-              )}
+              <span class="boss"><Desk kind={d.id} status="working" color={COL[d.id]} head /></span>
               <div>
                 <h3>{d.name}</h3>
                 <p>부서장 <b>{d.head}</b> · {d.about}</p>
               </div>
               <span class="n">{d.teams.length}<small>명</small></span>
             </header>
-            {groups(d).map((g) => (
-              <div class="team">
-                <div class="team-name">{g}</div>
-                <ul>
-                  {d.teams.filter((t) => t.team === g).map((t) => (
-                    <li>
-                      <i class={`lamp ${t.status}`} title={LAMP[t.status]}></i>
-                      <span class="who">{t.name}</span>
-                      <span class="doing">{t.doing}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <ul class="floor">
+              {d.teams.map((t) => (
+                <li class="tile">
+                  <Desk kind={d.id} status={t.status} prop={t.prop} color={COL[d.id]} />
+                  <div class="meta"><span class="team-chip">{t.team}</span><i class={`lamp ${t.status}`} title={LAMP[t.status]}></i><span class="stx">{LAMP[t.status]}</span></div>
+                  <b class="who">{t.name}</b>
+                  <span class="doing">{t.doing}</span>
+                </li>
+              ))}
+            </ul>
           </article>
         ))}
-        {planned.map((d) => (
-          <article class="room planned">
-            <header>
-              <span class="av">+</span>
-              <div>
-                <h3>{d.name} <span class="soon">예정</span></h3>
-                <p>{d.about}</p>
-              </div>
-            </header>
-            <div class="first">첫 할 일 · {d.first}</div>
-          </article>
-        ))}
+        <div class="plans">
+          {planned.map((d) => (
+            <article class="room planned">
+              <header>
+                <span class="av">+</span>
+                <div>
+                  <h3>{d.name} <span class="soon">예정</span></h3>
+                  <p>{d.about}</p>
+                </div>
+              </header>
+              <div class="first">첫 할 일 · {d.first}</div>
+            </article>
+          ))}
+        </div>
       </div>
       <p class="board-foot">{formatDate(updated)} 기준 · 매일 밤 갱신</p>
     </section>
@@ -226,7 +221,6 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
   }
   .rooms {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
   }
   .room {
@@ -241,12 +235,16 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
   .room header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 12px;
   }
   .room header > div {
     flex: 1;
     min-width: 0;
+  }
+  .boss {
+    flex: none;
+    width: 76px;
   }
   .room h3 {
     margin: 0;
@@ -269,11 +267,6 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
     height: 44px;
     border-radius: 50%;
     font-weight: 700;
-    background: #60a5fa;
-    color: var(--ink);
-  }
-  .room.stock .av { background: #a78bfa; }
-  .room.planned .av {
     background: transparent;
     border: 2px dashed var(--muted-dark);
     color: var(--muted-dark);
@@ -286,41 +279,52 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
     font-size: 12px;
     color: var(--muted-dark);
   }
-  .team + .team {
-    margin-top: 8px;
-  }
-  .team-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--muted-dark);
-    margin-bottom: 2px;
-  }
-  .team ul {
+  .floor {
     list-style: none;
     margin: 0;
     padding: 0;
-  }
-  .team li {
     display: grid;
-    grid-template-columns: 9px auto 1fr;
-    align-items: baseline;
-    gap: 0 8px;
-    padding: 5px 0;
-    font-size: 13.5px;
-    line-height: 1.5;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
   }
-  .team li .lamp {
-    align-self: start;
-    margin-top: 7px;
+  @media (max-width: 760px) {
+    .floor { grid-template-columns: 1fr 1fr; }
+    .boss { width: 60px; }
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #262a2e;
+    border-radius: 12px;
+    padding: 10px 12px 12px;
+    min-width: 0;
+  }
+  .tile .meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--muted-dark);
+  }
+  .team-chip {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    padding: 0 6px;
+    margin-right: auto;
   }
   .who {
-    font-weight: 500;
-    white-space: nowrap;
+    font-size: 14.5px;
   }
   .doing {
+    font-size: 12.5px;
+    line-height: 1.5;
     color: var(--muted-dark);
-    min-width: 0;
+  }
+  .plans {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
   }
   .room.planned {
     background: transparent;
@@ -468,7 +472,6 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
     font-family: var(--mono);
   }
   @media (max-width: 1000px) {
-    .rooms,
     .plist {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -477,7 +480,7 @@ const groups = (d) => [...new Set(d.teams.map((t) => t.team))];
     .board {
       padding: 18px 16px;
     }
-    .rooms,
+    .plans,
     .plist,
     .how ol {
       grid-template-columns: 1fr;

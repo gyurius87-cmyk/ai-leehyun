@@ -1,0 +1,128 @@
+---
+// 현황판의 AI 직원 한 명: 책상 앞 캐릭터 + 상태별 움직임
+// kind: ai(제로처럼 안테나) / company(모자) / stock(안경)
+// status: working(타이핑) / waiting(커피 들고 기다림) / done(기지개 + ✓)
+const { kind = 'ai', status = 'done', prop = '', color = '#F2D53C', head = false } = Astro.props;
+---
+<svg class={`desk ${status}`} viewBox="0 0 120 84" style={`--c:${color}`} role="img" aria-hidden="true">
+  <!-- 바닥 그림자 -->
+  <ellipse cx="60" cy="80" rx="52" ry="3" fill="rgba(0,0,0,.25)" />
+
+  <!-- 캐릭터 -->
+  <g class="me">
+    <rect x="22" y="44" width="32" height="26" rx="10" fill="var(--c)" />
+    <g class="hd">
+      {kind === 'ai' && <rect x="44" y="6" width="6" height="11" rx="2" fill="#F2D53C" transform="rotate(30 47 11)" />}
+      <circle cx="38" cy="30" r="14" fill="#24272B" stroke="var(--c)" stroke-width="5" />
+      {kind === 'company' && <path d="M22 22 Q38 6 54 22 Z" fill="var(--c)" />}
+      {kind === 'company' && <rect x="20" y="20" width="36" height="4" rx="2" fill="var(--c)" />}
+      <g class="eyes">
+        <ellipse cx="33" cy="30" rx="2.4" ry="3.6" fill="#F2D53C" />
+        <ellipse cx="43" cy="30" rx="2.4" ry="3.6" fill="#F2D53C" />
+      </g>
+      {kind === 'stock' && <g fill="none" stroke="#fff" stroke-width="1.6"><circle cx="33" cy="30" r="5" /><circle cx="43" cy="30" r="5" /><path d="M38 30h0" /></g>}
+      <path d="M34 37 Q38 40 42 37" stroke="#F2D53C" stroke-width="2" fill="none" stroke-linecap="round" />
+      {head && <path d="M30 13 l3 -6 l5 5 l5 -5 l3 6 z" fill="#F2D53C" />}
+    </g>
+    <!-- 팔 -->
+    {status === 'done' && <g class="up"><rect x="14" y="26" width="5" height="22" rx="2.5" fill="var(--c)" transform="rotate(-20 16 48)" /><rect x="57" y="26" width="5" height="22" rx="2.5" fill="var(--c)" transform="rotate(20 59 48)" /></g>}
+    {status !== 'done' && <><rect class="arm l" x="46" y="52" width="14" height="5" rx="2.5" fill="var(--c)" />
+    <rect class="arm r" x="46" y="58" width="14" height="5" rx="2.5" fill="var(--c)" /></>}
+    {status === 'waiting' && <g class="cup"><rect x="46" y="44" width="9" height="11" rx="2" fill="#fff" /><path d="M46 47 q-4 2 0 5" stroke="#fff" stroke-width="1.5" fill="none" /><path class="steam" d="M49 41 q-2 -3 0 -6 M52 41 q-2 -3 0 -6" stroke="#a3a9b2" stroke-width="1.2" fill="none" /></g>}
+  </g>
+
+  <!-- 책상과 모니터 -->
+  <rect x="58" y="34" width="40" height="26" rx="3" fill="#15171a" stroke="#5b616b" stroke-width="1.5" />
+  <g class="screen">
+    <rect class="ln a" x="63" y="40" width="22" height="2.5" rx="1" fill="var(--c)" />
+    <rect class="ln b" x="63" y="46" width="28" height="2.5" rx="1" fill="#a3a9b2" />
+    <rect class="ln c" x="63" y="52" width="16" height="2.5" rx="1" fill="#a3a9b2" />
+  </g>
+  <rect x="75" y="60" width="6" height="6" fill="#5b616b" />
+  <rect x="8" y="66" width="104" height="5" rx="2" fill="#5b616b" />
+  <rect x="14" y="71" width="4" height="8" fill="#41464d" />
+  <rect x="102" y="71" width="4" height="8" fill="#41464d" />
+  {prop && <text x="104" y="64" font-size="13" text-anchor="middle">{prop}</text>}
+
+  <!-- 말풍선 -->
+  {status === 'working' && (
+    <g class="bub"><rect x="66" y="10" width="30" height="16" rx="8" fill="#fff" /><circle class="d1" cx="74" cy="18" r="2" fill="#24272B" /><circle class="d2" cx="81" cy="18" r="2" fill="#24272B" /><circle class="d3" cx="88" cy="18" r="2" fill="#24272B" /></g>
+  )}
+  {status === 'waiting' && (
+    <g class="bub"><rect x="66" y="10" width="22" height="16" rx="8" fill="#F2D53C" /><text x="77" y="22" font-size="12" font-weight="700" text-anchor="middle" fill="#24272B">?</text></g>
+  )}
+  {status === 'done' && (
+    <g class="bub"><circle cx="78" cy="18" r="9" fill="#4ade80" /><path d="M74 18 l3 3 l5 -6" stroke="#15171a" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></g>
+  )}
+</svg>
+
+<style>
+  .desk {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .eyes, .hd, .me, .arm, .ln, .bub, .steam {
+    transform-box: fill-box;
+  }
+  /* 눈 깜빡임 (모두) */
+  .eyes {
+    transform-origin: center;
+    animation: blink 4.2s infinite;
+  }
+  @keyframes blink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+  }
+  /* 일하는 중: 번갈아 타이핑, 화면 줄 깜빡임, 말풍선 점 */
+  .working .arm.l { animation: tap 0.35s ease-in-out infinite alternate; }
+  .working .arm.r { animation: tap 0.35s ease-in-out infinite alternate-reverse; }
+  @keyframes tap {
+    from { transform: translate(0, 0); }
+    to { transform: translate(2px, -2px); }
+  }
+  .working .ln { transform-origin: left center; animation: type 1.8s steps(6) infinite; }
+  .working .ln.b { animation-delay: 0.6s; }
+  .working .ln.c { animation-delay: 1.2s; }
+  @keyframes type {
+    from { transform: scaleX(0.1); }
+    to { transform: scaleX(1); }
+  }
+  .working .hd { transform-origin: center bottom; animation: nod 1.4s ease-in-out infinite; }
+  @keyframes nod {
+    50% { transform: translateY(1.5px); }
+  }
+  .working .d1, .working .d2, .working .d3 { animation: dot 1.2s infinite; }
+  .working .d2 { animation-delay: 0.2s; }
+  .working .d3 { animation-delay: 0.4s; }
+  @keyframes dot {
+    0%, 60%, 100% { opacity: 0.25; }
+    30% { opacity: 1; }
+  }
+  /* 확인 대기: 커피 들고 고개 갸웃 */
+  .waiting .hd { transform-origin: center bottom; animation: tilt 3s ease-in-out infinite; }
+  @keyframes tilt {
+    50% { transform: rotate(-8deg); }
+  }
+  .waiting .arm.l { transform: translate(-6px, -6px); }
+  .waiting .steam { animation: steam 2s ease-in-out infinite; }
+  @keyframes steam {
+    0% { opacity: 0; transform: translateY(2px); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-3px); }
+  }
+  .waiting .bub { animation: bob 2s ease-in-out infinite; }
+  @keyframes bob {
+    50% { transform: translateY(-2px); }
+  }
+  /* 마침: 기지개 */
+  .done .me { transform-origin: center bottom; animation: stretch 3.6s ease-in-out infinite; }
+  @keyframes stretch {
+    50% { transform: translateY(-1.5px); }
+  }
+  .done .ln { opacity: 0.4; }
+  @media (prefers-reduced-motion: reduce) {
+    .desk * { animation: none !important; }
+  }
+</style>
