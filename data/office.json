@@ -13,37 +13,43 @@
           "name": "개발 담당",
           "status": "working",
           "doing": "사이트에 AI 사무실 탭을 만드는 중이에요",
-          "prop": "🛠️"
+          "prop": "🛠️",
+          "acc": "glasses"
         },
         {
           "team": "콘텐츠팀",
           "name": "SNS 담당",
           "status": "waiting",
           "doing": "1일 1릴스 일차별 기획 확인을 기다려요",
-          "prop": "📱"
+          "prop": "📱",
+          "acc": "heart"
         },
         {
           "team": "콘텐츠팀",
           "name": "영상 담당",
           "status": "done",
           "doing": "홈페이지 변화 타임랩스 영상을 만들었어요",
-          "prop": "🎬"
+          "prop": "🎬",
+          "acc": "beret"
         },
         {
           "team": "기록팀",
           "name": "기록 담당",
           "status": "done",
           "doing": "어제 공부한 것을 사이트에 올렸어요",
-          "prop": "📒"
+          "prop": "📒",
+          "acc": "pencil"
         },
         {
           "team": "인사팀",
           "name": "인사 담당",
           "status": "working",
           "doing": "AI 직원끼리 소통하는 그림을 그리는 중이에요",
-          "prop": "🗂️"
+          "prop": "🗂️",
+          "acc": "tie"
         }
-      ]
+      ],
+      "kind": "zero"
     },
     {
       "id": "company",
@@ -57,58 +63,67 @@
           "name": "상품·가격 담당",
           "status": "waiting",
           "doing": "상품 옵션 정리 규칙 확인을 기다려요",
-          "prop": "🏷️"
+          "prop": "🏷️",
+          "acc": "bowtie"
         },
         {
           "team": "경영팀",
           "name": "매출 담당",
           "status": "waiting",
           "doing": "주문 기록을 맞춰 보는 화면을 만들었어요",
-          "prop": "📈"
+          "prop": "📈",
+          "acc": "tie"
         },
         {
           "team": "마케팅팀",
           "name": "광고 담당",
           "status": "waiting",
           "doing": "광고 관리 화면을 다듬고 확인을 기다려요",
-          "prop": "📣"
+          "prop": "📣",
+          "acc": "cap"
         },
         {
           "team": "웹팀",
           "name": "사이트 개발 담당",
           "status": "done",
           "doing": "사이트 공사 현황을 한 줄 체크리스트로 정리했어요",
-          "prop": "🛠️"
+          "prop": "🛠️",
+          "acc": "glasses"
         },
         {
           "team": "웹팀",
           "name": "알림·브랜드 담당",
           "status": "done",
           "doing": "알림 시각과 말투를 정할 수 있게 했어요",
-          "prop": "🔔"
+          "prop": "🔔",
+          "acc": "ribbon"
         },
         {
           "team": "운영팀",
           "name": "CS·발주 담당",
           "status": "waiting",
           "doing": "리뷰 화면을 만들고 연결을 기다려요",
-          "prop": "🎧"
+          "prop": "🎧",
+          "acc": "headset"
         },
         {
           "team": "운영팀",
           "name": "재고 담당",
           "status": "waiting",
           "doing": "재고를 엑셀로 올리는 방식을 준비 중이에요",
-          "prop": "📦"
+          "prop": "📦",
+          "acc": "helmet"
         },
         {
           "team": "인사팀",
           "name": "인사 담당",
           "status": "waiting",
           "doing": "작업 기록 화면을 만들었어요",
-          "prop": "🗂️"
+          "prop": "🗂️",
+          "acc": "pencil"
         }
-      ]
+      ],
+      "kind": "are"
     },
     {
       "id": "stock",
@@ -122,16 +137,19 @@
           "name": "사이트 방향 담당",
           "status": "done",
           "doing": "매매 기록 대시보드 첫 시안을 올렸어요",
-          "prop": "🧭"
+          "prop": "🧭",
+          "acc": "beret"
         },
         {
           "team": "인사팀",
           "name": "인사 담당",
           "status": "working",
           "doing": "8시간마다 부서 현황을 정리해요",
-          "prop": "🗂️"
+          "prop": "🗂️",
+          "acc": "tie"
         }
-      ]
+      ],
+      "kind": "bull"
     },
     {
       "id": "market",
