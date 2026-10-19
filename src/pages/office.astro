@@ -73,10 +73,10 @@ for (let x = 0, i = 1; x < 1200; i++) {
         <div class="story lobby">
           <div class="plate"><b>대표실</b><span>꼭대기층</span></div>
           <div class="room-in">
-            <div class="glass" aria-hidden="true">
+            <div class="bossdesk ceo-desk">
+              <div class="glass" aria-hidden="true">
               <svg viewBox="0 0 100 200" preserveAspectRatio="none"><rect class="tw" x="4" y="120" width="18" height="80" /><rect class="tw" x="26" y="96" width="14" height="104" /><rect class="tw" x="44" y="132" width="22" height="68" /><rect class="tw2" x="72" y="70" width="10" height="130" /><rect class="tw" x="84" y="112" width="16" height="88" /><rect class="water" x="0" y="184" width="100" height="16" /></svg>
             </div>
-            <div class="bossdesk ceo-desk">
               <Desk kind="human" status="working" papers={staff.filter((t) => t.status === 'waiting').length} />
               <span class="pile">확인할 서류 <b>{staff.filter((t) => t.status === 'waiting').length}</b>건</span>
               <b class="who">대표 이현</b>
@@ -93,11 +93,11 @@ for (let x = 0, i = 1; x < 1200; i++) {
           </div>
           <div class="hall">
             <div class="hall-door" aria-hidden="true"><span>대표실</span></div>
-            <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 비서가 챙긴 할 일 보기">
+            <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 직원들이 올린 서류 검토하기">
               <Desk kind="sec" acc="headset" status="working" prop="🗂️" />
               <b class="who">비서</b>
               <span class="doing">직원들이 올린 확인 요청과 대표님 할 일을 모아 빠짐없이 챙겨요</span>
-              <span class="sec-tag">대표 전용 창구 ↗</span>
+              <span class="sec-tag">확인할 서류 검토 보러 가기 ↗</span>
             </a>
             <div class="queue-wrap">
               <span class="hall-label">문 밖 검토 대기 <b>{queue.length}</b>명 · 오래 기다린 순</span>
@@ -238,7 +238,11 @@ for (let x = 0, i = 1; x < 1200; i++) {
   (function () {
     var kst = new Date(Date.now() + 9 * 3600e3);
     var day = Math.floor(kst.getTime() / 864e5);
-    var i = day % QUOTES.length;
+    // 날마다 겹치지 않게: 목록 길이와 서로소인 걸음으로 건너뛰며 고르면 한 바퀴 돌 때까지 반복이 없고, 같은 사람 말이 연달아 나오지 않아요
+    var n = QUOTES.length, step = 97;
+    var gcd = function (a, b) { return b ? gcd(b, a % b) : a; };
+    while (gcd(step, n) !== 1) step++;
+    var i = (day * step) % n;
     var tv = document.getElementById('tv');
     var show = function () {
       var q = QUOTES[i];
@@ -655,14 +659,23 @@ for (let x = 0, i = 1; x < 1200; i++) {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .ceo-desk {
+    position: relative;
+    padding-top: 6px;
+  }
+  .ceo-desk > :global(*:not(.glass)) {
+    position: relative;
+    z-index: 1;
+  }
   .glass {
-    flex: none;
-    width: 150px;
-    align-self: stretch;
-    min-height: 190px;
+    position: absolute;
+    z-index: 0;
+    left: -4px;
+    right: 6px;
+    top: -4px;
+    height: 136px;
     border: 5px solid #1c1f23;
     border-radius: 4px;
-    position: relative;
     overflow: hidden;
     background: linear-gradient(var(--s1), var(--s2) 60%, var(--s3));
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
@@ -756,8 +769,7 @@ for (let x = 0, i = 1; x < 1200; i++) {
       flex-basis: 100%;
     }
     .glass {
-      width: 64px;
-      min-height: 150px;
+      height: 120px;
     }
     .tv {
       order: -1;
