@@ -6,14 +6,14 @@
 // since: 확인 대기를 시작한 날(YYYY-MM-DD). 화면에서 며칠째인지 세어 data-age 0(하루) / 1(2~3일, 땀) / 2(4일+, 졸고 거미줄)
 const { kind = 'zero', acc = '', status = 'done', prop = '', since = '', papers = 0 } = Astro.props;
 // papers: 대표 책상에 쌓을 서류 장수 (확인할 건수)
-const BODY = { zero: '#F2D53C', are: '#9cc3f0', bull: '#a78bfa', human: '#3b4150', sec: '#2dd4bf' };
+const BODY = { zero: '#F2D53C', are: '#9cc3f0', bull: '#a78bfa', human: '#26282e', sec: '#2dd4bf' };
 const ey = kind === 'bull' ? 27 : 29;
 // 얼굴 위치와 색 (눈 x, 눈 y, 눈 크기, 눈동자 색, 눈썹/감은 눈 색, 입 y, 입 색)
 const F = {
   zero: { xs: [34.6, 41.4], ey, er: [1.6, 2.5], pc: '#F2D53C', ec: '#F2D53C', my: 34.8, mc: '#F2D53C' },
   are: { xs: [34.3, 41.7], ey, er: [1.4, 1.4], pc: '#4A4A57', ec: '#4A4A57', my: 34, mc: '#4A4A57' },
   sec: { xs: [34.6, 41.4], ey: 30, er: [1.2, 1.5], pc: '#25282d', ec: '#25282d', my: 35, mc: '#be123c' },
-  human: { xs: [34.6, 41.4], ey: 30, er: [1.2, 1.5], pc: '#25282d', ec: '#25282d', my: 35, mc: '#9a3412' },
+  human: { xs: [34, 42], ey: 30.6, er: [1.3, 1.1], pc: '#25282d', ec: '#25282d', my: 36.2, mc: '#c26a6a' },
   bull: { xs: [33.5, 42.5], ey, er: [1.1, 1.1], pc: '#25282d', ec: '#25282d', my: 39.6, mc: '#25282d' },
 }[kind];
 const petals = Array.from({ length: 12 }, (_, i) => {
@@ -27,7 +27,12 @@ const petals = Array.from({ length: 12 }, (_, i) => {
   <g class="me">
     <!-- 몸 -->
     <rect x="22" y="44" width="32" height="26" rx="10" fill="var(--c)" stroke="#25282d" stroke-width="1.2" />
-    {kind === 'human' && <path d="M36 45 h4 l-1 3 l3 11 l-4 4 l-4 -4 l3 -11 z" fill="#F2D53C" stroke="#25282d" stroke-width=".8" />}
+    {kind === 'human' && (
+      <g>
+        <path d="M32 45 l6 7 l6 -7 z" fill="#111214" />
+        <path d="M30 45 l5 10 l-3 3 M46 45 l-5 10 l3 3" fill="none" stroke="#6b6f78" stroke-width="1.1" stroke-linejoin="round" />
+      </g>
+    )}
     {acc === 'tie' && <path d="M36 45 h4 l-1 3 l3 11 l-4 4 l-4 -4 l3 -11 z" fill="#e5484d" stroke="#25282d" stroke-width=".8" />}
     {acc === 'bowtie' && <path d="M38 47 l-7 -4 v8 z M38 47 l7 -4 v8 z" fill="#e5484d" stroke="#25282d" stroke-width=".8" />}
 
@@ -51,8 +56,12 @@ const petals = Array.from({ length: 12 }, (_, i) => {
       )}
       {kind === 'human' && (
         <>
-          <circle cx="38" cy="30" r="12.5" fill="#f2d3b1" stroke="#25282d" stroke-width="1.2" />
-          <path d="M25.6 28 c0 -10 6 -14 12.4 -14 s12.4 4 12.4 14 c-3 -5 -7 -7 -12 -7 c-3 2 -8 3 -12.8 7z" fill="#2b2118" />
+          <!-- 대표: 사진 참고(앞머리를 내린 숱 많은 검은 머리, 검은 재킷) -->
+          <ellipse cx="50.2" cy="31" rx="2" ry="3" fill="#f3d6bf" stroke="#25282d" stroke-width=".9" />
+          <path d="M26.4 27 c0 -1 0 13 6 16 q6 3.4 11.4 0 c5 -3 6 -9 6 -15 z" fill="#f6dcc6" stroke="#25282d" stroke-width="1.1" stroke-linejoin="round" />
+          <path d="M24.8 32 C22.5 20 28 12.5 38.5 12.5 C48.5 12.5 53 19 51.2 30 L49.6 31 C49 27 48.4 25 47.4 24 C45 26.5 42 27.2 39.5 26 C37.5 27.6 34 28.4 31.5 27.2 C29.5 28.6 27.6 30.4 26.6 32.4 Z" fill="#1c1a1f" stroke="#25282d" stroke-width=".8" stroke-linejoin="round" />
+          <path d="M45 15.2 C39 16 32.6 20 29.4 26.4 M48 18.4 C43 19.4 38.6 22.4 36 27 M41 14 C36 14.6 30 17.6 27 23" fill="none" stroke="#44404c" stroke-width=".9" stroke-linecap="round" />
+          <circle cx="32" cy="34" r="1.5" fill="#F6B7AE" opacity=".6" /><circle cx="44" cy="34" r="1.5" fill="#F6B7AE" opacity=".6" />
         </>
       )}
       {kind === 'sec' && (

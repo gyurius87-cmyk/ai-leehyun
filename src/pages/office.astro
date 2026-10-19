@@ -1,6 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-import FollowCta from '../components/FollowCta.astro';
 import Desk from '../components/Desk.astro';
 import office from '../../data/office.json';
 import quotesData from '../../data/quotes.json';
@@ -35,7 +34,6 @@ for (let x = 0, i = 1; x < 1200; i++) {
       <h1 class="page-title">이현의 AI 사무실</h1>
       <div class="big-count">{staff.length}<small>명</small></div>
     </div>
-    <p class="page-desc">대표는 이현, 직원은 AI입니다. 말로 일을 맡기면 부서장이 AI 직원에게 나눠 주고, 직원은 만들고 기록합니다.</p>
   </div>
 
   <div class="wrap">
@@ -50,21 +48,22 @@ for (let x = 0, i = 1; x < 1200; i++) {
         </span>
       </div>
 
-      <div class="scene">
+      <div class="scene" id="scene" data-tod="day" data-season="autumn">
         <svg class="sky" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-          <circle cx="110" cy="70" r="26" fill="#fdf6d8" opacity=".9" />
-          <circle cx="122" cy="62" r="24" fill="#1b2a47" opacity=".55" />
+          <g class="moon"><circle cx="110" cy="70" r="26" fill="#fdf6d8" opacity=".9" /><circle cx="122" cy="62" r="24" fill="#1b2a47" opacity=".55" /></g>
+          <g class="sun"><circle cx="1010" cy="80" r="46" fill="#fff3b0" opacity=".35" /><circle cx="1010" cy="80" r="30" fill="#ffe27a" /></g>
+          <g class="clouds" fill="#fff"><ellipse cx="300" cy="80" rx="60" ry="16" /><ellipse cx="340" cy="68" rx="34" ry="16" /><ellipse cx="760" cy="120" rx="70" ry="15" /><ellipse cx="800" cy="108" rx="36" ry="15" /></g>
           {[[260, 40], [380, 90], [520, 30], [700, 70], [860, 36], [990, 96], [1110, 50], [200, 130], [1040, 150], [620, 120]].map(([x, y]) => <circle class="star" cx={x} cy={y} r="1.6" fill="#fff" />)}
         </svg>
         <svg class="city" viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true">
           
           {towers.map((t) => (
             <g>
-              <rect x={t.x} y={600 - t.h} width={t.w} height={t.h} fill="#22314d" />
-              {t.lit.map((r) => <rect x={t.x + 5} y={600 - t.h + 6 + r * 14} width={t.w - 10} height="4" fill="#ffd27a" opacity=".55" />)}
+              <rect class="tw" x={t.x} y={600 - t.h} width={t.w} height={t.h} />
+              {t.lit.map((r) => <rect x={t.x + 5} y={600 - t.h + 6 + r * 14} width={t.w - 10} height="4" class="win" />)}
             </g>
           ))}
-          <path d="M1150 600 V120 L1162 40 L1174 120 V600z" fill="#2c3e5f" /><rect x="1159" y="140" width="6" height="440" fill="#ffd27a" opacity=".35" /><path d="M0 600 V330 Q50 280 110 300 T200 330 V600z" fill="#1f3b2f" /><rect x="66" y="200" width="7" height="100" fill="#cfd6e0" /><rect x="58" y="226" width="23" height="11" rx="3" fill="#e9eef5" /><circle cx="69.5" cy="194" r="3.5" fill="#ef4444" class="blinky" />
+          <path class="tw2" d="M1150 600 V120 L1162 40 L1174 120 V600z" /><rect x="1159" y="140" width="6" height="440" fill="#ffd27a" opacity=".35" /><path d="M0 600 V330 Q50 280 110 300 T200 330 V600z" fill="#1f3b2f" /><rect x="66" y="200" width="7" height="100" fill="#cfd6e0" /><rect x="58" y="226" width="23" height="11" rx="3" fill="#e9eef5" /><circle cx="69.5" cy="194" r="3.5" fill="#ef4444" class="blinky" />
         </svg>
         <div class="bldg">
         <div class="roof-flag" aria-hidden="true"><img src="/assets/zero/zero-basic.svg" alt="" width="34" height="34" /></div>
@@ -72,6 +71,9 @@ for (let x = 0, i = 1; x < 1200; i++) {
         <div class="story lobby">
           <div class="plate"><b>대표실</b><span>꼭대기층</span></div>
           <div class="room-in">
+            <div class="glass" aria-hidden="true">
+              <svg viewBox="0 0 100 200" preserveAspectRatio="none"><rect class="tw" x="4" y="120" width="18" height="80" /><rect class="tw" x="26" y="96" width="14" height="104" /><rect class="tw" x="44" y="132" width="22" height="68" /><rect class="tw2" x="72" y="70" width="10" height="130" /><rect class="tw" x="84" y="112" width="16" height="88" /><rect class="water" x="0" y="184" width="100" height="16" /></svg>
+            </div>
             <div class="bossdesk ceo-desk">
               <Desk kind="human" status="working" papers={staff.filter((t) => t.status === 'waiting').length} />
               <span class="pile">확인할 서류 <b>{staff.filter((t) => t.status === 'waiting').length}</b>건</span>
@@ -86,7 +88,6 @@ for (let x = 0, i = 1; x < 1200; i++) {
               </div>
               <div class="tv-stand" aria-hidden="true"></div>
             </figure>
-            <div class="decor" aria-hidden="true"><span class="plant">🪴</span><span class="sofa">🛋️</span><div class="door"><span>엘리베이터</span></div></div>
             <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 비서가 챙긴 할 일 보기">
               <Desk kind="sec" acc="headset" status="working" prop="🗂️" />
               <b class="who">비서</b>
@@ -123,17 +124,17 @@ for (let x = 0, i = 1; x < 1200; i++) {
 
 
         </div>
-        <div class="bank" aria-hidden="true"><span>🌳</span><span>🚲</span><span>🌷</span><span>🌳</span><span>🌳</span><span>🌷</span><span>🌳</span></div>
+        <div class="bank" aria-hidden="true"><span class="tr">🌳</span><span>🚲</span><span class="tr">🌳</span><span class="tr">🌳</span><span class="tr">🌳</span><span>🚶</span><span class="tr">🌳</span></div>
+        <div class="fall" aria-hidden="true"></div>
         <div class="river" aria-hidden="true">
           <svg viewBox="0 0 1200 90" preserveAspectRatio="none">
-            <rect x="0" y="22" width="1200" height="7" fill="#3a4a63" />
-            {Array.from({ length: 8 }, (_, i) => <path d={`M${i * 150} 29 Q${i * 150 + 75} 70 ${i * 150 + 150} 29`} fill="none" stroke="#3a4a63" stroke-width="5" />)}
-            {Array.from({ length: 24 }, (_, i) => <circle cx={i * 50 + 25} cy="21" r="2" fill="#ffd27a" />)}
+            <rect class="deck" x="0" y="22" width="1200" height="7" />
+            {Array.from({ length: 8 }, (_, i) => <path d={`M${i * 150} 29 Q${i * 150 + 75} 70 ${i * 150 + 150} 29`} fill="none" class="arch" stroke-width="5" />)}
+            {Array.from({ length: 24 }, (_, i) => <circle class="blight" cx={i * 50 + 25} cy="21" r="2" />)}
             {Array.from({ length: 16 }, (_, i) => <rect class="glint" x={(i * 173) % 1180} y={45 + ((i * 29) % 38)} width={26 + (i % 4) * 10} height="2" rx="1" fill="#ffd27a" opacity=".35" style={`animation-delay:${(i % 5) * 0.6}s`} />)}
           </svg>
         </div>
       </div>
-      <p class="board-foot">{formatDate(updated)} 기준 · 매일 밤 갱신</p>
     </section>
 
     <!-- 2. 숫자 -->
@@ -182,19 +183,39 @@ for (let x = 0, i = 1; x < 1200; i++) {
       </div>
     </section>
 
-    <!-- 4. 어떻게 일하나 -->
-    <section class="how" aria-labelledby="howTitle">
-      <h2 id="howTitle" class="sec-title">이렇게 일해요</h2>
-      <ol>
-        <li><b>1</b><span>이현이 채팅으로 말로 맡겨요</span></li>
-        <li><b>2</b><span>부서장이 맞는 AI 직원에게 나눠요</span></li>
-        <li><b>3</b><span>AI 직원이 만들고, 공부한 것에 기록해요</span></li>
-      </ol>
-    </section>
 
-    <FollowCta />
   </div>
 </Base>
+
+<script>
+  // 한강 뷰: 한국 시간으로 낮·해 질 녘·밤, 계절로 강변 나무와 떨어지는 것(꽃잎·낙엽·눈)을 바꿔요
+  (function () {
+    var sc = document.getElementById('scene');
+    if (!sc) return;
+    var k = new Date(Date.now() + 9 * 3600e3), h = k.getUTCHours(), m = k.getUTCMonth() + 1;
+    var tod = h >= 5 && h < 7 ? 'dawn' : h >= 7 && h < 17 ? 'day' : h >= 17 && h < 19 ? 'dusk' : 'night';
+    var season = m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
+    sc.dataset.tod = tod;
+    sc.dataset.season = season;
+    var tree = { spring: '🌸', summer: '🌳', autumn: '🍁', winter: '🌲' }[season];
+    sc.querySelectorAll('.bank .tr').forEach(function (t) { t.textContent = tree; });
+    var bit = { spring: '🌸', autumn: '🍂', winter: '❄' }[season];
+    var fall = sc.querySelector('.fall');
+    if (bit && fall) {
+      for (var i = 0; i < 14; i++) {
+        var e = document.createElement('i');
+        e.textContent = bit;
+        e.style.left = ((i * 37) % 100) + '%';
+        e.style.fontSize = 10 + (i % 4) * 3 + 'px';
+        e.style.color = '#fff';
+        e.style.animationDuration = 18 + (i % 5) * 5 + 's';
+        e.style.animationDelay = -((i * 7) % 25) + 's';
+        e.style.opacity = '0.8';
+        fall.appendChild(e);
+      }
+    }
+  })();
+</script>
 
 <script define:vars={{ QUOTES }}>
   // 대표실 TV: 한국 날짜로 하루에 하나씩, 누르면 다음 명언
@@ -288,8 +309,36 @@ for (let x = 0, i = 1; x < 1200; i++) {
     margin: 18px -24px 0;
     padding: 34px 0 0;
     overflow: hidden;
-    background: linear-gradient(#0f1c33 0%, #1b2a47 38%, #3d4f7a 66%, #b4697a 86%, #e59866 100%);
+    background: linear-gradient(var(--s1) 0%, var(--s2) 50%, var(--s3) 100%);
+    transition: background 1s;
+    /* 시간대: 낮 기본값, 스크립트가 한국 시간으로 data-tod 를 바꿔요 */
+    --s1: #4f9ae0; --s2: #8cc6f2; --s3: #d8eefa;
+    --bld: #8094b5; --bld2: #9aaac6; --win: 0; --rv1: #4a8bd0; --rv2: #2f6aa8; --deck: #7c8aa3; --light: 0;
+    --sun: 1; --moon: 0; --star: 0; --cloud: 0.85;
   }
+  .scene[data-tod='dawn'] { --s1: #6f86c4; --s2: #f2b8a6; --s3: #fbdcae; --bld: #6c6f95; --bld2: #84819f; --win: 0.25; --rv1: #8a8fc0; --rv2: #5a6798; --deck: #6b7290; --light: 0.4; --sun: 1; --moon: 0; --star: 0.2; --cloud: 0.6; }
+  .scene[data-tod='dusk'] { --s1: #2e3f72; --s2: #c46f78; --s3: #f2a65e; --bld: #3a3d62; --bld2: #4b4b70; --win: 0.5; --rv1: #6a5a86; --rv2: #33395f; --deck: #4b4f70; --light: 1; --sun: 1; --moon: 0; --star: 0.3; --cloud: 0.5; }
+  .scene[data-tod='night'] { --s1: #0f1c33; --s2: #1b2a47; --s3: #b4697a; --bld: #22314d; --bld2: #2c3e5f; --win: 0.55; --rv1: #24406a; --rv2: #13223d; --deck: #3a4a63; --light: 1; --sun: 0; --moon: 1; --star: 1; --cloud: 0; }
+  .scene[data-tod='dawn'] .sun circle, .scene[data-tod='dusk'] .sun circle { transform: translateY(150px); }
+  .scene[data-tod='dusk'] .sun circle:last-child { fill: #ff9f5a; }
+  .sun { opacity: var(--sun); }
+  .moon { opacity: var(--moon); }
+  .star { opacity: var(--star); }
+  .clouds { opacity: var(--cloud); }
+  .scene .tw { fill: var(--bld); }
+  .scene .tw2 { fill: var(--bld2); }
+  .scene .win { fill: #ffd27a; opacity: var(--win); }
+  .deck { fill: var(--deck); }
+  .arch { stroke: var(--deck); }
+  .blight { fill: #ffd27a; opacity: var(--light); }
+  .scene[data-season='spring'] .bank { background: linear-gradient(#5f8f4e, #46703a); }
+  .scene[data-season='summer'] .bank { background: linear-gradient(#3f8a3a, #2d6b2a); }
+  .scene[data-season='autumn'] .bank { background: linear-gradient(#8a7a3a, #6b5a2c); }
+  .scene[data-season='winter'] .bank { background: linear-gradient(#dfe7ee, #b9c6d2); }
+  .fall { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+  .fall :global(i) { position: absolute; top: -20px; font-style: normal; animation: fall linear infinite; }
+  @keyframes fall { to { transform: translate(40px, 2400px) rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .fall { display: none; } }
   .sky {
     position: absolute;
     inset: 0 0 auto 0;
@@ -326,7 +375,7 @@ for (let x = 0, i = 1; x < 1200; i++) {
   .river {
     position: relative;
     height: 90px;
-    background: linear-gradient(#24406a, #13223d);
+    background: linear-gradient(var(--rv1), var(--rv2));
   }
   .river svg {
     display: block;
@@ -523,20 +572,37 @@ for (let x = 0, i = 1; x < 1200; i++) {
     border-right: 0;
     width: 220px;
   }
-  .decor {
-    display: flex;
-    align-items: flex-end;
-    gap: 14px;
-    font-size: 34px;
-    line-height: 1;
+  .glass {
+    flex: none;
+    width: 150px;
+    align-self: stretch;
+    min-height: 190px;
+    border: 5px solid #1c1f23;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(var(--s1), var(--s2) 60%, var(--s3));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   }
+  .glass::before,
+  .glass::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    background: #1c1f23;
+  }
+  .glass::before { left: 50%; top: 0; bottom: 0; width: 4px; transform: translateX(-2px); }
+  .glass::after { left: 0; right: 0; top: 62%; height: 3px; }
+  .glass svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .glass .water { fill: var(--rv1); }
+  .glass .tw, .glass .tw2 { opacity: 0.85; }
   .lobby .room-in {
     gap: 20px;
   }
   .tv {
     flex: 1;
-    max-width: 520px;
-    margin: 0 auto;
+    min-width: 0;
+    margin: 0;
     align-self: center;
     cursor: pointer;
   }
@@ -547,7 +613,7 @@ for (let x = 0, i = 1; x < 1200; i++) {
     border-radius: 10px;
     padding: 16px 22px 18px;
     box-shadow: 0 0 28px rgba(242, 213, 60, 0.18);
-    min-height: 150px;
+    min-height: 190px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -565,7 +631,7 @@ for (let x = 0, i = 1; x < 1200; i++) {
   }
   .tv blockquote {
     margin: 0;
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 700;
     line-height: 1.55;
     color: var(--white);
@@ -593,6 +659,10 @@ for (let x = 0, i = 1; x < 1200; i++) {
   @media (max-width: 760px) {
     .lobby .room-in {
       flex-wrap: wrap;
+    }
+    .glass {
+      width: 64px;
+      min-height: 150px;
     }
     .tv {
       order: -1;
@@ -651,7 +721,7 @@ for (let x = 0, i = 1; x < 1200; i++) {
     border-radius: 6px;
     padding: 1px 8px;
   }
-  .door span {
+  .door-unused {
     display: grid;
     place-items: end center;
     width: 70px;
