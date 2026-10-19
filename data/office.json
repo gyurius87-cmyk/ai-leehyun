@@ -43,11 +43,10 @@
         {
           "team": "인사팀",
           "name": "인사 담당",
-          "status": "waiting",
-          "doing": "부서 현황판 다음 작업 확인을 기다려요",
+          "status": "done",
+          "doing": "부서 현황판 정리를 마쳤어요",
           "prop": "🗂️",
-          "acc": "tie",
-          "since": "2026-10-19"
+          "acc": "tie"
         }
       ],
       "kind": "zero"
