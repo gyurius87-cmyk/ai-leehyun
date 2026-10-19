@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-19",
+  "updated": "2026-10-20",
   "depts": [
     {
       "id": "ai",
@@ -11,8 +11,8 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "working",
-          "doing": "SNS 기획 화면을 시놉시스·대본 두 칸으로 바꿨어요",
+          "status": "done",
+          "doing": "대표 캐릭터를 예전 그림으로 되돌렸어요",
           "prop": "🛠️",
           "acc": "glasses"
         },
@@ -20,7 +20,7 @@
           "team": "콘텐츠팀",
           "name": "SNS 담당",
           "status": "done",
-          "doing": "1일 1릴스 기획을 마무리했어요",
+          "doing": "SNS 키우기 프로젝트를 마쳤어요",
           "prop": "📱",
           "acc": "heart"
         },
@@ -79,11 +79,10 @@
         {
           "team": "마케팅팀",
           "name": "광고 담당",
-          "status": "waiting",
-          "doing": "광고 화면에 새 탭을 만들고 확인을 기다려요",
+          "status": "working",
+          "doing": "광고비를 뺀 마진을 계산하는 중이에요",
           "prop": "📣",
-          "acc": "cap",
-          "since": "2026-10-15"
+          "acc": "cap"
         },
         {
           "team": "웹팀",
@@ -105,29 +104,26 @@
         {
           "team": "운영팀",
           "name": "CS·발주 담당",
-          "status": "waiting",
-          "doing": "리뷰 화면을 만들고 연결을 기다려요",
+          "status": "working",
+          "doing": "리뷰 정리를 마무리하는 중이에요",
           "prop": "🎧",
-          "acc": "headset",
-          "since": "2026-10-16"
+          "acc": "headset"
         },
         {
           "team": "운영팀",
           "name": "재고 담당",
-          "status": "waiting",
-          "doing": "재고를 엑셀로 올리기로 하고 샘플 파일을 기다려요",
+          "status": "working",
+          "doing": "엑셀로 재고를 올리는 화면을 만드는 중이에요",
           "prop": "📦",
-          "acc": "helmet",
-          "since": "2026-10-15"
+          "acc": "helmet"
         },
         {
           "team": "인사팀",
           "name": "인사 담당",
-          "status": "waiting",
-          "doing": "DB 관리 기록 화면을 만들고 다음 일 확인을 기다려요",
+          "status": "working",
+          "doing": "비품·연차 관리를 준비하는 중이에요",
           "prop": "🗂️",
-          "acc": "pencil",
-          "since": "2026-10-17"
+          "acc": "pencil"
         }
       ],
       "kind": "are"
@@ -282,17 +278,15 @@
       "name": "AI 1일 1릴스",
       "dept": "ai",
       "team": "콘텐츠팀",
-      "state": "doing",
-      "start": "2026-10-10",
-      "step": "매일 기록 중"
+      "state": "done",
+      "start": "2026-10-10"
     },
     {
       "name": "유튜브 채널 @AI이현",
       "dept": "ai",
       "team": "콘텐츠팀",
-      "state": "doing",
-      "start": "2026-10-16",
-      "step": "채널 키우는 중"
+      "state": "done",
+      "start": "2026-10-16"
     },
     {
       "name": "AI이현 사이트 키우기",
