@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-18",
+  "updated": "2026-10-19",
   "depts": [
     {
       "id": "ai",
@@ -12,7 +12,7 @@
           "team": "개발팀",
           "name": "개발 담당",
           "status": "working",
-          "doing": "사이트에 AI 사무실 탭을 만드는 중이에요",
+          "doing": "AI 사무실 서류 검토 화면을 다듬는 중이에요",
           "prop": "🛠️",
           "acc": "glasses"
         },
@@ -44,10 +44,11 @@
         {
           "team": "인사팀",
           "name": "인사 담당",
-          "status": "working",
-          "doing": "AI 직원끼리 소통하는 그림을 그리는 중이에요",
+          "status": "waiting",
+          "doing": "부서 현황판 다음 작업 확인을 기다려요",
           "prop": "🗂️",
-          "acc": "tie"
+          "acc": "tie",
+          "since": "2026-10-19"
         }
       ],
       "kind": "zero"
@@ -72,7 +73,7 @@
           "team": "경영팀",
           "name": "매출 담당",
           "status": "waiting",
-          "doing": "주문 기록을 맞춰 보는 화면을 만들었어요",
+          "doing": "주문 기록 화면을 만들고 스토어 연결을 기다려요",
           "prop": "📈",
           "acc": "tie",
           "since": "2026-10-15"
@@ -81,7 +82,7 @@
           "team": "마케팅팀",
           "name": "광고 담당",
           "status": "waiting",
-          "doing": "광고 관리 화면을 다듬고 확인을 기다려요",
+          "doing": "광고 화면에 새 탭을 만들고 확인을 기다려요",
           "prop": "📣",
           "acc": "cap",
           "since": "2026-10-15"
@@ -115,7 +116,7 @@
           "team": "운영팀",
           "name": "재고 담당",
           "status": "waiting",
-          "doing": "재고를 엑셀로 올리는 방식을 준비 중이에요",
+          "doing": "재고를 엑셀로 올리기로 하고 샘플 파일을 기다려요",
           "prop": "📦",
           "acc": "helmet",
           "since": "2026-10-15"
@@ -124,7 +125,7 @@
           "team": "인사팀",
           "name": "인사 담당",
           "status": "waiting",
-          "doing": "작업 기록 화면을 만들었어요",
+          "doing": "DB 관리 기록 화면을 만들고 다음 일 확인을 기다려요",
           "prop": "🗂️",
           "acc": "pencil",
           "since": "2026-10-17"
