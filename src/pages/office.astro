@@ -11,6 +11,8 @@ const { depts, projects, updated } = office;
 const live = depts.filter((d) => !d.planned);
 const planned = depts.filter((d) => d.planned);
 const staff = live.flatMap((d) => d.teams);
+// 확인 대기 직원은 서류를 들고 대표실 문 밖에 줄을 서요 (오래 기다린 순)
+const queue = live.flatMap((d) => d.teams.filter((t) => t.status === 'waiting').map((t) => ({ ...t, kind: d.kind, dept: d.name }))).sort((a, b) => (a.since || '').localeCompare(b.since || ''));
 const LAMP = { working: '일하는 중', waiting: '확인 대기', done: '마침' };
 const STATES = [
   { k: 'doing', label: '진행 중' },
@@ -88,12 +90,26 @@ for (let x = 0, i = 1; x < 1200; i++) {
               </div>
               <div class="tv-stand" aria-hidden="true"></div>
             </figure>
+          </div>
+          <div class="hall">
+            <div class="hall-door" aria-hidden="true"><span>대표실</span></div>
             <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 비서가 챙긴 할 일 보기">
               <Desk kind="sec" acc="headset" status="working" prop="🗂️" />
               <b class="who">비서</b>
               <span class="doing">직원들이 올린 확인 요청과 대표님 할 일을 모아 빠짐없이 챙겨요</span>
               <span class="sec-tag">대표 전용 창구 ↗</span>
             </a>
+            <div class="queue-wrap">
+              <span class="hall-label">문 밖 검토 대기 <b>{queue.length}</b>명 · 오래 기다린 순</span>
+              <ul class="queue">
+                {queue.map((t) => (
+                  <li title={`${t.dept} ${t.name}: ${t.doing}`}>
+                    <Desk kind={t.kind} acc={t.acc} status="waiting" pose="stand" since={t.since} />
+                    <b>{t.name.replace(' 담당', '')}</b>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -109,7 +125,7 @@ for (let x = 0, i = 1; x < 1200; i++) {
               <ul class="floor">
                 {d.teams.map((t) => (
                   <li class="tile">
-                    <Desk kind={d.kind} acc={t.acc} status={t.status} prop={t.prop} since={t.since} />
+                    <Desk kind={d.kind} acc={t.acc} status={t.status} prop={t.prop} since={t.since} pose={t.status === 'waiting' ? 'away' : 'desk'} />
                     <div class="card">
                       <div class="meta"><span class="team-chip">{t.team}</span><i class={`lamp ${t.status}`} title={LAMP[t.status]}></i><span class="stx" data-since={t.since}>{LAMP[t.status]}</span></div>
                       <b class="who">{t.name}</b>
@@ -572,6 +588,73 @@ for (let x = 0, i = 1; x < 1200; i++) {
     border-right: 0;
     width: 220px;
   }
+  .hall {
+    margin-top: 14px;
+    padding: 10px 12px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    border-top: 4px solid #1c1f23;
+    background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 46px), #2a2d33;
+    border-radius: 0 0 6px 6px;
+  }
+  .hall-door {
+    flex: none;
+    width: 54px;
+    height: 96px;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(90deg, #7a5c45, #6b5442);
+    border: 3px solid #41464d;
+    border-bottom: 0;
+    display: grid;
+    place-items: start center;
+    padding-top: 8px;
+    font-size: 11px;
+    color: #f3e8d9;
+    position: relative;
+  }
+  .hall-door::after {
+    content: '';
+    position: absolute;
+    right: 7px;
+    top: 50px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #F2D53C;
+  }
+  .queue-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .hall-label {
+    font-size: 12.5px;
+    color: var(--muted-dark);
+  }
+  .hall-label b {
+    color: var(--yellow);
+  }
+  .queue {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .queue li {
+    flex: none;
+    width: 66px;
+    text-align: center;
+    font-size: 11.5px;
+  }
+  .queue b {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .glass {
     flex: none;
     width: 150px;
@@ -659,6 +742,18 @@ for (let x = 0, i = 1; x < 1200; i++) {
   @media (max-width: 760px) {
     .lobby .room-in {
       flex-wrap: wrap;
+    }
+    .hall {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .hall .sec-desk {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+    }
+    .queue-wrap {
+      flex-basis: 100%;
     }
     .glass {
       width: 64px;

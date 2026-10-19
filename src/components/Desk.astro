@@ -4,7 +4,9 @@
 // acc: 직원마다 다른 소품 (glasses heart beret pencil tie bowtie cap ribbon headset helmet crown)
 // status: working(타이핑) / waiting(커피 들고 기다림) / done(기지개 + ✓)
 // since: 확인 대기를 시작한 날(YYYY-MM-DD). 화면에서 며칠째인지 세어 data-age 0(하루) / 1(2~3일, 땀) / 2(4일+, 졸고 거미줄)
-const { kind = 'zero', acc = '', status = 'done', prop = '', since = '', papers = 0 } = Astro.props;
+const { kind = 'zero', acc = '', status = 'done', prop = '', since = '', papers = 0, pose = 'desk' } = Astro.props;
+// pose: desk(책상에서 일함) / stand(서류 들고 대표실 앞에 서서 기다림) / away(자리 비움: 빈 의자와 꺼진 모니터)
+const stand = pose === 'stand', away = pose === 'away';
 // papers: 대표 책상에 쌓을 서류 장수 (확인할 건수)
 const BODY = { zero: '#F2D53C', are: '#9cc3f0', bull: '#a78bfa', human: '#26282e', sec: '#2dd4bf' };
 const ey = kind === 'bull' ? 27 : 29;
@@ -21,10 +23,16 @@ const petals = Array.from({ length: 12 }, (_, i) => {
   return [38 + Math.cos(a) * 12.5, 30 + Math.sin(a) * 12.5];
 });
 ---
-<svg class={`desk ${status}`} data-since={status === 'waiting' && since ? since : undefined} viewBox="0 0 120 84" style={`--c:${BODY[kind]}`} role="img" aria-hidden="true">
-  <ellipse cx="60" cy="80" rx="52" ry="3" fill="rgba(0,0,0,.18)" />
+<svg class={`desk ${status} ${pose}`} data-since={status === 'waiting' && since ? since : undefined} viewBox={stand ? '10 0 62 96' : '0 0 120 84'} style={`--c:${BODY[kind]}`} role="img" aria-hidden="true">
+  {stand ? <ellipse cx="38" cy="92" rx="18" ry="2.6" fill="rgba(0,0,0,.25)" /> : <ellipse cx="60" cy="80" rx="52" ry="3" fill="rgba(0,0,0,.18)" />}
+  {away && (
+    <g class="chair"><rect x="22" y="38" width="30" height="30" rx="8" fill="#4b5563" stroke="#25282d" stroke-width="1.1" /><rect x="20" y="62" width="34" height="6" rx="3" fill="#374151" stroke="#25282d" stroke-width=".9" /><rect x="35" y="68" width="4" height="10" fill="#374151" /></g>
+  )}
+  {stand && (
+    <g class="legs"><rect x="29" y="68" width="7" height="20" rx="2" fill="#2b2f36" stroke="#25282d" stroke-width=".8" /><rect x="40" y="68" width="7" height="20" rx="2" fill="#2b2f36" stroke="#25282d" stroke-width=".8" /><rect x="27" y="86" width="10" height="4" rx="2" fill="#15171a" /><rect x="39" y="86" width="10" height="4" rx="2" fill="#15171a" /></g>
+  )}
 
-  <g class="me">
+  {!away && <g class="me">
     <!-- 몸 -->
     <rect x="22" y="44" width="32" height="26" rx="10" fill="var(--c)" stroke="#25282d" stroke-width="1.2" />
     {kind === 'human' && (
@@ -117,21 +125,34 @@ const petals = Array.from({ length: 12 }, (_, i) => {
     </g>
 
     <!-- 팔 -->
-    {status === 'done' && <g><rect x="14" y="26" width="5" height="22" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" transform="rotate(-20 16 48)" /><rect x="57" y="26" width="5" height="22" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" transform="rotate(20 59 48)" /></g>}
-    {status !== 'done' && <><rect class="arm l" x="46" y="52" width="14" height="5" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" /><rect class="arm r" x="46" y="58" width="14" height="5" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" /></>}
-    {status === 'waiting' && <g><rect x="46" y="44" width="9" height="11" rx="2" fill="#fff" stroke="#25282d" stroke-width=".8" /><path d="M46 47 q-4 2 0 5" stroke="#fff" stroke-width="1.5" fill="none" /><path class="steam" d="M49 41 q-2 -3 0 -6 M52 41 q-2 -3 0 -6" stroke="#a3a9b2" stroke-width="1.2" fill="none" /></g>}
-  </g>
+    {stand && (
+      <g class="doc"><rect x="27" y="47" width="22" height="17" rx="1.5" fill="#fff" stroke="#25282d" stroke-width=".9" transform="rotate(-6 38 55)" /><path d="M30 52 h13 M30 55.5 h15 M30 59 h10" stroke="#a3a9b2" stroke-width="1.1" transform="rotate(-6 38 55)" /><rect x="40" y="45" width="6" height="3" rx="1" fill="#ef4444" transform="rotate(-6 38 55)" /><rect x="22" y="54" width="9" height="5" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" /><rect x="45" y="54" width="9" height="5" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" /></g>
+    )}
+    {!stand && status === 'done' && <g><rect x="14" y="26" width="5" height="22" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" transform="rotate(-20 16 48)" /><rect x="57" y="26" width="5" height="22" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" transform="rotate(20 59 48)" /></g>}
+    {!stand && status !== 'done' && <><rect class="arm l" x="46" y="52" width="14" height="5" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" /><rect class="arm r" x="46" y="58" width="14" height="5" rx="2.5" fill="var(--c)" stroke="#25282d" stroke-width="1" /></>}
+    {!stand && status === 'waiting' && <g><rect x="46" y="44" width="9" height="11" rx="2" fill="#fff" stroke="#25282d" stroke-width=".8" /><path d="M46 47 q-4 2 0 5" stroke="#fff" stroke-width="1.5" fill="none" /><path class="steam" d="M49 41 q-2 -3 0 -6 M52 41 q-2 -3 0 -6" stroke="#a3a9b2" stroke-width="1.2" fill="none" /></g>}
+  </g>}
 
   <!-- 모니터와 책상 -->
-  <rect x="58" y="34" width="40" height="26" rx="3" fill="#15171a" stroke="#5b616b" stroke-width="1.5" />
-  <rect class="ln a" x="63" y="40" width="22" height="2.5" rx="1" fill="var(--c)" />
-  <rect class="ln b" x="63" y="46" width="28" height="2.5" rx="1" fill="#a3a9b2" />
-  <rect class="ln c" x="63" y="52" width="16" height="2.5" rx="1" fill="#a3a9b2" />
-  <rect x="75" y="60" width="6" height="6" fill="#5b616b" />
-  <rect x="8" y="66" width="104" height="5" rx="2" fill="#8a6f55" />
-  <rect x="14" y="71" width="4" height="8" fill="#6b5442" />
-  <rect x="102" y="71" width="4" height="8" fill="#6b5442" />
-  {prop && <text x="104" y="64" font-size="13" text-anchor="middle">{prop}</text>}
+  {!stand && (
+    <>
+      <rect x="58" y="34" width="40" height="26" rx="3" fill="#15171a" stroke="#5b616b" stroke-width="1.5" />
+      {away ? (
+        <g class="note"><rect x="70" y="39" width="17" height="15" rx="1" fill="#fde68a" transform="rotate(4 78 46)" /><text x="78.5" y="49.5" font-size="6.5" font-weight="700" text-anchor="middle" fill="#7c2d12" transform="rotate(4 78 46)">대표실</text></g>
+      ) : (
+        <>
+          <rect class="ln a" x="63" y="40" width="22" height="2.5" rx="1" fill="var(--c)" />
+          <rect class="ln b" x="63" y="46" width="28" height="2.5" rx="1" fill="#a3a9b2" />
+          <rect class="ln c" x="63" y="52" width="16" height="2.5" rx="1" fill="#a3a9b2" />
+        </>
+      )}
+      <rect x="75" y="60" width="6" height="6" fill="#5b616b" />
+      <rect x="8" y="66" width="104" height="5" rx="2" fill="#8a6f55" />
+      <rect x="14" y="71" width="4" height="8" fill="#6b5442" />
+      <rect x="102" y="71" width="4" height="8" fill="#6b5442" />
+      {prop && <text x="104" y="64" font-size="13" text-anchor="middle">{prop}</text>}
+    </>
+  )}
   {papers > 0 && (
     <g class="papers">
       {Array.from({ length: papers }, (_, i) => (
@@ -145,7 +166,13 @@ const petals = Array.from({ length: 12 }, (_, i) => {
   {status === 'working' && (
     <g class="bub"><rect x="66" y="10" width="30" height="16" rx="8" fill="#fff" stroke="#25282d" stroke-width=".8" /><circle class="d1" cx="74" cy="18" r="2" fill="#24272B" /><circle class="d2" cx="81" cy="18" r="2" fill="#24272B" /><circle class="d3" cx="88" cy="18" r="2" fill="#24272B" /></g>
   )}
-  {status === 'waiting' && (
+  {status === 'waiting' && stand && (
+    <>
+      <g class="bub"><rect class="bub-bg" x="46" y="2" width="24" height="14" rx="7" fill="#F2D53C" stroke="#25282d" stroke-width=".8" /><text class="age-txt" x="58" y="12.6" font-size="10" font-weight="700" text-anchor="middle" fill="#24272B">?</text></g>
+      <text class="zzz" x="14" y="16" font-size="9" font-weight="700" fill="#a3a9b2">z<tspan dy="-4" font-size="11">Z</tspan></text>
+    </>
+  )}
+  {status === 'waiting' && !stand && !away && (
     <>
       <g class="bub"><rect class="bub-bg" x="66" y="10" width="26" height="16" rx="8" fill="#F2D53C" stroke="#25282d" stroke-width=".8" /><text class="age-txt" x="79" y="22" font-size="11" font-weight="700" text-anchor="middle" fill="#24272B">?</text></g>
       <g class="web" fill="none" stroke="#cbd5e1" stroke-width=".6" opacity=".8"><path d="M98 34 l-12 0 M98 34 l0 12 M98 34 l-9 9 M90 34 q2 2 0 0 M86 34 q4 4 0 0" /><path d="M92 34 q0 6 6 6 M88 34 q0 10 10 10" /></g>
@@ -239,6 +266,8 @@ const petals = Array.from({ length: 12 }, (_, i) => {
     50% { transform: translateY(-1.5px); }
   }
   .done .ln { opacity: 0.4; }
+  .stand .me { transform-origin: center bottom; animation: shift 4s ease-in-out infinite; }
+  @keyframes shift { 50% { transform: translateX(1px) rotate(1deg); } }
   @media (prefers-reduced-motion: reduce) {
     .desk * { animation: none !important; }
   }
@@ -252,6 +281,6 @@ const petals = Array.from({ length: 12 }, (_, i) => {
     el.dataset.age = days >= 4 ? '2' : days >= 2 ? '1' : '0';
     const t = el.querySelector('.age-txt');
     if (t) t.textContent = days >= 1 ? `${days}일` : '?';
-    if (el.classList.contains('stx')) el.textContent = days >= 1 ? `${days}일째 대기` : '확인 대기';
+    if (el.classList.contains('stx')) el.textContent = days >= 1 ? `대표실 앞 ${days}일째` : '대표실 앞 대기';
   });
 </script>
