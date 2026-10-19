@@ -47,9 +47,9 @@
     },
     {
       "id": "office",
-      "name": "AI 사무실 현황",
+      "name": "AI 사무실 직원들 서류 검토",
       "status": "using",
-      "summary": "부서장 제로 아래 팀별로 묶인 Claude 직원들이 지금 무엇을 하는지, 누가 내 답을 기다리는지 한 화면에서 봅니다.",
+      "summary": "AI 직원들이 검토해 달라고 올린 서류를 오래된 것부터 보고, 내가 직접 할 일을 챙깁니다.",
       "start": "2026-10-15",
       "private": true,
       "href": "https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi"
