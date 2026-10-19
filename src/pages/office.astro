@@ -20,6 +20,14 @@ const STATES = [
 ];
 const deptName = (id) => depts.find((d) => d.id === id)?.name || '';
 const count = (k) => projects.filter((p) => p.state === k).length;
+// 한강 뷰 배경: 강 건너 빌딩 실루엣 (고정 난수라 빌드마다 같아요)
+const towers = [];
+for (let x = 0, i = 1; x < 1200; i++) {
+  const w = 26 + ((i * 37) % 30);
+  const h = 60 + ((i * 53) % 110) + (x < 170 || x > 1030 ? 160 + ((i * 71) % 200) : 0);
+  towers.push({ x, w, h, lit: Array.from({ length: Math.floor(h / 14) }, (_, r) => (i * 7 + r * 3) % 4 === 0 ? r : -1).filter((r) => r >= 0) });
+  x += w + 3;
+}
 ---
 <Base current="office" title="AI 사무실" description="이현이 만든 AI 부서와 AI 직원들, 지금 하는 일과 앞으로 할 프로젝트를 한눈에 봅니다.">
   <div slot="head" class="page-head">
@@ -42,9 +50,51 @@ const count = (k) => projects.filter((p) => p.state === k).length;
         </span>
       </div>
 
-      <div class="bldg">
+      <div class="scene">
+        <svg class="sky" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+          <circle cx="110" cy="70" r="26" fill="#fdf6d8" opacity=".9" />
+          <circle cx="122" cy="62" r="24" fill="#1b2a47" opacity=".55" />
+          {[[260, 40], [380, 90], [520, 30], [700, 70], [860, 36], [990, 96], [1110, 50], [200, 130], [1040, 150], [620, 120]].map(([x, y]) => <circle class="star" cx={x} cy={y} r="1.6" fill="#fff" />)}
+        </svg>
+        <svg class="city" viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true">
+          
+          {towers.map((t) => (
+            <g>
+              <rect x={t.x} y={600 - t.h} width={t.w} height={t.h} fill="#22314d" />
+              {t.lit.map((r) => <rect x={t.x + 5} y={600 - t.h + 6 + r * 14} width={t.w - 10} height="4" fill="#ffd27a" opacity=".55" />)}
+            </g>
+          ))}
+          <path d="M1150 600 V120 L1162 40 L1174 120 V600z" fill="#2c3e5f" /><rect x="1159" y="140" width="6" height="440" fill="#ffd27a" opacity=".35" /><path d="M0 600 V330 Q50 280 110 300 T200 330 V600z" fill="#1f3b2f" /><rect x="66" y="200" width="7" height="100" fill="#cfd6e0" /><rect x="58" y="226" width="23" height="11" rx="3" fill="#e9eef5" /><circle cx="69.5" cy="194" r="3.5" fill="#ef4444" class="blinky" />
+        </svg>
+        <div class="bldg">
         <div class="roof-flag" aria-hidden="true"><img src="/assets/zero/zero-basic.svg" alt="" width="34" height="34" /></div>
         <div class="roof"><span class="sign">이현의 AI 사무실</span></div>
+        <div class="story lobby">
+          <div class="plate"><b>대표실</b><span>꼭대기층</span></div>
+          <div class="room-in">
+            <div class="bossdesk ceo-desk">
+              <Desk kind="human" status="working" papers={staff.filter((t) => t.status === 'waiting').length} />
+              <span class="pile">확인할 서류 <b>{staff.filter((t) => t.status === 'waiting').length}</b>건</span>
+              <b class="who">대표 이현</b>
+              <span class="doing">쇼핑몰 14년 · 전업 투자 · AI 공부 중. 말로 일을 맡겨요</span>
+            </div>
+            <figure class="tv" id="tv" title="눌러서 다른 명언 보기">
+              <div class="tv-screen">
+                <div class="tv-top"><span class="tv-on">● 오늘의 명언</span><span class="tv-date" id="tvDate"></span></div>
+                <blockquote id="tvText">{QUOTES[0].text}</blockquote>
+                <figcaption id="tvWho">{QUOTES[0].who}{QUOTES[0].src && ` · ${QUOTES[0].src}`}</figcaption>
+              </div>
+              <div class="tv-stand" aria-hidden="true"></div>
+            </figure>
+            <div class="decor" aria-hidden="true"><span class="plant">🪴</span><span class="sofa">🛋️</span><div class="door"><span>엘리베이터</span></div></div>
+            <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 비서가 챙긴 할 일 보기">
+              <Desk kind="sec" acc="headset" status="working" prop="🗂️" />
+              <b class="who">비서</b>
+              <span class="doing">직원들이 올린 확인 요청과 대표님 할 일을 모아 빠짐없이 챙겨요</span>
+              <span class="sec-tag">대표 전용 창구 ↗</span>
+            </a>
+          </div>
+        </div>
 
         {live.map((d) => (
           <div class={`story ${d.id}`}>
@@ -71,50 +121,24 @@ const count = (k) => projects.filter((p) => p.state === k).length;
           </div>
         ))}
 
-        <div class="story plan">
-          {planned.map((d) => (
-            <div class="lot">
-              <div class="plate"><b>{d.name}</b><span class="soon">공사 중</span></div>
-              <p>{d.about}</p>
-              <div class="first">첫 할 일 · {d.first}</div>
-            </div>
-          ))}
-        </div>
 
-        <div class="story lobby">
-          <div class="plate"><b>대표실</b><span>1층</span></div>
-          <div class="room-in">
-            <div class="bossdesk ceo-desk">
-              <Desk kind="human" status="working" papers={staff.filter((t) => t.status === 'waiting').length} />
-              <span class="pile">확인할 서류 <b>{staff.filter((t) => t.status === 'waiting').length}</b>건</span>
-              <b class="who">대표 이현</b>
-              <span class="doing">쇼핑몰 14년 · 전업 투자 · AI 공부 중. 말로 일을 맡겨요</span>
-            </div>
-            <figure class="tv" id="tv" title="눌러서 다른 명언 보기">
-              <div class="tv-screen">
-                <div class="tv-top"><span class="tv-on">● 오늘의 명언</span><span class="tv-date" id="tvDate"></span></div>
-                <blockquote id="tvText">{QUOTES[0].text}</blockquote>
-                <figcaption id="tvWho">{QUOTES[0].who}{QUOTES[0].src && ` · ${QUOTES[0].src}`}</figcaption>
-              </div>
-              <div class="tv-stand" aria-hidden="true"></div>
-            </figure>
-            <div class="decor" aria-hidden="true"><span class="plant">🪴</span><span class="sofa">🛋️</span><div class="door"><span>입구</span></div></div>
-            <a class="sec-desk" href="https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi" target="_blank" rel="noopener" title="대표 전용: 비서가 챙긴 할 일 보기">
-              <Desk kind="sec" acc="headset" status="working" prop="🗂️" />
-              <b class="who">비서</b>
-              <span class="doing">직원들이 올린 확인 요청과 대표님 할 일을 모아 빠짐없이 챙겨요</span>
-              <span class="sec-tag">대표 전용 창구 ↗</span>
-            </a>
-          </div>
         </div>
-        <div class="ground" aria-hidden="true"><span>🌳</span><span>🌷</span><span>🌳</span></div>
+        <div class="bank" aria-hidden="true"><span>🌳</span><span>🚲</span><span>🌷</span><span>🌳</span><span>🌳</span><span>🌷</span><span>🌳</span></div>
+        <div class="river" aria-hidden="true">
+          <svg viewBox="0 0 1200 90" preserveAspectRatio="none">
+            <rect x="0" y="22" width="1200" height="7" fill="#3a4a63" />
+            {Array.from({ length: 8 }, (_, i) => <path d={`M${i * 150} 29 Q${i * 150 + 75} 70 ${i * 150 + 150} 29`} fill="none" stroke="#3a4a63" stroke-width="5" />)}
+            {Array.from({ length: 24 }, (_, i) => <circle cx={i * 50 + 25} cy="21" r="2" fill="#ffd27a" />)}
+            {Array.from({ length: 16 }, (_, i) => <rect class="glint" x={(i * 173) % 1180} y={45 + ((i * 29) % 38)} width={26 + (i % 4) * 10} height="2" rx="1" fill="#ffd27a" opacity=".35" style={`animation-delay:${(i % 5) * 0.6}s`} />)}
+          </svg>
+        </div>
       </div>
       <p class="board-foot">{formatDate(updated)} 기준 · 매일 밤 갱신</p>
     </section>
 
     <!-- 2. 숫자 -->
     <div class="stat-grid nums">
-      <div class="stat"><div class="label">부서</div><div class="num">{live.length}<small>개 + 예정 {planned.length}</small></div></div>
+      <div class="stat"><div class="label">부서</div><div class="num">{live.length}<small>개 + 공사 중 {planned.length}</small></div></div>
       <div class="stat"><div class="label">끝낸 프로젝트</div><div class="num">{count('done')}<small>개</small></div></div>
       <div class="stat"><div class="label">진행 중</div><div class="num">{count('doing')}<small>개</small></div></div>
       <div class="stat"><div class="label">예정</div><div class="num">{count('planned')}<small>개</small></div></div>
@@ -143,6 +167,19 @@ const count = (k) => projects.filter((p) => p.state === k).length;
           );
         })}
       </ul>
+
+      <div class="build">
+        <h3>🚧 공사 중인 부서</h3>
+        <div class="lots">
+          {planned.map((d) => (
+            <div class="lot">
+              <div class="plate"><b>{d.name}</b><span class="soon">공사 중</span></div>
+              <p>{d.about}</p>
+              <div class="first">첫 할 일 · {d.first}</div>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
 
     <!-- 4. 어떻게 일하나 -->
@@ -246,9 +283,78 @@ const count = (k) => projects.filter((p) => p.state === k).length;
   @media (prefers-reduced-motion: reduce) {
     .lamp.working { animation: none; }
   }
+  .scene {
+    position: relative;
+    margin: 18px -24px 0;
+    padding: 34px 0 0;
+    overflow: hidden;
+    background: linear-gradient(#0f1c33 0%, #1b2a47 38%, #3d4f7a 66%, #b4697a 86%, #e59866 100%);
+  }
+  .sky {
+    position: absolute;
+    inset: 0 0 auto 0;
+    width: 100%;
+    height: 300px;
+  }
+  .star { animation: twinkle 3s ease-in-out infinite; }
+  .star:nth-child(2n) { animation-delay: 1.4s; }
+  @keyframes twinkle { 50% { opacity: 0.3; } }
+  .city {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 118px;
+    width: 100%;
+    height: 600px;
+  }
+  .blinky { animation: twinkle 1.4s steps(2) infinite; }
   .bldg {
     position: relative;
+    width: 82%;
+    margin: 0 auto;
+  }
+  .bank {
+    position: relative;
+    height: 28px;
+    background: linear-gradient(#3f5a3a, #2f4a2c);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    font-size: 20px;
+    line-height: 1;
+  }
+  .river {
+    position: relative;
+    height: 90px;
+    background: linear-gradient(#24406a, #13223d);
+  }
+  .river svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .glint { animation: glint 3s ease-in-out infinite; }
+  @keyframes glint { 50% { opacity: 0.05; transform: translateX(8px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .star, .blinky, .glint { animation: none; }
+  }
+  .build {
     margin-top: 18px;
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 14px;
+    padding: 16px;
+    border: 3px dashed rgba(242, 213, 60, 0.45);
+    background-image: repeating-linear-gradient(-45deg, rgba(242, 213, 60, 0.06) 0 12px, transparent 12px 24px);
+  }
+  .build h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+  }
+  .lots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
   .roof-flag {
     position: absolute;
@@ -310,15 +416,6 @@ const count = (k) => projects.filter((p) => p.state === k).length;
   .story.company { --wall: #233041; --accent: #60a5fa; }
   .story.stock { --wall: #2e2843; --accent: #a78bfa; }
   .story.lobby { --wall: #30343a; --accent: #e4e6ea; }
-  .story.plan {
-    --wall: #2a2d31;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    background:
-      repeating-linear-gradient(-45deg, rgba(242, 213, 60, 0.07) 0 12px, transparent 12px 24px),
-      var(--wall);
-  }
   .plate {
     display: inline-flex;
     align-items: center;
@@ -567,18 +664,6 @@ const count = (k) => projects.filter((p) => p.state === k).length;
     font-size: 11px;
     color: #f3e8d9;
   }
-  .ground {
-    height: 26px;
-    margin: 0;
-    background: #3f5a3a;
-    border-radius: 0 0 10px 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 0 6%;
-    font-size: 20px;
-    line-height: 1;
-  }
   @media (max-width: 760px) {
     .room-in {
       flex-direction: column;
@@ -606,8 +691,18 @@ const count = (k) => projects.filter((p) => p.state === k).length;
       margin: 0;
       padding: 12px 10px 14px;
     }
-    .story.plan {
+    .lots {
       grid-template-columns: 1fr;
+    }
+    .scene {
+      margin: 18px -16px 0;
+      padding-top: 24px;
+    }
+    .bldg {
+      width: 92%;
+    }
+    .city {
+      height: 420px;
     }
     .lobby .room-in {
       flex-direction: row;
