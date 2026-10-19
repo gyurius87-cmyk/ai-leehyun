@@ -12,18 +12,17 @@
           "team": "개발팀",
           "name": "개발 담당",
           "status": "working",
-          "doing": "AI 사무실 서류 검토 화면을 다듬는 중이에요",
+          "doing": "SNS 기획 화면을 시놉시스·대본 두 칸으로 바꿨어요",
           "prop": "🛠️",
           "acc": "glasses"
         },
         {
           "team": "콘텐츠팀",
           "name": "SNS 담당",
-          "status": "waiting",
-          "doing": "1일 1릴스 일차별 기획 확인을 기다려요",
+          "status": "done",
+          "doing": "1일 1릴스 기획을 마무리했어요",
           "prop": "📱",
-          "acc": "heart",
-          "since": "2026-10-13"
+          "acc": "heart"
         },
         {
           "team": "콘텐츠팀",
@@ -90,10 +89,11 @@
         {
           "team": "웹팀",
           "name": "사이트 개발 담당",
-          "status": "done",
-          "doing": "사이트 공사 현황을 한 줄 체크리스트로 정리했어요",
+          "status": "waiting",
+          "doing": "메일 연결 확인을 기다려요",
           "prop": "🛠️",
-          "acc": "glasses"
+          "acc": "glasses",
+          "since": "2026-10-19"
         },
         {
           "team": "웹팀",
