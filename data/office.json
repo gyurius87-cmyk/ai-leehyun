@@ -79,8 +79,8 @@
         {
           "team": "마케팅팀",
           "name": "광고 담당",
-          "status": "working",
-          "doing": "광고비를 뺀 마진을 계산하는 중이에요",
+          "status": "done",
+          "doing": "광고 화면의 중복 필터를 정리했어요",
           "prop": "📣",
           "acc": "cap"
         },
@@ -104,24 +104,26 @@
         {
           "team": "운영팀",
           "name": "CS·발주 담당",
-          "status": "working",
-          "doing": "리뷰 정리를 마무리하는 중이에요",
+          "status": "waiting",
+          "doing": "리뷰 표를 만들고 리뷰 파일을 기다려요",
           "prop": "🎧",
-          "acc": "headset"
+          "acc": "headset",
+          "since": "2026-10-20"
         },
         {
           "team": "운영팀",
           "name": "재고 담당",
-          "status": "working",
-          "doing": "엑셀로 재고를 올리는 화면을 만드는 중이에요",
+          "status": "waiting",
+          "doing": "재고 올리기와 부족 알림을 만들고 입고 기간을 기다려요",
           "prop": "📦",
-          "acc": "helmet"
+          "acc": "helmet",
+          "since": "2026-10-20"
         },
         {
           "team": "인사팀",
           "name": "인사 담당",
-          "status": "working",
-          "doing": "비품·연차 관리를 준비하는 중이에요",
+          "status": "done",
+          "doing": "오늘 할 일에 날짜별 완수율 캘린더를 붙였어요",
           "prop": "🗂️",
           "acc": "pencil"
         }
