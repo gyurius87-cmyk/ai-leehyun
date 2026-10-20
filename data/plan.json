@@ -623,6 +623,35 @@
                 "Claude API",
                 "Vercel"
               ]
+            },
+            {
+              "id": "ai-wiki",
+              "title": "AI 백과사전 만들기 (용어·LLM 관찰·새 소식)",
+              "what": "AI 용어와 종류를 정리하고, 주요 LLM 9곳의 새 모델과 AI 새 소식을 하루 두 번 자동으로 모아 보는 백과사전을 만들었습니다.",
+              "yt": "AI 공부를 백과사전으로 쌓기",
+              "status": "done",
+              "start": "2026-10-20",
+              "end": "2026-10-20",
+              "facts": [
+                {
+                  "label": "용어",
+                  "value": "30",
+                  "unit": "개"
+                },
+                {
+                  "label": "관찰 LLM",
+                  "value": "9",
+                  "unit": "곳"
+                }
+              ],
+              "result": {
+                "label": "AI 백과사전",
+                "href": "/wiki"
+              },
+              "tools": [
+                "Claude Code",
+                "Claude 예약 작업"
+              ]
             }
           ]
         },
