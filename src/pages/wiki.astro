@@ -1,0 +1,246 @@
+---
+import Base from '../layouts/Base.astro';
+import FollowCta from '../components/FollowCta.astro';
+import wiki from '../../data/wiki.json';
+
+const CATS = ['기본', '사용법', '도구', '산업'];
+const terms = wiki.terms;
+const kinds = wiki.kinds;
+const byCat = CATS.map((c) => ({ cat: c, items: terms.filter((t) => t.cat === c) })).filter((g) => g.items.length);
+const slug = (s) => 'w-' + encodeURIComponent(s).replace(/%/g, '');
+---
+<Base current="wiki" title="AI 백과사전" description="AI를 공부하며 만난 용어와 AI 종류를 쉬운 말로 정리하고, 매일 새 AI 소식을 모읍니다.">
+  <div slot="head" class="page-head">
+    <div class="row">
+      <h1 class="page-title">AI 백과사전</h1>
+      <div class="big-count">{terms.length}<small>개 용어</small></div>
+    </div>
+    <p class="page-desc">공부하다 만난 AI 용어와 AI 종류를 쉬운 말로 적어 둡니다. 새 AI 소식도 매일 모아요.</p>
+    <div class="zero-line">
+      <img src="/assets/zero/zero-found.svg" alt="" width="46" height="40" />
+      <span>이현님의 비서 제로가 함께 정리합니다.</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs" role="tablist">
+      <button type="button" class="chip" data-tab="terms" aria-pressed="true">용어 <small>{terms.length}</small></button>
+      <button type="button" class="chip" data-tab="kinds" aria-pressed="false">AI 종류 <small>{kinds.length}</small></button>
+      <button type="button" class="chip" data-tab="news" aria-pressed="false">새 소식</button>
+    </div>
+
+    <section class="pane" data-pane="terms">
+      <input class="search" type="search" placeholder="용어 찾기 (예: 토큰, RAG)" aria-label="용어 찾기" />
+      <p class="no-hit" hidden>찾는 용어가 아직 없어요.</p>
+      {byCat.map((g) => (
+        <div class="group">
+          <h2 class="group-title">{g.cat} <small>{g.items.length}</small></h2>
+          <div class="list">
+            {g.items.map((t) => (
+              <details class="term" id={slug(t.term)} data-q={`${t.term} ${t.en} ${t.short}`.toLowerCase()}>
+                <summary>
+                  <span class="name">{t.term}</span>
+                  {t.en !== t.term && <span class="en">{t.en}</span>}
+                  <span class="short">{t.short}</span>
+                </summary>
+                <div class="body">
+                  {t.easy && <p>{t.easy}</p>}
+                  {t.ex && <p class="ex"><b>이현의 경우</b> {t.ex}</p>}
+                  {t.related && (
+                    <p class="rel">같이 보기 {t.related.map((r) => <a href={`#${slug(r)}`} data-jump>{r}</a>)}</p>
+                  )}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+
+    <section class="pane" data-pane="kinds" hidden>
+      <div class="kinds">
+        {kinds.map((k) => (
+          <div class="kind">
+            <div class="k-head"><span class="k-icon">{k.icon}</span><b>{k.name}</b>{k.mine && <span class="mine">써 봄</span>}</div>
+            <p class="k-what">{k.what}</p>
+            <div class="k-ex">{k.examples.map((e) => <span>{e}</span>)}</div>
+            <p class="k-use">이렇게 쓸 수 있어요 · {k.use}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="pane" data-pane="news" hidden>
+      <div class="news-bar">
+        <button type="button" class="chip" data-lang="ko" aria-pressed="true">국내</button>
+        <button type="button" class="chip" data-lang="en" aria-pressed="false">해외</button>
+        <span class="news-note">최근 3일 · 30분마다 새로 모아요</span>
+      </div>
+      <ol class="news" aria-live="polite"><li class="loading">소식을 불러오는 중이에요…</li></ol>
+    </section>
+
+    <p class="updated">마지막 정리 {wiki.updated.replaceAll('-', '.')}</p>
+    <FollowCta />
+  </div>
+</Base>
+
+<style>
+  .tabs { margin-top: 28px; }
+  .tabs, .news-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .chip {
+    flex: none;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--white);
+    color: var(--ink);
+    font: 500 14px var(--sans);
+    cursor: pointer;
+  }
+  .chip small { color: var(--muted); font-family: var(--mono); margin-left: 2px; }
+  .chip[aria-pressed='true'] { background: var(--charcoal); border-color: var(--charcoal); color: var(--white); }
+  .chip[aria-pressed='true'] small { color: var(--yellow); }
+
+  .search {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    background: var(--white);
+    font: 16px var(--sans);
+    margin-bottom: 20px;
+  }
+  .search:focus { outline: 2px solid var(--yellow); border-color: var(--charcoal); }
+  .no-hit { color: var(--muted); }
+  .no-hit[hidden] { display: none; }
+
+  .group { margin-bottom: 28px; }
+  .group-title { font-size: 18px; margin: 0 0 10px; }
+  .group-title small { color: var(--muted); font-family: var(--mono); font-weight: 400; }
+  .list { background: var(--white); border-radius: 16px; overflow: hidden; }
+  .term + .term { border-top: 1px solid var(--line); }
+  .term summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 10px;
+    align-items: baseline;
+  }
+  .term summary::-webkit-details-marker { display: none; }
+  .name { font-weight: 700; font-size: 17px; }
+  .en { color: var(--muted); font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .short { grid-column: 1 / -1; color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .term[open] { background: #fbfaf3; }
+  .term[open] .short { color: var(--ink); }
+  .body { padding: 0 18px 16px; font-size: 15px; line-height: 1.7; }
+  .body p { margin: 0 0 8px; }
+  .ex { background: var(--white); border-left: 3px solid var(--yellow); padding: 8px 12px; border-radius: 6px; }
+  .ex b { font-size: 13px; margin-right: 4px; }
+  .rel { color: var(--muted); font-size: 14px; }
+  .rel a { margin-left: 8px; color: var(--ink); }
+  .term.flash { animation: flash 1.2s; }
+  @keyframes flash { from { background: #fff3b0; } }
+
+  .kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .kind { background: var(--white); border-radius: 16px; padding: 18px; }
+  .k-head { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+  .k-icon { font-size: 22px; }
+  .mine { margin-left: auto; font-size: 12px; background: var(--yellow); border-radius: 999px; padding: 2px 8px; }
+  .k-what { margin: 8px 0; font-size: 15px; line-height: 1.6; }
+  .k-ex { display: flex; flex-wrap: wrap; gap: 6px; }
+  .k-ex span { font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+  .k-use { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  .news-note { color: var(--muted); font-size: 13px; }
+  .news { list-style: none; margin: 0; padding: 0; background: var(--white); border-radius: 16px; overflow: hidden; }
+  .news :global(li) { padding: 14px 18px; border-top: 1px solid var(--line); }
+  .news :global(li:first-child) { border-top: 0; }
+  .news :global(a) { color: var(--ink); text-decoration: none; font-weight: 500; line-height: 1.55; display: block; }
+  .news :global(a:hover) { text-decoration: underline; }
+  .news :global(.meta) { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .news :global(.loading) { color: var(--muted); }
+
+  .updated { color: var(--muted); font-size: 13px; margin: 24px 0; }
+</style>
+
+<script>
+  const tabs = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
+  const panes = document.querySelectorAll<HTMLElement>('[data-pane]');
+  let newsLang = '';
+
+  function show(tab: string) {
+    tabs.forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.tab === tab)));
+    panes.forEach((p) => (p.hidden = p.dataset.pane !== tab));
+    if (tab === 'news' && !newsLang) loadNews('ko');
+    try { history.replaceState(null, '', tab === 'terms' ? location.pathname : `#${tab}`); } catch {}
+  }
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab!)));
+  if (location.hash === '#kinds' || location.hash === '#news') show(location.hash.slice(1));
+
+  // 용어 찾기
+  const search = document.querySelector<HTMLInputElement>('.search')!;
+  const empty = document.querySelector<HTMLElement>('.no-hit')!;
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    let n = 0;
+    document.querySelectorAll<HTMLElement>('.term').forEach((el) => {
+      const hit = !q || el.dataset.q!.includes(q);
+      el.hidden = !hit;
+      if (hit) n++;
+    });
+    document.querySelectorAll<HTMLElement>('.group').forEach((g) => {
+      g.hidden = !g.querySelector('.term:not([hidden])');
+    });
+    empty.hidden = n > 0;
+  });
+
+  // 같이 보기: 그 용어를 펼치고 잠깐 반짝
+  document.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-jump]');
+    if (!a) return;
+    e.preventDefault();
+    const el = document.querySelector<HTMLDetailsElement>(a.getAttribute('href')!);
+    if (!el) return;
+    search.value = '';
+    search.dispatchEvent(new Event('input'));
+    el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  });
+
+  // 새 소식
+  const list = document.querySelector<HTMLOListElement>('.news')!;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const ago = (iso: string) => {
+    const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 60) return `${Math.max(m, 1)}분 전`;
+    if (m < 60 * 24) return `${Math.round(m / 60)}시간 전`;
+    return `${Math.round(m / 1440)}일 전`;
+  };
+  async function loadNews(lang: string) {
+    newsLang = lang;
+    document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    list.innerHTML = '<li class="loading">소식을 불러오는 중이에요…</li>';
+    try {
+      const r = await fetch(`/api/ai-news?lang=${lang}`);
+      const { items } = await r.json();
+      if (lang !== newsLang) return;
+      list.innerHTML = items.length
+        ? items.map((n: any) => `<li><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a><div class="meta">${esc(n.source || '')} · ${ago(n.at)}</div></li>`).join('')
+        : '<li class="loading">지금은 소식을 불러오지 못했어요. 조금 뒤에 다시 열어 주세요.</li>';
+    } catch {
+      list.innerHTML = '<li class="loading">지금은 소식을 불러오지 못했어요. 조금 뒤에 다시 열어 주세요.</li>';
+    }
+  }
+  document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.addEventListener('click', () => loadNews(b.dataset.lang!)));
+</script>

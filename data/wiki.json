@@ -1,0 +1,50 @@
+{
+  "updated": "2026-10-20",
+  "terms": [
+    { "term": "AI", "en": "Artificial Intelligence", "cat": "기본", "short": "사람처럼 보고, 듣고, 말하고, 판단하는 일을 컴퓨터가 하게 만든 기술", "easy": "규칙을 하나하나 알려 주지 않아도, 많은 예시를 보고 스스로 요령을 익힌 프로그램이에요." },
+    { "term": "생성형 AI", "en": "Generative AI", "cat": "기본", "short": "글·그림·영상·음악처럼 새로운 결과물을 만들어 내는 AI", "easy": "정답을 고르는 AI가 아니라, 시키면 직접 써 주고 그려 주는 AI예요.", "ex": "이 사이트의 글, 제로 캐릭터, 프로그램 대부분을 생성형 AI로 만들었어요." },
+    { "term": "LLM", "en": "Large Language Model", "cat": "기본", "short": "엄청난 양의 글을 읽고 배운 '말 잘하는' AI 모델", "easy": "다음에 올 단어를 아주 잘 맞히는 능력을 키워서, 대화·요약·글쓰기를 하게 된 모델이에요.", "related": ["토큰", "파라미터", "챗봇"] },
+    { "term": "챗봇", "en": "Chatbot", "cat": "기본", "short": "채팅으로 묻고 답하는 AI 서비스", "easy": "LLM에 대화창을 붙인 것. Claude, ChatGPT, Gemini가 대표적이에요." },
+    { "term": "머신러닝", "en": "Machine Learning", "cat": "기본", "short": "데이터를 보고 스스로 규칙을 찾아내는 방법", "easy": "사진 1만 장을 보여 주면 '고양이'의 특징을 알아서 익히는 식이에요.", "related": ["딥러닝"] },
+    { "term": "딥러닝", "en": "Deep Learning", "cat": "기본", "short": "뇌 신경망을 흉내 낸 여러 층의 계산으로 배우는 머신러닝", "easy": "요즘 AI 대부분이 이 방식이에요. 층이 깊을수록 복잡한 것을 배워요." },
+    { "term": "모델", "en": "Model", "cat": "기본", "short": "학습을 마친 AI의 '두뇌' 파일", "easy": "같은 회사도 크기·성능이 다른 모델을 여러 개 내요. 예: Claude Opus, Sonnet, Haiku." },
+    { "term": "파라미터", "en": "Parameter", "cat": "기본", "short": "모델 안에 들어 있는 조절 손잡이의 개수", "easy": "많을수록 똑똑해지기 쉽지만 비싸고 느려져요. 수십억~수조 개 단위예요." },
+    { "term": "학습", "en": "Training", "cat": "기본", "short": "데이터를 보여 주며 모델을 똑똑하게 만드는 과정", "easy": "학습이 끝난 시점 이후의 일은 모델이 모를 수 있어요(학습 기준일)." },
+
+    { "term": "프롬프트", "en": "Prompt", "cat": "사용법", "short": "AI에게 주는 지시문·질문", "easy": "'무엇을, 누구를 위해, 어떤 모양으로' 적을수록 결과가 좋아져요.", "ex": "유튜브 촬영실에 '시작 프롬프트'를 모아 두고 있어요.", "related": ["프롬프트 엔지니어링"] },
+    { "term": "프롬프트 엔지니어링", "en": "Prompt Engineering", "cat": "사용법", "short": "원하는 답이 나오도록 지시문을 다듬는 기술", "easy": "예시 보여 주기, 역할 주기, 단계 나눠 시키기 같은 요령이 있어요." },
+    { "term": "토큰", "en": "Token", "cat": "사용법", "short": "AI가 글을 읽고 쓰는 최소 단위", "easy": "한글은 대략 한 글자~두 글자가 1토큰. 요금과 사용량 한도가 토큰으로 계산돼요.", "ex": "큰 작업을 하면 주간 사용량의 몇 %를 썼는지 함께 기록하고 있어요." },
+    { "term": "컨텍스트 윈도우", "en": "Context Window", "cat": "사용법", "short": "AI가 한 번에 기억하며 볼 수 있는 글의 양", "easy": "책상 크기와 비슷해요. 넘치면 앞부분을 잊거나 요약해서 들고 가요." },
+    { "term": "환각", "en": "Hallucination", "cat": "사용법", "short": "AI가 그럴듯하지만 틀린 내용을 지어내는 현상", "easy": "숫자·날짜·출처는 꼭 다시 확인하는 습관이 필요해요." },
+    { "term": "멀티모달", "en": "Multimodal", "cat": "사용법", "short": "글뿐 아니라 이미지·음성·영상도 함께 이해하는 능력", "easy": "사진을 올리고 '이 표 정리해 줘'라고 할 수 있는 게 멀티모달이에요.", "ex": "대표 캐릭터를 그릴 때 사진을 참고용으로만 보여 줬어요." },
+    { "term": "파인튜닝", "en": "Fine-tuning", "cat": "사용법", "short": "이미 만든 모델을 내 데이터로 조금 더 가르치는 것", "easy": "기본기는 그대로 두고 우리 가게 말투·지식만 덧입히는 느낌이에요." },
+    { "term": "RAG", "en": "Retrieval-Augmented Generation", "cat": "사용법", "short": "답하기 전에 자료를 찾아보고 그걸 근거로 답하게 하는 방식", "easy": "오픈북 시험. 모델이 모르는 최신·내부 자료도 답에 쓸 수 있어요." },
+
+    { "term": "AI 에이전트", "en": "AI Agent", "cat": "도구", "short": "목표를 주면 스스로 계획하고 도구를 써서 일을 끝내는 AI", "easy": "대답만 하는 게 아니라 파일을 만들고, 검색하고, 배포까지 해요.", "ex": "AI 사무실의 직원들이 각자 맡은 일을 하는 에이전트예요.", "related": ["MCP", "Claude Code"] },
+    { "term": "Claude Code", "en": "Claude Code", "cat": "도구", "short": "코드를 읽고 쓰고 실행까지 하는 Anthropic의 코딩 에이전트", "easy": "말로 시키면 프로그램을 만들고 고쳐서 올려 줘요.", "ex": "이 사이트를 Claude Code로 만들고 매일 고치고 있어요." },
+    { "term": "MCP", "en": "Model Context Protocol", "cat": "도구", "short": "AI가 다른 앱·서비스와 연결되도록 정한 공통 규칙", "easy": "AI용 USB 포트. 꽂기만 하면 깃허브·노션·슬랙 같은 도구를 쓸 수 있어요." },
+    { "term": "API", "en": "Application Programming Interface", "cat": "도구", "short": "프로그램끼리 정보를 주고받는 창구", "easy": "식당 주문 창구. 정해진 방식으로 주문하면 결과를 돌려줘요." },
+    { "term": "API 키", "en": "API Key", "cat": "도구", "short": "API를 쓸 수 있게 해 주는 비밀 열쇠", "easy": "비밀번호와 같아요. 채팅·코드·깃허브에 절대 올리지 않아요." },
+    { "term": "아티팩트", "en": "Artifact", "cat": "도구", "short": "Claude가 만들어 주는 웹 페이지·앱 결과물", "easy": "대화 안에서 바로 쓰는 작은 프로그램. 링크로 열 수 있어요.", "ex": "SNS 통합 관리, 서류 검토 현황판이 아티팩트예요." },
+    { "term": "자동화", "en": "Automation", "cat": "도구", "short": "정해진 시간·조건에 사람 없이 일이 돌아가게 하는 것", "easy": "예약 작업을 걸어 두면 AI가 알아서 기록하고 갱신해요.", "ex": "밤 12시 자동 기록, 4시간마다 사무실 갱신이 자동으로 돌아요." },
+    { "term": "바이브 코딩", "en": "Vibe Coding", "cat": "도구", "short": "코드를 몰라도 말로 설명해 AI가 프로그램을 만들게 하는 방식", "easy": "'이런 느낌으로 만들어 줘'라고 하고 결과를 보며 고쳐 나가요." },
+    { "term": "오픈소스 모델", "en": "Open-weight Model", "cat": "도구", "short": "누구나 내려받아 내 컴퓨터에서 돌릴 수 있게 공개된 모델", "easy": "Llama, Qwen, Mistral 등이 있어요. 대신 직접 돌릴 장비가 필요해요." },
+
+    { "term": "GPU", "en": "Graphics Processing Unit", "cat": "산업", "short": "AI 학습·실행에 쓰는 계산용 칩", "easy": "AI 시대의 '삽'. 엔비디아가 대표 회사예요." },
+    { "term": "AGI", "en": "Artificial General Intelligence", "cat": "산업", "short": "사람처럼 거의 모든 일을 해내는 범용 AI", "easy": "아직 정의도 논쟁 중인 목표예요." },
+    { "term": "AI 안전", "en": "AI Safety", "cat": "산업", "short": "AI가 해롭거나 엉뚱하게 행동하지 않도록 연구하는 분야", "easy": "정렬(Alignment)이라고도 불러요. 사람이 원하는 방향과 맞추는 일이에요." },
+    { "term": "벤치마크", "en": "Benchmark", "cat": "산업", "short": "AI 성능을 비교하는 시험 문제 모음", "easy": "새 모델이 나오면 '이 시험에서 몇 점'으로 자랑해요." }
+  ],
+  "kinds": [
+    { "name": "대화형 AI (챗봇)", "icon": "💬", "what": "묻고 답하기, 요약, 글쓰기, 아이디어 정리", "examples": ["Claude", "ChatGPT", "Gemini", "Perplexity"], "use": "공부 질문, 기획서 초안, 상품 설명 쓰기" },
+    { "name": "코딩 AI", "icon": "🛠️", "what": "프로그램을 만들고 고치고 배포까지", "examples": ["Claude Code", "Cursor", "GitHub Copilot"], "use": "이 사이트·프로그램 만들기", "mine": true },
+    { "name": "AI 에이전트", "icon": "🤖", "what": "목표를 주면 스스로 단계를 밟아 일을 끝냄", "examples": ["Claude 프로젝트", "Manus", "OpenAI Agents"], "use": "AI 사무실 직원처럼 업무 나눠 맡기기", "mine": true },
+    { "name": "이미지 생성 AI", "icon": "🎨", "what": "글로 설명하면 그림·사진을 만들어 줌", "examples": ["Midjourney", "GPT 이미지", "Imagen", "Stable Diffusion"], "use": "썸네일, 상품 연출컷, 캐릭터" },
+    { "name": "영상 생성 AI", "icon": "🎬", "what": "글이나 사진으로 짧은 영상을 만들어 줌", "examples": ["Veo", "Sora", "Runway", "Kling"], "use": "릴스·쇼츠 장면 만들기" },
+    { "name": "음성 AI", "icon": "🎙️", "what": "글을 목소리로, 목소리를 글로 바꿈", "examples": ["ElevenLabs", "Whisper", "클로바노트"], "use": "영상 내레이션, 회의 받아쓰기" },
+    { "name": "음악 AI", "icon": "🎵", "what": "가사·분위기만 주면 노래를 만들어 줌", "examples": ["Suno", "Udio"], "use": "영상 배경음악" },
+    { "name": "검색 AI", "icon": "🔎", "what": "웹을 찾아 출처와 함께 답해 줌", "examples": ["Perplexity", "Google AI 모드", "Claude 웹 검색"], "use": "최신 정보·시장 조사" },
+    { "name": "번역·문서 AI", "icon": "📄", "what": "번역, 문서 요약, 사진 속 글자 읽기", "examples": ["DeepL", "Papago", "Claude"], "use": "해외 자료 읽기, 엑셀·PDF 정리" },
+    { "name": "업무 자동화 AI", "icon": "⏰", "what": "앱끼리 연결해 반복 업무를 자동으로", "examples": ["Zapier", "Make", "n8n", "Claude 예약 작업"], "use": "매일 기록, 알림, 데이터 모으기", "mine": true }
+  ]
+}
