@@ -12,7 +12,7 @@
           "team": "개발팀",
           "name": "개발 담당",
           "status": "done",
-          "doing": "대표 캐릭터를 예전 그림으로 되돌렸어요",
+          "doing": "AI 백과사전을 새로 만들었어요",
           "prop": "🛠️",
           "acc": "glasses"
         },
@@ -251,6 +251,14 @@
       "state": "done",
       "start": "2026-10-18",
       "href": "/programs"
+    },
+    {
+      "name": "AI 백과사전",
+      "dept": "ai",
+      "team": "개발팀",
+      "state": "done",
+      "start": "2026-10-20",
+      "href": "/wiki"
     },
     {
       "name": "사업 사무실 사이트",
