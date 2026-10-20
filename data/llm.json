@@ -1,0 +1,23 @@
+{
+  "updated": "2026-10-20",
+  "models": [
+    { "id": "claude", "company": "Anthropic", "family": "Claude", "latest": "Claude Opus 5.5", "released": "2026-09-22", "strength": "코딩·웹 만들기 1위권, 긴 작업을 맡기는 에이전트에 강함", "others": "Sonnet 5.5 · Haiku 5.5(10/07) · Fable 5.1", "mine": true, "kw": ["claude", "anthropic", "클로드", "앤트로픽"],
+      "log": [ { "date": "2026-10-07", "text": "가볍고 빠른 Haiku 5.5 공개" }, { "date": "2026-09-22", "text": "최상위 모델 Opus 5.5 공개" } ] },
+    { "id": "gpt", "company": "OpenAI", "family": "GPT · ChatGPT", "latest": "GPT-6 Astra", "released": "2026-09-03", "strength": "추론(어려운 문제 풀기) 시험 1위권", "others": "GPT-6 Luna(10/06)", "kw": ["openai", "gpt", "chatgpt", "오픈ai", "오픈AI", "챗gpt", "챗GPT"],
+      "log": [ { "date": "2026-10-06", "text": "GPT-6 Luna 계열 추가" }, { "date": "2026-09-03", "text": "GPT-6 Astra 공개" } ] },
+    { "id": "gemini", "company": "Google", "family": "Gemini", "latest": "Gemini 4 Argon", "released": "2026-10-13", "strength": "긴 복잡한 작업용 추론 모델, 대화 순위표 1위권", "others": "이미지 Nano Banana 2.1(10/06)", "kw": ["gemini", "google", "제미나이", "구글"],
+      "log": [ { "date": "2026-10-13", "text": "Gemini 4 Argon 일반 공개 (9/30 발표)" } ] },
+    { "id": "grok", "company": "xAI", "family": "Grok", "latest": "Grok 4.7", "released": "2026-09-21", "strength": "코딩·지식 업무, 싼 가격", "others": "Grok Voice 3.0(10/14)", "kw": ["grok", "xai", "그록"],
+      "log": [ { "date": "2026-10-14", "text": "음성 모델 Grok Voice 3.0" }, { "date": "2026-09-21", "text": "Grok 4.7 공개" } ] },
+    { "id": "meta", "company": "Meta", "family": "Muse (구 Llama)", "latest": "Muse Wonder", "released": "2026-10-12", "strength": "성능 순위 3위권, 구독으로만 사용", "kw": ["meta", "llama", "muse", "메타", "라마"],
+      "log": [ { "date": "2026-10-12", "text": "Muse Wonder 공개" } ] },
+    { "id": "deepseek", "company": "DeepSeek", "family": "DeepSeek", "latest": "DeepSeek V4.1 Flash", "released": "2026-10-17", "strength": "중국 오픈 모델, 아주 싼 가격", "kw": ["deepseek", "딥시크"],
+      "log": [ { "date": "2026-10-17", "text": "V4.1 Flash 업데이트" } ] },
+    { "id": "qwen", "company": "Alibaba", "family": "Qwen", "latest": "Qwen3.8-Max", "released": "", "strength": "웹 만들기 순위표 상위, 중국 대표 모델", "others": "Qwen Image 2.1(10/09)", "kw": ["qwen", "alibaba", "큐원", "알리바바"],
+      "log": [ { "date": "2026-10-09", "text": "이미지 모델 Qwen Image 2.1" } ] },
+    { "id": "mistral", "company": "Mistral", "family": "Mistral", "latest": "Mistral Large 4", "released": "2026-10-06", "strength": "유럽 대표, 공개 모델 약속", "kw": ["mistral", "미스트랄"],
+      "log": [ { "date": "2026-10-06", "text": "Large 4 미리보기 공개" } ] },
+    { "id": "korea", "company": "국내", "family": "하이퍼클로바X · 엑사원 · 솔라 · 카나나", "latest": "K-엑사원 등", "released": "", "strength": "한국어 특화. 네이버·LG·업스테이지·카카오", "kw": ["하이퍼클로바", "hyperclova", "엑사원", "exaone", "솔라", "업스테이지", "카나나", "국가대표 ai", "독자 ai"],
+      "log": [] }
+  ]
+}
