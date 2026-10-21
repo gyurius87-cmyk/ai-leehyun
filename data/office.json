@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-20",
+  "updated": "2026-10-21",
   "depts": [
     {
       "id": "ai",
@@ -85,6 +85,15 @@
           "acc": "cap"
         },
         {
+          "team": "마케팅팀",
+          "name": "SNS 담당",
+          "status": "waiting",
+          "doing": "SNS 관리 화면을 만들고 써 보신 의견을 기다려요",
+          "prop": "📱",
+          "acc": "beret",
+          "since": "2026-10-21"
+        },
+        {
           "team": "웹팀",
           "name": "사이트 개발 담당",
           "status": "waiting",
@@ -123,7 +132,7 @@
           "team": "인사팀",
           "name": "인사 담당",
           "status": "done",
-          "doing": "오늘 할 일에 날짜별 완수율 캘린더를 붙였어요",
+          "doing": "업무 목록에 끌어서 옮기기와 진행률을 붙였어요",
           "prop": "🗂️",
           "acc": "pencil"
         }
