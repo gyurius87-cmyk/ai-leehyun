@@ -106,6 +106,15 @@
       "start": "2026-10-22",
       "private": true,
       "href": "https://claude.ai/artifact/JetuCFBQCCzqJjAdZY4Cpu"
+    },
+    {
+      "id": "monetize",
+      "name": "수익화 모델 발굴",
+      "status": "using",
+      "summary": "내가 가진 사업·SNS·AI 프로그램·모임을 모아, 출처 있는 시장 숫자와 매출 시나리오로 수익화 모델을 찾습니다. 매일 밤 12시에 새 정보로 다시 발굴해요.",
+      "start": "2026-10-22",
+      "private": true,
+      "href": "https://claude.ai/artifact/BWWwHzybokVrvP3hDBXydz"
     }
   ]
 }
