@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-21",
+  "updated": "2026-10-22",
   "depts": [
     {
       "id": "ai",
@@ -79,19 +79,19 @@
         {
           "team": "마케팅팀",
           "name": "광고 담당",
-          "status": "done",
-          "doing": "광고 화면의 중복 필터를 정리했어요",
+          "status": "waiting",
+          "doing": "광고 분석 탭을 만들고 분석 엑셀을 기다려요",
           "prop": "📣",
-          "acc": "cap"
+          "acc": "cap",
+          "since": "2026-10-22"
         },
         {
           "team": "마케팅팀",
           "name": "SNS 담당",
-          "status": "waiting",
-          "doing": "SNS 관리 화면을 만들고 써 보신 의견을 기다려요",
+          "status": "working",
+          "doing": "댓글·DM을 연결하고 답 기다리는 메시지를 챙기는 중이에요",
           "prop": "📱",
-          "acc": "beret",
-          "since": "2026-10-21"
+          "acc": "beret"
         },
         {
           "team": "웹팀",
