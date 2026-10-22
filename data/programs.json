@@ -97,6 +97,15 @@
       "start": "2026-10-18",
       "private": true,
       "href": "/programs/downloader"
+    },
+    {
+      "id": "realestate",
+      "name": "부동산 공부",
+      "status": "using",
+      "summary": "내 집·대출·가진 돈과 목표를 적으면 AI가 나만의 부동산 방향과 이번 달 할 일, 공부할 것을 짜 줍니다. 관심 지역과 물어본 것도 함께 모아요.",
+      "start": "2026-10-22",
+      "private": true,
+      "href": "https://claude.ai/artifact/JetuCFBQCCzqJjAdZY4Cpu"
     }
   ]
 }
