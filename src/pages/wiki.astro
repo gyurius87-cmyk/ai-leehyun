@@ -12,7 +12,7 @@ const byCat = CATS.map((c) => ({ cat: c, items: terms.filter((t) => t.cat === c)
 const slug = (s) => 'w-' + encodeURIComponent(s).replace(/%/g, '');
 const md = (ymd) => (ymd ? `${+ymd.slice(5, 7)}/${+ymd.slice(8, 10)}` : '');
 ---
-<Base current="wiki" title="AI 백과사전" description="주요 AI 모델(LLM)을 계속 지켜보며 새 소식을 하루 두 번 모으고, AI 용어와 종류를 쉬운 말로 정리합니다.">
+<Base current="programs" title="AI 백과사전" description="주요 AI 모델(LLM)을 계속 지켜보며 새 소식을 하루 두 번 모으고, AI 용어와 종류를 쉬운 말로 정리합니다.">
   <div slot="head" class="page-head">
     <div class="row">
       <h1 class="page-title">AI 백과사전</h1>

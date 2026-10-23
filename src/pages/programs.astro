@@ -9,7 +9,13 @@ const building = (p) => p.status === 'making' || p.status === 'resting';
 // 태그: 누구나 쓸 수 있는 것 / 곧 공개할 것(지금은 AI이현만 열림) / AI이현만 쓰는 것
 const TAGS = { public: '모두 사용', wait: '공개 대기', private: 'AI이현 전용' };
 const tagOf = (p) => (p.soon ? 'wait' : p.private ? 'private' : 'public');
-const FILTERS = [{ k: 'all', label: '전체' }, ...Object.entries(TAGS).map(([k, label]) => ({ k, label }))].filter((f) => f.k === 'all' || programs.some((p) => tagOf(p) === f.k));
+// 카테고리: 순서대로 묶어 보여 주고, 위 필터에 개수를 붙여요
+const CATS = ['업무·운영', 'SNS·콘텐츠', '돈·투자', '공부·생각'];
+const catOf = (p) => p.cat || '기타';
+const cats = [...CATS, ...new Set(programs.map(catOf))].filter((c, i, a) => a.indexOf(c) === i && programs.some((p) => catOf(p) === c));
+const FILTERS = [{ k: 'all', label: '전체' }, ...cats.map((c) => ({ k: c, label: c }))];
+const sorted = [...programs].sort((a, b) => cats.indexOf(catOf(a)) - cats.indexOf(catOf(b)) || String(b.start || '').localeCompare(String(a.start || '')));
+const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return m ? `${m[1]}.${m[2]}.${m[3]} 만듦` : ''; };
 ---
 <Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
   <div slot="head" class="page-head">
@@ -35,17 +41,18 @@ const FILTERS = [{ k: 'all', label: '전체' }, ...Object.entries(TAGS).map(([k,
       ) : (
         <div class="pfilter" role="group" aria-label="프로그램 나눠 보기">
           {FILTERS.map((f, i) => (
-            <button type="button" data-f={f.k} aria-pressed={i === 0 ? 'true' : 'false'}>{f.label} <span>{f.k === 'all' ? programs.length : programs.filter((p) => tagOf(p) === f.k).length}</span></button>
+            <button type="button" data-f={f.k} aria-pressed={i === 0 ? 'true' : 'false'}>{f.label} <span>{f.k === 'all' ? programs.length : programs.filter((p) => catOf(p) === f.k).length}</span></button>
           ))}
         </div>
         <div class="note-list" id="programList">
-          {programs.map((p) => {
+          {sorted.map((p) => {
             const Card = p.href ? 'a' : 'div';
             return (
-            <Card class={`note-card${p.href ? ' linked' : ''}${building(p) ? ' building' : ''}`} data-tag={tagOf(p)} {...(p.href ? (p.href.startsWith('http') ? { href: p.href, target: '_blank', rel: 'noopener' } : { href: p.href }) : {})}>
-              <div class="no"><span class={`ptag ${tagOf(p)}`}>{TAGS[tagOf(p)]}</span>{building(p) && <span class="ptag work"><img src="/assets/zero/zero-writing.svg" alt="" width="20" height="20" />🚧 제로 공사 중</span>}</div>
+            <Card class={`note-card${p.href ? ' linked' : ''}${building(p) ? ' building' : ''}`} data-tag={catOf(p)} {...(p.href ? (p.href.startsWith('http') ? { href: p.href, target: '_blank', rel: 'noopener' } : { href: p.href }) : {})}>
+              <div class="no"><span class="ptag cat">{catOf(p)}</span><span class={`ptag ${tagOf(p)}`}>{TAGS[tagOf(p)]}</span>{building(p) && <span class="ptag work"><img src="/assets/zero/zero-writing.svg" alt="" width="20" height="20" />🚧 제로 공사 중</span>}</div>
               <h3>{p.name}{p.href && <span class="go" aria-hidden="true"> ↗</span>}</h3>
               {p.summary && <p>{p.summary}</p>}
+              {p.start && <div class="facts made">{madeOn(p.start)}</div>}
                             {tagOf(p) === 'public' && p.href?.startsWith('https://claude.ai') && <div class="facts">Claude 로그인 후 사용</div>}
               {(p.from || p.note) && (
                 <div class="facts">
@@ -153,6 +160,13 @@ const FILTERS = [{ k: 'all', label: '전체' }, ...Object.entries(TAGS).map(([k,
     padding: 0 7px;
   }
 
+  .ptag.cat {
+    background: transparent;
+    border: 1px solid #d5d9de;
+    color: inherit;
+    padding: 0 7px;
+  }
+
   .ptag.private {
     background: var(--charcoal);
     color: var(--yellow);
@@ -178,7 +192,7 @@ const FILTERS = [{ k: 'all', label: '전체' }, ...Object.entries(TAGS).map(([k,
   }
 
   .note-card[hidden] {
-    display: none;
+    display: none !important;
   }
 
   .open {

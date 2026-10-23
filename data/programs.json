@@ -7,7 +7,8 @@
       "summary": "고민을 적으면 AI가 몇 가지를 더 묻고, 나에게 맞는 원인과 해결 순서, 기대효과를 한 장으로 정리해 줍니다.",
       "start": "2026-10-12",
       "private": false,
-      "href": "/programs/bottleneck"
+      "href": "/programs/bottleneck",
+      "cat": "공부·생각"
     },
     {
       "id": "mindmap",
@@ -16,7 +17,8 @@
       "summary": "프로젝트를 STEP 1부터 GOAL까지 한 줄로 잇고, 우선순위와 단계별 걸린 시간을 한눈에 봅니다. 끝난 프로젝트는 리포트로 남습니다.",
       "start": "2026-10-12",
       "private": true,
-      "href": "https://claude.ai/artifact/KgWepoNBK8py7jfr8tJG2M"
+      "href": "https://claude.ai/artifact/KgWepoNBK8py7jfr8tJG2M",
+      "cat": "업무·운영"
     },
     {
       "id": "analytics",
@@ -25,7 +27,8 @@
       "summary": "방문자, 많이 본 페이지, AI 사용 비용과 남은 금액을 한 화면에서 봅니다.",
       "start": "2026-10-12",
       "private": true,
-      "href": "/programs/analytics"
+      "href": "/programs/analytics",
+      "cat": "업무·운영"
     },
     {
       "id": "sns",
@@ -34,7 +37,8 @@
       "summary": "채널 10개의 아이디어부터 기획, 제작, 업로드 예약, 올림까지 한 보드로 넘기고, 캘린더·댓글·채널별 분석·AI 추천을 한 화면에서 봅니다.",
       "start": "2026-10-13",
       "private": true,
-      "href": "https://claude.ai/artifact/Hh7e1j7MffUzSn73dZQXUC"
+      "href": "https://claude.ai/artifact/Hh7e1j7MffUzSn73dZQXUC",
+      "cat": "SNS·콘텐츠"
     },
     {
       "id": "daily",
@@ -43,7 +47,8 @@
       "summary": "30분마다 계획과 실제를 대조하고, 잘한 것·못한 것·병목과 마감 일기를 쓰면 Claude가 읽고 행복도와 나아갈 방향을 짚어 줍니다.",
       "start": "2026-10-14",
       "private": true,
-      "href": "https://claude.ai/artifact/BJDnvDXK8foeZPPvMw3C6V"
+      "href": "https://claude.ai/artifact/BJDnvDXK8foeZPPvMw3C6V",
+      "cat": "업무·운영"
     },
     {
       "id": "office",
@@ -52,16 +57,18 @@
       "summary": "AI 직원들이 검토해 달라고 올린 서류를 오래된 것부터 보고, 내가 직접 할 일을 챙깁니다.",
       "start": "2026-10-15",
       "private": true,
-      "href": "https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi"
+      "href": "https://claude.ai/artifact/4D8f3GednTiSsY6XJwoLJi",
+      "cat": "업무·운영"
     },
     {
       "id": "biz-office",
       "name": "사업 운영실",
-      "status": "making",
+      "status": "using",
       "summary": "쇼핑몰의 상품 DB, 광고, 주문, 인사를 한곳에서 보는 사내 사이트입니다.",
       "start": "2026-10-13",
       "private": true,
-      "href": "https://claude.ai/artifact/DV6RBJkofZco8bVUeATUqC"
+      "href": "https://claude.ai/artifact/DV6RBJkofZco8bVUeATUqC",
+      "cat": "업무·운영"
     },
     {
       "id": "stock",
@@ -69,7 +76,8 @@
       "status": "making",
       "summary": "관심 종목 정보와 매매일지를 한곳에서 관리할 주식 프로그램입니다.",
       "start": "2026-10-16",
-      "private": true
+      "private": true,
+      "cat": "돈·투자"
     },
     {
       "id": "money",
@@ -78,7 +86,8 @@
       "summary": "사업, 주식, SNS로 실제로 얼마를 버는지 한 줄로 적어 모으고, 달마다 번 돈과 쓴 곳을 통계로 봅니다.",
       "start": "2026-10-16",
       "private": true,
-      "href": "https://claude.ai/artifact/NbiaJUdZbPPDW5vRNRy4WD"
+      "href": "https://claude.ai/artifact/NbiaJUdZbPPDW5vRNRy4WD",
+      "cat": "돈·투자"
     },
     {
       "id": "studio",
@@ -87,16 +96,18 @@
       "summary": "지금까지 한 것을 모아, 누르면 그때 시작한 프롬프트와 나눈 스레드를 보여줍니다. 유튜브 롱폼 촬영용 화면입니다.",
       "start": "2026-10-17",
       "private": true,
-      "href": "https://claude.ai/artifact/Ws925B8xLyKgrHk6db2va6"
+      "href": "https://claude.ai/artifact/Ws925B8xLyKgrHk6db2va6",
+      "cat": "SNS·콘텐츠"
     },
     {
       "id": "downloader",
-      "name": "영상받기",
+      "name": "SNS 영상 다운로드",
       "status": "using",
       "summary": "유튜브·인스타그램 주소를 넣으면 내 PC로 원본 영상을 받아 둡니다. PC 프로그램과 연동돼요.",
       "start": "2026-10-18",
       "private": true,
-      "href": "/programs/downloader"
+      "href": "/programs/downloader",
+      "cat": "SNS·콘텐츠"
     },
     {
       "id": "realestate",
@@ -105,7 +116,8 @@
       "summary": "내 집·대출·가진 돈과 목표를 적으면 AI가 나만의 부동산 방향과 이번 달 할 일, 공부할 것을 짜 줍니다. 관심 지역과 물어본 것도 함께 모아요.",
       "start": "2026-10-22",
       "private": true,
-      "href": "https://claude.ai/artifact/JetuCFBQCCzqJjAdZY4Cpu"
+      "href": "https://claude.ai/artifact/JetuCFBQCCzqJjAdZY4Cpu",
+      "cat": "돈·투자"
     },
     {
       "id": "monetize",
@@ -114,16 +126,28 @@
       "summary": "내가 가진 사업·SNS·AI 프로그램·모임을 모아, 출처 있는 시장 숫자와 매출 시나리오로 수익화 모델을 찾습니다. 매일 밤 12시에 새 정보로 다시 발굴해요.",
       "start": "2026-10-22",
       "private": true,
-      "href": "https://claude.ai/artifact/BWWwHzybokVrvP3hDBXydz"
+      "href": "https://claude.ai/artifact/BWWwHzybokVrvP3hDBXydz",
+      "cat": "돈·투자"
     },
     {
       "id": "motivation-visual",
-      "name": "동기부여 그림공방",
+      "name": "동기부여 생성기",
       "status": "using",
-      "summary": "동기부여 글이나 명언·책 속 문장·나라별 속담을 고르면, 검은 배경의 심플한 도식 이미지로 바꿔 줍니다. 장수와 글자 위치를 직접 정해요.",
+      "summary": "동기부여 글이나 명언·책 속 문장·나라별 속담을 넣으면, 추천 장수에 맞춰 1장 또는 최대 9장 시리즈 이미지로 만들어 줍니다.",
       "start": "2026-10-23",
       "private": true,
-      "href": "https://claude.ai/artifact/WupWHSEK68JC2VhNMVJWFf"
+      "href": "https://claude.ai/artifact/WupWHSEK68JC2VhNMVJWFf",
+      "cat": "SNS·콘텐츠"
+    },
+    {
+      "id": "wiki",
+      "name": "AI 백과사전",
+      "status": "using",
+      "summary": "주요 AI 모델의 새 소식을 계속 지켜보고, AI 용어와 종류를 쉬운 말로 정리해 둡니다.",
+      "start": "2026-10-20",
+      "private": false,
+      "href": "/wiki",
+      "cat": "공부·생각"
     }
   ]
 }
