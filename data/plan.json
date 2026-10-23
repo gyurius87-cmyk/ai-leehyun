@@ -467,6 +467,34 @@
               "tools": [
                 "Claude Code"
               ]
+            },
+            {
+              "id": "motivation-visual",
+              "title": "AI로 글을 한눈에 와닿는 그림으로 바꾸기",
+              "what": "동기부여 글을 넣으면 Claude가 내용에 맞는 도식 그림을 고르거나 새로 그려 1~9장 시리즈로 만들어 주는 동기부여 생성기를 만들었습니다.",
+              "yt": "AI로 동기부여 카드뉴스 만들기",
+              "status": "done",
+              "start": "2026-10-23",
+              "end": "2026-10-23",
+              "facts": [
+                {
+                  "label": "담아 둔 문장",
+                  "value": "151",
+                  "unit": "개"
+                },
+                {
+                  "label": "그림 틀",
+                  "value": "18",
+                  "unit": "개"
+                }
+              ],
+              "result": {
+                "label": "동기부여 생성기",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude 아티팩트"
+              ]
             }
           ]
         },
