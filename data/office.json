@@ -330,6 +330,13 @@
       "start": "2026-10-22"
     },
     {
+      "name": "동기부여 그림공방",
+      "dept": "ai",
+      "team": "개발팀",
+      "state": "done",
+      "start": "2026-10-23"
+    },
+    {
       "name": "990원 프로그램 마켓",
       "dept": "market",
       "state": "planned",

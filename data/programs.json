@@ -115,6 +115,15 @@
       "start": "2026-10-22",
       "private": true,
       "href": "https://claude.ai/artifact/BWWwHzybokVrvP3hDBXydz"
+    },
+    {
+      "id": "motivation-visual",
+      "name": "동기부여 그림공방",
+      "status": "using",
+      "summary": "동기부여 글이나 명언·책 속 문장·나라별 속담을 고르면, 검은 배경의 심플한 도식 이미지로 바꿔 줍니다. 장수와 글자 위치를 직접 정해요.",
+      "start": "2026-10-23",
+      "private": true,
+      "href": "https://claude.ai/artifact/WupWHSEK68JC2VhNMVJWFf"
     }
   ]
 }
