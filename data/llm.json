@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-20",
+  "updated": "2026-10-24",
   "models": [
     { "id": "claude", "company": "Anthropic", "family": "Claude", "latest": "Claude Opus 5.5", "released": "2026-09-22", "strength": "코딩·웹 만들기 1위권, 긴 작업을 맡기는 에이전트에 강함", "others": "Sonnet 5.5 · Haiku 5.5(10/07) · Fable 5.1", "mine": true, "kw": ["claude", "anthropic", "클로드", "앤트로픽"],
       "log": [ { "date": "2026-10-07", "text": "가볍고 빠른 Haiku 5.5 공개" }, { "date": "2026-09-22", "text": "최상위 모델 Opus 5.5 공개" } ] },
@@ -15,8 +15,8 @@
       "log": [ { "date": "2026-10-17", "text": "V4.1 Flash 업데이트" } ] },
     { "id": "qwen", "company": "Alibaba", "family": "Qwen", "latest": "Qwen3.8-Max", "released": "", "strength": "웹 만들기 순위표 상위, 중국 대표 모델", "others": "Qwen Image 2.1(10/09)", "kw": ["qwen", "alibaba", "큐원", "알리바바"],
       "log": [ { "date": "2026-10-09", "text": "이미지 모델 Qwen Image 2.1" } ] },
-    { "id": "mistral", "company": "Mistral", "family": "Mistral", "latest": "Mistral Large 4", "released": "2026-10-06", "strength": "유럽 대표, 공개 모델 약속", "kw": ["mistral", "미스트랄"],
-      "log": [ { "date": "2026-10-06", "text": "Large 4 미리보기 공개" } ] },
+    { "id": "mistral", "company": "Mistral", "family": "Mistral", "latest": "Mistral Large 4", "released": "2026-10-06", "strength": "유럽 대표, 공개 모델 약속", "others": "음성 Voxtral 3(10/20)", "kw": ["mistral", "미스트랄"],
+      "log": [ { "date": "2026-10-20", "text": "음성 모델 Voxtral 3 공개 (듣기·말하기)" }, { "date": "2026-10-06", "text": "Large 4 미리보기 공개" } ] },
     { "id": "korea", "company": "국내", "family": "하이퍼클로바X · 엑사원 · 솔라 · 카나나", "latest": "K-엑사원 등", "released": "", "strength": "한국어 특화. 네이버·LG·업스테이지·카카오", "kw": ["하이퍼클로바", "hyperclova", "엑사원", "exaone", "솔라", "업스테이지", "카나나", "국가대표 ai", "독자 ai"],
       "log": [] }
   ]
