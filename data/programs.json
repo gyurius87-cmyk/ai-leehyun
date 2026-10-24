@@ -130,6 +130,16 @@
       "cat": "돈·투자"
     },
     {
+      "id": "idea-steal",
+      "name": "아이디어 훔치기",
+      "status": "using",
+      "summary": "강의·상품·글·영상 URL을 넣고 원하는 걸 고르면, Claude가 들어가 보고 요즘 더 좋은 방법까지 찾아서 내 맞춤 아이디어 메모로 남겨요.",
+      "start": "2026-10-24",
+      "private": true,
+      "href": "https://claude.ai/artifact/BmRft43rdQxStQKrU4PSUF",
+      "cat": "공부·생각"
+    },
+    {
       "id": "motivation-visual",
       "name": "동기부여 생성기",
       "status": "using",
