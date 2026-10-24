@@ -506,7 +506,8 @@
               "title": "AI를 이용한 SNS 운영·분석",
               "what": "댓글 DM 자동 발송, 인사이트 분석, 비슷한 계정 조사를 AI로 합니다.",
               "yt": "AI 인스타 운영 분석",
-              "status": "wait"
+              "status": "doing",
+              "start": "2026-10-24"
             },
             {
               "id": "study-log",
@@ -693,6 +694,23 @@
               },
               "tools": [
                 "Claude Code",
+                "Claude 예약 작업"
+              ]
+            },
+            {
+              "id": "idea-steal",
+              "title": "AI로 남의 강의·글에서 아이디어 훔치기",
+              "what": "URL이나 캡처를 넣으면 Claude가 내용을 분석하고 최신 방법을 찾아, 나에게 맞게 다시 짠 아이디어 메모로 남기는 프로그램을 만들었습니다.",
+              "yt": "강의 안 듣고 핵심만 훔치는 AI",
+              "status": "done",
+              "start": "2026-10-24",
+              "end": "2026-10-24",
+              "result": {
+                "label": "아이디어 훔치기",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude 아티팩트",
                 "Claude 예약 작업"
               ]
             }
