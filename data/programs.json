@@ -34,7 +34,7 @@
       "id": "sns",
       "name": "SNS 통합 관리",
       "status": "using",
-      "summary": "채널 10개의 아이디어부터 기획, 제작, 업로드 예약, 올림까지 한 보드로 넘기고, 캘린더·댓글·채널별 분석·AI 추천을 한 화면에서 봅니다.",
+      "summary": "통합 대시보드에서 모든 채널을 보고, 채널마다 캘린더·시리즈 보드·진행 보드(끌어서 옮기기)·레퍼런스·콘텐츠 DB로 기획부터 리포트까지 관리합니다.",
       "start": "2026-10-13",
       "private": true,
       "href": "https://claude.ai/artifact/Hh7e1j7MffUzSn73dZQXUC",
