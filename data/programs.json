@@ -1,6 +1,16 @@
 {
   "programs": [
     {
+      "id": "detail-page",
+      "name": "상세페이지 제작",
+      "status": "using",
+      "summary": "상품 정보시트를 넣으면 기획 3단계(판매 방향·섹션 구성·섹션 카피)를 거쳐 상세페이지 시안을 조립하고 PNG로 내보내요. 사업 직원·지인과 함께 써요.",
+      "start": "2026-10-25",
+      "private": true,
+      "href": "https://claude.ai/artifact/23ut1BaHmDrDTBuudwMTBM",
+      "cat": "업무·운영"
+    },
+    {
       "id": "bottleneck",
       "name": "문제 해결 도우미",
       "status": "using",
