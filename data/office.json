@@ -11,10 +11,11 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "done",
-          "doing": "SNS 통합 관리에서 지운 아이디어가 다시 들어오던 문제를 찾아 고쳤어요",
+          "status": "waiting",
+          "doing": "상세페이지 제작 프로그램에 힉스필드·피그마 연동을 붙이고 시험을 기다려요",
           "prop": "🛠️",
-          "acc": "glasses"
+          "acc": "glasses",
+          "since": "2026-10-25"
         },
         {
           "team": "콘텐츠팀",
@@ -335,6 +336,15 @@
       "team": "개발팀",
       "state": "done",
       "start": "2026-10-23"
+    },
+    {
+      "name": "상세페이지 제작",
+      "dept": "ai",
+      "team": "개발팀",
+      "state": "doing",
+      "start": "2026-10-25",
+      "step": "힉스필드 연동 시험 중",
+      "href": "/programs"
     },
     {
       "name": "990원 프로그램 마켓",
