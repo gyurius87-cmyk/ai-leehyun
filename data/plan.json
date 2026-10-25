@@ -68,9 +68,14 @@
               "id": "detail-page",
               "title": "AI를 이용한 상세페이지 제작",
               "what": "구조, 문구, 이미지 생성부터 구매 전환 점검까지 상세페이지 전체를 AI로 만들고, 상품 설명 템플릿으로 남깁니다.",
-              "status": "todo",
+              "status": "doing",
               "yt": "AI 상세페이지 만들기",
-              "priority": 2
+              "priority": 2,
+              "start": "2026-10-25",
+              "result": {
+                "label": "상세페이지 제작",
+                "href": "/programs"
+              }
             }
           ]
         },
