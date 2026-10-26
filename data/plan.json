@@ -87,8 +87,9 @@
               "title": "AI를 이용한 제품 사진 제작·일괄 처리",
               "what": "촬영 없이 연출 사진과 모델컷을 만들고, 찍은 사진은 파일명·크기·채널별 규격으로 한 번에 정리합니다.",
               "yt": "AI 제품 사진 만들기",
-              "status": "wait",
-              "makesProgram": true
+              "status": "doing",
+              "makesProgram": true,
+              "start": "2026-10-26"
             }
           ]
         },
