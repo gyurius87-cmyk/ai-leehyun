@@ -150,6 +150,16 @@
       "cat": "공부·생각"
     },
     {
+      "id": "video-lab",
+      "name": "영상 분석실",
+      "status": "using",
+      "summary": "남의 SNS 영상을 올리면 컷·화면 글자·장면·장치를 뜯어보고, 내 채널용 대본으로 다시 짜 줘요.",
+      "start": "2026-10-27",
+      "private": true,
+      "href": "https://claude.ai/artifact/WMPqSM4wLNhXdzAVF5qDur",
+      "cat": "SNS·콘텐츠"
+    },
+    {
       "id": "motivation-visual",
       "name": "동기부여 생성기",
       "status": "using",
