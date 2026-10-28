@@ -428,10 +428,11 @@
               "id": "video-cut",
               "title": "AI를 이용한 영상 편집",
               "what": "컷편집, 자막, 긴 영상을 쇼츠로 자르기까지 편집 시간을 줄입니다.",
-              "status": "todo",
+              "status": "doing",
               "yt": "AI 영상 편집",
               "priority": 2,
-              "makesProgram": false
+              "makesProgram": false,
+              "start": "2026-10-28"
             },
             {
               "id": "visual-content",
@@ -639,6 +640,22 @@
               "tools": [
                 "Claude 아티팩트"
               ]
+            },
+            {
+              "id": "habit-challenge",
+              "title": "AI로 함께하는 습관 챌린지 만들기",
+              "what": "초대한 사람들끼리 각자 습관을 정해 매일 체크하고, 달성률·순위·연속 기록을 함께 보는 프로그램을 만들었습니다.",
+              "yt": "AI로 만든 습관 챌린지",
+              "status": "done",
+              "start": "2026-10-28",
+              "end": "2026-10-28",
+              "result": {
+                "label": "습관 챌린지",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude Code"
+              ]
             }
           ]
         },
@@ -739,7 +756,8 @@
               "title": "AI를 이용한 모임 운영 자동화",
               "what": "스터디·투자 모임 공지, 자료 정리, 참석 관리를 자동으로 돌립니다.",
               "yt": "AI 모임 운영 자동화",
-              "status": "wait"
+              "status": "doing",
+              "start": "2026-10-28"
             }
           ]
         },
