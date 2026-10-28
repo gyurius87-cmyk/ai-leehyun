@@ -170,6 +170,16 @@
       "cat": "공부·생각"
     },
     {
+      "id": "golf",
+      "name": "골프 중독자들",
+      "status": "using",
+      "summary": "골프 친구들끼리 게임비를 등수대로 나누고, 스코어표 사진으로 타당 정산을 하고, 라운드 영상을 모아 봐요.",
+      "start": "2026-10-28",
+      "private": true,
+      "href": "/programs/golf",
+      "cat": "공부·생각"
+    },
+    {
       "id": "video-lab",
       "name": "영상 분석실",
       "status": "using",
