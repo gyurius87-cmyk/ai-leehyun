@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="referrer" content="no-referrer">
 <link rel="icon" href="/favicon.svg">
 <title>엄마 일기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -262,7 +261,7 @@ document.addEventListener('click', async (e) => {
   else if ('past' in d) { open.past = !open.past; render(); }
   else if (d.play) {
     const box = t.parentElement;
-    box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(d.play)}?autoplay=1&rel=0&playsinline=1" title="영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(d.play)}?autoplay=1&rel=0&playsinline=1" title="영상" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
   }
   else if (t.id === 'copyLink') {
     const url = `${location.origin}${location.pathname}?k=${shareKey}`;
