@@ -87,6 +87,11 @@ label { font-size: 12px; color: var(--muted); }
 .dash .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; margin: 6px 0; }
 .dash .bar i { display: block; height: 100%; background: var(--acc); }
 .dash .hl { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.dash .chips button { font-size: 12px; padding: 3px 10px; }
+.dash .mrow { display: flex; gap: 10px; margin-top: 12px; overflow-x: auto; padding-bottom: 4px; }
+.dash .mrow > div { display: grid; justify-items: center; gap: 4px; flex: none; }
+.dash .mb { width: 34px; height: 60px; border-radius: 6px; background: var(--grid); display: flex; align-items: flex-end; overflow: hidden; }
+.dash .mb i { display: block; width: 100%; background: var(--acc); }
 .wkline { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
 </style>
 </head>
@@ -164,6 +169,7 @@ $("#newGo").onclick = async () => {
 
 // ── 챌린지 방
 async function load(month) {
+  ALL = null;
   try { S = await api("GET", null, `?g=${encodeURIComponent(G)}${month ? "&m=" + month : ""}`); }
   catch (e) { $("#room").hidden = true; $("#home").hidden = false; $("#noKey").innerHTML = `<b>${e.status === 404 ? "없는 챌린지 주소예요." : "불러오지 못했어요."}</b><div class="note">주소를 다시 확인해 주세요.</div>`; return; }
   render();
@@ -182,37 +188,71 @@ function render() {
   dash();
 }
 
-// ── 전체 대시보드: 오늘까지 기준 달성률, 이번 주, 연속 기록, 순위
+// ── 전체 대시보드: 이 달 / 전체 기간. 이번 달은 오늘까지 목표 기준
+let dashMode = "month", ALL = null;
+function monthStat(month, members, checks) {
+  const days = monthDays(month), W = weeks(days), past = (d) => ymd(d) <= today;
+  const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
+  const did = (h, list) => list.filter((d) => checks[`${h.id}|${ymd(d)}`]).length;
+  return members.filter((m) => m.habits.length).map((m) => {
+    const hs = m.habits.map((h) => {
+      let g = 0, dn = 0;
+      W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk); g += h.days.length ? upto.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * upto.length) / wk.length)); dn += did(h, upto); });
+      let streak = 0; for (const d of days.filter(past).reverse()) { const on = !!checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
+      return { h, g, dn, streak, wk: thisWeek ? [did(h, thisWeek), goal(h, thisWeek)] : null };
+    });
+    const g = hs.reduce((a, x) => a + x.g, 0), dn = hs.reduce((a, x) => a + x.dn, 0);
+    return { m, hs, g, dn };
+  });
+}
+const pctOf = (dn, g) => (g ? Math.min(100, Math.round((100 * dn) / g)) : 0);
+const medal = ["🥇", "🥈", "🥉"];
+function dashHead(note) {
+  return `<div class="row" style="justify-content:space-between"><div class="row"><b>전체 대시보드</b><span class="chips"><button data-dm="month" class="${dashMode === "month" ? "on" : ""}">이 달</button><button data-dm="all" class="${dashMode === "all" ? "on" : ""}">전체 기간</button></span></div><span class="note">${note}</span></div>`;
+}
+function kpis(list) { return `<div class="kpis">${list.map(([l, v]) => `<div><span class="note">${l}</span><b>${v}</b></div>`).join("")}</div>`; }
 function dash() {
   const D = $("#dash");
   if (!S.members.length || !S.month) { D.hidden = true; return; }
-  const days = monthDays(S.month), W = weeks(days);
-  const past = (d) => ymd(d) <= today;
-  const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
-  const habitStat = (h) => {
-    let g = 0, dn = 0;
-    W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk); g += h.days.length ? upto.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * upto.length) / wk.length)); dn += done(h, upto); });
-    let streak = 0; for (const d of [...days].filter(past).reverse()) { const on = !!S.checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
-    return { g, dn, streak, wk: thisWeek ? [done(h, thisWeek), goal(h, thisWeek)] : null };
-  };
-  const people = S.members.filter((m) => m.habits.length).map((m) => {
-    const hs = m.habits.map((h) => ({ h, ...habitStat(h) }));
-    const g = hs.reduce((a, x) => a + x.g, 0), dn = hs.reduce((a, x) => a + x.dn, 0);
-    return { m, hs, g, dn, pct: g ? Math.min(100, Math.round((100 * dn) / g)) : 0 };
-  }).sort((a, b) => b.pct - a.pct || b.dn - a.dn);
-  const tg = people.reduce((a, p) => a + p.g, 0), td = people.reduce((a, p) => a + p.dn, 0);
-  const all = tg ? Math.min(100, Math.round((100 * td) / tg)) : 0;
-  const todayDone = S.members.reduce((a, m) => a + m.habits.filter((h) => S.checks[`${h.id}|${today}`]).length, 0);
-  const todayAll = S.members.reduce((a, m) => a + m.habits.length, 0);
-  const isNow = ym(new Date()) === S.month;
-  const medal = ["🥇", "🥈", "🥉"];
   D.hidden = false;
-  D.innerHTML = `<div class="row" style="justify-content:space-between"><b>전체 대시보드</b><span class="note">${isNow ? "오늘까지 목표 기준" : "이 달 전체 기준"}</span></div>
-    <div class="kpis"><div><span class="note">우리 달성률</span><b>${all}%</b></div><div><span class="note">체크한 횟수</span><b>${td}<small> / ${tg}</small></b></div>${isNow ? `<div><span class="note">오늘 체크</span><b>${todayDone}<small> / ${todayAll}</small></b></div>` : ""}<div><span class="note">참여</span><b>${people.length}<small>명</small></b></div></div>
-    <div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
+  if (dashMode === "all") return dashAll();
+  const people = monthStat(S.month, S.members, S.checks).map((p) => ({ ...p, pct: pctOf(p.dn, p.g) })).sort((a, b) => b.pct - a.pct || b.dn - a.dn);
+  const tg = people.reduce((a, p) => a + p.g, 0), td = people.reduce((a, p) => a + p.dn, 0);
+  const isNow = ym(new Date()) === S.month;
+  const todayDone = S.members.reduce((a, m) => a + m.habits.filter((h) => S.checks[`${h.id}|${today}`]).length, 0), todayAll = S.members.reduce((a, m) => a + m.habits.length, 0);
+  D.innerHTML = dashHead(isNow ? "오늘까지 목표 기준" : "이 달 전체 기준")
+    + kpis([["우리 달성률", pctOf(td, tg) + "%"], ["체크한 횟수", `${td}<small> / ${tg}</small>`], ...(isNow ? [["오늘 체크", `${todayDone}<small> / ${todayAll}</small>`]] : []), ["참여", `${people.length}<small>명</small>`]])
+    + `<div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
       <div class="bar"><i style="width:${p.pct}%"></i></div>
       ${p.hs.map((x) => `<div class="hl"><span>${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
 }
+async function dashAll() {
+  const D = $("#dash");
+  if (!ALL) {
+    D.innerHTML = dashHead("불러오는 중…");
+    try { ALL = await api("GET", null, `?g=${encodeURIComponent(G)}&all=1`); } catch { D.innerHTML = dashHead("불러오지 못했어요"); return; }
+    if (dashMode !== "all") return;
+  }
+  // 사람은 id로 묶음 (새 달은 지난달 사람을 그대로 가져와 id가 같음). 아직 안 온 달은 뺌
+  const ms = ALL.months.filter((x) => x.month <= ym(new Date()));
+  const P = new Map();
+  ms.forEach((x) => monthStat(x.month, x.members, x.checks).forEach((p) => {
+    const k = p.m.id, o = P.get(k) || { name: p.m.name, g: 0, dn: 0, months: {} };
+    o.name = p.m.name; o.g += p.g; o.dn += p.dn; o.months[x.month] = pctOf(p.dn, p.g); P.set(k, o);
+  }));
+  const people = [...P.values()].map((p) => ({ ...p, pct: pctOf(p.dn, p.g) })).sort((a, b) => b.pct - a.pct || b.dn - a.dn);
+  const tg = people.reduce((a, p) => a + p.g, 0), td = people.reduce((a, p) => a + p.dn, 0);
+  const span = ms.length ? `${+ms[0].month.slice(5)}월 ~ ${+ms[ms.length - 1].month.slice(5)}월` : "";
+  const monthsRow = ms.map((x) => { const st = monthStat(x.month, x.members, x.checks), g = st.reduce((a, p) => a + p.g, 0), d = st.reduce((a, p) => a + p.dn, 0); return { m: x.month, pct: pctOf(d, g) }; });
+  D.innerHTML = dashHead(`${span} · 오늘까지 목표 기준`)
+    + kpis([["전체 달성률", pctOf(td, tg) + "%"], ["체크한 횟수", `${td}<small> / ${tg}</small>`], ["진행한 달", `${ms.length}<small>달</small>`], ["함께한 사람", `${people.length}<small>명</small>`]])
+    + `<div class="mrow">${monthsRow.map((x) => `<div><span class="mb"><i style="height:${x.pct}%"></i></span><span class="wkline">${+x.m.slice(5)}월 ${x.pct}%</span></div>`).join("")}</div>`
+    + `<div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.name)}</b><span class="pct">${p.pct}%</span></div>
+      <div class="bar"><i style="width:${p.pct}%"></i></div>
+      <div class="hl"><span>체크 ${p.dn} / 목표 ${p.g}</span></div>
+      <div class="hl"><span class="wkline">${ms.map((x) => `${+x.month.slice(5)}월 ${x.month in p.months ? p.months[x.month] + "%" : "-"}`).join(" · ")}</span></div></div>`).join("")}</div>`;
+}
+$("#dash").addEventListener("click", (e) => { const b = e.target.closest("[data-dm]"); if (!b) return; dashMode = b.dataset.dm; dash(); });
 
 // 이 달의 날짜, 월요일 시작 주차
 function monthDays(m) { const [y, mo] = m.split("-").map(Number); const out = []; for (let d = new Date(y, mo - 1, 1); d.getMonth() === mo - 1; d.setDate(d.getDate() + 1)) out.push(new Date(d)); return out; }
@@ -253,7 +293,7 @@ $("#tb").addEventListener("click", async (e) => {
   const b = e.target.closest(".cb"); if (!b) return;
   const f = `${b.dataset.h}|${b.dataset.d}`, on = !S.checks[f];
   if (on) S.checks[f] = "1"; else delete S.checks[f];
-  table(); dash();
+  table(); ALL = null; dash();
   try { await api("POST", { g: G, month: S.month, op: "check", hid: b.dataset.h, date: b.dataset.d, on }); }
   catch { if (on) delete S.checks[f]; else S.checks[f] = "1"; table(); dash(); toast("저장 못 했어요. 다시 눌러 주세요."); }
 });

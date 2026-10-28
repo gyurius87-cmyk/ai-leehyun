@@ -46,6 +46,12 @@ export default async function handler(req, res) {
   if (!raw) return res.status(404).json({ error: "not_found" });
   const meta = JSON.parse(raw);
 
+  // 전체 기간 대시보드: 모든 달의 멤버·체크를 한 번에
+  if (req.method === "GET" && req.query.all) {
+    const ms = meta.months.slice(-24);
+    const out = ms.length ? await redis(ms.flatMap((m) => [["HGETALL", `habit:m:${g}:${m}`], ["HGETALL", `habit:c:${g}:${m}`]])) : [];
+    return res.json({ meta, months: ms.map((m, i) => ({ month: m, members: Object.values(pairs(out[2 * i])).map((v) => JSON.parse(v)).sort((a, b) => a.order - b.order), checks: pairs(out[2 * i + 1]) })) });
+  }
   if (req.method === "GET") {
     const month = okMonth(req.query.m) ? req.query.m : meta.months[meta.months.length - 1];
     if (!month) return res.json({ meta, month: null, members: [], checks: {} });
