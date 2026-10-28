@@ -3,7 +3,7 @@
 import { redis, hasRedis } from "./_redis.js";
 
 const SECS = ["sched", "bucket", "video", "health", "trip"];
-// 여행 다녀온 곳: 시·도 코드 (kmap.json 과 같음)
+// 여행 다녀온 곳: 시·도 코드 (kmap.json 의 p 와 같음)
 const REGIONS = ["11", "21", "22", "23", "24", "25", "26", "29", "31", "32", "33", "34", "35", "36", "37", "38", "39"];
 const clip = (s, n) => String(s ?? "").replace(/[\u0000-\u0009\u000b-\u001f]/g, " ").trim().slice(0, n);
 const okId = (s) => /^[a-z0-9]{6,20}$/.test(String(s || ""));
@@ -36,8 +36,11 @@ async function clean(b) {
   if (sec === "sched" || sec === "health") it.place = clip(b.place, 60);
   if (sec === "bucket") { it.done = !!b.done; if (it.done && okDate(b.doneOn)) it.doneOn = b.doneOn; }
   if (sec === "trip") {
-    if (!REGIONS.includes(String(b.region))) return { error: "region" };
-    it.region = String(b.region);
+    // 시·군·구 다섯 자리(앞 두 자리가 시·도), 예전 기록은 시·도 두 자리
+    const r = String(b.region || "");
+    if (!(REGIONS.includes(r) || (/^\d{5}$/.test(r) && REGIONS.includes(r.slice(0, 2))))) return { error: "region" };
+    it.region = r;
+    if (b.spot) it.spot = clip(b.spot, 20);
   }
   if (sec === "video") {
     const vid = ytId(b.url);
@@ -49,6 +52,38 @@ async function clean(b) {
   return it;
 }
 
+// 여행지 추천: 한국관광공사 TourAPI(국문 관광정보 서비스) 축제 일정. 인증키는 Vercel 환경변수 TOUR_API_KEY 에만 둠.
+// 6시간마다 새로 받아 Redis(mom:fest)에 담아 둠. 진행 중이거나 90일 안에 시작하는 축제만.
+const FEST_TTL = 6 * 3600;
+const ymd = (d) => d.toISOString().slice(0, 10).replaceAll("-", "");
+async function festivals() {
+  const [cached] = await redis([["GET", "mom:fest"]]);
+  if (cached) return JSON.parse(cached);
+  const key = process.env.TOUR_API_KEY;
+  if (!key) return { ready: false };
+  const now = new Date(Date.now() + 9 * 3600e3), from = new Date(now - 45 * 864e5), to = ymd(new Date(+now + 90 * 864e5)), today = ymd(now);
+  const list = [];
+  for (let page = 1; page <= 5; page++) {
+    const u = new URL("https://apis.data.go.kr/B551011/KorService2/searchFestival2");
+    // 공공데이터포털 키는 이미 인코딩된 채로 주는 경우가 많아 그대로 붙임
+    u.search = `serviceKey=${key.includes("%") ? key : encodeURIComponent(key)}&MobileOS=ETC&MobileApp=AiLeehyun&_type=json&arrange=A&numOfRows=200&pageNo=${page}&eventStartDate=${ymd(from)}`;
+    const r = await fetch(u);
+    const j = await r.json().catch(() => null);
+    const body = j?.response?.body;
+    if (!body) return { ready: true, error: "api", items: [] };
+    let got = body.items?.item || [];
+    if (!Array.isArray(got)) got = [got];
+    got.forEach((x) => {
+      if (String(x.eventenddate) < today || String(x.eventstartdate) > to) return;
+      list.push({ id: String(x.contentid), title: clip(x.title, 60), start: String(x.eventstartdate), end: String(x.eventenddate), addr: clip(x.addr1, 60), img: String(x.firstimage || x.firstimage2 || "").replace(/^http:/, "https:"), tel: clip(x.tel, 30) });
+    });
+    if (page * 200 >= Number(body.totalCount || 0)) break;
+  }
+  const out = { ready: true, at: Date.now(), items: list.sort((a, b) => a.start.localeCompare(b.start)) };
+  await redis([["SET", "mom:fest", JSON.stringify(out), "EX", FEST_TTL]]);
+  return out;
+}
+
 export default async function handler(req, res) {
   if (!hasRedis()) return res.status(503).json({ error: "no_redis" });
   res.setHeader("Cache-Control", "no-store");
@@ -57,6 +92,9 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     let [key, h] = await redis([["GET", "mom:key"], ["HGETALL", "mom:items"]]);
     if (!admin && (!key || req.query.k !== key)) return res.status(401).json({ error: "auth" });
+    if (req.query.fest) {
+      try { return res.json(await festivals()); } catch (e) { console.error(e); return res.json({ ready: true, error: "api", items: [] }); }
+    }
     if (admin && !key) { key = newId(16); await redis([["SET", "mom:key", key]]); }
     const items = Object.values(pairs(h)).map((v) => JSON.parse(v));
     return res.json({ items, admin: !!admin, ...(admin ? { key } : {}) });

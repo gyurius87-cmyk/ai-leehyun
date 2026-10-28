@@ -66,17 +66,54 @@ label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .chk.ro { cursor: default; }
 .it.done .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--sage); }
 .donedate { font-size: 13px; color: var(--sage); font-weight: 700; }
-.trip { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 12px; align-items: start; }
-@media (max-width: 700px) { .trip { grid-template-columns: minmax(0, 1fr); } }
-.mapbox { background: var(--soft); border-radius: 14px; padding: 8px; }
-.kmap { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; }
-.kmap .rg { fill: var(--panel); stroke: var(--line); stroke-width: 1; cursor: pointer; transition: fill .15s; }
+.trip { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; margin-top: 12px; align-items: start; }
+@media (max-width: 760px) { .trip { grid-template-columns: minmax(0, 1fr); } }
+.mapbox { background: var(--soft); border-radius: 14px; padding: 8px; min-width: 0; }
+.kwrap { position: relative; }
+.kmap { display: block; width: 100%; height: auto; aspect-ratio: 546 / 565; max-width: 100%; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; }
+.kmap.zoomed { touch-action: none; }
+.kmap .rg { fill: var(--panel); stroke: var(--line); stroke-width: .6px; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .15s; }
 .kmap .rg:hover { fill: var(--roseSoft); }
-.kmap .rg.went { fill: color-mix(in srgb, var(--rose) calc(35% + var(--lv) * 15%), var(--panel)); stroke: var(--panel); }
-.kmap .rg.sel { stroke: var(--ink); stroke-width: 2.2; }
-.kmap .lb { font-size: 12px; font-weight: 700; fill: var(--muted); text-anchor: middle; dominant-baseline: middle; pointer-events: none; paint-order: stroke; stroke: var(--soft); stroke-width: 3px; }
-.kmap .lb.sm { font-size: 9px; }
-.kmap .lb.on { fill: var(--ink); }
+.kmap .rg.went { fill: color-mix(in srgb, var(--rose) calc(30% + var(--lv) * 14%), var(--panel)); }
+.kmap .rg.sel { stroke: var(--ink); stroke-width: 2px; }
+.kmap .pv path { fill: none; stroke: var(--muted); stroke-width: 1.1px; vector-effect: non-scaling-stroke; pointer-events: none; opacity: .55; }
+.kmap .dong path { fill: none; stroke: var(--line); stroke-width: .5px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.kmap:not(.dongs) .dong { display: none; }
+.kmap .inset { fill: none; stroke: var(--muted); stroke-dasharray: 3 3; stroke-width: .8px; vector-effect: non-scaling-stroke; opacity: .6; pointer-events: none; }
+.kmap text { text-anchor: middle; dominant-baseline: middle; pointer-events: none; paint-order: stroke; stroke: var(--soft); stroke-linejoin: round; font-family: var(--sans); }
+.kmap .lp { font-size: 13px; font-weight: 700; fill: var(--muted); stroke-width: 3px; }
+.kmap .lr { font-size: calc(12px / var(--z)); font-weight: 700; fill: var(--muted); stroke-width: calc(2.6px / var(--z)); }
+.kmap .lr.on { fill: var(--ink); }
+.kmap .ld { font-size: calc(10px / var(--z)); fill: var(--muted); opacity: .85; stroke-width: calc(2px / var(--z)); }
+.kmap .spot { cursor: pointer; }
+.kmap .li { font-size: calc(9px / var(--z)); fill: var(--muted); text-anchor: start; dominant-baseline: hanging; stroke-width: 0; }
+.kmap .spot circle { r: calc(2.6px / var(--z) * 1.6); fill: var(--panel); stroke: var(--sage); stroke-width: 1.4px; vector-effect: non-scaling-stroke; }
+.kmap .spot.went circle { fill: var(--rose); stroke: var(--panel); }
+.kmap .spot text { font-size: calc(9px / var(--z) * 1.3); font-weight: 700; fill: var(--sage); stroke-width: calc(2.4px / var(--z)); dominant-baseline: auto; transform: translateY(calc(-5px / var(--z) * 1.3)); }
+.kmap .spot.went text { fill: var(--rose); }
+.kmap.far .spot:not(.went) text { display: none; }
+.kmap .spot.hl circle { stroke: var(--ink); stroke-width: 2.4px; }
+.zbar { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 4px; }
+.zbar button { width: 34px; height: 34px; padding: 0; border-radius: 10px; font-size: 17px; font-weight: 700; background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+.maphint { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+.maphint i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; border: 1.5px solid var(--sage); }
+.maphint i.on { background: var(--rose); border-color: var(--rose); }
+.ftabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.ftabs button { border-radius: 999px; padding: 6px 13px; font-size: 14px; background: var(--soft); color: var(--muted); border: 1px solid var(--line); font-weight: 700; }
+.ftabs button.on { background: var(--rose); color: var(--roseInk); border-color: var(--rose); }
+.ftabs button small { font-weight: 500; opacity: .8; margin-left: 3px; }
+.fests { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-top: 12px; }
+.fest { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); color: inherit; text-decoration: none; min-width: 0; }
+.fest .ph { aspect-ratio: 16 / 10; max-width: 100%; background: var(--soft) center / cover no-repeat; position: relative; }
+.fest .ph b { position: absolute; left: 8px; top: 8px; font-size: 12px; border-radius: 999px; padding: 2px 9px; background: var(--rose); color: var(--roseInk); }
+.fest .ph b.now { background: var(--sage); color: var(--panel); }
+.fest .tx { padding: 9px 11px 11px; display: grid; gap: 3px; }
+.fest .tx .t { font-weight: 700; }
+.fest .tx .m { font-size: 13px; color: var(--muted); }
+.fam { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.fam span, .fam button { font-size: 13px; border-radius: 999px; padding: 4px 11px; background: var(--sageSoft); color: var(--sage); border: 0; font-weight: 700; }
+.fam button.went, .fam span.went { background: var(--roseSoft); color: var(--rose); }
+.fam .lbl { background: none; padding: 4px 0; color: var(--muted); font-weight: 500; }
 .rtag { flex: none; font-size: 12px; font-weight: 700; color: var(--rose); background: var(--roseSoft); border-radius: 999px; padding: 2px 9px; margin-top: 2px; }
 select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; }
 .count { font-size: 14px; color: var(--sage); font-weight: 700; }
@@ -160,6 +197,7 @@ details.health.has > summary { color: var(--ink); font-family: var(--serif); fon
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="/programs/mom/map.js"></script>
 <script>
 const API = '/api/mom';
 const q = new URLSearchParams(location.search);
@@ -168,7 +206,7 @@ let adminKey = '';
 try { adminKey = localStorage.getItem('ai-admin-key') || ''; } catch {}
 let items = [], admin = false, shareKey = '';
 const open = { form: null, edit: null, past: false, del: null, cal: '', healthTouched: false, sel: '' };
-let kmap = null;
+let kmap = null, mapEl = null;
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -210,7 +248,7 @@ async function load() {
 
 // ── 섹션별 입력 칸
 const FIELDS = {
-  trip: [['region', '지역', 'region'], ['title', '간 곳', 'text', '예: 속초 아바이마을'], ['date', '다녀온 날', 'date'], ['memo', '메모', 'area']],
+  trip: [['region', '지역', 'region'], ['title', '간 곳', 'text', '예: 화담숲 단풍 구경'], ['date', '다녀온 날', 'date'], ['memo', '메모', 'area']],
   sched: [['title', '무엇', 'text', '예: 가족 여행, 동창 모임'], ['date', '날짜', 'date'], ['time', '시간', 'time'], ['place', '장소', 'text'], ['memo', '메모', 'area']],
   bucket: [['title', '하고 싶은 것', 'text', '예: 제주도 한 달 살기'], ['doneOn', '이룬 날 (넣으면 이룸으로 체크)', 'date'], ['memo', '메모', 'area']],
   video: [['url', '유튜브 주소', 'text', 'https://youtu.be/…'], ['title', '제목 (비우면 유튜브 제목)', 'text'], ['date', '찍은 날', 'date'], ['memo', '메모', 'area']],
@@ -218,8 +256,7 @@ const FIELDS = {
 };
 function formHtml(sec, it = {}) {
   const v = (k) => k === 'url' && it.vid ? `https://youtu.be/${it.vid}` : (it[k] ?? '');
-  const f = FIELDS[sec].map(([k, label, type, ph]) => type === 'region'
-    ? `<label>${label}<select name="${k}">${(kmap?.r || []).map((r) => `<option value="${r.c}"${r.c === v(k) ? ' selected' : ''}>${r.n}</option>`).join('')}</select></label>`
+  const f = FIELDS[sec].map(([k, label, type, ph]) => type === 'region' ? regionFields(it)
     : type === 'area'
     ? `<label class="full">${label}<textarea name="${k}" placeholder="${esc(ph || '')}">${esc(v(k))}</textarea></label>`
     : `<label${k === 'title' || k === 'url' ? ' class="full"' : ''}>${label}<input name="${k}" type="${type}" value="${esc(v(k))}" placeholder="${esc(ph || '')}"></label>`).join('');
@@ -232,7 +269,7 @@ function tools(it) {
   return `<div class="tools"><button class="ghost" data-edit="${it.id}">고치기</button><button class="ghost" data-del="${it.id}">지우기</button></div>`;
 }
 const addBtn = (sec) => admin && open.form !== sec ? `<button class="main" data-add="${sec}">＋ 추가</button>` : '';
-const addForm = (sec) => admin && open.form === sec ? formHtml(sec, sec === 'trip' ? { region: open.sel || '32' } : {}) : '';
+const addForm = (sec) => admin && open.form === sec ? formHtml(sec, sec === 'trip' ? { region: open.sel || '31250', ...open.pre } : {}) : '';
 const of = (sec) => items.filter((i) => i.sec === sec);
 const byDate = (a, b) => (a.date || '9999') .localeCompare(b.date || '9999') || (a.time || '').localeCompare(b.time || '') || a.at - b.at;
 
@@ -264,27 +301,88 @@ function calHtml(list, ym) {
   return `<div class="cal"><div class="nav"><button class="ghost" data-cal="-1" aria-label="이전 달">‹</button><span>${y}년 ${m}월</span><button class="ghost" data-cal="1" aria-label="다음 달">›</button></div><div class="grid">${cells}</div></div>`;
 }
 
-// 여행 다녀온 곳: 한국 지도(시·도)에 다녀온 곳을 색칠. 지역을 누르면 그곳 기록만
-// 지도 모양은 kmap.json (통계청 2013 시도 경계, github.com/southkorea/southkorea-maps 를 SVG 경로로 바꾼 것)
-const rname = (c) => kmap?.r.find((r) => r.c === c)?.n || '';
+// 여행 다녀온 곳: 시·군·구 지도(map.js)에 다녀온 곳을 색칠하고 전국 명소를 핀으로. 지역을 누르면 그곳 기록과 유명한 것
+// 지도 모양은 kmap.json (통계청 2013 시·군·구 경계, github.com/southkorea/southkorea-maps 를 SVG 경로로 바꾼 것. 울릉도·독도 포함)
+const rname = (c) => kmap ? KMap.full(c) : '';
+const spotsIn = (c) => (kmap?.s || []).filter((s) => s.c === c);
+// 장소 찾기 칸: 명소 이름 또는 "강원 춘천시" 같은 지역 이름
+const findList = () => kmap ? [...kmap.s.map((s) => `${s.n} (${KMap.full(s.c)})`), ...kmap.r.map((r) => KMap.full(r.c))] : [];
+function regionFields(it) {
+  if (!kmap) return '<label class="full">지역<select name="region"><option>지도를 불러오는 중</option></select></label>';
+  const c = it.region || '31250', p = KMap.reg(c)?.p || c.slice(0, 2);
+  const regs = kmap.r.filter((r) => r.p === p).sort((a, b) => a.n.localeCompare(b.n, 'ko'));
+  const sp = spotsIn(c);
+  return `<label class="full">장소 찾기<input data-find list="findList" placeholder="예: 화담숲, 춘천시" autocomplete="off"></label>
+    <label>시·도<select data-prov>${kmap.p.slice().sort((a, b) => a.c.localeCompare(b.c)).map((x) => `<option value="${x.c}"${x.c === p ? ' selected' : ''}>${x.n}</option>`).join('')}</select></label>
+    <label>시·군·구<select name="region">${c.length === 2 ? `<option value="${c}" selected>${KMap.prov(c)} 전체 (예전 기록)</option>` : ''}${regs.map((r) => `<option value="${r.c}"${r.c === c ? ' selected' : ''}>${r.n}</option>`).join('')}</select></label>
+    <label class="full">명소 (있으면)<select name="spot"><option value="">고르지 않음</option>${sp.map((s) => `<option${s.n === it.spot ? ' selected' : ''}>${esc(s.n)}</option>`).join('')}</select></label>`;
+}
 function tripHtml() {
+  const tl = of('trip'), cnt = {}, wentSpots = new Set(tl.map((t) => t.spot).filter(Boolean));
+  tl.forEach((t) => (cnt[t.region] = (cnt[t.region] || 0) + 1));
+  const went = Object.keys(cnt).filter((c) => c.length === 5).length, sel = open.sel, R = sel && KMap.reg(sel);
+  const list = tl.filter((t) => !sel || t.region === sel).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.at - a.at);
+  const row = (it) => open.edit === it.id ? `<li>${formHtml('trip', it)}</li>` : `<li class="it"><span class="rtag">${esc(rname(it.region).replace(/^\S+ /, ''))}</span><div class="body"><div class="t">${esc(it.title || it.spot || rname(it.region))}</div>
+    <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.spot && it.title ? `📍 ${it.spot}` : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</li>`;
+  // 고른 지역: 유명한 것 + 그 지역 명소. 관리자는 눌러서 바로 기록 추가
+  const chip = (n, spot) => { const w = wentSpots.has(n) || list.some((t) => t.title === n); return admin ? `<button type="button" class="${w ? 'went' : ''}" data-pre="${esc(n)}"${spot ? ' data-prespot="1"' : ''}>${esc(n)}</button>` : `<span class="${w ? 'went' : ''}">${esc(n)}</span>`; };
+  const famHtml = R ? `<div class="fam"><span class="lbl">유명한 것</span>${[...spotsIn(sel).map((s) => chip(s.n, true)), ...R.f.filter((n) => !spotsIn(sel).some((s) => s.n === n)).map((n) => chip(n))].join('')}</div>` : '';
+  return `<section><div class="row between"><h2>여행 다녀온 곳</h2>${addBtn('trip')}</div>
+    <div class="count">시·군·구 ${kmap ? kmap.r.length : 252}곳 중 ${went}곳${wentSpots.size ? ` · 명소 ${wentSpots.size}곳` : ''} 다녀왔어요</div>
+    <div class="trip"><div class="mapbox"><div id="mapSlot">${kmap ? '' : '<div class="empty">지도를 불러오는 중이에요.</div>'}</div>
+      <div class="maphint"><span><i class="on"></i>다녀온 명소</span><span><i></i>명소</span><span>＋ 또는 두 손가락으로 크게, 많이 키우면 동네 이름</span></div></div>
+    <div class="tlist">
+      <div class="row between"><b>${sel ? `${esc(rname(sel))} · ${cnt[sel] || 0}번` : '전체 기록'}</b>${sel ? '<button class="ghost" data-rg="">전체 보기</button>' : ''}</div>
+      ${famHtml}
+      ${addForm('trip')}
+      ${list.length ? `<ul class="items">${list.map(row).join('')}</ul>` : `<div class="empty">${sel ? '아직 이곳 기록이 없어요.' : '지도에서 지역이나 명소를 누르거나 ＋ 추가로 적어 주세요.'}</div>`}
+    </div></div><datalist id="findList">${findList().map((v) => `<option value="${esc(v)}">`).join('')}</datalist></section>`;
+}
+// 여행지 추천: 관광공사 축제 일정(서버가 6시간마다 새로 받음)을 부모님이 좋아하실 갈래로 나눔. 엄마가 꽃을 좋아하셔서 꽃이 맨 앞
+const FTABS = [
+  ['flower', '🌸 꽃·정원', /꽃|벚|매화|유채|튤립|장미|수국|국화|코스모스|진달래|철쭉|연꽃|해바라기|라벤더|동백|핑크뮬리|백일홍|메밀|산수유|목련|작약|모란|플라워|정원|수목원|화훼|허브|꽃길/],
+  ['nature', '🍁 단풍·자연', /단풍|억새|갈대|숲|산림|계곡|폭포|바다|해변|섬|일출|해맞이|별빛|은하수|눈꽃|얼음|빙어|송어|온천|생태|습지|호수|강변|둘레길|트레킹|걷기/],
+  ['culture', '🎎 전통·문화', /전통|문화|민속|역사|한복|국악|탈춤|도자|유산|궁|읍성|성곽|서원|향교|사찰|등불|등축제|빛|미디어아트|예술|공연|음악회|아리랑|농악|풍물|선비|유교|왕/],
+  ['food', '🍲 먹거리', /맛|먹거리|음식|김치|한우|대게|굴|새우|전어|사과|배축제|딸기|포도|곶감|인삼|홍삼|송이|버섯|녹차|차문화|막걸리|와인|젓갈|미식|고추|쌀|떡|한과|빵|커피|수산|장터|장류|된장|고구마|감자|옥수수|수박|복숭아|한라봉|귤|멸치|꽃게|과메기|김|미역|전복|장어|낙지|주꾸미|대하|오징어/],
+  ['all', '전체', /./],
+];
+let fest = null;
+function loadFest() {
+  if (fest) return;
+  fest = { loading: true };
+  api('GET', null, `?fest=1${viewKey ? `&k=${encodeURIComponent(viewKey)}` : ''}`).then((j) => { fest = j; render(); }).catch(() => { fest = { error: 'api', items: [] }; render(); });
+}
+function festHtml() {
+  loadFest();
+  if (fest.loading) return '';
+  if (fest.ready === false) return admin ? `<section><h2>여행지 추천</h2><div class="empty">관광공사 인증키(TOUR_API_KEY)를 Vercel에 넣으면 전국 축제 일정이 여기에 계속 새로 떠요.</div></section>` : '';
+  const t = today().replaceAll('-', ''), items = fest.items || [];
+  const tab = open.ftab || 'flower', [, , re] = FTABS.find((x) => x[0] === tab);
+  const n = (re2) => items.filter((f) => re2.test(f.title)).length;
+  // 진행 중인 것 먼저, 그다음 가까운 날부터
+  const list = items.filter((f) => re.test(f.title)).sort((a, b) => (a.start > t) - (b.start > t) || (a.start <= t ? a.end.localeCompare(b.end) : a.start.localeCompare(b.start)));
+  const more = open.fmore ? list.length : 12;
+  const d8 = (x) => `${Number(x.slice(4, 6))}.${Number(x.slice(6))}`;
+  const badge = (f) => f.start <= t ? '<b class="now">지금 하는 중</b>' : `<b>D-${Math.round((Date.parse(`${f.start.slice(0, 4)}-${f.start.slice(4, 6)}-${f.start.slice(6)}`) - Date.parse(today())) / 864e5)}</b>`;
+  const card = (f) => `<a class="fest" href="https://search.naver.com/search.naver?query=${encodeURIComponent(f.title)}" target="_blank" rel="noopener">
+    <div class="ph" style="${f.img ? `background-image:url('${esc(f.img)}')` : ''}">${badge(f)}</div>
+    <div class="tx"><div class="t">${esc(f.title)}</div><div class="m">${d8(f.start)} ~ ${d8(f.end)}${f.addr ? ` · ${esc(f.addr.split(' ').slice(0, 2).join(' '))}` : ''}</div></div></a>`;
+  return `<section><div class="row between"><h2>여행지 추천</h2><span class="sub">관광공사 축제 일정 · 자동으로 새로 받아요</span></div>
+    <div class="ftabs">${FTABS.map(([k, label, r2]) => `<button type="button" class="${k === tab ? 'on' : ''}" data-ftab="${k}">${label}<small>${n(r2)}</small></button>`).join('')}</div>
+    ${fest.error ? '<div class="empty">축제 정보를 잠시 불러오지 못했어요.</div>' : list.length ? `<div class="fests">${list.slice(0, more).map(card).join('')}</div>${list.length > more ? `<button class="ghost past-toggle" data-fmore>${list.length - more}개 더 보기</button>` : ''}` : '<div class="empty">지금은 이 갈래 축제가 없어요.</div>'}
+  </section>`;
+}
+function mountMap() {
+  const slot = $('#mapSlot'); if (!slot || !kmap) return;
+  if (!mapEl) mapEl = KMap.init(kmap, {
+    onRegion: (c) => { open.sel = open.sel === c ? '' : c; open.spot = ''; render(); },
+    onSpot: (i) => { const s = kmap.s[i]; open.sel = s.c; open.spot = s.n; render(); },
+  });
+  slot.appendChild(mapEl);
   const tl = of('trip'), cnt = {};
   tl.forEach((t) => (cnt[t.region] = (cnt[t.region] || 0) + 1));
-  const went = Object.keys(cnt).length, sel = open.sel;
-  const map = kmap ? `<svg class="kmap" viewBox="-6 -6 ${kmap.w + 12} ${kmap.h + 12}" role="img" aria-label="한국 지도, ${went}곳 다녀옴">
-    ${kmap.r.map((r) => `<path d="${r.d}" class="rg${cnt[r.c] ? ' went' : ''}${sel === r.c ? ' sel' : ''}" style="--lv:${Math.min(cnt[r.c] || 0, 4)}" data-rg="${r.c}"><title>${r.n}${cnt[r.c] ? ` · ${cnt[r.c]}번` : ''}</title></path>`).join('')}
-    ${kmap.r.map((r) => `<text x="${r.x + (r.c === '31' ? 18 : r.c === '23' ? -14 : 0)}" y="${r.y + (r.c === '31' ? 24 : r.c === '23' ? 8 : 0)}" class="lb${r.c.length && ['11','21','22','23','24','25','26','29'].includes(r.c) ? ' sm' : ''}${cnt[r.c] ? ' on' : ''}" data-rg="${r.c}">${r.n}</text>`).join('')}
-  </svg>` : '<div class="empty">지도를 불러오는 중이에요.</div>';
-  const list = tl.filter((t) => !sel || t.region === sel).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.at - a.at);
-  const row = (it) => open.edit === it.id ? `<li>${formHtml('trip', it)}</li>` : `<li class="it"><span class="rtag">${esc(rname(it.region))}</span><div class="body"><div class="t">${esc(it.title || rname(it.region))}</div>
-    <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</li>`;
-  return `<section><div class="row between"><h2>여행 다녀온 곳</h2>${addBtn('trip')}</div>
-    <div class="count">${kmap ? kmap.r.length : 17}곳 중 ${went}곳 다녀왔어요</div>
-    <div class="trip"><div class="mapbox">${map}</div><div class="tlist">
-      <div class="row between"><b>${sel ? `${esc(rname(sel))} · ${cnt[sel] || 0}번` : '전체 기록'}</b>${sel ? '<button class="ghost" data-rg="">전체 보기</button>' : ''}</div>
-      ${addForm('trip')}
-      ${list.length ? `<ul class="items">${list.map(row).join('')}</ul>` : `<div class="empty">${sel ? '아직 이곳 기록이 없어요.' : '지도에서 지역을 누르거나 ＋ 추가로 적어 주세요.'}</div>`}
-    </div></div></section>`;
+  KMap.paint({ cnt, spots: new Set(tl.map((t) => t.spot).filter(Boolean)), sel: open.sel });
+  mapEl.querySelectorAll('.spot').forEach((g, i) => g.classList.toggle('hl', kmap.s[i].n === open.spot));
 }
 
 function render() {
@@ -311,7 +409,8 @@ function render() {
     ${vl.length ? `<div class="vtl">${groups.map((g) => `<div class="vtl-g"><div class="vtl-d">${dlabel(g.d)}</div><div class="vids">${g.l.map(vcard).join('')}</div></div>`).join('')}</div>`
       : '<div class="empty">아직 올린 영상이 없어요.</div>'}</section>`;
 
-  $('#main').innerHTML = video + sched + bucket + tripHtml();
+  $('#main').innerHTML = video + sched + bucket + tripHtml() + festHtml();
+  mountMap();
   // 병원 일정: 다가오는 일정이 없으면 맨 밑에 작게 접어 두고, 있으면 펼쳐서 달력으로도 보여 줌
   const hUp = of('health').filter((i) => i.date && i.date >= today()).sort(byDate);
   const box = $('#healthBox');
@@ -326,8 +425,11 @@ function render() {
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('button'); if (!t) return;
   const d = t.dataset;
-  if (d.rg != null && t.tagName === 'BUTTON') { open.sel = d.rg; render(); }
-  else if (d.add) { open.form = d.add; open.edit = null; if (d.add === 'health') $('#healthBox').open = true; render(); document.querySelector(`form[data-sec="${d.add}"] input`)?.focus(); }
+  if (d.rg != null && t.tagName === 'BUTTON') { open.sel = d.rg; open.spot = ''; render(); }
+  else if (d.ftab) { open.ftab = d.ftab; open.fmore = false; render(); }
+  else if ('fmore' in d) { open.fmore = true; render(); }
+  else if (d.pre) { open.form = 'trip'; open.edit = null; open.pre = { region: open.sel, title: d.pre, spot: d.prespot ? d.pre : '' }; render(); $('form[data-sec="trip"] input[name="date"]')?.focus(); }
+  else if (d.add) { open.pre = null; open.form = d.add; open.edit = null; if (d.add === 'health') $('#healthBox').open = true; render(); document.querySelector(`form[data-sec="${d.add}"] input`)?.focus(); }
   else if ('cancel' in d) { open.form = null; open.edit = null; render(); }
   else if (d.edit) { open.edit = d.edit; open.form = null; render(); }
   else if (d.del) { open.del = d.del; render(); }
@@ -374,6 +476,7 @@ document.addEventListener('submit', async (e) => {
   if (!f.matches('form.form')) return;
   e.preventDefault();
   const item = Object.fromEntries(new FormData(f));
+  delete item.q;
   item.sec = f.dataset.sec;
   const old = items.find((i) => i.id === f.dataset.id);
   if (old) Object.assign(item, { id: old.id, at: old.at, done: old.done });
@@ -383,7 +486,7 @@ document.addEventListener('submit', async (e) => {
   try {
     const { item: saved } = await api('POST', { op: 'save', item });
     items = items.filter((i) => i.id !== saved.id).concat(saved);
-    open.form = null; open.edit = null; render(); toast(old ? '고쳤어요' : '추가했어요');
+    open.form = null; open.edit = null; open.pre = null; render(); toast(old ? '고쳤어요' : '추가했어요');
   } catch (err) {
     btn.disabled = false;
     toast(err.code === 'url' ? '유튜브 주소를 알아보지 못했어요' : '저장하지 못했어요');
@@ -392,9 +495,30 @@ document.addEventListener('submit', async (e) => {
 
 $('#healthBox summary').addEventListener('click', () => { open.healthTouched = true; });
 
-// 지도 칸(path·text)은 버튼이 아니라서 따로 받음
-document.addEventListener('click', (e) => { const g = e.target.closest('svg [data-rg]'); if (g) { open.sel = open.sel === g.dataset.rg ? '' : g.dataset.rg; render(); } });
-fetch('/programs/mom/kmap.json').then((r) => r.json()).then((j) => { kmap = j; if (!$('#app').hidden) render(); }).catch(() => {});
+// 여행 입력 칸: 시·도를 바꾸면 시·군·구 목록, 시·군·구를 바꾸면 명소 목록을 다시 채움. 장소 찾기로 한 번에 고르기
+function refillTrip(f, region, spot) {
+  const pre = { ...Object.fromEntries(new FormData(f)), region, spot };
+  f.querySelector('[data-find]').closest('label').insertAdjacentHTML('beforebegin', '<i data-mark></i>');
+  f.querySelectorAll('[data-find], [data-prov], select[name="region"], select[name="spot"]').forEach((el) => el.closest('label').remove());
+  f.querySelector('[data-mark]').outerHTML = regionFields(pre);
+}
+document.addEventListener('change', (e) => {
+  const f = e.target.closest('form[data-sec="trip"]'); if (!f) return;
+  if (e.target.matches('[data-prov]')) { const r = kmap.r.filter((x) => x.p === e.target.value).sort((a, b) => a.n.localeCompare(b.n, 'ko'))[0]; refillTrip(f, r.c, ''); }
+  else if (e.target.name === 'region') refillTrip(f, e.target.value, '');
+  else if (e.target.name === 'spot' && e.target.value && !f.elements.title.value.trim()) f.elements.title.value = e.target.value;
+});
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('[data-find]')) return;
+  const v = e.target.value.trim(), f = e.target.form;
+  const s = kmap.s.find((x) => `${x.n} (${KMap.full(x.c)})` === v || x.n === v), r = kmap.r.find((x) => KMap.full(x.c) === v);
+  if (!s && !r) return;
+  const title = f.elements.title.value;
+  refillTrip(f, s ? s.c : r.c, s ? s.n : '');
+  if (s && !title.trim()) f.elements.title.value = s.n;
+  f.querySelector('input[name="date"]')?.focus();
+});
+fetch('/programs/mom/kmap.json').then((r) => r.json()).then((j) => { kmap = j; KMap.use(j); if (!$('#app').hidden) render(); }).catch(() => {});
 
 if (!viewKey && !adminKey) { $('#gate').hidden = false; } else load();
 </script>
