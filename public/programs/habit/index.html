@@ -111,6 +111,13 @@ th.unpaid { background: var(--off); }
 .payinfo .amt { font-family: var(--mono); font-size: 30px; font-weight: 700; margin-top: 8px; }
 .payinfo .acct { font-size: 17px; margin: 6px 0 8px; }
 .payinfo .acct b { font-family: var(--mono); letter-spacing: .02em; }
+.dash .podium { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; align-items: end; }
+.dash .pd { display: grid; justify-items: center; gap: 2px; border-radius: 12px; padding: 12px 8px; background: var(--bg); text-align: center; }
+.dash .pd.r1 { background: var(--today); padding-block: 18px; }
+.dash .pd .m { font-size: 28px; line-height: 1; }
+.dash .pd .rk { font-size: 12px; color: var(--muted); font-weight: 700; }
+.dash .pd b { font-size: 17px; }
+th.unpaid .pname { color: var(--muted); font-weight: 400; }
 .wkline { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
 </style>
 </head>
@@ -160,8 +167,10 @@ const ym = (d) => ymd(d).slice(0, 7);
 const today = ymd(new Date());
 let toastT; function toast(m) { let el = $(".toast"); if (!el) { el = document.createElement("div"); el.className = "toast"; document.body.append(el); } el.textContent = m; clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 3000); }
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
-let key = ls.get("ai-admin-key") || "";
-const G = new URLSearchParams(location.search).get("g");
+const Q = new URLSearchParams(location.search), G = Q.get("g");
+// 관리 화면은 ?manage=1 로 연 주소에서만. 초대 주소(?g=…)로 열면 관리 키가 있어도 일반 참가자 화면
+const MANAGE = !G || Q.get("manage") === "1";
+let key = MANAGE ? ls.get("ai-admin-key") || "" : "";
 let S = { meta: null, month: null, members: [], checks: {} }, editing = null;
 
 async function api(method, body, q = "") {
@@ -178,12 +187,12 @@ async function home() {
   try {
     const { groups } = await api("GET", null, "?list=1");
     $("#noKey").hidden = true; $("#adm").hidden = false;
-    $("#glist").innerHTML = groups.sort((a, b) => b.createdAt - a.createdAt).map((g) => `<a href="?g=${g.id}"><b>${esc(g.title)}</b> <span class="note">${new Date(g.createdAt).toLocaleDateString("ko-KR")} 만듦</span></a>`).join("") || '<div class="note">아직 없어요. 아래에서 만들어 보세요.</div>';
+    $("#glist").innerHTML = groups.sort((a, b) => b.createdAt - a.createdAt).map((g) => `<a href="?g=${g.id}&manage=1"><b>${esc(g.title)}</b> <span class="note">${new Date(g.createdAt).toLocaleDateString("ko-KR")} 만듦</span></a>`).join("") || '<div class="note">아직 없어요. 아래에서 만들어 보세요.</div>';
   } catch (e) { if (e.status === 401) { key = ""; toast("관리 키가 맞지 않아요"); } else toast(e.code === "no_redis" ? "저장소가 연결되지 않았어요" : "불러오지 못했어요"); }
 }
 $("#keyGo").onclick = () => { key = $("#keyIn").value.trim(); if (!key) return; ls.set("ai-admin-key", key); home(); };
 $("#newGo").onclick = async () => {
-  try { const { id } = await api("POST", { op: "create", title: $("#newTitle").value.trim(), month: ym(new Date()) }); location.href = "?g=" + id; }
+  try { const { id } = await api("POST", { op: "create", title: $("#newTitle").value.trim(), month: ym(new Date()) }); location.href = "?g=" + id + "&manage=1"; }
   catch { toast("만들지 못했어요"); }
 };
 
@@ -255,6 +264,14 @@ const medal = ["🥇", "🥈", "🥉"];
 function dashHead(note) {
   return `<div class="row" style="justify-content:space-between"><b>${dashMode === "all" ? "전체 기간 대시보드" : `${+S.month.slice(5)}월 대시보드`}</b><span class="note">${note}</span></div>`;
 }
+// 1·2·3등: 달성률(같으면 체크 수)로, 완전히 같으면 같은 등수
+function podium(list, title) {
+  const sorted = [...list].sort((a, b) => b.pct - a.pct || b.dn - a.dn).filter((p) => p.dn > 0);
+  if (!sorted.length) return "";
+  let rank = 0, prev = null;
+  const ranked = sorted.map((p, i) => { if (!prev || p.pct !== prev.pct || p.dn !== prev.dn) rank = i + 1; prev = p; return { ...p, rank }; }).filter((p) => p.rank <= 3);
+  return `<b class="st">${title}</b><div class="podium">${[1, 2, 3].map((r) => { const ps = ranked.filter((p) => p.rank === r); return ps.length ? `<div class="pd r${r}"><span class="m">${medal[r - 1]}</span><span class="rk">${r}등</span><b>${ps.map((p) => esc(p.name)).join(", ")}</b><span class="pct">${ps[0].pct}%</span><span class="wkline">체크 ${ps[0].dn}번</span></div>` : ""; }).join("")}</div>`;
+}
 function kpis(list) { return `<div class="kpis">${list.map(([l, v]) => `<div><span class="note">${l}</span><b>${v}</b></div>`).join("")}</div>`; }
 function dash() {
   const D = $("#dash");
@@ -267,6 +284,7 @@ function dash() {
   const todayDone = S.members.reduce((a, m) => a + m.habits.filter((h) => S.checks[`${h.id}|${today}`]).length, 0), todayAll = S.members.reduce((a, m) => a + m.habits.length, 0);
   D.innerHTML = dashHead(isNow ? "오늘까지 목표 기준" : "이 달 전체 기준")
     + kpis([["우리 달성률", pctOf(td, tg) + "%"], ["체크한 횟수", `${td}<small> / ${tg}</small>`], ...(isNow ? [["오늘 체크", `${todayDone}<small> / ${todayAll}</small>`]] : []), ["참여", `${people.length}<small>명</small>`]])
+    + podium(people.map((p) => ({ name: p.m.name, pct: p.pct, dn: p.dn })), "실시간 순위 · 습관 여러 개는 합쳐서")
     + `<div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
       <div class="bar"><i style="width:${p.pct}%"></i></div>
       ${p.hs.map((x) => `<div class="hl"><span>${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
@@ -309,6 +327,7 @@ async function dashAll() {
     + kpis([["전체 달성률", pctOf(td, tg) + "%"], ["체크한 횟수", `${td}<small> / ${tg}</small>`], ["진행한 달", `${ms.length}<small>달</small>`], ["함께한 사람", `${people.length}<small>명</small>`], ["최장 연속", top && top.best ? `${top.best}<small>일 · ${esc(top.who)}</small>` : "-"]])
     + `<div class="dgrid"><div><b class="st">달마다 달성률</b><div class="mrow">${monthsRow.map((x) => `<div><span class="mb"><i style="height:${x.pct}%"></i></span><span class="wkline">${+x.m.slice(5)}월 ${x.pct}%</span></div>`).join("")}</div></div>
       <div><b class="st">요일별 체크 <span class="note">${td ? `${DOW[bestDow]}요일에 가장 많이 해요` : ""}</span></b><div class="mrow">${DORDER.map((d) => `<div><span class="mb"><i style="height:${Math.round((100 * byDow[d]) / maxDow)}%"></i></span><span class="wkline">${DOW[d]} ${byDow[d]}</span></div>`).join("")}</div></div></div>
+    ${podium(people.map((p) => ({ name: p.name, pct: p.pct, dn: p.dn })), "전체 기간 순위")}
     <b class="st">사람별 누적 순위</b>
     <div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.name)}</b><span class="pct">${p.pct}%</span></div>
       <div class="bar"><i style="width:${p.pct}%"></i></div>
