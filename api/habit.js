@@ -68,6 +68,13 @@ export default async function handler(req, res) {
     await redis([["SET", `habit:g:${g}`, JSON.stringify(meta)], ["HSET", "habit:groups", g, JSON.stringify({ title: meta.title, createdAt: meta.createdAt })]]);
     return res.json({ ok: true });
   }
+  // 참가비 안내(은행·계좌·금액): 코드에 두지 않고 이현님이 관리 화면에서 넣음
+  if (b.op === "payInfo") {
+    if (!admin) return res.status(401).json({ error: "auth" });
+    meta.payInfo = { bank: clip(b.bank, 20), account: clip(b.account, 30).replace(/[^\d-]/g, ""), fee: Math.max(0, Math.min(1e8, Math.round(Number(b.fee) || 0))) };
+    await redis([["SET", `habit:g:${g}`, JSON.stringify(meta)]]);
+    return res.json({ ok: true, payInfo: meta.payInfo });
+  }
   // 지금까지 모인 돈: 이현님(관리 키)만 정함, 모두에게 보임
   if (b.op === "pot") {
     if (!admin) return res.status(401).json({ error: "auth" });
@@ -86,7 +93,8 @@ export default async function handler(req, res) {
     // 지난달 멤버·습관 설정을 그대로 가져옴 (체크는 새로 시작)
     if (okMonth(b.copyFrom) && meta.months.includes(b.copyFrom)) {
       const [m] = await redis([["HGETALL", `habit:m:${g}:${b.copyFrom}`]]);
-      const flat = Object.entries(pairs(m)).flat();
+      // 참가비는 달마다 새로: 새 달에는 모두 미입금으로 시작
+      const flat = Object.entries(pairs(m)).flatMap(([id, v]) => [id, JSON.stringify({ ...JSON.parse(v), paid: false })]);
       if (flat.length) cmds.push(["HSET", `habit:m:${g}:${month}`, ...flat]);
     }
     await redis(cmds);
@@ -96,8 +104,11 @@ export default async function handler(req, res) {
 
   if (b.op === "saveMember") {
     const m = cleanMember(b.member);
-    const [n] = await redis([["HLEN", `habit:m:${g}:${month}`]]);
+    const [n, old] = await redis([["HLEN", `habit:m:${g}:${month}`], ["HGET", `habit:m:${g}:${month}`, m.id]]);
     if (n >= 30 && !b.member?.id) return res.status(400).json({ error: "full" });
+    // 입금 여부는 이현님 승인으로만 바뀜. 새 사람은 미입금, 예전부터 있던 사람(표시 없음)은 그대로
+    m.paid = old ? JSON.parse(old).paid : false;
+    if (m.paid === undefined) delete m.paid;
     await redis([["HSET", `habit:m:${g}:${month}`, m.id, JSON.stringify(m)]]);
     return res.json({ member: m });
   }
@@ -106,8 +117,21 @@ export default async function handler(req, res) {
     await redis([["HDEL", `habit:m:${g}:${month}`, b.id]]);
     return res.json({ ok: true });
   }
+  // 참가비 입금 승인 (이현님만)
+  if (b.op === "paid") {
+    if (!admin) return res.status(401).json({ error: "auth" });
+    if (!okId(b.id)) return res.status(400).json({ error: "id" });
+    const [old] = await redis([["HGET", `habit:m:${g}:${month}`, b.id]]);
+    if (!old) return res.status(404).json({ error: "member" });
+    await redis([["HSET", `habit:m:${g}:${month}`, b.id, JSON.stringify({ ...JSON.parse(old), paid: !!b.paid })]]);
+    return res.json({ ok: true });
+  }
   if (b.op === "check") {
     if (!okId(b.hid) || !okDate(b.date) || !b.date.startsWith(month)) return res.status(400).json({ error: "check" });
+    // 미입금인 사람의 칸은 체크 못 함
+    const [mh] = await redis([["HGETALL", `habit:m:${g}:${month}`]]);
+    const owner = Object.values(pairs(mh)).map((v) => JSON.parse(v)).find((x) => x.habits.some((h) => h.id === b.hid));
+    if (owner && owner.paid === false && !admin) return res.status(403).json({ error: "unpaid" });
     const f = `${b.hid}|${b.date}`;
     await redis([b.on ? ["HSET", `habit:c:${g}:${month}`, f, "1"] : ["HDEL", `habit:c:${g}:${month}`, f]]);
     return res.json({ ok: true });
