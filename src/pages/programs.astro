@@ -15,6 +15,7 @@ const catOf = (p) => p.cat || '기타';
 const cats = [...CATS, ...new Set(programs.map(catOf))].filter((c, i, a) => a.indexOf(c) === i && programs.some((p) => catOf(p) === c));
 const FILTERS = [{ k: 'all', label: '전체' }, ...cats.map((c) => ({ k: c, label: c }))];
 const sorted = [...programs].sort((a, b) => cats.indexOf(catOf(a)) - cats.indexOf(catOf(b)) || String(b.start || '').localeCompare(String(a.start || '')));
+const SORTS = [{ k: 'cat', label: '분야별' }, { k: 'new', label: '최신순' }, { k: 'old', label: '오래된 순' }];
 const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return m ? `${m[1]}.${m[2]}.${m[3]} 만듦` : ''; };
 ---
 <Base current="programs" title="프로그램" description="공부하면서 직접 만들어 실제로 쓰는 프로그램을 모아 둡니다.">
@@ -39,16 +40,21 @@ const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); retu
           <p style="margin: 0">아직 놓인 프로그램이 없습니다.<br />공부할 것을 하나씩 끝내면, 그 과정에서 만든 프로그램이 여기에 놓입니다.</p>
         </div>
       ) : (
-        <div class="pfilter" role="group" aria-label="프로그램 나눠 보기">
-          {FILTERS.map((f, i) => (
-            <button type="button" data-f={f.k} aria-pressed={i === 0 ? 'true' : 'false'}>{f.label} <span>{f.k === 'all' ? programs.length : programs.filter((p) => catOf(p) === f.k).length}</span></button>
-          ))}
+        <div class="ptools">
+          <div class="pfilter" role="group" aria-label="프로그램 나눠 보기">
+            {FILTERS.map((f, i) => (
+              <button type="button" data-f={f.k} aria-pressed={i === 0 ? 'true' : 'false'}>{f.label} <span>{f.k === 'all' ? programs.length : programs.filter((p) => catOf(p) === f.k).length}</span></button>
+            ))}
+          </div>
+          <div class="psort" role="group" aria-label="정렬">
+            {SORTS.map((s, i) => <button type="button" data-s={s.k} aria-pressed={i === 0 ? 'true' : 'false'}>{s.label}</button>)}
+          </div>
         </div>
         <div class="note-list" id="programList">
-          {sorted.map((p) => {
+          {sorted.map((p, idx) => {
             const Card = p.href ? 'a' : 'div';
             return (
-            <Card class={`note-card${p.href ? ' linked' : ''}${building(p) ? ' building' : ''}`} data-tag={catOf(p)} {...(p.href ? (p.href.startsWith('http') ? { href: p.href, target: '_blank', rel: 'noopener' } : { href: p.href }) : {})}>
+            <Card class={`note-card${p.href ? ' linked' : ''}${building(p) ? ' building' : ''}`} data-tag={catOf(p)} data-start={p.start || ''} data-i={idx} {...(p.href ? (p.href.startsWith('http') ? { href: p.href, target: '_blank', rel: 'noopener' } : { href: p.href }) : {})}>
               <div class="no"><span class="ptag cat">{catOf(p)}</span><span class={`ptag ${tagOf(p)}`}>{TAGS[tagOf(p)]}</span>{building(p) && <span class="ptag work"><img src="/assets/zero/zero-writing.svg" alt="" width="20" height="20" />🚧 제로 공사 중</span>}</div>
               <h3>{p.name}{p.href && <span class="go" aria-hidden="true"> ↗</span>}</h3>
               {p.summary && <p>{p.summary}</p>}
@@ -84,6 +90,24 @@ const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); retu
 </Base>
 
 <script>
+  // 정렬: 분야별(기본) / 만든 날짜 최신순 / 오래된 순. 고른 것은 이 브라우저에 기억
+  const list = document.getElementById('programList');
+  const sortBar = document.querySelector('.psort');
+  const applySort = (k) => {
+    if (!list || !sortBar) return;
+    sortBar.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.s === k)));
+    const cards = [...list.children];
+    const by = (c) => c.dataset.start || '';
+    cards.sort((a, b) =>
+      k === 'new' ? by(b).localeCompare(by(a)) || a.dataset.i - b.dataset.i
+      : k === 'old' ? (by(a) || '9999').localeCompare(by(b) || '9999') || a.dataset.i - b.dataset.i
+      : a.dataset.i - b.dataset.i);
+    cards.forEach((c) => list.appendChild(c));
+    try { k === 'cat' ? localStorage.removeItem('prog-sort') : localStorage.setItem('prog-sort', k); } catch {}
+  };
+  sortBar?.addEventListener('click', (e) => { const b = e.target.closest('button[data-s]'); if (b) applySort(b.dataset.s); });
+  try { const saved = localStorage.getItem('prog-sort'); if (saved === 'new' || saved === 'old') applySort(saved); } catch {}
+
   const bar = document.querySelector('.pfilter');
   bar?.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-f]');
@@ -96,11 +120,36 @@ const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); retu
 </script>
 
 <style>
-  .pfilter {
+  .ptools {
+    display: flex;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+
+  .pfilter, .psort {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+  }
+
+  .psort button {
+    font: inherit;
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .psort button[aria-pressed='true'] {
+    border-color: var(--charcoal);
+    color: var(--ink);
+    font-weight: 700;
   }
 
   .pfilter button {
