@@ -65,6 +65,7 @@ label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .chk.on::after { content: "✓"; font-weight: 700; }
 .chk.ro { cursor: default; }
 .it.done .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--sage); }
+.donedate { font-size: 13px; color: var(--sage); font-weight: 700; }
 .count { font-size: 14px; color: var(--sage); font-weight: 700; }
 .bar { height: 6px; border-radius: 3px; background: var(--sageSoft); overflow: hidden; margin-top: 8px; }
 .bar i { display: block; height: 100%; background: var(--sage); }
@@ -175,7 +176,7 @@ async function load() {
 // ── 섹션별 입력 칸
 const FIELDS = {
   sched: [['title', '무엇', 'text', '예: 가족 여행, 동창 모임'], ['date', '날짜', 'date'], ['time', '시간', 'time'], ['place', '장소', 'text'], ['memo', '메모', 'area']],
-  bucket: [['title', '하고 싶은 것', 'text', '예: 제주도 한 달 살기'], ['memo', '메모', 'area']],
+  bucket: [['title', '하고 싶은 것', 'text', '예: 제주도 한 달 살기'], ['doneOn', '이룬 날 (넣으면 이룸으로 체크)', 'date'], ['memo', '메모', 'area']],
   video: [['url', '유튜브 주소', 'text', 'https://youtu.be/…'], ['title', '제목 (비우면 유튜브 제목)', 'text'], ['date', '찍은 날', 'date'], ['memo', '메모', 'area']],
   health: [['title', '무엇', 'text', '예: 정기 검진, 혈압약'], ['date', '날짜', 'date'], ['time', '시간', 'time'], ['place', '병원', 'text'], ['memo', '메모 (결과·약·주의할 점)', 'area']],
 };
@@ -222,7 +223,7 @@ function render() {
     ${addForm('bucket')}
     ${bl.length ? `<ul class="items">${bl.map((it) => open.edit === it.id ? `<li>${formHtml('bucket', it)}</li>` : `<li class="it${it.done ? ' done' : ''}">
       <button class="chk${it.done ? ' on' : ''}${admin ? '' : ' ro'}" ${admin ? `data-tick="${it.id}"` : 'disabled'} aria-label="이룸"></button>
-      <div class="body"><div class="t">${esc(it.title)}</div>${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</li>`).join('')}</ul>` : '<div class="empty">아직 적힌 버킷리스트가 없어요.</div>'}</section>`;
+      <div class="body"><div class="t">${esc(it.title)}</div>${it.done && it.doneOn ? `<div class="donedate">${it.doneOn.replaceAll('-', '.')} 이룸</div>` : ''}${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</li>`).join('')}</ul>` : '<div class="empty">아직 적힌 버킷리스트가 없어요.</div>'}</section>`;
 
   const vl = of('video').sort((a, b) => a.at - b.at); // 등록한 순서대로
   const video = `<section><div class="row between"><h2>가족 유튜브 보기</h2>${addBtn('video')}</div>${addForm('video')}
@@ -254,9 +255,10 @@ document.addEventListener('click', async (e) => {
   }
   else if (d.tick) {
     const it = items.find((i) => i.id === d.tick); if (!it) return;
-    it.done = !it.done; render();
+    const prev = { done: it.done, doneOn: it.doneOn };
+    it.done = !it.done; if (it.done) it.doneOn = today(); else delete it.doneOn; render();
     try { await api('POST', { op: 'save', item: it }); toast(it.done ? '이뤘어요! 🎉' : '체크를 풀었어요'); }
-    catch { it.done = !it.done; render(); toast('저장하지 못했어요'); }
+    catch { Object.assign(it, prev); if (!prev.doneOn) delete it.doneOn; render(); toast('저장하지 못했어요'); }
   }
   else if ('past' in d) { open.past = !open.past; render(); }
   else if (d.play) {
@@ -290,6 +292,7 @@ document.addEventListener('submit', async (e) => {
   item.sec = f.dataset.sec;
   const old = items.find((i) => i.id === f.dataset.id);
   if (old) Object.assign(item, { id: old.id, at: old.at, done: old.done });
+  if (item.sec === 'bucket') item.done = !!item.doneOn || (!!old?.done && !old?.doneOn);
   if (item.sec === 'video' ? !item.url.trim() : !item.title.trim()) { toast(item.sec === 'video' ? '유튜브 주소를 넣어 주세요' : '내용을 적어 주세요'); return; }
   const btn = f.querySelector('button.main'); btn.disabled = true;
   try {

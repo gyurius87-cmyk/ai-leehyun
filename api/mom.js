@@ -32,7 +32,7 @@ async function clean(b) {
   if (okDate(b.date)) it.date = b.date;
   if (okTime(b.time)) it.time = b.time;
   if (sec === "sched" || sec === "health") it.place = clip(b.place, 60);
-  if (sec === "bucket") it.done = !!b.done;
+  if (sec === "bucket") { it.done = !!b.done; if (it.done && okDate(b.doneOn)) it.doneOn = b.doneOn; }
   if (sec === "video") {
     const vid = ytId(b.url);
     if (!vid) return { error: "url" };
