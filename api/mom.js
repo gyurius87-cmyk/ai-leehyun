@@ -2,7 +2,9 @@
 // 저장(Redis): mom:items (hash id → 항목 JSON), mom:key (보기 열쇠)
 import { redis, hasRedis } from "./_redis.js";
 
-const SECS = ["sched", "bucket", "video", "health"];
+const SECS = ["sched", "bucket", "video", "health", "trip"];
+// 여행 다녀온 곳: 시·도 코드 (kmap.json 과 같음)
+const REGIONS = ["11", "21", "22", "23", "24", "25", "26", "29", "31", "32", "33", "34", "35", "36", "37", "38", "39"];
 const clip = (s, n) => String(s ?? "").replace(/[\u0000-\u0009\u000b-\u001f]/g, " ").trim().slice(0, n);
 const okId = (s) => /^[a-z0-9]{6,20}$/.test(String(s || ""));
 const okDate = (s) => /^20\d\d-\d\d-\d\d$/.test(String(s || ""));
@@ -33,13 +35,17 @@ async function clean(b) {
   if (okTime(b.time)) it.time = b.time;
   if (sec === "sched" || sec === "health") it.place = clip(b.place, 60);
   if (sec === "bucket") { it.done = !!b.done; if (it.done && okDate(b.doneOn)) it.doneOn = b.doneOn; }
+  if (sec === "trip") {
+    if (!REGIONS.includes(String(b.region))) return { error: "region" };
+    it.region = String(b.region);
+  }
   if (sec === "video") {
     const vid = ytId(b.url);
     if (!vid) return { error: "url" };
     it.vid = vid;
     if (!it.title) it.title = await ytTitle(vid);
   }
-  if (!it.title && sec !== "video") return { error: "title" };
+  if (!it.title && sec !== "video" && sec !== "trip") return { error: "title" };
   return it;
 }
 

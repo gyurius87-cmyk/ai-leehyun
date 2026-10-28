@@ -66,6 +66,19 @@ label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .chk.ro { cursor: default; }
 .it.done .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--sage); }
 .donedate { font-size: 13px; color: var(--sage); font-weight: 700; }
+.trip { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 12px; align-items: start; }
+@media (max-width: 700px) { .trip { grid-template-columns: minmax(0, 1fr); } }
+.mapbox { background: var(--soft); border-radius: 14px; padding: 8px; }
+.kmap { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; }
+.kmap .rg { fill: var(--panel); stroke: var(--line); stroke-width: 1; cursor: pointer; transition: fill .15s; }
+.kmap .rg:hover { fill: var(--roseSoft); }
+.kmap .rg.went { fill: color-mix(in srgb, var(--rose) calc(35% + var(--lv) * 15%), var(--panel)); stroke: var(--panel); }
+.kmap .rg.sel { stroke: var(--ink); stroke-width: 2.2; }
+.kmap .lb { font-size: 12px; font-weight: 700; fill: var(--muted); text-anchor: middle; dominant-baseline: middle; pointer-events: none; paint-order: stroke; stroke: var(--soft); stroke-width: 3px; }
+.kmap .lb.sm { font-size: 9px; }
+.kmap .lb.on { fill: var(--ink); }
+.rtag { flex: none; font-size: 12px; font-weight: 700; color: var(--rose); background: var(--roseSoft); border-radius: 999px; padding: 2px 9px; margin-top: 2px; }
+select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; }
 .count { font-size: 14px; color: var(--sage); font-weight: 700; }
 .bar { height: 6px; border-radius: 3px; background: var(--sageSoft); overflow: hidden; margin-top: 8px; }
 .bar i { display: block; height: 100%; background: var(--sage); }
@@ -154,7 +167,8 @@ const viewKey = q.get('k') || '';
 let adminKey = '';
 try { adminKey = localStorage.getItem('ai-admin-key') || ''; } catch {}
 let items = [], admin = false, shareKey = '';
-const open = { form: null, edit: null, past: false, del: null, cal: '', healthTouched: false };
+const open = { form: null, edit: null, past: false, del: null, cal: '', healthTouched: false, sel: '' };
+let kmap = null;
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -196,6 +210,7 @@ async function load() {
 
 // ── 섹션별 입력 칸
 const FIELDS = {
+  trip: [['region', '지역', 'region'], ['title', '간 곳', 'text', '예: 속초 아바이마을'], ['date', '다녀온 날', 'date'], ['memo', '메모', 'area']],
   sched: [['title', '무엇', 'text', '예: 가족 여행, 동창 모임'], ['date', '날짜', 'date'], ['time', '시간', 'time'], ['place', '장소', 'text'], ['memo', '메모', 'area']],
   bucket: [['title', '하고 싶은 것', 'text', '예: 제주도 한 달 살기'], ['doneOn', '이룬 날 (넣으면 이룸으로 체크)', 'date'], ['memo', '메모', 'area']],
   video: [['url', '유튜브 주소', 'text', 'https://youtu.be/…'], ['title', '제목 (비우면 유튜브 제목)', 'text'], ['date', '찍은 날', 'date'], ['memo', '메모', 'area']],
@@ -203,7 +218,9 @@ const FIELDS = {
 };
 function formHtml(sec, it = {}) {
   const v = (k) => k === 'url' && it.vid ? `https://youtu.be/${it.vid}` : (it[k] ?? '');
-  const f = FIELDS[sec].map(([k, label, type, ph]) => type === 'area'
+  const f = FIELDS[sec].map(([k, label, type, ph]) => type === 'region'
+    ? `<label>${label}<select name="${k}">${(kmap?.r || []).map((r) => `<option value="${r.c}"${r.c === v(k) ? ' selected' : ''}>${r.n}</option>`).join('')}</select></label>`
+    : type === 'area'
     ? `<label class="full">${label}<textarea name="${k}" placeholder="${esc(ph || '')}">${esc(v(k))}</textarea></label>`
     : `<label${k === 'title' || k === 'url' ? ' class="full"' : ''}>${label}<input name="${k}" type="${type}" value="${esc(v(k))}" placeholder="${esc(ph || '')}"></label>`).join('');
   return `<form class="form" data-sec="${sec}" data-id="${esc(it.id || '')}">${f}
@@ -215,7 +232,7 @@ function tools(it) {
   return `<div class="tools"><button class="ghost" data-edit="${it.id}">고치기</button><button class="ghost" data-del="${it.id}">지우기</button></div>`;
 }
 const addBtn = (sec) => admin && open.form !== sec ? `<button class="main" data-add="${sec}">＋ 추가</button>` : '';
-const addForm = (sec) => admin && open.form === sec ? formHtml(sec) : '';
+const addForm = (sec) => admin && open.form === sec ? formHtml(sec, sec === 'trip' ? { region: open.sel || '32' } : {}) : '';
 const of = (sec) => items.filter((i) => i.sec === sec);
 const byDate = (a, b) => (a.date || '9999') .localeCompare(b.date || '9999') || (a.time || '').localeCompare(b.time || '') || a.at - b.at;
 
@@ -247,6 +264,29 @@ function calHtml(list, ym) {
   return `<div class="cal"><div class="nav"><button class="ghost" data-cal="-1" aria-label="이전 달">‹</button><span>${y}년 ${m}월</span><button class="ghost" data-cal="1" aria-label="다음 달">›</button></div><div class="grid">${cells}</div></div>`;
 }
 
+// 여행 다녀온 곳: 한국 지도(시·도)에 다녀온 곳을 색칠. 지역을 누르면 그곳 기록만
+// 지도 모양은 kmap.json (통계청 2013 시도 경계, github.com/southkorea/southkorea-maps 를 SVG 경로로 바꾼 것)
+const rname = (c) => kmap?.r.find((r) => r.c === c)?.n || '';
+function tripHtml() {
+  const tl = of('trip'), cnt = {};
+  tl.forEach((t) => (cnt[t.region] = (cnt[t.region] || 0) + 1));
+  const went = Object.keys(cnt).length, sel = open.sel;
+  const map = kmap ? `<svg class="kmap" viewBox="-6 -6 ${kmap.w + 12} ${kmap.h + 12}" role="img" aria-label="한국 지도, ${went}곳 다녀옴">
+    ${kmap.r.map((r) => `<path d="${r.d}" class="rg${cnt[r.c] ? ' went' : ''}${sel === r.c ? ' sel' : ''}" style="--lv:${Math.min(cnt[r.c] || 0, 4)}" data-rg="${r.c}"><title>${r.n}${cnt[r.c] ? ` · ${cnt[r.c]}번` : ''}</title></path>`).join('')}
+    ${kmap.r.map((r) => `<text x="${r.x + (r.c === '31' ? 18 : r.c === '23' ? -14 : 0)}" y="${r.y + (r.c === '31' ? 24 : r.c === '23' ? 8 : 0)}" class="lb${r.c.length && ['11','21','22','23','24','25','26','29'].includes(r.c) ? ' sm' : ''}${cnt[r.c] ? ' on' : ''}" data-rg="${r.c}">${r.n}</text>`).join('')}
+  </svg>` : '<div class="empty">지도를 불러오는 중이에요.</div>';
+  const list = tl.filter((t) => !sel || t.region === sel).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.at - a.at);
+  const row = (it) => open.edit === it.id ? `<li>${formHtml('trip', it)}</li>` : `<li class="it"><span class="rtag">${esc(rname(it.region))}</span><div class="body"><div class="t">${esc(it.title || rname(it.region))}</div>
+    <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</li>`;
+  return `<section><div class="row between"><h2>여행 다녀온 곳</h2>${addBtn('trip')}</div>
+    <div class="count">${kmap ? kmap.r.length : 17}곳 중 ${went}곳 다녀왔어요</div>
+    <div class="trip"><div class="mapbox">${map}</div><div class="tlist">
+      <div class="row between"><b>${sel ? `${esc(rname(sel))} · ${cnt[sel] || 0}번` : '전체 기록'}</b>${sel ? '<button class="ghost" data-rg="">전체 보기</button>' : ''}</div>
+      ${addForm('trip')}
+      ${list.length ? `<ul class="items">${list.map(row).join('')}</ul>` : `<div class="empty">${sel ? '아직 이곳 기록이 없어요.' : '지도에서 지역을 누르거나 ＋ 추가로 적어 주세요.'}</div>`}
+    </div></div></section>`;
+}
+
 function render() {
   const sched = `<section><div class="row between"><h2>엄마 일정</h2>${addBtn('sched')}</div>${addForm('sched')}${datedList('sched', '다가오는 일정이 없어요.')}</section>`;
 
@@ -271,7 +311,7 @@ function render() {
     ${vl.length ? `<div class="vtl">${groups.map((g) => `<div class="vtl-g"><div class="vtl-d">${dlabel(g.d)}</div><div class="vids">${g.l.map(vcard).join('')}</div></div>`).join('')}</div>`
       : '<div class="empty">아직 올린 영상이 없어요.</div>'}</section>`;
 
-  $('#main').innerHTML = video + sched + bucket;
+  $('#main').innerHTML = video + sched + bucket + tripHtml();
   // 병원 일정: 다가오는 일정이 없으면 맨 밑에 작게 접어 두고, 있으면 펼쳐서 달력으로도 보여 줌
   const hUp = of('health').filter((i) => i.date && i.date >= today()).sort(byDate);
   const box = $('#healthBox');
@@ -286,7 +326,8 @@ function render() {
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('button'); if (!t) return;
   const d = t.dataset;
-  if (d.add) { open.form = d.add; open.edit = null; if (d.add === 'health') $('#healthBox').open = true; render(); document.querySelector(`form[data-sec="${d.add}"] input`)?.focus(); }
+  if (d.rg != null && t.tagName === 'BUTTON') { open.sel = d.rg; render(); }
+  else if (d.add) { open.form = d.add; open.edit = null; if (d.add === 'health') $('#healthBox').open = true; render(); document.querySelector(`form[data-sec="${d.add}"] input`)?.focus(); }
   else if ('cancel' in d) { open.form = null; open.edit = null; render(); }
   else if (d.edit) { open.edit = d.edit; open.form = null; render(); }
   else if (d.del) { open.del = d.del; render(); }
@@ -337,7 +378,7 @@ document.addEventListener('submit', async (e) => {
   const old = items.find((i) => i.id === f.dataset.id);
   if (old) Object.assign(item, { id: old.id, at: old.at, done: old.done });
   if (item.sec === 'bucket') item.done = !!item.doneOn || (!!old?.done && !old?.doneOn);
-  if (item.sec === 'video' ? !item.url.trim() : !item.title.trim()) { toast(item.sec === 'video' ? '유튜브 주소를 넣어 주세요' : '내용을 적어 주세요'); return; }
+  if (item.sec === 'video' ? !item.url.trim() : item.sec !== 'trip' && !item.title.trim()) { toast(item.sec === 'video' ? '유튜브 주소를 넣어 주세요' : '내용을 적어 주세요'); return; }
   const btn = f.querySelector('button.main'); btn.disabled = true;
   try {
     const { item: saved } = await api('POST', { op: 'save', item });
@@ -350,6 +391,10 @@ document.addEventListener('submit', async (e) => {
 });
 
 $('#healthBox summary').addEventListener('click', () => { open.healthTouched = true; });
+
+// 지도 칸(path·text)은 버튼이 아니라서 따로 받음
+document.addEventListener('click', (e) => { const g = e.target.closest('svg [data-rg]'); if (g) { open.sel = open.sel === g.dataset.rg ? '' : g.dataset.rg; render(); } });
+fetch('/programs/mom/kmap.json').then((r) => r.json()).then((j) => { kmap = j; if (!$('#app').hidden) render(); }).catch(() => {});
 
 if (!viewKey && !adminKey) { $('#gate').hidden = false; } else load();
 </script>
