@@ -252,7 +252,9 @@ function render() {
       <button class="chk${it.done ? ' on' : ''}${admin ? '' : ' ro'}" ${admin ? `data-tick="${it.id}"` : 'disabled'} aria-label="이룸"></button>
       <div class="body"><div class="t">${esc(it.title)}</div>${it.done && it.doneOn ? `<div class="donedate">${it.doneOn.replaceAll('-', '.')} 이룸</div>` : ''}${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</li>`).join('')}</ul>` : '<div class="empty">아직 적힌 버킷리스트가 없어요.</div>'}</section>`;
 
-  const vl = of('video').sort((a, b) => a.at - b.at); // 등록한 순서대로
+  // 날짜(찍은 날, 없으면 등록한 날) 최신이 위로
+  const vday = (i) => i.date || new Date(i.at + 9 * 3600e3).toISOString().slice(0, 10);
+  const vl = of('video').sort((a, b) => vday(b).localeCompare(vday(a)) || b.at - a.at);
   const video = `<section><div class="row between"><h2>가족 유튜브 보기</h2>${addBtn('video')}</div>${addForm('video')}
     ${vl.length ? `<div class="vids">${vl.map((it) => open.edit === it.id ? `<div class="vid">${formHtml('video', it)}</div>` : `<div class="vid">
       <div class="frame" data-vid="${esc(it.vid)}"><button style="background-image:url('https://i.ytimg.com/vi/${esc(it.vid)}/hqdefault.jpg')" data-play="${esc(it.vid)}" aria-label="재생"></button></div>
