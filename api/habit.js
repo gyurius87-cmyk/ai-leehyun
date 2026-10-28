@@ -54,10 +54,10 @@ export default async function handler(req, res) {
   }
   if (req.method === "GET") {
     const month = okMonth(req.query.m) ? req.query.m : meta.months[meta.months.length - 1];
-    if (!month) return res.json({ meta, month: null, members: [], checks: {} });
+    if (!month) return res.json({ meta, month: null, members: [], checks: {}, admin: !!admin });
     const [m, c] = await redis([["HGETALL", `habit:m:${g}:${month}`], ["HGETALL", `habit:c:${g}:${month}`]]);
     const members = Object.values(pairs(m)).map((v) => JSON.parse(v)).sort((a, b) => a.order - b.order);
-    return res.json({ meta, month, members, checks: pairs(c) });
+    return res.json({ meta, month, members, checks: pairs(c), admin: !!admin });
   }
   if (req.method !== "POST") return res.status(405).end();
 
@@ -67,6 +67,14 @@ export default async function handler(req, res) {
     meta.title = clip(b.title, 40) || meta.title;
     await redis([["SET", `habit:g:${g}`, JSON.stringify(meta)], ["HSET", "habit:groups", g, JSON.stringify({ title: meta.title, createdAt: meta.createdAt })]]);
     return res.json({ ok: true });
+  }
+  // 지금까지 모인 돈: 이현님(관리 키)만 정함, 모두에게 보임
+  if (b.op === "pot") {
+    if (!admin) return res.status(401).json({ error: "auth" });
+    meta.pot = Math.max(0, Math.min(1e10, Math.round(Number(b.pot) || 0)));
+    meta.potAt = Date.now();
+    await redis([["SET", `habit:g:${g}`, JSON.stringify(meta)]]);
+    return res.json({ ok: true, pot: meta.pot });
   }
   if (!okMonth(month)) return res.status(400).json({ error: "month" });
 

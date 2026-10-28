@@ -92,6 +92,8 @@ label { font-size: 12px; color: var(--muted); }
 .dash .mrow > div { display: grid; justify-items: center; gap: 4px; flex: none; }
 .dash .mb { width: 34px; height: 60px; border-radius: 6px; background: var(--grid); display: flex; align-items: flex-end; overflow: hidden; }
 .dash .mb i { display: block; width: 100%; background: var(--acc); }
+.pot .potv { font-family: var(--mono); font-size: 28px; font-weight: 700; }
+.pot .potv small { font-size: 14px; margin-left: 2px; }
 .wkline { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
 </style>
 </head>
@@ -123,6 +125,7 @@ label { font-size: 12px; color: var(--muted); }
       <div class="row"><button id="share">초대 주소 복사</button></div>
     </div>
     <div class="panel form" id="form" hidden></div>
+    <div id="pot" class="panel pot" hidden></div>
     <div id="dash" class="panel dash" hidden></div>
     <div id="empty" class="panel" hidden></div>
     <div class="tw" id="tw"><table id="tb"></table></div>
@@ -186,7 +189,23 @@ function render() {
   $("#tw").hidden = !S.members.length;
   table();
   dash();
+  pot();
 }
+
+// ── 지금까지 모인 돈: 모두 보고, 관리 키가 있는 이현님만 고침
+function pot() {
+  const P = $("#pot"), v = S.meta.pot || 0;
+  if (!S.admin && !v) { P.hidden = true; return; }
+  P.hidden = false;
+  P.innerHTML = `<div class="row" style="justify-content:space-between"><div><span class="note">지금까지 모인 돈</span><div class="potv">${v.toLocaleString("ko-KR")}<small>원</small></div>${S.meta.potAt ? `<span class="note">${new Date(S.meta.potAt).toLocaleDateString("ko-KR")} 기준</span>` : ""}</div>
+    ${S.admin ? `<div class="row"><input type="text" id="potIn" inputmode="numeric" placeholder="금액" value="${v ? v.toLocaleString("ko-KR") : ""}" style="width:140px;text-align:right"><span>원</span><button class="main" id="potSave">저장</button></div>` : ""}</div>`;
+}
+$("#pot").addEventListener("click", async (e) => {
+  if (e.target.id !== "potSave") return;
+  const n = Number($("#potIn").value.replace(/[^\d]/g, "")) || 0;
+  try { const r = await api("POST", { g: G, op: "pot", pot: n }); S.meta.pot = r.pot; S.meta.potAt = Date.now(); pot(); toast("모인 돈을 저장했어요"); }
+  catch { toast("저장 못 했어요"); }
+});
 
 // ── 전체 대시보드: 이 달 / 전체 기간. 이번 달은 오늘까지 목표 기준
 let dashMode = "month", ALL = null;
