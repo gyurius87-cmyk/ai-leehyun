@@ -71,6 +71,12 @@ label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .bar i { display: block; height: 100%; background: var(--sage); }
 .vids { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
 @media (max-width: 600px) { .vids { grid-template-columns: minmax(0, 1fr); } }
+.vtl { position: relative; margin-top: 14px; padding-left: 22px; }
+.vtl::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.vtl-g + .vtl-g { margin-top: 22px; }
+.vtl-d { position: relative; font-family: var(--serif); font-weight: 700; font-size: 17px; }
+.vtl-d::before { content: ""; position: absolute; left: -21px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: var(--rose); border: 2px solid var(--panel); }
+.vtl .vids { margin-top: 8px; }
 .vid { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); min-width: 0; }
 .frame { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; }
 .frame iframe, .frame button { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
@@ -255,11 +261,14 @@ function render() {
   // 날짜(찍은 날, 없으면 등록한 날) 최신이 위로
   const vday = (i) => i.date || new Date(i.at + 9 * 3600e3).toISOString().slice(0, 10);
   const vl = of('video').sort((a, b) => vday(b).localeCompare(vday(a)) || b.at - a.at);
-  const video = `<section><div class="row between"><h2>가족 유튜브 보기</h2>${addBtn('video')}</div>${addForm('video')}
-    ${vl.length ? `<div class="vids">${vl.map((it) => open.edit === it.id ? `<div class="vid">${formHtml('video', it)}</div>` : `<div class="vid">
+  // 타임라인: 날짜마다 묶어 위에서부터 최신 → 아래로 오래된 순
+  const vcard = (it) => open.edit === it.id ? `<div class="vid">${formHtml('video', it)}</div>` : `<div class="vid">
       <div class="frame" data-vid="${esc(it.vid)}"><button style="background-image:url('https://i.ytimg.com/vi/${esc(it.vid)}/hqdefault.jpg')" data-play="${esc(it.vid)}" aria-label="재생"></button></div>
-      <div class="cap"><div class="body"><div class="t">${esc(it.title || '영상')}</div>
-      <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</div></div>`).join('')}</div>`
+      <div class="cap"><div class="body"><div class="t">${esc(it.title || '영상')}</div>${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</div></div>`;
+  const groups = []; vl.forEach((it) => { const d = vday(it); const g = groups[groups.length - 1]; g && g.d === d ? g.l.push(it) : groups.push({ d, l: [it] }); });
+  const dlabel = (d) => { const [y, m, dd] = d.split('-').map(Number); return `${y}.${String(m).padStart(2, '0')}.${String(dd).padStart(2, '0')} (${DOW[new Date(y, m - 1, dd).getDay()]})`; };
+  const video = `<section><div class="row between"><h2>가족 유튜브 보기</h2>${addBtn('video')}</div>${addForm('video')}
+    ${vl.length ? `<div class="vtl">${groups.map((g) => `<div class="vtl-g"><div class="vtl-d">${dlabel(g.d)}</div><div class="vids">${g.l.map(vcard).join('')}</div></div>`).join('')}</div>`
       : '<div class="empty">아직 올린 영상이 없어요.</div>'}</section>`;
 
   $('#main').innerHTML = video + sched + bucket;
@@ -269,7 +278,7 @@ function render() {
   box.classList.toggle('has', hUp.length > 0);
   if (!open.healthTouched) box.open = hUp.length > 0;
   box.querySelector('summary').textContent = hUp.length ? `병원 일정 · 다가오는 ${hUp.length}개` : '병원 일정';
-  if (!open.cal) open.cal = (hUp[0]?.date || today()).slice(0, 7);
+  if (!open.calUser) open.cal = (hUp[0]?.date || today()).slice(0, 7); // 직접 넘기기 전엔 다음 진료가 있는 달
   $('#health').innerHTML = `<div class="row between" style="margin-top:4px"><span class="sub">진료 일정과 약, 검사 결과를 적어 두는 곳</span>${addBtn('health')}</div>${addForm('health')}${hUp.length ? calHtml(of('health'), open.cal) : ''}${datedList('health', '다가오는 진료가 없어요.')}`;
 }
 
@@ -295,7 +304,7 @@ document.addEventListener('click', async (e) => {
     catch { Object.assign(it, prev); if (!prev.doneOn) delete it.doneOn; render(); toast('저장하지 못했어요'); }
   }
   else if ('past' in d) { open.past = !open.past; render(); }
-  else if (d.cal) { const [y, m] = open.cal.split('-').map(Number), n = new Date(y, m - 1 + Number(d.cal), 1); open.cal = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; render(); }
+  else if (d.cal) { open.calUser = true; const [y, m] = open.cal.split('-').map(Number), n = new Date(y, m - 1 + Number(d.cal), 1); open.cal = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; render(); }
   else if (d.play) {
     const box = t.parentElement;
     box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(d.play)}?autoplay=1&rel=0&playsinline=1" title="영상" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
