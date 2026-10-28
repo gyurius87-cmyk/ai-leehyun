@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<title>습관 챌린지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 엑셀 체크표 모양: 달 탭 → 나는 누구 → 날짜×습관 표(주차별) → 달성률·목표·달성 */
+:root {
+  --bg: #f3f4f1; --panel: #ffffff; --ink: #1d2120; --muted: #646b68; --line: #cfd4d1; --grid: #e4e7e5;
+  --sat: #dbe6fb; --sun: #f6d9d6; --sunInk: #c4382b; --today: #fff3a6; --off: #f1f2f0; --acc: #2f7d57; --accInk: #ffffff; --week: #1d2120; --onWeek: #f3f4f1;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151817; --panel: #1e2221; --ink: #e9ecea; --muted: #9aa29e; --line: #353b39; --grid: #2a2f2d;
+    --sat: #1f2a3d; --sun: #3b2422; --sunInk: #ff8a7d; --today: #4a4220; --off: #191c1b; --acc: #5cc08d; --accInk: #0d1411; --week: #e9ecea; --onWeek: #151817; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 18px max(16px, env(safe-area-inset-right)) 60px max(16px, env(safe-area-inset-left)); }
+a { color: inherit; }
+.brand { font-family: var(--mono); font-size: 13px; color: var(--muted); text-decoration: none; }
+h1 { font-size: 24px; margin: 6px 0 2px; letter-spacing: -.02em; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 14px; }
+button, input, select { font: inherit; color: var(--ink); }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 12px; }
+button.main { background: var(--acc); border-color: var(--acc); color: var(--accInk); font-weight: 700; }
+button:disabled { opacity: .5; cursor: default; }
+input[type=text], input[type=password], select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 0; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-top: 14px; }
+.tabs button { flex: none; border-radius: 20px; }
+.tabs button.on { background: var(--week); color: var(--onWeek); border-color: var(--week); font-weight: 700; }
+.me { font-size: 14px; }
+.tw { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+th, td { border: 1px solid var(--grid); padding: 0; text-align: center; height: 34px; }
+thead th { background: var(--panel); position: sticky; top: 0; z-index: 2; padding: 4px 8px; font-weight: 500; white-space: nowrap; }
+thead .who th { font-weight: 700; }
+th.date, td.date { position: sticky; left: 0; background: var(--panel); z-index: 1; text-align: right; padding: 0 8px; font-family: var(--mono); font-size: 13px; white-space: nowrap; min-width: 108px; }
+thead th.date { z-index: 3; }
+td.dow { width: 30px; font-size: 13px; }
+tr.sat td { background: var(--sat); } tr.sun td { background: var(--sun); } tr.sun td.dow, tr.sun td.date { color: var(--sunInk); }
+tr.sat td.date { background: var(--sat); } tr.sun td.date { background: var(--sun); }
+tr.today td.date { background: var(--today); font-weight: 700; text-decoration: underline; }
+tr.wk td { background: var(--week); color: var(--onWeek); height: 26px; text-align: left; padding: 0 10px; font-size: 12px; font-weight: 700; }
+td.c { min-width: 74px; }
+td.c.off { background: var(--off); }
+tr.sat td.c.off, tr.sun td.c.off { opacity: .75; }
+.cb { width: 24px; height: 24px; border: 2px solid var(--ink); border-radius: 5px; display: inline-grid; place-items: center; background: var(--panel); vertical-align: middle; padding: 0; }
+.cb.on { background: var(--ink); color: var(--panel); }
+.cb.on::after { content: "✓"; font-weight: 700; font-size: 16px; line-height: 1; }
+.cb.ro { border-color: var(--muted); cursor: default; } .cb.ro.on { background: var(--muted); }
+.cb.dot { border-style: dashed; opacity: .45; }
+.cb.dot.on { opacity: 1; border-style: solid; }
+tfoot td { font-family: var(--mono); font-size: 13px; padding: 4px 6px; background: var(--panel); }
+tfoot td.date { font-family: var(--sans); }
+.pct { font-weight: 700; }
+th.mine { box-shadow: inset 0 -3px 0 var(--acc); }
+.form .h { border: 1px solid var(--grid); border-radius: 10px; padding: 10px; margin-top: 8px; display: grid; gap: 8px; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chips button { padding: 4px 10px; border-radius: 16px; font-size: 13px; }
+.chips button.on { background: var(--acc); color: var(--accInk); border-color: var(--acc); }
+label { font-size: 12px; color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); }
+.mini { padding: 3px 8px; font-size: 12px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 14px; z-index: 9; max-width: 90vw; }
+.list a { display: block; padding: 10px; border: 1px solid var(--grid); border-radius: 10px; margin-top: 6px; text-decoration: none; }
+.wkline { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="/programs">← AI이현 프로그램</a>
+  <h1 id="title">습관 챌린지</h1>
+  <div class="sub" id="sub">각자 정한 습관을 매일 체크해요. 주소를 받은 사람만 들어올 수 있어요.</div>
+
+  <!-- 주소 없이 들어온 경우 -->
+  <div id="home" hidden>
+    <div class="panel" id="noKey">
+      <b>초대받은 주소로 들어와 주세요.</b>
+      <div class="note">챌린지를 만든 사람이 보내 준 주소(…/programs/habit?g=…)로 열면 바로 참여할 수 있어요.</div>
+      <div class="row" style="margin-top:10px"><input type="password" id="keyIn" placeholder="관리 키 (만든 사람만)"><button id="keyGo">확인</button></div>
+    </div>
+    <div class="panel" id="adm" hidden>
+      <b>내 챌린지</b>
+      <div class="list" id="glist"></div>
+      <div class="row" style="margin-top:10px"><input type="text" id="newTitle" placeholder="새 챌린지 이름 (예: 우리 습관 챌린지)" style="flex:1"><button class="main" id="newGo">만들기</button></div>
+    </div>
+  </div>
+
+  <!-- 챌린지 -->
+  <div id="room" hidden>
+    <div class="tabs" id="tabs"></div>
+    <div class="panel row me" style="justify-content:space-between">
+      <div class="row"><span>나는</span><select id="who"></select><button id="editMe">내 습관 설정</button></div>
+      <div class="row"><button id="share">초대 주소 복사</button></div>
+    </div>
+    <div class="panel form" id="form" hidden></div>
+    <div id="empty" class="panel" hidden></div>
+    <div class="tw" id="tw"><table id="tb"></table></div>
+    <p class="note">점선 칸은 쉬기로 한 날이에요. 그래도 했으면 체크하면 달성에 더해져요. 내 칸만 체크할 수 있어요.</p>
+  </div>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const DOW = ["일", "월", "화", "수", "목", "금", "토"];
+const PICK = [1, 2, 3, 4, 5, 6, 0]; // 요일 고르는 순서: 월~일
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const ym = (d) => ymd(d).slice(0, 7);
+const today = ymd(new Date());
+let toastT; function toast(m) { let el = $(".toast"); if (!el) { el = document.createElement("div"); el.className = "toast"; document.body.append(el); } el.textContent = m; clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 3000); }
+const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+let key = ls.get("ai-admin-key") || "";
+const G = new URLSearchParams(location.search).get("g");
+let S = { meta: null, month: null, members: [], checks: {} }, me = null, editing = null;
+
+async function api(method, body, q = "") {
+  const res = await fetch("/api/habit" + q, { method, headers: { "Content-Type": "application/json", ...(key ? { "x-admin-key": key } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(j.error || res.status), { code: j.error, status: res.status });
+  return j;
+}
+
+// ── 주소 없이: 만든 사람은 목록·새로 만들기
+async function home() {
+  $("#home").hidden = false;
+  if (!key) return;
+  try {
+    const { groups } = await api("GET", null, "?list=1");
+    $("#noKey").hidden = true; $("#adm").hidden = false;
+    $("#glist").innerHTML = groups.sort((a, b) => b.createdAt - a.createdAt).map((g) => `<a href="?g=${g.id}"><b>${esc(g.title)}</b> <span class="note">${new Date(g.createdAt).toLocaleDateString("ko-KR")} 만듦</span></a>`).join("") || '<div class="note">아직 없어요. 아래에서 만들어 보세요.</div>';
+  } catch (e) { if (e.status === 401) { key = ""; toast("관리 키가 맞지 않아요"); } else toast(e.code === "no_redis" ? "저장소가 연결되지 않았어요" : "불러오지 못했어요"); }
+}
+$("#keyGo").onclick = () => { key = $("#keyIn").value.trim(); if (!key) return; ls.set("ai-admin-key", key); home(); };
+$("#newGo").onclick = async () => {
+  try { const { id } = await api("POST", { op: "create", title: $("#newTitle").value.trim(), month: ym(new Date()) }); location.href = "?g=" + id; }
+  catch { toast("만들지 못했어요"); }
+};
+
+// ── 챌린지 방
+async function load(month) {
+  try { S = await api("GET", null, `?g=${encodeURIComponent(G)}${month ? "&m=" + month : ""}`); }
+  catch (e) { $("#room").hidden = true; $("#home").hidden = false; $("#noKey").innerHTML = `<b>${e.status === 404 ? "없는 챌린지 주소예요." : "불러오지 못했어요."}</b><div class="note">주소를 다시 확인해 주세요.</div>`; return; }
+  me = ls.get("habit-me-" + G);
+  render();
+}
+function render() {
+  $("#room").hidden = false;
+  $("#title").textContent = S.meta.title;
+  document.title = S.meta.title + " · 습관 챌린지";
+  const months = S.meta.months;
+  const next = (() => { const base = months.length ? new Date(months[months.length - 1] + "-01") : new Date(); if (months.length) base.setMonth(base.getMonth() + 1); return ym(base); })();
+  $("#tabs").innerHTML = months.map((m) => `<button data-m="${m}" class="${m === S.month ? "on" : ""}">${+m.slice(5)}월${m.slice(0, 4) !== String(new Date().getFullYear()) ? " (" + m.slice(2, 4) + ")" : ""}</button>`).join("") + `<button data-add="${next}">＋ ${+next.slice(5)}월 만들기</button>`;
+  const mine = S.members.find((m) => m.id === me);
+  $("#who").innerHTML = `<option value="">— 이름 고르기 —</option>` + S.members.map((m) => `<option value="${m.id}" ${m.id === me ? "selected" : ""}>${esc(m.name)}</option>`).join("") + `<option value="_new">＋ 처음이에요 (참여하기)</option>`;
+  $("#editMe").hidden = !mine;
+  if (!S.month) { $("#tw").hidden = true; $("#empty").hidden = false; $("#empty").innerHTML = "위에서 달을 만들어 시작하세요."; return; }
+  $("#empty").hidden = !!S.members.length; $("#empty").innerHTML = "아직 참여한 사람이 없어요. '나는' 칸에서 <b>처음이에요</b>를 골라 습관을 정해 주세요.";
+  $("#tw").hidden = !S.members.length;
+  table();
+}
+
+// 이 달의 날짜, 월요일 시작 주차
+function monthDays(m) { const [y, mo] = m.split("-").map(Number); const out = []; for (let d = new Date(y, mo - 1, 1); d.getMonth() === mo - 1; d.setDate(d.getDate() + 1)) out.push(new Date(d)); return out; }
+function weeks(days) { const w = []; days.forEach((d) => { if (!w.length || d.getDay() === 1) w.push([]); w[w.length - 1].push(d); }); return w; }
+// 목표: 요일을 정했으면 그 요일 수, 아니면 주마다 min(주 n회, 그 주 날 수)
+function goal(h, wk) { return h.days.length ? wk.filter((d) => h.days.includes(d.getDay())).length : Math.min(h.perWeek, wk.length); }
+const done = (h, list) => list.filter((d) => S.checks[`${h.id}|${ymd(d)}`]).length;
+
+function table() {
+  const days = monthDays(S.month), W = weeks(days), cols = [];
+  S.members.forEach((m) => m.habits.forEach((h) => cols.push({ m, h })));
+  const can = (m) => m.id === me || !!key;
+  const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
+  let html = `<thead><tr class="who"><th class="date" rowspan="2">${+S.month.slice(5)}월</th><th rowspan="2"></th>${S.members.map((m) => `<th colspan="${m.habits.length || 1}" class="${m.id === me ? "mine" : ""}">${esc(m.name)}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${esc(h.name)}<br><span class="wkline">${h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
+  W.forEach((wk, i) => {
+    html += `<tr class="wk"><td colspan="${2 + Math.max(1, cols.length) + S.members.filter((m) => !m.habits.length).length}">${i + 1}주차</td></tr>`;
+    wk.forEach((d) => {
+      const k = ymd(d), dw = d.getDay();
+      html += `<tr class="${dw === 6 ? "sat" : dw === 0 ? "sun" : ""} ${k === today ? "today" : ""}" ${k === today ? 'id="todayRow"' : ""}><td class="date">${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}</td><td class="dow">${DOW[dw]}</td>`;
+      S.members.forEach((m) => {
+        if (!m.habits.length) { html += "<td></td>"; return; }
+        m.habits.forEach((h) => {
+          const on = !!S.checks[`${h.id}|${k}`], plan = h.days.length ? h.days.includes(dw) : true;
+          html += `<td class="c ${plan ? "" : "off"}"><button class="cb ${on ? "on" : ""} ${can(m) ? "" : "ro"} ${plan ? "" : "dot"}" data-h="${h.id}" data-d="${k}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${k}"></button></td>`;
+        });
+      });
+      html += "</tr>";
+    });
+  });
+  const foot = (label, f) => `<tr><td class="date">${label}</td><td></td>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<td>${f(h)}</td>`).join("") : "<td></td>").join("")}</tr>`;
+  const G_ = (h) => W.reduce((s, wk) => s + goal(h, wk), 0), D_ = (h) => done(h, days);
+  html += `</tbody><tfoot>${foot("달성률", (h) => `<span class="pct">${G_(h) ? Math.round((1000 * D_(h)) / G_(h)) / 10 + "%" : "-"}</span>`)}${foot("목표", G_)}${foot("달성", D_)}</tfoot>`;
+  $("#tb").innerHTML = html;
+}
+
+$("#tb").addEventListener("click", async (e) => {
+  const b = e.target.closest(".cb"); if (!b || b.classList.contains("ro")) { if (b) toast("내 칸만 체크할 수 있어요. 위에서 내 이름을 골라 주세요."); return; }
+  const f = `${b.dataset.h}|${b.dataset.d}`, on = !S.checks[f];
+  if (on) S.checks[f] = "1"; else delete S.checks[f];
+  table();
+  try { await api("POST", { g: G, month: S.month, op: "check", hid: b.dataset.h, date: b.dataset.d, on }); }
+  catch { if (on) delete S.checks[f]; else S.checks[f] = "1"; table(); toast("저장 못 했어요. 다시 눌러 주세요."); }
+});
+$("#tabs").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.m) return load(b.dataset.m);
+  if (b.dataset.add) {
+    const from = S.meta.months[S.meta.months.length - 1];
+    try { await api("POST", { g: G, month: b.dataset.add, op: "addMonth", copyFrom: from }); toast(from ? "지난달 사람·습관을 그대로 가져왔어요" : "새 달을 만들었어요"); load(b.dataset.add); }
+    catch { toast("만들지 못했어요"); }
+  }
+});
+$("#who").onchange = () => {
+  const v = $("#who").value;
+  if (v === "_new") { openForm({ name: "", habits: [{ name: "", perWeek: 3, days: [] }] }); return; }
+  me = v || null; ls.set("habit-me-" + G, me || ""); render();
+};
+$("#editMe").onclick = () => { const m = S.members.find((x) => x.id === me); if (m) openForm(JSON.parse(JSON.stringify(m))); };
+$("#share").onclick = async () => { const u = location.origin + location.pathname + "?g=" + G; try { await navigator.clipboard.writeText(u); toast("초대 주소를 복사했어요"); } catch { prompt("이 주소를 보내 주세요", u); } };
+
+// ── 내 습관 설정: 이름, 습관 여러 개, 주 n회 또는 요일
+function openForm(m) {
+  editing = m; const F = $("#form"); F.hidden = false;
+  F.innerHTML = `<div class="row" style="justify-content:space-between"><b>${m.id ? "내 습관 설정" : "참여하기"}</b><span class="note">${+S.month.slice(5)}월부터 적용돼요</span></div>
+    <div class="row" style="margin-top:8px"><label>이름</label><input type="text" id="fName" value="${esc(m.name)}" placeholder="예: 이현규" maxlength="20"></div>
+    ${m.habits.map((h, i) => `<div class="h" data-i="${i}">
+      <div class="row"><input type="text" data-k="name" value="${esc(h.name)}" placeholder="습관 (예: 하루계획, 필사)" maxlength="30" style="flex:1"><button class="mini" data-del="${i}">빼기</button></div>
+      <div class="row"><label>요일 (고르면 그 요일만)</label><div class="chips">${PICK.map((d) => `<button data-day="${d}" class="${h.days.includes(d) ? "on" : ""}">${DOW[d]}</button>`).join("")}</div></div>
+      <div class="row"><label>요일 없이 주</label><select data-k="perWeek" ${h.days.length ? "disabled" : ""}>${[1, 2, 3, 4, 5, 6, 7].map((n) => `<option ${n === (h.days.length || h.perWeek) ? "selected" : ""}>${n}</option>`).join("")}</select><label>회</label></div>
+    </div>`).join("")}
+    <div class="row" style="margin-top:10px;justify-content:space-between"><div class="row"><button id="fAdd">＋ 습관 더하기</button>${m.id ? '<button id="fLeave">이 달에서 빠지기</button>' : ""}</div><div class="row"><button id="fCancel">닫기</button><button class="main" id="fSave">저장</button></div></div>`;
+  F.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function readForm() { editing.name = $("#fName").value.trim(); document.querySelectorAll("#form .h").forEach((el) => { const h = editing.habits[+el.dataset.i]; h.name = el.querySelector('[data-k="name"]').value.trim(); h.perWeek = +el.querySelector('[data-k="perWeek"]').value; }); }
+$("#form").addEventListener("click", async (e) => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.day) { readForm(); const h = editing.habits[+t.closest(".h").dataset.i], d = +t.dataset.day; h.days = h.days.includes(d) ? h.days.filter((x) => x !== d) : [...h.days, d]; if (h.days.length) h.perWeek = h.days.length; return openForm(editing); }
+  if (t.dataset.del) { readForm(); editing.habits.splice(+t.dataset.del, 1); return openForm(editing); }
+  if (t.id === "fAdd") { readForm(); if (editing.habits.length >= 6) return toast("습관은 6개까지예요"); editing.habits.push({ name: "", perWeek: 3, days: [] }); return openForm(editing); }
+  if (t.id === "fCancel") { $("#form").hidden = true; $("#who").value = me || ""; return; }
+  if (t.id === "fLeave") { if (t.dataset.sure !== "1") { t.dataset.sure = "1"; t.textContent = "정말 빠질까요? 한 번 더"; return; } try { await api("POST", { g: G, month: S.month, op: "delMember", id: editing.id }); $("#form").hidden = true; load(S.month); } catch { toast("못 뺐어요"); } return; }
+  if (t.id === "fSave") {
+    readForm(); editing.habits = editing.habits.filter((h) => h.name);
+    if (!editing.name) return toast("이름을 써 주세요"); if (!editing.habits.length) return toast("습관을 하나 이상 써 주세요");
+    if (!editing.id && S.members.some((m) => m.name === editing.name)) return toast("같은 이름이 있어요. 위에서 그 이름을 골라 주세요.");
+    t.disabled = true;
+    try { const { member } = await api("POST", { g: G, month: S.month, op: "saveMember", member: editing }); me = member.id; ls.set("habit-me-" + G, me); $("#form").hidden = true; toast("저장했어요"); load(S.month); }
+    catch { toast("저장 못 했어요"); t.disabled = false; }
+  }
+});
+
+if (G) load().then(() => document.getElementById("todayRow")?.scrollIntoView({ block: "center" })); else home();
+</script>
+</body>
+</html>

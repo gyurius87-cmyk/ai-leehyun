@@ -150,6 +150,16 @@
       "cat": "공부·생각"
     },
     {
+      "id": "habit",
+      "name": "습관 챌린지",
+      "status": "using",
+      "summary": "초대 주소를 받은 사람들끼리 각자 정한 습관(주 몇 번·무슨 요일)을 매일 체크하고 달마다 달성률을 봐요.",
+      "start": "2026-10-28",
+      "private": true,
+      "href": "/programs/habit",
+      "cat": "공부·생각"
+    },
+    {
       "id": "video-lab",
       "name": "영상 분석실",
       "status": "using",
