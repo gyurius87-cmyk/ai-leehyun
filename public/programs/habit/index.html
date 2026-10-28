@@ -78,6 +78,15 @@ label { font-size: 12px; color: var(--muted); }
 .list a { display: block; padding: 10px; border: 1px solid var(--grid); border-radius: 10px; margin-top: 6px; text-decoration: none; }
 .pname { font-weight: 700; border-color: transparent; background: transparent; }
 .pname:hover { border-color: var(--line); }
+.dash .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.dash .kpis div { background: var(--bg); border-radius: 10px; padding: 8px 12px; }
+.dash .kpis b { display: block; font-family: var(--mono); font-size: 22px; }
+.dash .kpis small { font-size: 13px; color: var(--muted); }
+.dash .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+.dash .pc { border: 1px solid var(--grid); border-radius: 10px; padding: 10px 12px; }
+.dash .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; margin: 6px 0; }
+.dash .bar i { display: block; height: 100%; background: var(--acc); }
+.dash .hl { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
 .wkline { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
 </style>
 </head>
@@ -109,6 +118,7 @@ label { font-size: 12px; color: var(--muted); }
       <div class="row"><button id="share">초대 주소 복사</button></div>
     </div>
     <div class="panel form" id="form" hidden></div>
+    <div id="dash" class="panel dash" hidden></div>
     <div id="empty" class="panel" hidden></div>
     <div class="tw" id="tw"><table id="tb"></table></div>
     <p class="note">점선 칸은 쉬기로 한 날이에요. 그래도 했으면 체크하면 달성에 더해져요. 모두 같은 화면을 보고, 누구 칸이든 체크할 수 있어요.</p>
@@ -165,10 +175,43 @@ function render() {
   const months = S.meta.months;
   const next = (() => { const base = months.length ? new Date(months[months.length - 1] + "-01") : new Date(); if (months.length) base.setMonth(base.getMonth() + 1); return ym(base); })();
   $("#tabs").innerHTML = months.map((m) => `<button data-m="${m}" class="${m === S.month ? "on" : ""}">${+m.slice(5)}월${m.slice(0, 4) !== String(new Date().getFullYear()) ? " (" + m.slice(2, 4) + ")" : ""}</button>`).join("") + `<button data-add="${next}">＋ ${+next.slice(5)}월 만들기</button>`;
-  if (!S.month) { $("#tw").hidden = true; $("#empty").hidden = false; $("#empty").innerHTML = "위에서 달을 만들어 시작하세요."; return; }
+  if (!S.month) { $("#dash").hidden = true; $("#tw").hidden = true; $("#empty").hidden = false; $("#empty").innerHTML = "위에서 달을 만들어 시작하세요."; return; }
   $("#empty").hidden = !!S.members.length; $("#empty").innerHTML = "아직 사람이 없어요. 위의 <b>＋ 사람 추가</b>를 눌러 이름과 습관을 정해 주세요.";
   $("#tw").hidden = !S.members.length;
   table();
+  dash();
+}
+
+// ── 전체 대시보드: 오늘까지 기준 달성률, 이번 주, 연속 기록, 순위
+function dash() {
+  const D = $("#dash");
+  if (!S.members.length || !S.month) { D.hidden = true; return; }
+  const days = monthDays(S.month), W = weeks(days);
+  const past = (d) => ymd(d) <= today;
+  const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
+  const habitStat = (h) => {
+    let g = 0, dn = 0;
+    W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk); g += h.days.length ? upto.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * upto.length) / wk.length)); dn += done(h, upto); });
+    let streak = 0; for (const d of [...days].filter(past).reverse()) { const on = !!S.checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
+    return { g, dn, streak, wk: thisWeek ? [done(h, thisWeek), goal(h, thisWeek)] : null };
+  };
+  const people = S.members.filter((m) => m.habits.length).map((m) => {
+    const hs = m.habits.map((h) => ({ h, ...habitStat(h) }));
+    const g = hs.reduce((a, x) => a + x.g, 0), dn = hs.reduce((a, x) => a + x.dn, 0);
+    return { m, hs, g, dn, pct: g ? Math.min(100, Math.round((100 * dn) / g)) : 0 };
+  }).sort((a, b) => b.pct - a.pct || b.dn - a.dn);
+  const tg = people.reduce((a, p) => a + p.g, 0), td = people.reduce((a, p) => a + p.dn, 0);
+  const all = tg ? Math.min(100, Math.round((100 * td) / tg)) : 0;
+  const todayDone = S.members.reduce((a, m) => a + m.habits.filter((h) => S.checks[`${h.id}|${today}`]).length, 0);
+  const todayAll = S.members.reduce((a, m) => a + m.habits.length, 0);
+  const isNow = ym(new Date()) === S.month;
+  const medal = ["🥇", "🥈", "🥉"];
+  D.hidden = false;
+  D.innerHTML = `<div class="row" style="justify-content:space-between"><b>전체 대시보드</b><span class="note">${isNow ? "오늘까지 목표 기준" : "이 달 전체 기준"}</span></div>
+    <div class="kpis"><div><span class="note">우리 달성률</span><b>${all}%</b></div><div><span class="note">체크한 횟수</span><b>${td}<small> / ${tg}</small></b></div>${isNow ? `<div><span class="note">오늘 체크</span><b>${todayDone}<small> / ${todayAll}</small></b></div>` : ""}<div><span class="note">참여</span><b>${people.length}<small>명</small></b></div></div>
+    <div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
+      <div class="bar"><i style="width:${p.pct}%"></i></div>
+      ${p.hs.map((x) => `<div class="hl"><span>${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
 }
 
 // 이 달의 날짜, 월요일 시작 주차
@@ -210,9 +253,9 @@ $("#tb").addEventListener("click", async (e) => {
   const b = e.target.closest(".cb"); if (!b) return;
   const f = `${b.dataset.h}|${b.dataset.d}`, on = !S.checks[f];
   if (on) S.checks[f] = "1"; else delete S.checks[f];
-  table();
+  table(); dash();
   try { await api("POST", { g: G, month: S.month, op: "check", hid: b.dataset.h, date: b.dataset.d, on }); }
-  catch { if (on) delete S.checks[f]; else S.checks[f] = "1"; table(); toast("저장 못 했어요. 다시 눌러 주세요."); }
+  catch { if (on) delete S.checks[f]; else S.checks[f] = "1"; table(); dash(); toast("저장 못 했어요. 다시 눌러 주세요."); }
 });
 $("#tabs").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b) return;
