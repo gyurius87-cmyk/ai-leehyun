@@ -1,5 +1,5 @@
 // 골프 중독자들. 친구들은 공유 주소(?k=보기 열쇠)로 보고 계산기를 씀. 영상 추가·수정은 ADMIN_KEY(Vercel 환경변수)를 아는 이현님만.
-// 저장(Redis): golf:videos (hash id → 영상 JSON), golf:key (보기 열쇠)
+// 저장(Redis): golf:videos (hash id → 영상 JSON), golf:key (보기 열쇠), golf:log (hash 접속id-종류 → 계산기 사용 기록 JSON, 최근 400개)
 // 스코어표 사진 읽기(op scan)는 서버에서 Claude를 부름. 키는 Vercel 환경변수 ANTHROPIC_API_KEY에만 둠.
 import Anthropic from "@anthropic-ai/sdk";
 import { redis, hasRedis } from "./_redis.js";
@@ -16,6 +16,9 @@ const okDate = (s) => /^20\d\d-\d\d-\d\d$/.test(String(s || ""));
 const newId = (n = 10) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join("");
 const pairs = (flat) => { const o = {}; for (let i = 0; flat && i < flat.length; i += 2) o[flat[i]] = flat[i + 1]; return o; };
 
+const LOG_KINDS = ["fee", "tadang", "scan"], LOG_MAX = 400, LOGS_PER_IP_PER_DAY = 300;
+const device = (ua = "") => (/iPhone|iPad/.test(ua) ? "아이폰" : /Android/.test(ua) ? "안드로이드" : /Mac/.test(ua) ? "맥" : /Windows/.test(ua) ? "PC" : "기타");
+const logHits = new Map();
 const hits = new Map();
 function allow(ip) {
   const k = new Date().toISOString().slice(0, 10) + "|" + ip, n = (hits.get(k) || 0) + 1;
@@ -73,12 +76,40 @@ export default async function handler(req, res) {
   const k = req.method === "GET" ? req.query.k : b.k;
   if (!admin && (!key || k !== key)) return res.status(401).json({ error: "auth" });
 
+  if (req.method === "GET" && req.query.logs) {
+    if (!admin) return res.status(401).json({ error: "auth" });
+    const [h] = await redis([["HGETALL", "golf:log"]]);
+    return res.json({ logs: Object.values(pairs(h)).map((v) => JSON.parse(v)).sort((a, b) => b.at - a.at) });
+  }
   if (req.method === "GET") {
     if (admin && !key) { key = newId(16); await redis([["SET", "golf:key", key]]); }
     const [h] = await redis([["HGETALL", "golf:videos"]]);
     return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), admin: !!admin, ...(admin ? { key } : {}) });
   }
   if (req.method !== "POST") return res.status(405).end();
+
+  // 친구들이 계산기를 쓴 기록 (이현님 DB 탭에서 봄). 한 번 들어와 쓰는 동안은 같은 줄을 덮어씀
+  if (b.op === "log") {
+    const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
+    const dk = new Date().toISOString().slice(0, 10) + "|" + ip, n = (logHits.get(dk) || 0) + 1;
+    if (logHits.size > 5000) logHits.clear();
+    logHits.set(dk, n);
+    if (n > LOGS_PER_IP_PER_DAY) return res.status(429).json({ error: "limit" });
+    const data = JSON.stringify(b.data ?? null);
+    if (!/^[a-z0-9]{8,20}$/.test(String(b.sid || "")) || !LOG_KINDS.includes(b.kind) || data.length > 6000) return res.status(400).json({ error: "log" });
+    const id = `${b.sid}-${b.kind}`;
+    const [old, len] = await redis([["HGET", "golf:log", id], ["HLEN", "golf:log"]]);
+    const now = Date.now();
+    const row = { id, sid: b.sid, kind: b.kind, at: now, first: old ? JSON.parse(old).first : now, who: admin ? "admin" : "friend", dev: device(req.headers["user-agent"]), data: JSON.parse(data) };
+    const cmds = [["HSET", "golf:log", id, JSON.stringify(row)]];
+    if (!old && len >= LOG_MAX) {
+      const [h] = await redis([["HGETALL", "golf:log"]]);
+      const oldest = Object.values(pairs(h)).map((v) => JSON.parse(v)).sort((a, c) => a.at - c.at).slice(0, len - LOG_MAX + 20);
+      if (oldest.length) cmds.push(["HDEL", "golf:log", ...oldest.map((r) => r.id)]);
+    }
+    await redis(cmds);
+    return res.json({ ok: true });
+  }
 
   // 친구들도 쓰는 것: 스코어표 읽기
   if (b.op === "scan") {
@@ -110,6 +141,11 @@ export default async function handler(req, res) {
   if (b.op === "del") {
     if (!okId(b.id)) return res.status(400).json({ error: "id" });
     await redis([["HDEL", "golf:videos", b.id]]);
+    return res.json({ ok: true });
+  }
+  if (b.op === "logDel") {
+    if (b.all) await redis([["DEL", "golf:log"]]);
+    else if (/^[a-z0-9]{8,20}-[a-z]+$/.test(String(b.id || ""))) await redis([["HDEL", "golf:log", b.id]]);
     return res.json({ ok: true });
   }
   if (b.op === "newKey") {

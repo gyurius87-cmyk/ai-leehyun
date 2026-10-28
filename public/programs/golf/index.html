@@ -85,7 +85,12 @@ table.sc { border-collapse: collapse; font-family: var(--mono); font-size: 13px;
 .sc th.nm { background: var(--greenSoft); padding-left: 8px; }
 .sc td input { width: 100%; height: 32px; border: 0; border-radius: 0; background: transparent; text-align: center; padding: 0; font-family: var(--mono); }
 .sc td.nm input { text-align: left; padding: 0 8px; font-family: var(--sans); font-weight: 700; }
+button.reset { font-size: 13px; font-weight: 700; vertical-align: middle; }
+button.reset.warn { color: var(--red); }
 .sc tr.par td { background: var(--soft); color: var(--muted); }
+.sc .parb { width: 100%; height: 32px; border: 0; border-radius: 0; background: transparent; padding: 0; font-family: var(--mono); color: var(--ink); font-weight: 700; cursor: pointer; }
+.sc .parb:hover { background: var(--greenSoft); }
+.sc td.nm select { width: 100%; height: 32px; border: 0; border-radius: 0; background: transparent; padding: 0 4px 0 6px; font: inherit; font-weight: 700; color: var(--ink); }
 .sc td.sum { font-weight: 700; padding: 0 8px; background: var(--greenSoft); }
 .sc td.under input { color: var(--blue); font-weight: 700; } .sc td.over2 input { color: var(--red); }
 .net { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
@@ -98,6 +103,16 @@ table.sc { border-collapse: collapse; font-family: var(--mono); font-size: 13px;
 .pay li .won { margin-left: auto; font-size: 17px; }
 .note { font-size: 12px; color: var(--muted); }
 .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.db-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.db-list li { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.db-list summary { list-style: none; cursor: pointer; padding: 10px 12px; display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 4px 10px; align-items: baseline; }
+.db-list summary::-webkit-details-marker { display: none; }
+.db-list .tm { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.db-list .kd { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 8px; background: var(--greenSoft); color: var(--green); }
+.db-list .kd.tadang { background: var(--soft); color: var(--ink); } .db-list .kd.scan { background: var(--flag); color: #18211b; }
+.db-list .sm { min-width: 0; overflow-wrap: anywhere; }
+.db-list .dt { padding: 0 12px 12px; font-size: 14px; display: grid; gap: 4px; }
+.db-list .dt .row { gap: 6px; }
 .adminbar { background: var(--greenSoft); border-radius: 12px; padding: 10px 12px; margin-top: 14px; font-size: 14px; }
 .form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); background: var(--soft); border-radius: 12px; padding: 14px; margin-top: 12px; }
 .form .full { grid-column: 1 / -1; }
@@ -146,11 +161,13 @@ table.sc { border-collapse: collapse; font-family: var(--mono); font-size: 13px;
     <div id="adminbar" class="adminbar row between" hidden>
       <span>이현님 화면이에요. 친구들은 공유 주소로 계산기와 영상만 볼 수 있어요.</span>
       <span class="row"><button id="copyLink">친구 공유 주소 복사</button><button id="newKey" class="ghost">주소 바꾸기</button></span>
+      <div class="chips" id="adminTabs" style="flex-basis:100%"><button data-tab="main" class="on">계산기·영상</button><button data-tab="db">📒 DB (친구들이 쓴 기록)</button></div>
     </div>
+    <section id="db" hidden></section>
 
     <!-- 게임비 계산기 -->
     <section id="fee">
-      <h2>게임비 계산기</h2>
+      <div class="row between"><h2>게임비 계산기</h2><button type="button" class="ghost reset" id="feeReset">↺ 리셋</button></div>
       <div class="grid2">
         <label class="f">인원<span class="step"><button type="button" data-n="-1">−</button><b id="nView">3</b><button type="button" data-n="1">＋</button></span></label>
         <label class="f">인당 게임비 (원)<input id="feeIn" class="money" inputmode="numeric" value="20,000"></label>
@@ -172,13 +189,14 @@ table.sc { border-collapse: collapse; font-family: var(--mono); font-size: 13px;
 
     <!-- 타당 계산기 -->
     <section id="tadang">
-      <div class="row between"><h2>타당 계산기</h2>
+      <div class="row between"><h2>타당 계산기 <button type="button" class="ghost reset" id="tdReset">↺ 리셋</button></h2>
         <label class="f" style="grid-auto-flow:column;align-items:center">1타당<input id="unitIn" class="money" inputmode="numeric" value="1,000" style="width:110px">원</label></div>
       <div class="chips" id="unitChips" style="margin-top:8px"><button data-u="1000" class="on">1천</button><button data-u="2000">2천</button><button data-u="5000">5천</button><button data-u="10000">1만</button></div>
       <div class="scanbox">
         <span class="file"><button class="main" type="button">📷 스코어표 사진 올리기</button><input id="photo" type="file" accept="image/*"></span>
         <button type="button" id="manual">직접 입력</button>
         <img id="thumb" class="thumb" alt="" hidden>
+        <datalist id="friendList"></datalist>
         <span id="scanMsg" class="note"></span>
       </div>
       <div id="scWrap" hidden>
@@ -229,7 +247,16 @@ async function api(method, body, qs = '') {
 }
 
 /* ───────── 게임비 계산기 ───────── */
-const fee = loadLS('fee', { n: 3, fee: 20000, mode: 'solo', ben: '10000', custom: 0, split: 'step', w: 2, names: [] });
+const FEE0 = { n: 3, fee: 20000, mode: 'solo', ben: '10000', custom: 0, split: 'step', w: 2, names: [] };
+const fee = loadLS('fee', structuredClone(FEE0));
+// 리셋: 한 번 누르면 "정말?"으로 바뀌고, 한 번 더 눌러야 지움
+function twoTap(btn, run) {
+  const back = () => { btn.dataset.sure = ''; btn.textContent = btn.dataset.label; btn.classList.remove('warn'); };
+  btn.dataset.label ||= btn.textContent;
+  clearTimeout(btn.t);
+  if (btn.dataset.sure !== '1') { btn.dataset.sure = '1'; btn.textContent = '정말 할까요?'; btn.classList.add('warn'); btn.t = setTimeout(back, 3000); return; }
+  back(); run();
+}
 const round100 = (x) => Math.round(x / 100) * 100;
 function benefit() { return fee.ben === 'free' ? fee.fee : fee.ben === 'custom' ? fee.custom : Number(fee.ben); }
 function soloPays() {
@@ -254,7 +281,7 @@ function renderFee() {
   if (fee.mode === 'solo') {
     const p = soloPays();
     h = `<div class="ranks">${p.map((v, i) => `<div class="rk${i === 0 && benefit() ? ' first' : ''}"><span class="no">${i + 1}등</span>
-      <input data-name="${i}" value="${esc(fee.names[i] || '')}" placeholder="이름 (안 적어도 돼요)">
+      <input data-name="${i}" list="friendList" value="${esc(fee.names[i] || '')}" placeholder="이름 (안 적어도 돼요)">
       <span class="won">${won(v)}${v !== f ? `<span class="diff ${v < f ? 'minus' : 'plus'}">${v < f ? '−' : '+'}${Math.abs(v - f).toLocaleString('ko-KR')}</span>` : ''}</span></div>`).join('')}</div>`;
   } else {
     const w = Math.min(Math.max(fee.w, 1), fee.n - 1), l = fee.n - w, d = Math.min(benefit(), f);
@@ -266,6 +293,7 @@ function renderFee() {
   h += `<div class="total">합계 ${won(total)} = ${fee.n}명 × ${won(f)}</div>`;
   $('#feeOut').innerHTML = h;
   save('fee', fee);
+  logFee(fee.mode === 'solo' ? soloPays() : (() => { const w = Math.min(Math.max(fee.w, 1), fee.n - 1), d = Math.min(benefit(), f); return [f - d, round100(f + (d * w) / (fee.n - w))]; })());
 }
 $('#fee').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
@@ -280,8 +308,11 @@ $('#fee').addEventListener('click', (e) => {
   renderFee();
 });
 $('#feeIn').addEventListener('input', (e) => { fee.fee = num(e.target.value); renderFee(); });
+$('#feeReset').addEventListener('click', (e) => twoTap(e.currentTarget, () => {
+  Object.assign(fee, structuredClone(FEE0)); $('#feeIn').value = fee.fee.toLocaleString('ko-KR'); $('#benCustom').value = ''; renderFee(); toast('게임비 계산기를 처음으로 돌렸어요');
+}));
 $('#benCustom').addEventListener('input', (e) => { fee.custom = num(e.target.value); renderFee(); });
-$('#feeOut').addEventListener('input', (e) => { const i = e.target.dataset.name; if (i != null) { fee.names[i] = e.target.value; save('fee', fee); } });
+$('#feeOut').addEventListener('input', (e) => { const i = e.target.dataset.name; if (i != null) { fee.names[i] = e.target.value; save('fee', fee); logFee(soloPays()); } });
 fmtMoneyInput($('#feeIn')); fmtMoneyInput($('#benCustom'));
 $('#feeIn').value = fee.fee.toLocaleString('ko-KR'); if (fee.custom) $('#benCustom').value = fee.custom.toLocaleString('ko-KR');
 
@@ -289,6 +320,8 @@ $('#feeIn').value = fee.fee.toLocaleString('ko-KR'); if (fee.custom) $('#benCust
 // 타당: 두 사람씩 짝지어 타수 차이 × 1타당 금액. 배판 홀은 그 홀 차이를 두 배로.
 let td = loadLS('td', null);
 let unit = loadLS('unit', 1000);
+// 같이 치는 친구들 (이름 칸에서 고름. 없으면 직접입력)
+const FRIENDS = ['현규', '헌진', '진만', '슬기', '민영', '정식'];
 function newCard(holes = 18, names = ['1번', '2번', '3번', '4번']) {
   return { holes, par: Array(holes).fill(4), x2: [], cap: false, players: names.map((n) => ({ name: n, scores: Array(holes).fill(null), total: null })) };
 }
@@ -337,10 +370,12 @@ function renderTd() {
   $('#holesBtn').textContent = td.holes === 18 ? '9홀로' : '18홀로';
   const H = [...Array(td.holes).keys()];
   let t = `<table class="sc"><thead><tr><th class="nm">홀</th>${H.map((h) => `<th class="hole${td.x2.includes(h) ? ' x2' : ''}" data-x2="${h}">${h + 1}</th>`).join('')}<th>합계</th><th></th></tr></thead><tbody>`;
-  t += `<tr class="par"><td class="nm" style="padding-left:8px">파</td>${H.map((h) => `<td><input data-par="${h}" inputmode="numeric" value="${td.par[h] ?? ''}"></td>`).join('')}<td class="sum">${td.par.reduce((a, b) => a + (b || 0), 0)}</td><td></td></tr>`;
+  t += `<tr class="par"><td class="nm" style="padding-left:8px">파 <span class="note">눌러서 3·4·5</span></td>${H.map((h) => `<td><button type="button" class="parb" data-par="${h}">${td.par[h] ?? 4}</button></td>`).join('')}<td class="sum">${td.par.reduce((a, b) => a + (b || 0), 0)}</td><td></td></tr>`;
   td.players.forEach((p, i) => {
     const filled = p.scores.some((s) => s != null);
-    t += `<tr><td class="nm"><input data-pn="${i}" value="${esc(p.name)}"></td>${H.map((h) => {
+    const own = p.custom || !(FRIENDS.includes(p.name) || /^\d+번$/.test(p.name || ''));
+    t += `<tr><td class="nm">${own ? `<input data-pn="${i}" value="${esc(p.name)}" placeholder="이름">`
+      : `<select data-pick="${i}"><option value="${i + 1}번">${i + 1}번</option>${FRIENDS.map((f) => `<option${f === p.name ? ' selected' : ''}>${f}</option>`).join('')}<option value="__own">직접입력</option></select>`}</td>${H.map((h) => {
       const s = p.scores[h], par = td.par[h] || 4, cls = s == null ? '' : s < par ? 'under' : s >= par + 2 ? 'over2' : '';
       return `<td class="${cls}"><input data-ps="${i}|${h}" inputmode="numeric" value="${s ?? ''}"></td>`;
     }).join('')}<td class="sum">${filled ? totalOf(p) : `<input data-pt="${i}" inputmode="numeric" value="${p.total ?? ''}" placeholder="합계" style="width:60px">`}</td>
@@ -351,6 +386,7 @@ function renderTd() {
   save('td', td);
 }
 function renderTdOut() {
+  logTd();
   const ready = td.players.filter((p) => totalOf(p)).length >= 2;
   if (!ready) { $('#tdOut').innerHTML = '<div class="note">두 사람 이상 스코어를 넣으면 정산이 나와요.</div>'; return; }
   const { net, pays } = settle(), nm = (i) => esc(td.players[i].name || `${i + 1}번`);
@@ -362,16 +398,27 @@ function renderTdOut() {
 $('#tbl').addEventListener('input', (e) => {
   const d = e.target.dataset, v = e.target.value.trim();
   const n = v === '' ? null : Math.max(1, Math.min(19, parseInt(v, 10) || 0)) || null;
-  if (d.par) td.par[d.par] = n;
-  else if (d.pn != null) td.players[d.pn].name = e.target.value;
+  if (d.pn != null) td.players[d.pn].name = e.target.value;
   else if (d.ps) { const [i, h] = d.ps.split('|').map(Number); td.players[i].scores[h] = n; }
   else if (d.pt != null) td.players[d.pt].total = v === '' ? null : parseInt(v, 10) || null;
   save('td', td);
   renderTdOut();
 });
 // 칸을 벗어나면 색과 합계를 다시 그림 (입력 중엔 포커스 유지)
-$('#tbl').addEventListener('change', () => renderTd());
+$('#tbl').addEventListener('change', (e) => {
+  const d = e.target.dataset;
+  if (d.pick != null) {
+    const p = td.players[d.pick];
+    if (e.target.value === '__own') { p.custom = true; p.name = ''; renderTd(); $(`#tbl [data-pn="${d.pick}"]`)?.focus(); return; }
+    p.name = e.target.value;
+  }
+  // 직접 입력 칸을 비우면 다시 고르기로
+  if (d.pn != null && !e.target.value.trim()) { const p = td.players[d.pn]; p.custom = false; p.name = `${Number(d.pn) + 1}번`; }
+  renderTd();
+});
 $('#tbl').addEventListener('click', (e) => {
+  const pb = e.target.closest('[data-par]');
+  if (pb) { const h = Number(pb.dataset.par), v = td.par[h] || 4; td.par[h] = v >= 5 ? 3 : v + 1; renderTd(); return; }
   const x = e.target.closest('[data-x2]');
   if (x) { const h = Number(x.dataset.x2); td.x2 = td.x2.includes(h) ? td.x2.filter((v) => v !== h) : [...td.x2, h]; renderTd(); return; }
   const del = e.target.closest('[data-pdel]');
@@ -387,6 +434,10 @@ $('#holesBtn').addEventListener('click', () => {
 });
 $('#manual').addEventListener('click', () => { if (!td) td = newCard(); renderTd(); $('#tbl input[data-pn]')?.focus(); });
 function setUnit(u) { unit = u; save('unit', u); $('#unitIn').value = u.toLocaleString('ko-KR'); document.querySelectorAll('#unitChips button').forEach((b) => b.classList.toggle('on', Number(b.dataset.u) === u)); if (td) renderTdOut(); }
+$('#friendList').innerHTML = FRIENDS.map((f) => `<option value="${f}">`).join('');
+$('#tdReset').addEventListener('click', (e) => twoTap(e.currentTarget, () => {
+  td = null; save('td', null); setUnit(1000); $('#photo').value = ''; $('#thumb').hidden = true; $('#scanMsg').textContent = ''; renderTd(); toast('타당 계산기를 처음으로 돌렸어요');
+}));
 $('#unitChips').addEventListener('click', (e) => { const b = e.target.closest('[data-u]'); if (b) setUnit(Number(b.dataset.u)); });
 $('#unitIn').addEventListener('input', (e) => { unit = num(e.target.value); save('unit', unit); document.querySelectorAll('#unitChips button').forEach((b) => b.classList.toggle('on', Number(b.dataset.u) === unit)); if (td) renderTdOut(); });
 fmtMoneyInput($('#unitIn'));
@@ -416,9 +467,11 @@ $('#photo').addEventListener('change', async (e) => {
     const r = await api('POST', { op: 'scan', image: data });
     td = { holes: r.holes, par: (r.par && r.par.some(Boolean) ? r.par : Array(r.holes).fill(4)).map((v) => v || 4), x2: [], cap: td?.cap || false,
       players: r.players.map((p) => ({ name: p.name, scores: Array.from({ length: r.holes }, (_, h) => p.scores[h] ?? null), total: null })) };
+    logReady && !admin && fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ k: viewKey, op: 'log', sid: SID, kind: 'scan', data: { ok: true, players: r.players.length, names: r.players.map((p) => p.name), note: r.note } }) }).catch(() => {});
     msg.textContent = `${r.players.length}명 읽었어요. 숫자가 맞는지 한 번 봐 주세요.${r.note ? ' (' + r.note + ')' : ''}`;
     renderTd();
   } catch (err) {
+    logReady && !admin && fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ k: viewKey, op: 'log', sid: SID, kind: 'scan', data: { ok: false, error: err.code || 'api' } }) }).catch(() => {});
     msg.textContent = err.code === 'not_scorecard' ? '스코어표로 보이지 않아요. 다른 사진을 올려 주세요.'
       : err.code === 'limit' ? '오늘 사진 읽기를 너무 많이 했어요. 직접 입력으로 해 주세요.'
       : '사진을 읽지 못했어요. 다시 해 보거나 직접 입력해 주세요.';
@@ -481,6 +534,90 @@ $('#videos').addEventListener('submit', async (e) => {
   } catch (err) { btn.disabled = false; toast(err.code === 'url' ? '유튜브 주소를 알아보지 못했어요' : '저장하지 못했어요'); }
 });
 
+/* ───────── 사용 기록 (친구들 화면에서만 남김 → 이현님 DB 탭) ───────── */
+// 한 번 들어와 쓰는 동안은 같은 줄을 고쳐 씀: 마지막으로 만진 뒤 6초 지나거나 창을 닫을 때 보냄
+const SID = Math.random().toString(36).slice(2, 12).padEnd(10, '0');
+let logReady = false;
+const logQ = {}, logLast = {};
+function logSoon(kind, data) {
+  if (!logReady || admin) return;
+  const j = JSON.stringify(data); if (j === logLast[kind]) return;
+  logQ[kind] = data; clearTimeout(logSoon.t); logSoon.t = setTimeout(logFlush, 6000);
+}
+function logFlush(beacon) {
+  for (const kind of Object.keys(logQ)) {
+    const data = logQ[kind]; delete logQ[kind]; logLast[kind] = JSON.stringify(data);
+    const body = JSON.stringify({ k: viewKey, op: 'log', sid: SID, kind, data });
+    if (beacon && navigator.sendBeacon) navigator.sendBeacon(API, body);
+    else fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
+  }
+}
+addEventListener('pagehide', () => logFlush(true));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') logFlush(true); });
+function logFee(pays) { logSoon('fee', { n: fee.n, fee: fee.fee, mode: fee.mode, ben: benefit(), split: fee.split, w: fee.w, names: fee.names.slice(0, fee.n), pays }); }
+function logTd() {
+  if (!td) return;
+  const ok = td.players.filter((p) => totalOf(p)).length >= 2, r = ok ? settle() : { net: [], pays: [] }, nm = (i) => td.players[i].name || `${i + 1}번`;
+  logSoon('tadang', { unit, holes: td.holes, x2: td.x2.map((h) => h + 1), cap: td.cap, players: td.players.map((p, i) => ({ name: nm(i), total: totalOf(p) || null, net: r.net[i] ?? 0 })), pays: r.pays.map((p) => ({ from: nm(p.from), to: nm(p.to), amt: p.amt })) });
+}
+
+const db = { logs: null, kind: 'all', open: '' };
+const DB_KINDS = [['all', '전체'], ['fee', '게임비'], ['tadang', '타당'], ['scan', '사진 읽기']];
+const man = (v) => (v >= 10000 && v % 10000 === 0 ? `${v / 10000}만원` : won(v));
+function dbSummary(r) {
+  const d = r.data || {};
+  if (r.kind === 'fee') return `${d.n}명 · ${man(d.fee)} · ${d.mode === 'team' ? `팀전(이긴 팀 ${d.w}명)` : '개인전'}${d.ben ? ` · 1등 ${man(d.ben)} 할인` : ''}`;
+  if (r.kind === 'tadang') return `${(d.players || []).filter((p) => p.total).map((p) => `${p.name} ${p.total}타`).join(', ') || '스코어 입력 전'} · 1타 ${man(d.unit)}`;
+  return d.ok ? `${d.players}명 읽음${d.names ? ` (${d.names.join(', ')})` : ''}` : `실패 (${d.error || '?'})`;
+}
+function dbDetail(r) {
+  const d = r.data || {};
+  let h = '';
+  if (r.kind === 'fee' && d.pays) h = d.mode === 'team' ? `<div>이긴 팀 한 사람 ${won(d.pays[0])}, 진 팀 한 사람 ${won(d.pays[1])}</div>`
+    : d.pays.map((v, i) => `<div>${i + 1}등 ${esc(d.names?.[i] || '')} <b>${won(v)}</b></div>`).join('');
+  if (r.kind === 'tadang') h = (d.pays?.length ? d.pays.map((p) => `<div>${esc(p.from)} → ${esc(p.to)} <b>${won(p.amt)}</b></div>`).join('') : '<div class="note">정산 전</div>')
+    + `<div class="note">${d.holes}홀${d.x2?.length ? ` · 배판 ${d.x2.join(', ')}번` : ''}${d.cap ? ' · 양파 상한' : ''}</div>`;
+  if (r.kind === 'scan' && d.note) h = `<div class="note">${esc(d.note)}</div>`;
+  const t = (x) => new Date(x + 9 * 3600e3).toISOString().slice(11, 16);
+  return h + `<div class="note">${r.dev} · ${t(r.first)}~${t(r.at)} 사용 · 접속 ${esc(r.sid)}</div><div><button class="ghost" data-dbdel="${esc(r.id)}">이 기록 지우기</button></div>`;
+}
+async function renderDb(reload) {
+  const box = $('#db');
+  if (reload || !db.logs) {
+    box.innerHTML = '<h2>DB</h2><div class="note">불러오는 중…</div>';
+    try { db.logs = (await api('GET', null, '?logs=1')).logs; } catch { box.innerHTML = '<h2>DB</h2><div class="note">불러오지 못했어요.</div>'; return; }
+  }
+  const L = db.logs.filter((r) => db.kind === 'all' || r.kind === db.kind);
+  const day = (x) => new Date(x + 9 * 3600e3).toISOString().slice(0, 10), dow = (x) => '일월화수목금토'[new Date(x + 9 * 3600e3).getUTCDay()];
+  let last = '', rows = '';
+  L.forEach((r) => {
+    const dd = day(r.at);
+    if (dd !== last) { rows += `<li style="border:0;background:none"><b>${dd.replaceAll('-', '.')} (${dow(r.at)})</b></li>`; last = dd; }
+    rows += `<li><details${db.open === r.id ? ' open' : ''} data-dbid="${esc(r.id)}"><summary><span class="tm">${new Date(r.at + 9 * 3600e3).toISOString().slice(11, 16)}</span><span class="kd ${r.kind}">${DB_KINDS.find((k) => k[0] === r.kind)[1]}</span><span class="sm">${esc(dbSummary(r))}</span></summary><div class="dt">${dbDetail(r)}</div></details></li>`;
+  });
+  const cnt = (k) => db.logs.filter((r) => k === 'all' || r.kind === k).length;
+  box.innerHTML = `<div class="row between"><h2>DB · 친구들이 쓴 기록</h2><span class="row"><button class="ghost" data-dbre>새로고침</button><button class="ghost reset" data-dball>전부 지우기</button></span></div>
+    <div class="note">친구 공유 주소로 들어온 사람이 계산기를 쓰면 자동으로 쌓여요 (이현님 화면에서 쓴 건 안 남아요). 최근 400개까지.</div>
+    <div class="chips" style="margin-top:10px">${DB_KINDS.map(([k, l]) => `<button data-dbk="${k}" class="${db.kind === k ? 'on' : ''}">${l} ${cnt(k)}</button>`).join('')}</div>
+    ${L.length ? `<ul class="db-list">${rows}</ul>` : '<div class="note" style="margin-top:12px">아직 기록이 없어요.</div>'}`;
+}
+$('#adminTabs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  const isDb = b.dataset.tab === 'db';
+  document.querySelectorAll('#adminTabs button').forEach((x) => x.classList.toggle('on', x === b));
+  ['fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
+  $('#db').hidden = !isDb;
+  if (isDb) renderDb(true);
+});
+$('#db').addEventListener('toggle', (e) => { if (e.target.open) db.open = e.target.dataset.dbid; }, true);
+$('#db').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.dbk) { db.kind = b.dataset.dbk; renderDb(); }
+  else if ('dbre' in b.dataset) renderDb(true);
+  else if (b.dataset.dbdel) { await api('POST', { op: 'logDel', id: b.dataset.dbdel }).catch(() => {}); db.logs = db.logs.filter((r) => r.id !== b.dataset.dbdel); renderDb(); }
+  else if ('dball' in b.dataset) twoTap(b, async () => { await api('POST', { op: 'logDel', all: true }).catch(() => {}); db.logs = []; renderDb(); toast('기록을 모두 지웠어요'); });
+});
+
 /* ───────── 들어가기·공유 ───────── */
 async function load() {
   try {
@@ -488,6 +625,7 @@ async function load() {
     videos = j.videos; admin = j.admin; shareKey = j.key || '';
     $('#gate').hidden = true; $('#app').hidden = false; $('#adminbar').hidden = !admin;
     renderFee(); setUnit(unit); renderTd(); renderVideos();
+    logReady = true; logLast.fee = null;
   } catch (e) {
     $('#app').hidden = true; $('#gate').hidden = false;
     if (e.code === 'no_redis') $('#gateMsg').textContent = '저장소가 아직 연결되지 않았어요.';
