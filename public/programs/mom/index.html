@@ -110,6 +110,21 @@ label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
 .fest .tx { padding: 9px 11px 11px; display: grid; gap: 3px; }
 .fest .tx .t { font-weight: 700; }
 .fest .tx .m { font-size: 13px; color: var(--muted); }
+.ttabs { display: flex; gap: 4px; margin-top: 8px; border-bottom: 1px solid var(--line); }
+.ttabs button { border: 0; border-radius: 0; background: none; padding: 6px 12px; font-weight: 700; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ttabs button.on { color: var(--rose); border-bottom-color: var(--rose); }
+.stype { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 4px; }
+.stype button { font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+.stype button.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.slist { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.slist button { width: 100%; display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); font-weight: 400; }
+.slist button i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--sage); }
+.slist button.went i { background: var(--rose); border-color: var(--rose); }
+.slist button.on { border-color: var(--ink); }
+.slist button span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 12px; }
+.pager button { min-width: 34px; height: 34px; padding: 0 8px; border-radius: 10px; font-weight: 700; }
+.pager button.on { background: var(--rose); color: var(--roseInk); border-color: var(--rose); }
 .fam { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
 .fam span, .fam button { font-size: 13px; border-radius: 999px; padding: 4px 11px; background: var(--sageSoft); color: var(--sage); border: 0; font-weight: 700; }
 .fam button.went, .fam span.went { background: var(--roseSoft); color: var(--rose); }
@@ -205,7 +220,7 @@ const viewKey = q.get('k') || '';
 let adminKey = '';
 try { adminKey = localStorage.getItem('ai-admin-key') || ''; } catch {}
 let items = [], admin = false, shareKey = '';
-const open = { form: null, edit: null, past: false, del: null, cal: '', healthTouched: false, sel: '' };
+const open = { per: 6, sper: 10, form: null, edit: null, past: false, del: null, cal: '', healthTouched: false, sel: '' };
 let kmap = null, mapEl = null;
 
 const $ = (s) => document.querySelector(s);
@@ -317,6 +332,12 @@ function regionFields(it) {
     <label>시·군·구<select name="region">${c.length === 2 ? `<option value="${c}" selected>${KMap.prov(c)} 전체 (예전 기록)</option>` : ''}${regs.map((r) => `<option value="${r.c}"${r.c === c ? ' selected' : ''}>${r.n}</option>`).join('')}</select></label>
     <label class="full">명소 (있으면)<select name="spot"><option value="">고르지 않음</option>${sp.map((s) => `<option${s.n === it.spot ? ' selected' : ''}>${esc(s.n)}</option>`).join('')}</select></label>`;
 }
+const STYPES = [['all', '전체', /./], ['flower', '🌸 정원·꽃', /정원|꽃/], ['mt', '⛰ 산', /산/], ['sea', '🌊 바다·섬', /바다|섬/], ['old', '🏯 역사·마을', /역사|마을/], ['etc', '도시·호수·온천', /도시|호수|온천/]];
+const page = (arr, per, key) => { const n = Math.max(1, Math.ceil(arr.length / per)); open[key] = Math.min(open[key] || 1, n); return arr.slice((open[key] - 1) * per, open[key] * per); };
+const pager = (arr, per, key) => {
+  const n = Math.ceil(arr.length / per); if (n <= 1) return '';
+  return `<div class="pager">${Array.from({ length: n }, (_, i) => `<button type="button" class="${open[key] === i + 1 ? 'on' : ''}" data-pg="${key}|${i + 1}">${i + 1}</button>`).join('')}</div>`;
+};
 function tripHtml() {
   const tl = of('trip'), cnt = {}, wentSpots = new Set(tl.map((t) => t.spot).filter(Boolean));
   tl.forEach((t) => (cnt[t.region] = (cnt[t.region] || 0) + 1));
@@ -326,6 +347,11 @@ function tripHtml() {
     <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.spot && it.title ? `📍 ${it.spot}` : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</li>`;
   // 고른 지역: 유명한 것 + 그 지역 명소. 관리자는 눌러서 바로 기록 추가
   const chip = (n, spot) => { const w = wentSpots.has(n) || list.some((t) => t.title === n); return admin ? `<button type="button" class="${w ? 'went' : ''}" data-pre="${esc(n)}"${spot ? ' data-prespot="1"' : ''}>${esc(n)}</button>` : `<span class="${w ? 'went' : ''}">${esc(n)}</span>`; };
+  // 기록 / 명소 탭. 둘 다 지도 높이만큼씩 쪽(페이지)으로 나눔
+  const tab = open.ttab || 'rec', st = open.stype || 'all', stRe = STYPES.find((x) => x[0] === st)[2];
+  const spots = (kmap?.s || []).map((x, i) => ({ ...x, i })).filter((x) => (!sel || x.c === sel) && stRe.test(x.t))
+    .sort((a, b) => (wentSpots.has(b.n) - wentSpots.has(a.n)) || (KMap.reg(a.c)?.p || '').localeCompare(KMap.reg(b.c)?.p || '') || a.n.localeCompare(b.n, 'ko'));
+  const srow = (x) => `<li><button type="button" class="${wentSpots.has(x.n) ? 'went' : ''}${open.spot === x.n ? ' on' : ''}" data-spoti="${x.i}"><i></i><b>${esc(x.n)}</b><span>${esc(rname(x.c))} · ${esc(x.t)}</span></button></li>`;
   const famHtml = R ? `<div class="fam"><span class="lbl">유명한 것</span>${[...spotsIn(sel).map((s) => chip(s.n, true)), ...R.f.filter((n) => !spotsIn(sel).some((s) => s.n === n)).map((n) => chip(n))].join('')}</div>` : '';
   return `<section><div class="row between"><h2>여행 다녀온 곳</h2>${addBtn('trip')}</div>
     <div class="count">시·군·구 ${kmap ? kmap.r.length : 252}곳 중 ${went}곳${wentSpots.size ? ` · 명소 ${wentSpots.size}곳` : ''} 다녀왔어요</div>
@@ -333,9 +359,12 @@ function tripHtml() {
       <div class="maphint"><span><i class="on"></i>다녀온 명소</span><span><i></i>명소</span><span>＋ 또는 두 손가락으로 크게, 많이 키우면 동네 이름</span></div></div>
     <div class="tlist">
       <div class="row between"><b>${sel ? `${esc(rname(sel))} · ${cnt[sel] || 0}번` : '전체 기록'}</b>${sel ? '<button class="ghost" data-rg="">전체 보기</button>' : ''}</div>
+      <div class="ttabs"><button type="button" class="${tab === 'rec' ? 'on' : ''}" data-ttab="rec">기록 ${list.length}</button><button type="button" class="${tab === 'spot' ? 'on' : ''}" data-ttab="spot">명소 ${spots.length}</button></div>
       ${famHtml}
       ${addForm('trip')}
-      ${list.length ? `<ul class="items">${list.map(row).join('')}</ul>` : `<div class="empty">${sel ? '아직 이곳 기록이 없어요.' : '지도에서 지역이나 명소를 누르거나 ＋ 추가로 적어 주세요.'}</div>`}
+      ${tab === 'spot' ? `<div class="chips stype">${STYPES.map(([k, l]) => `<button type="button" class="${(open.stype || 'all') === k ? 'on' : ''}" data-stype="${k}">${l}</button>`).join('')}</div>
+        ${spots.length ? `<ul class="slist">${page(spots, open.sper, 'spage').map(srow).join('')}</ul>${pager(spots, open.sper, 'spage')}` : '<div class="empty">이 갈래 명소가 없어요.</div>'}`
+      : list.length ? `<ul class="items">${page(list, open.per, 'page').map(row).join('')}</ul>${pager(list, open.per, 'page')}` : `<div class="empty">${sel ? '아직 이곳 기록이 없어요.' : '지도에서 지역이나 명소를 누르거나 ＋ 추가로 적어 주세요.'}</div>`}
     </div></div><datalist id="findList">${findList().map((v) => `<option value="${esc(v)}">`).join('')}</datalist></section>`;
 }
 // 여행지 추천: 관광공사 축제 일정(서버가 6시간마다 새로 받음)을 부모님이 좋아하실 갈래로 나눔. 엄마가 꽃을 좋아하셔서 꽃이 맨 앞
@@ -375,15 +404,19 @@ function festHtml() {
 function mountMap() {
   const slot = $('#mapSlot'); if (!slot || !kmap) return;
   if (!mapEl) mapEl = KMap.init(kmap, {
-    onRegion: (c) => { open.sel = open.sel === c ? '' : c; open.spot = ''; render(); },
-    onSpot: (i) => { const s = kmap.s[i]; open.sel = s.c; open.spot = s.n; render(); },
+    onRegion: (c) => { open.sel = open.sel === c ? '' : c; open.spot = ''; open.page = open.spage = 1; render(); },
+    onSpot: (i) => { const s = kmap.s[i]; open.sel = s.c; open.spot = s.n; open.page = open.spage = 1; render(); },
   });
   slot.appendChild(mapEl);
   const tl = of('trip'), cnt = {};
   tl.forEach((t) => (cnt[t.region] = (cnt[t.region] || 0) + 1));
   KMap.paint({ cnt, spots: new Set(tl.map((t) => t.spot).filter(Boolean)), sel: open.sel });
   mapEl.querySelectorAll('.spot').forEach((g, i) => g.classList.toggle('hl', kmap.s[i].n === open.spot));
+  // 목록은 지도 높이만큼만: 지도 높이를 재서 한 쪽에 몇 줄 둘지 정함 (바뀌면 한 번 다시 그림)
+  const h = $('.mapbox')?.offsetHeight || 560, per = Math.max(3, Math.min(15, Math.floor((h - 120) / 80))), sper = Math.max(5, Math.min(30, Math.floor((h - 160) / 46)));
+  if (per !== open.per || sper !== open.sper) { open.per = per; open.sper = sper; render(); }
 }
+addEventListener('resize', () => { clearTimeout(mountMap.t); mountMap.t = setTimeout(() => { if (!$('#app').hidden && kmap) mountMap(); }, 300); });
 
 function render() {
   const sched = `<section><div class="row between"><h2>엄마 일정</h2>${addBtn('sched')}</div>${addForm('sched')}${datedList('sched', '다가오는 일정이 없어요.')}</section>`;
@@ -425,7 +458,11 @@ function render() {
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('button'); if (!t) return;
   const d = t.dataset;
-  if (d.rg != null && t.tagName === 'BUTTON') { open.sel = d.rg; open.spot = ''; render(); }
+  if (d.rg != null && t.tagName === 'BUTTON') { open.sel = d.rg; open.spot = ''; open.page = open.spage = 1; render(); }
+  else if (d.ttab) { open.ttab = d.ttab; render(); }
+  else if (d.stype) { open.stype = d.stype; open.spage = 1; render(); }
+  else if (d.pg) { const [k, n] = d.pg.split('|'); open[k] = Number(n); render(); }
+  else if (d.spoti) { const x = kmap.s[Number(d.spoti)]; open.spot = x.n; open.sel = x.c; render(); KMap.focus(x.c); }
   else if (d.ftab) { open.ftab = d.ftab; open.fmore = false; render(); }
   else if ('fmore' in d) { open.fmore = true; render(); }
   else if (d.pre) { open.form = 'trip'; open.edit = null; open.pre = { region: open.sel, title: d.pre, spot: d.prespot ? d.pre : '' }; render(); $('form[data-sec="trip"] input[name="date"]')?.focus(); }
