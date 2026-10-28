@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
 <style>
-/* 가족 앨범처럼: 크림 종이 + 연분홍. 일정 → 버킷리스트 → 영상 → (맨 밑, 접힘) 병원 관리 */
+/* 가족 앨범처럼: 크림 종이 + 연분홍. 가족 유튜브 → 일정 → 버킷리스트 → (맨 밑, 접힘) 병원 관리 */
 :root {
   --bg: #faf6ef; --panel: #fffdf9; --ink: #2b2522; --muted: #7a6f68; --line: #eadfd3; --soft: #f3ebe0;
   --rose: #c8566b; --roseInk: #ffffff; --roseSoft: #f8e4e6; --sage: #5f8a6b; --sageSoft: #e6efe7; --danger: #b23a3a;
@@ -93,7 +93,7 @@ details.health .in { padding: 0 18px 18px; }
 <div class="wrap">
   <header>
     <h1>엄마 일기</h1>
-    <div class="sub">엄마의 일정, 하고 싶은 것, 엄마가 나온 영상을 모아 두는 곳</div>
+    <div class="sub">가족 영상과 엄마의 일정, 하고 싶은 것을 모아 두는 곳</div>
   </header>
 
   <div id="gate" class="gate" hidden>
@@ -225,14 +225,14 @@ function render() {
       <div class="body"><div class="t">${esc(it.title)}</div>${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</li>`).join('')}</ul>` : '<div class="empty">아직 적힌 버킷리스트가 없어요.</div>'}</section>`;
 
   const vl = of('video').sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.at - a.at);
-  const video = `<section><div class="row between"><h2>엄마가 나온 영상</h2>${addBtn('video')}</div>${addForm('video')}
+  const video = `<section><div class="row between"><h2>가족 유튜브 보기</h2>${addBtn('video')}</div>${addForm('video')}
     ${vl.length ? `<div class="vids">${vl.map((it) => open.edit === it.id ? `<div class="vid">${formHtml('video', it)}</div>` : `<div class="vid">
       <div class="frame" data-vid="${esc(it.vid)}"><button style="background-image:url('https://i.ytimg.com/vi/${esc(it.vid)}/hqdefault.jpg')" data-play="${esc(it.vid)}" aria-label="재생"></button></div>
       <div class="cap"><div class="body"><div class="t">${esc(it.title || '영상')}</div>
       <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</div></div>`).join('')}</div>`
       : '<div class="empty">아직 올린 영상이 없어요.</div>'}</section>`;
 
-  $('#main').innerHTML = sched + bucket + video;
+  $('#main').innerHTML = video + sched + bucket;
   const hn = of('health').length;
   $('#healthBox').querySelector('summary').textContent = `병원 관리${hn ? ` (${hn})` : ''}`;
   $('#health').innerHTML = `<div class="row between" style="margin-top:4px"><span class="sub">진료 일정과 약, 검사 결과를 적어 두는 곳</span>${addBtn('health')}</div>${addForm('health')}${datedList('health', '다가오는 진료가 없어요.')}`;
