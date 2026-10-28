@@ -160,6 +160,16 @@
       "cat": "공부·생각"
     },
     {
+      "id": "mom",
+      "name": "엄마 일기",
+      "status": "using",
+      "summary": "엄마 일정, 버킷리스트, 엄마가 나온 영상을 한곳에 모아 가족이 공유 주소로 함께 봐요.",
+      "start": "2026-10-28",
+      "private": true,
+      "href": "/programs/mom",
+      "cat": "공부·생각"
+    },
+    {
       "id": "video-lab",
       "name": "영상 분석실",
       "status": "using",

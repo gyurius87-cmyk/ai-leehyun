@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="/favicon.svg">
+<title>엄마 일기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 가족 앨범처럼: 크림 종이 + 연분홍. 일정 → 버킷리스트 → 영상 → (맨 밑, 접힘) 병원 관리 */
+:root {
+  --bg: #faf6ef; --panel: #fffdf9; --ink: #2b2522; --muted: #7a6f68; --line: #eadfd3; --soft: #f3ebe0;
+  --rose: #c8566b; --roseInk: #ffffff; --roseSoft: #f8e4e6; --sage: #5f8a6b; --sageSoft: #e6efe7; --danger: #b23a3a;
+  --serif: "Gowun Batang", "Nanum Myeongjo", "AppleMyungjo", serif;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1817; --panel: #242020; --ink: #f1e9e2; --muted: #b0a49b; --line: #3a3330; --soft: #2c2726;
+    --rose: #e6879a; --roseInk: #1b1817; --roseSoft: #3a2629; --sage: #8fbf9c; --sageSoft: #243029; --danger: #ff8a80; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1817; --panel: #242020; --ink: #f1e9e2; --muted: #b0a49b; --line: #3a3330; --soft: #2c2726;
+  --rose: #e6879a; --roseInk: #1b1817; --roseSoft: #3a2629; --sage: #8fbf9c; --sageSoft: #243029; --danger: #ff8a80; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 22px max(16px, env(safe-area-inset-right)) 70px max(16px, env(safe-area-inset-left)); }
+h1 { font-family: var(--serif); font-size: 34px; margin: 0; letter-spacing: -.01em; }
+h2 { font-family: var(--serif); font-size: 22px; margin: 0; }
+.sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-top: 18px; }
+button, input, textarea { font: inherit; color: var(--ink); }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 7px 13px; font-size: 14px; }
+button.main { background: var(--rose); border-color: var(--rose); color: var(--roseInk); font-weight: 700; }
+button.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 4px 8px; font-size: 13px; }
+button.warn { color: var(--danger); border-color: var(--danger); }
+button:disabled { opacity: .5; cursor: default; }
+input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; min-width: 0; width: 100%; }
+textarea { min-height: 70px; resize: vertical; }
+label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+.form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--soft); border-radius: 12px; padding: 14px; margin-top: 12px; }
+.form .full { grid-column: 1 / -1; }
+.empty { color: var(--muted); font-size: 14px; padding: 10px 0 2px; }
+.items { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.it { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.it .body { flex: 1; min-width: 0; }
+.it .t { font-weight: 700; }
+.it .m { color: var(--muted); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.when { flex: none; width: 64px; text-align: center; border-radius: 10px; background: var(--roseSoft); padding: 6px 0; line-height: 1.2; }
+.when b { display: block; font-family: var(--serif); font-size: 22px; }
+.when span { font-size: 12px; color: var(--muted); }
+.when.past { background: var(--soft); }
+.dday { font-size: 12px; font-weight: 700; color: var(--rose); margin-left: 6px; }
+.tools { display: flex; gap: 2px; flex: none; }
+.chk { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--sage); background: var(--panel); display: grid; place-items: center; padding: 0; }
+.chk.on { background: var(--sage); color: var(--panel); }
+.chk.on::after { content: "✓"; font-weight: 700; }
+.chk.ro { cursor: default; }
+.it.done .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--sage); }
+.count { font-size: 14px; color: var(--sage); font-weight: 700; }
+.bar { height: 6px; border-radius: 3px; background: var(--sageSoft); overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; background: var(--sage); }
+.vids { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+@media (max-width: 600px) { .vids { grid-template-columns: minmax(0, 1fr); } }
+.vid { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); min-width: 0; }
+.frame { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; }
+.frame iframe, .frame button { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.frame button { padding: 0; border-radius: 0; background: #000 center / cover no-repeat; }
+.frame button::after { content: "▶"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60px; height: 42px; border-radius: 12px; background: rgba(200, 40, 40, .92); color: #fff; font-size: 20px; display: grid; place-items: center; }
+.vid .cap { padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; }
+.vid .cap .body { flex: 1; min-width: 0; }
+details.health { background: var(--panel); border: 1px dashed var(--line); border-radius: 16px; margin-top: 30px; }
+details.health > summary { cursor: pointer; padding: 14px 18px; color: var(--muted); font-size: 15px; list-style: none; }
+details.health > summary::-webkit-details-marker { display: none; }
+details.health > summary::before { content: "▸ "; }
+details.health[open] > summary::before { content: "▾ "; }
+details.health .in { padding: 0 18px 18px; }
+.past-toggle { margin-top: 8px; }
+.adminbar { background: var(--soft); border-radius: 12px; padding: 10px 12px; margin-top: 14px; font-size: 14px; }
+.gate { max-width: 420px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 14px; z-index: 9; max-width: 90vw; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>엄마 일기</h1>
+    <div class="sub">엄마의 일정, 하고 싶은 것, 엄마가 나온 영상을 모아 두는 곳</div>
+  </header>
+
+  <div id="gate" class="gate" hidden>
+    <section>
+      <h2>들어가기</h2>
+      <p class="sub">가족은 이현님이 보내준 주소로 들어와요. 이현님은 관리자 키를 넣어 주세요.</p>
+      <form id="gateForm" class="row" style="margin-top:10px">
+        <input id="gateKey" type="password" placeholder="관리자 키" autocomplete="current-password" style="flex:1">
+        <button class="main">들어가기</button>
+      </form>
+      <div id="gateMsg" class="sub"></div>
+    </section>
+  </div>
+
+  <div id="app" hidden>
+    <div id="adminbar" class="adminbar row between" hidden>
+      <span>이현님 화면이에요. 가족은 공유 주소로 보기만 할 수 있어요.</span>
+      <span class="row">
+        <button id="copyLink">가족 공유 주소 복사</button>
+        <button id="newKey" class="ghost">주소 바꾸기</button>
+      </span>
+    </div>
+    <div id="main"></div>
+    <details class="health" id="healthBox">
+      <summary>병원 관리</summary>
+      <div class="in" id="health"></div>
+    </details>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const API = '/api/mom';
+const q = new URLSearchParams(location.search);
+const viewKey = q.get('k') || '';
+let adminKey = '';
+try { adminKey = localStorage.getItem('ai-admin-key') || ''; } catch {}
+let items = [], admin = false, shareKey = '';
+const open = { form: null, edit: null, past: false, del: null };
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 2200); }
+function dday(d) {
+  const n = Math.round((Date.parse(d) - Date.parse(today())) / 864e5);
+  return n === 0 ? '오늘' : n > 0 ? `D-${n}` : '';
+}
+function whenBox(d, past) {
+  if (!d) return `<div class="when${past ? ' past' : ''}"><b>·</b><span>날짜 미정</span></div>`;
+  const [y, m, dd] = d.split('-').map(Number);
+  return `<div class="when${past ? ' past' : ''}"><b>${dd}</b><span>${m}월 (${DOW[new Date(y, m - 1, dd).getDay()]})</span></div>`;
+}
+
+async function api(method, body, qs = '') {
+  const h = { 'Content-Type': 'application/json' };
+  if (adminKey) h['x-admin-key'] = adminKey;
+  const r = await fetch(API + qs, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || r.status), { code: j.error, status: r.status });
+  return j;
+}
+
+async function load() {
+  try {
+    const j = await api('GET', null, viewKey ? `?k=${encodeURIComponent(viewKey)}` : '');
+    items = j.items; admin = j.admin; shareKey = j.key || '';
+    $('#gate').hidden = true; $('#app').hidden = false; $('#adminbar').hidden = !admin;
+    render();
+  } catch (e) {
+    $('#app').hidden = true; $('#gate').hidden = false;
+    if (e.code === 'no_redis') $('#gateMsg').textContent = '저장소가 아직 연결되지 않았어요.';
+    else if (viewKey) $('#gateMsg').textContent = '주소가 바뀌었거나 맞지 않아요. 이현님께 새 주소를 받아 주세요.';
+    else if (adminKey) $('#gateMsg').textContent = '관리자 키가 맞지 않아요.';
+  }
+}
+
+// ── 섹션별 입력 칸
+const FIELDS = {
+  sched: [['title', '무엇', 'text', '예: 가족 여행, 동창 모임'], ['date', '날짜', 'date'], ['time', '시간', 'time'], ['place', '장소', 'text'], ['memo', '메모', 'area']],
+  bucket: [['title', '하고 싶은 것', 'text', '예: 제주도 한 달 살기'], ['memo', '메모', 'area']],
+  video: [['url', '유튜브 주소', 'text', 'https://youtu.be/…'], ['title', '제목 (비우면 유튜브 제목)', 'text'], ['date', '찍은 날', 'date'], ['memo', '메모', 'area']],
+  health: [['title', '무엇', 'text', '예: 정기 검진, 혈압약'], ['date', '날짜', 'date'], ['time', '시간', 'time'], ['place', '병원', 'text'], ['memo', '메모 (결과·약·주의할 점)', 'area']],
+};
+function formHtml(sec, it = {}) {
+  const v = (k) => k === 'url' && it.vid ? `https://youtu.be/${it.vid}` : (it[k] ?? '');
+  const f = FIELDS[sec].map(([k, label, type, ph]) => type === 'area'
+    ? `<label class="full">${label}<textarea name="${k}" placeholder="${esc(ph || '')}">${esc(v(k))}</textarea></label>`
+    : `<label${k === 'title' || k === 'url' ? ' class="full"' : ''}>${label}<input name="${k}" type="${type}" value="${esc(v(k))}" placeholder="${esc(ph || '')}"></label>`).join('');
+  return `<form class="form" data-sec="${sec}" data-id="${esc(it.id || '')}">${f}
+    <div class="row full"><button class="main">${it.id ? '고치기' : '추가'}</button><button type="button" data-cancel>취소</button></div></form>`;
+}
+function tools(it) {
+  if (!admin) return '';
+  if (open.del === it.id) return `<div class="tools"><button class="ghost warn" data-delok="${it.id}">정말 지우기</button><button class="ghost" data-delno>취소</button></div>`;
+  return `<div class="tools"><button class="ghost" data-edit="${it.id}">고치기</button><button class="ghost" data-del="${it.id}">지우기</button></div>`;
+}
+const addBtn = (sec) => admin && open.form !== sec ? `<button class="main" data-add="${sec}">＋ 추가</button>` : '';
+const addForm = (sec) => admin && open.form === sec ? formHtml(sec) : '';
+const of = (sec) => items.filter((i) => i.sec === sec);
+const byDate = (a, b) => (a.date || '9999') .localeCompare(b.date || '9999') || (a.time || '').localeCompare(b.time || '') || a.at - b.at;
+
+function dated(it) {
+  if (open.edit === it.id) return `<li>${formHtml(it.sec, it)}</li>`;
+  const past = it.date && it.date < today();
+  const dd = it.date && !past ? dday(it.date) : '';
+  const meta = [it.time, it.place].filter(Boolean).join(' · ');
+  return `<li class="it">${whenBox(it.date, past)}<div class="body"><div class="t">${esc(it.title)}${dd ? `<span class="dday">${dd}</span>` : ''}</div>
+    ${meta ? `<div class="m">${esc(meta)}</div>` : ''}${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</li>`;
+}
+function datedList(sec, emptyText) {
+  const all = of(sec).sort(byDate), t = today();
+  const up = all.filter((i) => !i.date || i.date >= t), past = all.filter((i) => i.date && i.date < t).reverse();
+  let h = up.length ? `<ul class="items">${up.map(dated).join('')}</ul>` : `<div class="empty">${emptyText}</div>`;
+  if (past.length) h += `<button class="ghost past-toggle" data-past>${open.past ? '지난 것 접기' : `지난 것 ${past.length}개 보기`}</button>` + (open.past ? `<ul class="items">${past.map(dated).join('')}</ul>` : '');
+  return h;
+}
+
+function render() {
+  const sched = `<section><div class="row between"><h2>엄마 일정</h2>${addBtn('sched')}</div>${addForm('sched')}${datedList('sched', '다가오는 일정이 없어요.')}</section>`;
+
+  const bl = of('bucket').sort((a, b) => (a.done - b.done) || a.at - b.at), done = bl.filter((i) => i.done).length;
+  const bucket = `<section><div class="row between"><h2>엄마의 버킷리스트</h2>${addBtn('bucket')}</div>
+    ${bl.length ? `<div class="count">${bl.length}개 중 ${done}개 이뤘어요</div><div class="bar"><i style="width:${Math.round(done / bl.length * 100)}%"></i></div>` : ''}
+    ${addForm('bucket')}
+    ${bl.length ? `<ul class="items">${bl.map((it) => open.edit === it.id ? `<li>${formHtml('bucket', it)}</li>` : `<li class="it${it.done ? ' done' : ''}">
+      <button class="chk${it.done ? ' on' : ''}${admin ? '' : ' ro'}" ${admin ? `data-tick="${it.id}"` : 'disabled'} aria-label="이룸"></button>
+      <div class="body"><div class="t">${esc(it.title)}</div>${it.memo ? `<div class="m">${esc(it.memo)}</div>` : ''}</div>${tools(it)}</li>`).join('')}</ul>` : '<div class="empty">아직 적힌 버킷리스트가 없어요.</div>'}</section>`;
+
+  const vl = of('video').sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.at - a.at);
+  const video = `<section><div class="row between"><h2>엄마가 나온 영상</h2>${addBtn('video')}</div>${addForm('video')}
+    ${vl.length ? `<div class="vids">${vl.map((it) => open.edit === it.id ? `<div class="vid">${formHtml('video', it)}</div>` : `<div class="vid">
+      <div class="frame" data-vid="${esc(it.vid)}"><button style="background-image:url('https://i.ytimg.com/vi/${esc(it.vid)}/hqdefault.jpg')" data-play="${esc(it.vid)}" aria-label="재생"></button></div>
+      <div class="cap"><div class="body"><div class="t">${esc(it.title || '영상')}</div>
+      <div class="m">${[it.date ? it.date.replaceAll('-', '.') : '', it.memo].filter(Boolean).map(esc).join(' · ')}</div></div>${tools(it)}</div></div>`).join('')}</div>`
+      : '<div class="empty">아직 올린 영상이 없어요.</div>'}</section>`;
+
+  $('#main').innerHTML = sched + bucket + video;
+  const hn = of('health').length;
+  $('#healthBox').querySelector('summary').textContent = `병원 관리${hn ? ` (${hn})` : ''}`;
+  $('#health').innerHTML = `<div class="row between" style="margin-top:4px"><span class="sub">진료 일정과 약, 검사 결과를 적어 두는 곳</span>${addBtn('health')}</div>${addForm('health')}${datedList('health', '다가오는 진료가 없어요.')}`;
+}
+
+// ── 이벤트
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  const d = t.dataset;
+  if (d.add) { open.form = d.add; open.edit = null; if (d.add === 'health') $('#healthBox').open = true; render(); document.querySelector(`form[data-sec="${d.add}"] input`)?.focus(); }
+  else if ('cancel' in d) { open.form = null; open.edit = null; render(); }
+  else if (d.edit) { open.edit = d.edit; open.form = null; render(); }
+  else if (d.del) { open.del = d.del; render(); }
+  else if ('delno' in d) { open.del = null; render(); }
+  else if (d.delok) {
+    t.disabled = true;
+    try { await api('POST', { op: 'del', id: d.delok }); items = items.filter((i) => i.id !== d.delok); open.del = null; render(); toast('지웠어요'); }
+    catch { toast('지우지 못했어요'); t.disabled = false; }
+  }
+  else if (d.tick) {
+    const it = items.find((i) => i.id === d.tick); if (!it) return;
+    it.done = !it.done; render();
+    try { await api('POST', { op: 'save', item: it }); toast(it.done ? '이뤘어요! 🎉' : '체크를 풀었어요'); }
+    catch { it.done = !it.done; render(); toast('저장하지 못했어요'); }
+  }
+  else if ('past' in d) { open.past = !open.past; render(); }
+  else if (d.play) {
+    const box = t.parentElement;
+    box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(d.play)}?autoplay=1&rel=0&playsinline=1" title="영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  }
+  else if (t.id === 'copyLink') {
+    const url = `${location.origin}${location.pathname}?k=${shareKey}`;
+    try { await navigator.clipboard.writeText(url); toast('가족 공유 주소를 복사했어요'); }
+    catch { prompt('주소를 복사하세요', url); }
+  }
+  else if (t.id === 'newKey') {
+    if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = '예전 주소는 막혀요. 바꿀까요?'; t.classList.add('warn'); return; }
+    try { shareKey = (await api('POST', { op: 'newKey' })).key; toast('새 주소로 바꿨어요. 다시 복사해 보내 주세요'); }
+    catch { toast('바꾸지 못했어요'); }
+    t.dataset.sure = ''; t.textContent = '주소 바꾸기'; t.classList.remove('warn');
+  }
+});
+
+document.addEventListener('submit', async (e) => {
+  const f = e.target;
+  if (f.id === 'gateForm') {
+    e.preventDefault();
+    adminKey = $('#gateKey').value.trim();
+    try { localStorage.setItem('ai-admin-key', adminKey); } catch {}
+    return load();
+  }
+  if (!f.matches('form.form')) return;
+  e.preventDefault();
+  const item = Object.fromEntries(new FormData(f));
+  item.sec = f.dataset.sec;
+  const old = items.find((i) => i.id === f.dataset.id);
+  if (old) Object.assign(item, { id: old.id, at: old.at, done: old.done });
+  if (item.sec === 'video' ? !item.url.trim() : !item.title.trim()) { toast(item.sec === 'video' ? '유튜브 주소를 넣어 주세요' : '내용을 적어 주세요'); return; }
+  const btn = f.querySelector('button.main'); btn.disabled = true;
+  try {
+    const { item: saved } = await api('POST', { op: 'save', item });
+    items = items.filter((i) => i.id !== saved.id).concat(saved);
+    open.form = null; open.edit = null; render(); toast(old ? '고쳤어요' : '추가했어요');
+  } catch (err) {
+    btn.disabled = false;
+    toast(err.code === 'url' ? '유튜브 주소를 알아보지 못했어요' : '저장하지 못했어요');
+  }
+});
+
+if (!viewKey && !adminKey) { $('#gate').hidden = false; } else load();
+</script>
+</body>
+</html>
