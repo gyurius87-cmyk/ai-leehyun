@@ -38,6 +38,7 @@ const cats = TL_CATS.map((c) => ({ c, n: all.filter((i) => i.cat === c).length }
       {days.map((day) => <DayBlock day={day} />)}
     </div>
   </div>
+  <script is:inline src="/tl-edit.js" defer></script>
 </Base>
 
 <style>

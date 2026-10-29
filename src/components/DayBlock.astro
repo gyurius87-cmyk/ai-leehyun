@@ -3,20 +3,23 @@ import { formatDate } from '../lib/data.js';
 const { day } = Astro.props;
 const h = Math.floor((day.minutes || 0) / 60), m = (day.minutes || 0) % 60;
 const studied = day.minutes ? (h ? `${h}시간` : '') + (m ? `${h ? ' ' : ''}${m}분` : '') : '';
+// 고치기(/api/timeline)에서 항목을 찾는 열쇠: 날짜|시각|글 해시
+const hash = (s) => { let x = 5381; for (const ch of s) x = ((x * 33) ^ ch.codePointAt(0)) >>> 0; return x.toString(36); };
+const key = (item) => `${day.date}|${item.time}|${hash(item.text)}`;
 ---
-<article class="day-block">
+<article class="day-block" data-date={day.date} data-min={day.minutes || 0}>
   <div class="day-label">
     <div class="d">D{day.day}</div>
     <div class="date">{formatDate(day.date)} ({day.weekday})</div>
-    {studied && <div class="studied" title="그날 기록 시각으로 잰 공부 시간">{studied} 공부</div>}
+    <div class="studied" title="그날 기록 시각으로 잰 공부 시간" hidden={!studied}>{studied} 공부</div>
   </div>
   <ul class="day-items">
     {day.items.map((item) => (
-      <li data-cat={item.cat}>
+      <li data-cat={item.cat} data-k={key(item)} data-link={item.link || ''}>
         <time>{item.time}</time>
         <span>
           <b class="cat" data-c={item.cat}>{item.cat === '사업' ? '사업 운영실' : item.cat}</b>
-          {item.text}
+          <span class="tx">{item.text}</span>
           {item.link && <a href={item.link}>보러가기 →</a>}
         </span>
       </li>
