@@ -16,7 +16,10 @@ function cleanMember(m) {
     const per = Math.max(1, Math.min(7, Number(h?.perWeek) || days.length || 3));
     return { id: okId(h?.id) ? h.id : newId(8), name: clip(h?.name, 30) || "습관", perWeek: days.length ? days.length : per, days };
   });
-  return { id: okId(m?.id) ? m.id : newId(8), name: clip(m?.name, 20) || "이름", habits, order: Number(m?.order) || Date.now() };
+  const out = { id: okId(m?.id) ? m.id : newId(8), name: clip(m?.name, 20) || "이름", habits, order: Number(m?.order) || Date.now() };
+  // 도트 캐릭터 남/여 (고르지 않으면 이름으로 추측)
+  if (m?.sex === "m" || m?.sex === "f") out.sex = m.sex;
+  return out;
 }
 
 export default async function handler(req, res) {
@@ -101,6 +104,14 @@ export default async function handler(req, res) {
     return res.json({ ok: true });
   }
   if (!meta.months.includes(month)) return res.status(400).json({ error: "no_month" });
+
+  // 달 삭제 (이현님만): 그 달의 사람·체크도 함께 지움
+  if (b.op === "delMonth") {
+    if (!admin) return res.status(401).json({ error: "auth" });
+    meta.months = meta.months.filter((x) => x !== month);
+    await redis([["SET", `habit:g:${g}`, JSON.stringify(meta)], ["DEL", `habit:m:${g}:${month}`], ["DEL", `habit:c:${g}:${month}`]]);
+    return res.json({ ok: true });
+  }
 
   if (b.op === "saveMember") {
     const m = cleanMember(b.member);
