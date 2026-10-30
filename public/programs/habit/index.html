@@ -119,6 +119,9 @@ th.unpaid { background: var(--off); }
 .dash .pd b { font-size: 17px; }
 th.unpaid .pname { color: var(--muted); font-weight: 400; }
 .wkline { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
+.px { image-rendering: pixelated; vertical-align: middle; flex: none; }
+.pname { display: inline-flex; align-items: center; gap: 5px; }
+.adm-only[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -146,7 +149,7 @@ th.unpaid .pname { color: var(--muted); font-weight: 400; }
     <div class="tabs" id="tabs"></div>
     <div class="panel row me" style="justify-content:space-between">
       <div class="row"><button class="main" id="addP">＋ 사람 추가</button><span class="note">이름을 누르면 그 사람 습관을 고칠 수 있어요</span></div>
-      <div class="row"><button id="share">초대 주소 복사</button></div>
+      <div class="row"><button id="rename" class="adm-only" hidden>이름 바꾸기</button><button id="delM" class="adm-only" hidden>이 달 삭제</button><button id="share">초대 주소 복사</button></div>
     </div>
     <div class="panel form" id="form" hidden></div>
     <div id="pot" class="panel pot" hidden></div>
@@ -180,6 +183,53 @@ async function api(method, body, q = "") {
   return j;
 }
 
+// ── 도트 캐릭터: 이름으로 남/여 추측, 색은 사람마다 고정
+const FEM_END = "희숙자미은경선연아나화옥순혜린주인란영정애리희서윤";
+const FEM_START = "혜미은지서예소다채가유수하나";
+const MALE_END = "호철훈준석우범규식환섭태용근원혁성기동진민현빈재열욱택모일길구한";
+function guessSex(name) {
+  const n = (name || "").replace(/[^가-힣]/g, ""); if (!n) return "m";
+  const g = n.length >= 3 ? n.slice(1) : n.length === 2 ? n : n;
+  const last = g[g.length - 1], first = g[0];
+  let f = 0;
+  if (FEM_END.includes(last)) f += 2; if (MALE_END.includes(last)) f -= 2;
+  if (g.length >= 2 && FEM_START.includes(first)) f += 1;
+  return f > 0 ? "f" : "m";
+}
+const sexOf = (m) => m.sex || guessSex(m.name);
+function hashN(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+const SPR = {
+  m: ["...HHHH...", "..HHHHHH..", ".HHHHHHHH.", ".HSSSSSSH.", ".SSESSESS.", ".SSSSSSSS.", "..SSMMSS..", "...SSSS...", "..CCCCCC..", ".CCCCCCCC.", ".SCCCCCCS.", "..PPPPPP..", "..PP..PP..", "..KK..KK.."],
+  f: ["...HHHH...", "..HHHHHHR.", ".HHHHHHHRR", "HHSSSSSSHH", "HSSESSESSH", "HSBSSSSBSH", "HHSSMMSSHH", "HH.SSSS.HH", "H.CCCCCC.H", ".CCCCCCCC.", ".SCCCCCCS.", ".DDDDDDDD.", "...S..S...", "..KK..KK.."],
+};
+const HAIR = ["#2b1d14", "#4a2f1d", "#6b3f22", "#1c1c2a", "#8a5a2b", "#3b2a4a"], SHIRT = ["#3a7bd5", "#e5484d", "#2fa36b", "#f08a1c", "#8e5bd8", "#1fa3b8", "#d94f8a", "#5b6b7f"], SKIN = ["#f6cfa8", "#efc196", "#e3ae82"];
+function rects(rows, pal, u) { let out = ""; rows.forEach((r, y) => [...r].forEach((c, x) => { if (pal[c]) out += `<rect x="${x * u}" y="${y * u}" width="${u}" height="${u}" fill="${pal[c]}"/>`; })); return out; }
+function avatar(m, u = 2) {
+  const sex = sexOf(m), h = hashN(m.id || m.name), rows = SPR[sex];
+  const pal = { H: HAIR[h % HAIR.length], S: SKIN[(h >> 3) % SKIN.length], E: "#222", M: "#c4554d", B: "#f59ab0", R: "#e5484d", C: SHIRT[(h >> 5) % SHIRT.length], P: "#3b4a6b", D: SHIRT[(h >> 8) % SHIRT.length], K: "#333" };
+  return `<svg class="px" width="${10 * u}" height="${14 * u}" viewBox="0 0 ${10 * u} ${14 * u}" shape-rendering="crispEdges" aria-hidden="true">${rects(rows, pal, u)}</svg>`;
+}
+// ── 할일 도트 아이콘: 습관 이름의 낱말로 고름
+const ICONS = {
+  dumbbell: [/헬스|근력|스쿼트|푸시업|팔굽|플랭크|홈트|운동|웨이트|복근/, ["........", ".G....G.", "GG....GG", "GGGGGGGG", "GG....GG", ".G....G.", "........", "........"]],
+  shoe: [/러닝|달리|걷|산책|만보|등산|조깅|계단|자전거|마라톤/, ["........", "..RR....", "..RRR...", "..RRRR..", ".RRRRRRR", ".WWWWWWW", "........", "........"]],
+  book: [/독서|책|필사|읽|낭독|오디오북/, [".BBBBBB.", ".BWWWWB.", ".BWBBWB.", ".BWWWWB.", ".BWBBWB.", ".BWWWWB.", ".BBBBBB.", "........"]],
+  drop: [/물|수분|차 마시/, ["...BB...", "...BB...", "..BBBB..", ".BBBBBB.", ".BWBBBB.", ".BWBBBB.", "..BBBB..", "........"]],
+  sun: [/기상|아침|일찍 일|미라클|햇빛|새벽/, ["Y..YY..Y", ".Y....Y.", "..OOOO..", "YOOOOOOY", "YOOOOOOY", "..OOOO..", ".Y....Y.", "Y..YY..Y"]],
+  moon: [/수면|잠|취침|자기|숙면/, ["...YYY..", "..YYY...", ".YYY....", ".YYY....", ".YYY....", ".YYYY...", "..YYYYY.", "...YYY.."]],
+  apple: [/식단|다이어트|채소|과일|샐러드|단식|간헐|야식|건강식|영양제|비타민|약/, ["....L...", "...L....", ".RR.RR..", "RRRRRRR.", "RWRRRRR.", "RRRRRRR.", ".RRRRR..", "..R.R..."]],
+  coin: [/저축|돈|가계부|투자|주식|절약|무지출|재테크|부동산|경제/, ["..YYYY..", ".YYYYYY.", "YYYOOYYY", "YYYOOYYY", "YYYOOYYY", "YYYOOYYY", ".YYYYYY.", "..YYYY.."]],
+  pencil: [/공부|글|일기|블로그|계획|기록|영어|강의|메모|단어|자격증|코딩|하루/, ["......PP", ".....YPP", "....YYY.", "...YYY..", "..YYY...", ".WYY....", ".KW.....", "........"]],
+  heart: [/명상|기도|감사|마음|요가|스트레칭|가족|연락|칭찬|필라테스|호흡/, ["........", ".RR..RR.", "RRRRRRRR", "RWRRRRRR", "RRRRRRRR", ".RRRRRR.", "..RRRR..", "...RR..."]],
+  no: [/금연|금주|술|담배|폰|유튜브|SNS|sns|게임|디지털|커피/, ["..RRRR..", ".R....R.", "R.R....R", "R..R...R", "R...R..R", "R....R.R", ".R....R.", "..RRRR.."]],
+  star: [/./, ["...YY...", "...YY...", "YYYYYYYY", ".YYYYYY.", "..YYYY..", ".YYYYYY.", ".YY..YY.", "Y......Y"]],
+};
+const IPAL = { G: "#6b7a8f", R: "#e5484d", W: "#ffffff", B: "#3a7bd5", Y: "#f5c518", O: "#f08a1c", L: "#3fae49", P: "#f39ab0", K: "#333" };
+function hicon(name, u = 2) {
+  const [, rows] = Object.values(ICONS).find(([re]) => re.test(name || "")) || ICONS.star;
+  return `<svg class="px" width="${8 * u}" height="${8 * u}" viewBox="0 0 ${8 * u} ${8 * u}" shape-rendering="crispEdges" aria-hidden="true">${rects(rows, IPAL, u)}</svg>`;
+}
+
 // ── 주소 없이: 만든 사람은 목록·새로 만들기
 async function home() {
   $("#home").hidden = false;
@@ -207,6 +257,7 @@ function render() {
   $("#room").hidden = false;
   $("#title").textContent = S.meta.title;
   document.title = S.meta.title + " · 습관 챌린지";
+  $("#rename").hidden = !S.admin; $("#delM").hidden = !S.admin || !S.month; $("#delM").dataset.sure = ""; $("#delM").textContent = S.month ? `${+S.month.slice(5)}월 삭제` : "이 달 삭제";
   const months = S.meta.months;
   const next = (() => { const base = months.length ? new Date(months[months.length - 1] + "-01") : new Date(); if (months.length) base.setMonth(base.getMonth() + 1); return ym(base); })();
   $("#tabs").innerHTML = `<button data-all="1" class="${dashMode === "all" ? "on" : ""}">전체</button>` + months.map((m) => `<button data-m="${m}" class="${dashMode !== "all" && m === S.month ? "on" : ""}">${+m.slice(5)}월${m.slice(0, 4) !== String(new Date().getFullYear()) ? " (" + m.slice(2, 4) + ")" : ""}</button>`).join("") + `<button data-add="${next}">＋ ${+next.slice(5)}월 만들기</button>`;
@@ -285,9 +336,9 @@ function dash() {
   D.innerHTML = dashHead(isNow ? "오늘까지 목표 기준" : "이 달 전체 기준")
     + kpis([["우리 달성률", pctOf(td, tg) + "%"], ["체크한 횟수", `${td}<small> / ${tg}</small>`], ...(isNow ? [["오늘 체크", `${todayDone}<small> / ${todayAll}</small>`]] : []), ["참여", `${people.length}<small>명</small>`]])
     + podium(people.map((p) => ({ name: p.m.name, pct: p.pct, dn: p.dn })), "실시간 순위 · 습관 여러 개는 합쳐서")
-    + `<div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b>${medal[i] && p.pct ? medal[i] + " " : ""}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
+    + `<div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b class="row" style="gap:5px">${medal[i] && p.pct ? medal[i] + " " : ""}${avatar(p.m)}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
       <div class="bar"><i style="width:${p.pct}%"></i></div>
-      ${p.hs.map((x) => `<div class="hl"><span>${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
+      ${p.hs.map((x) => `<div class="hl"><span>${hicon(x.h.name)} ${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
 }
 async function dashAll() {
   const D = $("#dash");
@@ -348,9 +399,9 @@ function table() {
   const days = monthDays(S.month), W = weeks(days), cols = [];
   S.members.forEach((m) => m.habits.forEach((h) => cols.push({ m, h })));
   const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
-  let html = `<thead><tr class="who"><th class="date" rowspan="2">${+S.month.slice(5)}월</th><th rowspan="2"></th>${S.members.map((m) => `<th colspan="${m.habits.length || 1}" class="${m.paid === false ? "unpaid" : ""}"><button class="mini pname" data-edit="${m.id}" title="습관 고치기">${esc(m.name)} ✎</button>${m.paid === false
+  let html = `<thead><tr class="who"><th class="date" rowspan="2">${+S.month.slice(5)}월</th><th rowspan="2"></th>${S.members.map((m) => `<th colspan="${m.habits.length || 1}" class="${m.paid === false ? "unpaid" : ""}"><button class="mini pname" data-edit="${m.id}" title="습관 고치기">${avatar(m)}${esc(m.name)} ✎</button>${m.paid === false
    ? `<div class="paybox"><span class="badge">미입금</span><button class="mini pay" data-pay="1">참가비 입금하러 가기</button>${S.admin ? `<button class="mini main" data-approve="${m.id}">입금 승인</button>` : ""}</div>`
-   : S.admin && m.paid ? `<div class="paybox"><span class="badge ok">입금 확인</span><button class="mini" data-unapprove="${m.id}">취소</button></div>` : ""}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${esc(h.name)}<br><span class="wkline">${h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
+   : S.admin && m.paid ? `<div class="paybox"><span class="badge ok">입금 확인</span><button class="mini" data-unapprove="${m.id}">취소</button></div>` : ""}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${hicon(h.name)} ${esc(h.name)}<br><span class="wkline">${h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
   W.forEach((wk, i) => {
     html += `<tr class="wk"><td colspan="${2 + Math.max(1, cols.length) + S.members.filter((m) => !m.habits.length).length}">${i + 1}주차</td></tr>`;
     wk.forEach((d) => {
@@ -420,6 +471,15 @@ $("#tabs").addEventListener("click", async (e) => {
   }
 });
 $("#addP").onclick = () => { if (!S.month) return toast("먼저 달을 만들어 주세요"); openForm({ name: "", habits: [{ name: "", perWeek: 3, days: [] }] }); };
+$("#rename").onclick = async () => {
+  const t = (prompt("챌린지 이름", S.meta.title) || "").trim(); if (!t || t === S.meta.title) return;
+  try { await api("POST", { g: G, op: "title", title: t }); toast("이름을 바꿨어요"); load(S.month); } catch { toast("못 바꿨어요"); }
+};
+$("#delM").onclick = async () => {
+  const b = $("#delM");
+  if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = `${+S.month.slice(5)}월 기록까지 지워요. 한 번 더`; return; }
+  try { await api("POST", { g: G, month: S.month, op: "delMonth" }); toast("그 달을 지웠어요"); dashMode = "month"; load(); } catch { toast("못 지웠어요"); }
+};
 $("#share").onclick = async () => { const u = location.origin + location.pathname + "?g=" + G; try { await navigator.clipboard.writeText(u); toast("초대 주소를 복사했어요"); } catch { prompt("이 주소를 보내 주세요", u); } };
 
 // ── 내 습관 설정: 이름, 습관 여러 개, 주 n회 또는 요일
@@ -427,6 +487,7 @@ function openForm(m) {
   editing = m; const F = $("#form"); F.hidden = false;
   F.innerHTML = `<div class="row" style="justify-content:space-between"><b>${m.id ? esc(m.name) + " 습관 고치기" : "사람 추가"}</b><span class="note">${+S.month.slice(5)}월부터 적용돼요</span></div>
     <div class="row" style="margin-top:8px"><label>이름</label><input type="text" id="fName" value="${esc(m.name)}" placeholder="예: 이현규" maxlength="20"></div>
+    <div class="row"><label>캐릭터</label><span id="fAva">${avatar({ ...m, name: m.name }, 3)}</span><div class="chips">${[["m", "남"], ["f", "여"]].map(([k, t]) => `<button data-sex="${k}" class="${sexOf(m) === k ? "on" : ""}">${t}</button>`).join("")}</div><span class="note">이름으로 골라 뒀어요. 틀리면 바꿔 주세요</span></div>
     ${m.habits.map((h, i) => `<div class="h" data-i="${i}">
       <div class="row"><input type="text" data-k="name" value="${esc(h.name)}" placeholder="습관 (예: 하루계획, 필사)" maxlength="30" style="flex:1"><button class="mini" data-del="${i}">빼기</button></div>
       <div class="row"><label>요일 (고르면 그 요일만)</label><div class="chips">${PICK.map((d) => `<button data-day="${d}" class="${h.days.includes(d) ? "on" : ""}">${DOW[d]}</button>`).join("")}</div></div>
@@ -439,6 +500,7 @@ function readForm() { editing.name = $("#fName").value.trim(); document.querySel
 $("#form").addEventListener("click", async (e) => {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.day) { readForm(); const h = editing.habits[+t.closest(".h").dataset.i], d = +t.dataset.day; h.days = h.days.includes(d) ? h.days.filter((x) => x !== d) : [...h.days, d]; if (h.days.length) h.perWeek = h.days.length; return openForm(editing); }
+  if (t.dataset.sex) { readForm(); editing.sex = t.dataset.sex; return openForm(editing); }
   if (t.dataset.del) { readForm(); editing.habits.splice(+t.dataset.del, 1); return openForm(editing); }
   if (t.id === "fAdd") { readForm(); if (editing.habits.length >= 6) return toast("습관은 6개까지예요"); editing.habits.push({ name: "", perWeek: 3, days: [] }); return openForm(editing); }
   if (t.id === "fCancel") { $("#form").hidden = true; return; }
