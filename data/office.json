@@ -11,8 +11,8 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "working",
-          "doing": "주식 프로그램에 차트·DB·공부 탭을 만드는 중이에요",
+          "status": "done",
+          "doing": "주식 프로그램을 주식 부서로 넘겼어요",
           "prop": "🛠️",
           "acc": "glasses"
         },
@@ -169,6 +169,63 @@
           "prop": "🧭",
           "acc": "beret",
           "since": "2026-10-31"
+        },
+        {
+          "team": "개발팀",
+          "name": "주식 프로그램 담당",
+          "status": "working",
+          "doing": "오늘 만든 11개 탭을 이어받아 실제 화면을 점검해요",
+          "prop": "💻",
+          "acc": "glasses"
+        },
+        {
+          "team": "시장팀",
+          "name": "아침 브리핑 담당",
+          "status": "working",
+          "doing": "매일 07:30에 지수·뉴스·전문가 의견을 정리해요",
+          "prop": "🌅",
+          "acc": "tie"
+        },
+        {
+          "team": "시장팀",
+          "name": "DB 기록 담당",
+          "status": "working",
+          "doing": "매일 모든 탭을 한 줄씩 DB 표에 남겨요",
+          "prop": "🗄️",
+          "acc": "pencil"
+        },
+        {
+          "team": "대가팀",
+          "name": "대가 모의투자 담당",
+          "status": "working",
+          "doing": "대가 7명과 제로의 1억 모의 계좌를 매일 굴려요",
+          "prop": "🧓",
+          "acc": "bowtie"
+        },
+        {
+          "team": "리서치팀",
+          "name": "유명인 포폴 담당",
+          "status": "waiting",
+          "doing": "미국 공직자·의원 주식 공개를 붙일지 답을 기다려요",
+          "prop": "🏛️",
+          "acc": "beret",
+          "since": "2026-10-31"
+        },
+        {
+          "team": "리서치팀",
+          "name": "유튜버·SNS 담당",
+          "status": "working",
+          "doing": "유튜버 영상과 유명인 발언을 모아요",
+          "prop": "📺",
+          "acc": "heart"
+        },
+        {
+          "team": "공부팀",
+          "name": "백테스트 담당",
+          "status": "working",
+          "doing": "물어본 전략을 백테스트하고 기록을 남겨요",
+          "prop": "🧪",
+          "acc": "glasses"
         },
         {
           "team": "인사팀",
