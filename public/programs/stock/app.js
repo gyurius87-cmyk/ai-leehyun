@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "masters", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -56,7 +56,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "masters", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "masters") loadMasters(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -141,6 +141,138 @@ function renderMaster(id) {
     <h3 style="margin-top:14px">매매 일지 <span class="note">${esc(info.name)}에 빙의해서 쓴 이유 · 최근 순</span></h3><div class="tw"><table><thead><tr><th>날짜</th><th>종목</th><th></th><th class="r">가격</th><th class="r">금액(원)</th><th class="r">손익(원)</th><th>이유</th></tr></thead><tbody>${m.trades.map((t) => `<tr><td class="num">${t.d}</td><td>${esc(t.n)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="r">${fmt(t.p)}</td><td class="r">${won(t.won)}</td><td class="r ${ud(t.pl)}">${t.pl != null ? won(t.pl) : ""}</td><td style="min-width:240px">${esc(t.why)}</td></tr>`).join("")}</tbody></table></div>`;
   requestAnimationFrame(() => line($("eq"), m.curve.map((c) => c[1]), { color: css("--amber"), base: 1e8, pad: 6 }));
 }
+
+
+// ── 매크로: 세계 지수 표 + 겹쳐 보기
+const PAL = ["#e8590c", "#1c7ed6", "#2f9e44", "#ae3ec9", "#f2b632", "#0ca678", "#d6336c", "#495057", "#5c7cfa", "#a9e34b"];
+let WD = null, wReg = ls.get("stk-wreg", "전체"), wSort = null, STAR = ls.get("stk-star", []), MINE = ls.get("stk-mine", []);
+let CMP = ls.get("stk-cmp", ["^KS11", "^GSPC", "^IXIC", "^N225"]), cmpR = ls.get("stk-cmpr", "1y");
+const CHC = {}; // 겹쳐 보기 차트 캐시 sym|range → rows
+const REGS = ["전체", "★ 관심", "미국", "한국", "아시아", "유럽", "기타", "매크로"];
+async function loadWorld(force) {
+  renderCmpCtl(); drawCmp();
+  if (!SNAP) { try { SNAP = await api("op=snap"); } catch {} }
+  if (!$("big").children.length) renderBig();
+  if (WD && !force) return renderWorld();
+  try {
+    const [w, sn] = await Promise.all([api("op=world&x=" + encodeURIComponent(MINE.join(",")) + (force ? "&force=1" : "")), SNAP ? Promise.resolve(SNAP) : api("op=snap")]);
+    WD = { rows: [...w.mine, ...w.rows], macro: (sn.macro || []).map((m) => ({ ...m, r: "매크로" })), at: w.at };
+    $("wAt").textContent = new Date(w.at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) + " 기준";
+    renderWorld(); renderCmpCtl(); drawCmp();
+  } catch { $("wBody").innerHTML = `<tr><td colspan="12" class="note">못 불러왔어요. 잠시 뒤 다시 열어 주세요.</td></tr>`; }
+}
+const nameOf = (sym) => [...(WD?.rows || []), ...(WD?.macro || [])].find((r) => r.s === sym)?.n || sym;
+function renderWorld() {
+  $("wReg").innerHTML = REGS.map((r) => `<button type="button" class="pill" data-wreg="${r}" aria-pressed="${r === wReg}">${r}</button>`).join("");
+  const all = [...WD.rows, ...WD.macro];
+  let list = wReg === "전체" ? all : wReg === "★ 관심" ? all.filter((r) => STAR.includes(r.s) || r.r === "내 관심") : all.filter((r) => r.r === wReg);
+  const secs = wSort ? [["", [...list].sort((a, b) => wSort.k === "n" ? a.n.localeCompare(b.n) * wSort.d : ((b[wSort.k] ?? -1e9) - (a[wSort.k] ?? -1e9)) * wSort.d)]]
+    : [...new Set(list.map((r) => (STAR.includes(r.s) ? "★ 관심" : r.r)))].sort((a, b) => (a === "★ 관심" ? -1 : b === "★ 관심" ? 1 : 0)).map((g) => [g, list.filter((r) => (STAR.includes(r.s) ? "★ 관심" : r.r) === g)]);
+  const c = (v, abs) => `<td class="r ${ud(v)}">${pct(v, abs)}</td>`;
+  $("wBody").innerHTML = secs.map(([g, rs]) => (g ? `<tr class="sec"><td colspan="12">${esc(g)}</td></tr>` : "") + rs.map((r) => {
+    const can = !r.abs; // FRED 지표는 겹쳐 보기 불가
+    return `<tr><td>${can ? `<button type="button" class="ic" data-cmp="${esc(r.s)}" aria-pressed="${CMP.includes(r.s)}" aria-label="겹쳐 보기">${CMP.includes(r.s) ? "☑" : "☐"}</button>` : ""}</td><td><button type="button" class="ic" data-star="${esc(r.s)}" aria-pressed="${STAR.includes(r.s)}" aria-label="관심">${STAR.includes(r.s) ? "★" : "☆"}</button></td>
+      <td><b>${esc(r.n)}</b>${r.r === "내 관심" ? ` <button type="button" class="ic" data-mdel="${esc(r.s)}" aria-label="빼기">✕</button>` : ""}<br><span class="note num">${esc(r.s)}${r.d ? " · " + r.d.slice(5) : ""}</span></td>
+      ${r.err ? `<td colspan="9" class="note">못 불러왔어요</td>` : `<td class="r">${fmt(r.v, r.v > 1000 ? 0 : 2)}${r.u && r.u !== "$" ? esc(r.u) : ""}</td>${c(r.d1, r.abs)}${c(r.w1)}${c(r.m1)}${c(r.m3)}${c(r.ytd)}${c(r.y1)}${c(r.fromHi)}<td><canvas data-wsp="${esc(r.s)}"></canvas></td>`}</tr>`;
+  }).join("")).join("") || `<tr><td colspan="12" class="note">여기엔 아직 없어요. ☆을 눌러 관심에 넣어 보세요.</td></tr>`;
+  $$("th[data-ws]").forEach((th) => { th.textContent = th.textContent.replace(/ [▲▼]$/, "") + (wSort?.k === th.dataset.ws ? (wSort.d > 0 ? " ▼" : " ▲") : ""); });
+  requestAnimationFrame(() => $$("[data-wsp]").forEach((cv) => { const r = all.find((x) => x.s === cv.dataset.wsp); if (r?.sp) line(cv, r.sp, { color: r.sp.at(-1) >= r.sp[0] ? css("--up") : css("--down") }); }));
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-wreg],[data-star],[data-cmp],[data-mdel],th[data-ws],[data-cmpr],[data-cdel]"); if (!t) return;
+  if (t.dataset.wreg) { wReg = t.dataset.wreg; ls.set("stk-wreg", wReg); renderWorld(); }
+  else if (t.dataset.star) { const s = t.dataset.star; STAR = STAR.includes(s) ? STAR.filter((x) => x !== s) : [...STAR, s]; ls.set("stk-star", STAR); renderWorld(); }
+  else if (t.dataset.cmp || t.dataset.cdel) { const s = t.dataset.cmp || t.dataset.cdel; CMP = CMP.includes(s) ? CMP.filter((x) => x !== s) : [...CMP, s].slice(-10); ls.set("stk-cmp", CMP); renderWorld(); renderCmpCtl(); drawCmp(); }
+  else if (t.dataset.mdel) { MINE = MINE.filter((x) => x !== t.dataset.mdel); ls.set("stk-mine", MINE); WD.rows = WD.rows.filter((r) => r.s !== t.dataset.mdel); renderWorld(); }
+  else if (t.dataset.ws) { const k = t.dataset.ws; wSort = wSort?.k === k ? (wSort.d > 0 ? { k, d: -1 } : null) : { k, d: 1 }; renderWorld(); }
+  else if (t.dataset.cmpr) { cmpR = t.dataset.cmpr; ls.set("stk-cmpr", cmpR); renderCmpCtl(); drawCmp(); }
+});
+$("wAdd").onsubmit = async (e) => {
+  e.preventDefault(); const raw = $("wSym").value.trim(); if (!raw) return; $("wMsg").textContent = "찾는 중…";
+  try { const r = await api("op=sym&s=" + encodeURIComponent(raw)); if (!MINE.includes(r.sym)) MINE.push(r.sym); ls.set("stk-mine", MINE); if (!STAR.includes(r.sym)) { STAR.push(r.sym); ls.set("stk-star", STAR); } $("wSym").value = ""; $("wMsg").textContent = `${r.name || r.sym} 더했어요.`; WD = null; loadWorld(); }
+  catch { $("wMsg").textContent = "그 코드를 못 찾았어요. 야후 파이낸스 코드로 적어 주세요."; }
+};
+const RANGES = [["1mo", "1달"], ["3mo", "3달"], ["6mo", "6달"], ["1y", "1년"], ["2y", "2년"], ["5y", "5년"]];
+function renderCmpCtl() {
+  $("cmpRange").innerHTML = RANGES.map(([k, n]) => `<button type="button" class="pill" data-cmpr="${k}" aria-pressed="${k === cmpR}">${n}</button>`).join("");
+  $("cmpLeg").innerHTML = CMP.map((s, i) => `<span class="leg"><i style="background:${PAL[i % PAL.length]}"></i>${esc(nameOf(s))} <b class="num" data-lv="${esc(s)}"></b><button type="button" data-cdel="${esc(s)}" aria-label="빼기">✕</button></span>`).join("") || `<span class="note">아래 표에서 ☐를 눌러 비교할 지수를 고르세요.</span>`;
+}
+let CMPD = null;
+async function drawCmp() {
+  const want = [...CMP], r = cmpR;
+  const got = await Promise.all(want.map(async (s) => { const k = s + "|" + r; if (!CHC[k]) CHC[k] = api(`op=chart&s=${encodeURIComponent(s)}&r=${r}`).then((g) => g.rows).catch(() => null); return CHC[k]; }));
+  if (r !== cmpR || want.join() !== CMP.join()) return; // 그새 바뀜
+  const days = [...new Set(got.flatMap((g) => (g || []).map((p) => p.d)))].sort();
+  const series = got.map((g, i) => {
+    if (!g?.length) return null; const m = new Map(g.map((p) => [p.d, p.c])); let last = null, base = null;
+    const vals = days.map((d) => { if (m.has(d)) last = m.get(d); if (last == null) return null; if (base == null) base = last; return (last / base - 1) * 100; });
+    return { s: want[i], vals, color: PAL[i % PAL.length] };
+  }).filter(Boolean);
+  CMPD = { days, series }; paintCmp();
+  series.forEach((x) => { const el = document.querySelector(`[data-lv="${CSS.escape(x.s)}"]`); const v = x.vals.at(-1); if (el) { el.textContent = pct(v); el.className = "num " + ud(v); } });
+}
+// 큰 차트 그리기 (D = {days, series:[{s, vals, color}]}, opt.pct면 % 축)
+function paintChart(cnv, tip, D, hover, opt = {}) {
+  if (!D || !cnv.offsetWidth) return;
+  const r = cnv.getBoundingClientRect(), dpr = devicePixelRatio || 1, W = r.width, H = r.height; cnv.width = W * dpr; cnv.height = H * dpr;
+  const x = cnv.getContext("2d"); x.scale(dpr, dpr); x.clearRect(0, 0, W, H);
+  const all = D.series.flatMap((s) => s.vals.filter((v) => v != null)); if (!all.length) return;
+  let lo = Math.min(...all, ...(opt.pct ? [0] : [])), hi = Math.max(...all, ...(opt.pct ? [0] : [])); const pd = (hi - lo) * 0.06 || Math.abs(hi) * 0.01 || 1; lo -= pd; hi += pd;
+  const fy = opt.fmt || ((v) => (opt.pct ? (v > 0 ? "+" : "") + v + "%" : fmt(v, Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 10 ? 1 : 2)));
+  x.font = "11px " + css("--mono"); const R = Math.max(40, x.measureText(fy(hi)).width + 12), L = 6, T = 10, B = 22, n = D.days.length;
+  const X = (i) => L + (i / Math.max(1, n - 1)) * (W - L - R), Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  x.fillStyle = css("--muted"); x.strokeStyle = css("--line"); x.lineWidth = 1;
+  const raw = (hi - lo) / 5, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((s) => s >= raw);
+  for (let g = Math.ceil(lo / step) * step; g <= hi; g += step) { const v = +g.toPrecision(10), y = Y(v); x.setLineDash(opt.pct && v === 0 ? [] : [3, 3]); x.globalAlpha = opt.pct && v === 0 ? 1 : 0.6; x.beginPath(); x.moveTo(L, y); x.lineTo(W - R, y); x.stroke(); x.globalAlpha = 1; x.fillText(fy(v), W - R + 6, y + 4); }
+  x.setLineDash([]);
+  [0, Math.floor(n / 2), n - 1].forEach((i, k) => { const d = D.days[i]; if (!d) return; const tx = d.slice(2).replace(/-/g, "."), w = x.measureText(tx).width; x.fillText(tx, k === 0 ? L : k === 2 ? W - R - w : X(i) - w / 2, H - 6); });
+  D.series.forEach((s) => { x.strokeStyle = s.color; x.lineWidth = s.w || 2; if (s.dash) x.setLineDash(s.dash); x.beginPath(); let on = false; s.vals.forEach((v, i) => { if (v == null) return; on ? x.lineTo(X(i), Y(v)) : x.moveTo(X(i), Y(v)); on = true; }); x.stroke(); x.setLineDash([]); });
+  if (hover == null) { if (tip) tip.hidden = true; return; }
+  const i = Math.max(0, Math.min(n - 1, Math.round(((hover - L) / (W - L - R)) * (n - 1))));
+  x.strokeStyle = css("--muted"); x.beginPath(); x.moveTo(X(i), T); x.lineTo(X(i), H - B); x.stroke();
+  D.series.forEach((s) => { const v = s.vals[i]; if (v == null || s.noDot) return; x.fillStyle = s.color; x.beginPath(); x.arc(X(i), Y(v), 3.5, 0, 7); x.fill(); });
+  if (!tip) return;
+  tip.innerHTML = `<div>${D.days[i]}</div>` + D.series.filter((s) => !s.noTip).map((s) => [s, s.vals[i]]).sort((a, b) => (b[1] ?? -1e9) - (a[1] ?? -1e9)).map(([s, v]) => `<div><span style="color:${s.color}">●</span> ${esc(s.label || nameOf(s.s))} <span class="${opt.pct ? ud(v) : ""}">${opt.pct ? pct(v) : fy(v)}</span></div>`).join("");
+  tip.hidden = false; const tw = tip.offsetWidth; tip.style.left = Math.max(0, X(i) + 12 + tw > W ? X(i) - tw - 12 : X(i) + 12) + "px";
+}
+const paintCmp = (hover) => paintChart($("cmp"), $("cmpTip"), CMPD, hover, { pct: true });
+$("cmp").addEventListener("pointermove", (e) => paintCmp(e.clientX - $("cmp").getBoundingClientRect().left));
+$("cmp").addEventListener("pointerleave", () => paintCmp());
+addEventListener("resize", () => { if (!$("macro").hidden) paintCmp(); });
+
+
+// ── 대시보드 지표 크게 보기
+let bigR = ls.get("stk-bigr", "1y"); const BIGD = {};
+const FROM = { "3mo": 92, "6mo": 183, "1y": 366, "2y": 731, "5y": 1827 };
+async function rowsOf(m, r) {
+  const k = m.s + "|" + r;
+  if (!CHC[k]) CHC[k] = (m.abs ? api(`op=fred&id=${encodeURIComponent(m.s)}&from=${new Date(Date.now() - (FROM[r] + (m.yoy ? 400 : 0)) * 864e5).toISOString().slice(0, 10)}${m.yoy ? "&yoy=1" : ""}`) : api(`op=chart&s=${encodeURIComponent(m.s)}&r=${r}`)).then((g) => g.rows).catch(() => null);
+  return CHC[k];
+}
+function renderBig() {
+  if (!SNAP) return;
+  $("bigRange").innerHTML = RANGES.filter(([k]) => FROM[k]).map(([k, n]) => `<button type="button" class="pill" data-bigr="${k}" aria-pressed="${k === bigR}">${n}</button>`).join("");
+  const items = [...SNAP.indices, ...SNAP.macro];
+  $("big").innerHTML = items.map((m, i) => `<div class="card bigc"><div class="k"><b style="color:var(--ink)">${esc(m.n)}</b><span class="num" data-bigv="${i}"></span></div>${m.why ? `<div class="why">${esc(m.why)}</div>` : ""}<div style="position:relative"><canvas data-big="${i}"></canvas><div class="tip" data-bigtip="${i}" hidden></div></div></div>`).join("");
+  items.forEach(async (m, i) => {
+    const r = bigR, rows = await rowsOf(m, r); if (r !== bigR) return;
+    const cv = document.querySelector(`[data-big="${i}"]`); if (!cv) return;
+    if (!rows?.length) { cv.parentElement.innerHTML = `<p class="note">못 불러왔어요</p>`; return; }
+    const cut = new Date(Date.now() - FROM[r] * 864e5).toISOString().slice(0, 10), rs = rows.filter((p) => p.d >= cut);
+    const vals = rs.map((p) => p.c), ma = (n) => vals.map((_, k) => (k + 1 >= n ? vals.slice(k + 1 - n, k + 1).reduce((a, b) => a + b, 0) / n : null));
+    const up = vals.at(-1) >= vals[0], series = [{ s: m.s, label: m.n, vals, color: up ? css("--up") : css("--down") }];
+    if (!m.abs && vals.length > 80) series.push({ s: "ma", label: "60일 평균", vals: ma(60), color: css("--muted"), w: 1.2, dash: [4, 3], noDot: true });
+    BIGD[i] = { days: rs.map((p) => p.d), series, u: m.u };
+    const ch = m.abs ? vals.at(-1) - vals[0] : (vals.at(-1) / vals[0] - 1) * 100, hi = Math.max(...vals), lo = Math.min(...vals);
+    const el = document.querySelector(`[data-bigv="${i}"]`); if (el) el.innerHTML = `${fmt(vals.at(-1), vals.at(-1) > 1000 ? 0 : 2)} <span class="${ud(ch)}">${pct(r2c(ch), m.abs)}${m.abs ? (m.u || "") : ""}</span> <span class="note">고 ${fmt(hi, hi > 1000 ? 0 : 2)} · 저 ${fmt(lo, lo > 1000 ? 0 : 2)}</span>`;
+    paintChart(cv, null, BIGD[i]);
+  });
+}
+const r2c = (v) => Math.round(v * 100) / 100;
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-bigr]"); if (!b) return; bigR = b.dataset.bigr; ls.set("stk-bigr", bigR); renderBig(); });
+document.addEventListener("pointermove", (e) => { const cv = e.target.closest?.("[data-big]"); if (!cv) return; const i = cv.dataset.big; paintChart(cv, document.querySelector(`[data-bigtip="${i}"]`), BIGD[i], e.clientX - cv.getBoundingClientRect().left); });
+document.addEventListener("pointerout", (e) => { const cv = e.target.closest?.("[data-big]"); if (!cv) return; const i = cv.dataset.big; paintChart(cv, document.querySelector(`[data-bigtip="${i}"]`), BIGD[i]); });
+addEventListener("resize", () => { if (!$("macro").hidden) Object.keys(BIGD).forEach((i) => { const cv = document.querySelector(`[data-big="${i}"]`); if (cv) paintChart(cv, null, BIGD[i]); }); });
 
 // ── 내 계좌
 let KW = null;

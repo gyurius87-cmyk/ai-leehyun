@@ -54,7 +54,7 @@ export async function chart(sym, range = "1y") {
   }
   return null;
 }
-async function fred(id, from = "2023-01-01") {
+export async function fred(id, from = "2023-01-01") {
   try {
     const r = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}&cosd=${from}`, { headers: UA });
     if (!r.ok) return null;
@@ -93,6 +93,34 @@ export async function snapshot(force) {
   };
   await redis([["SET", "stk:snap", JSON.stringify(out)]]);
   return out;
+}
+
+// ── 세계 지수 (매크로 탭, 10분 캐시)
+export const WORLD = [
+  { s: "^GSPC", n: "S&P 500", r: "미국" }, { s: "^IXIC", n: "나스닥", r: "미국" }, { s: "^NDX", n: "나스닥 100", r: "미국" }, { s: "^DJI", n: "다우", r: "미국" }, { s: "^RUT", n: "러셀 2000", r: "미국" }, { s: "^SOX", n: "필라델피아 반도체", r: "미국" },
+  { s: "^KS11", n: "코스피", r: "한국" }, { s: "^KQ11", n: "코스닥", r: "한국" }, { s: "^KS200", n: "코스피 200", r: "한국" },
+  { s: "^N225", n: "닛케이 225", r: "아시아" }, { s: "^HSI", n: "홍콩 항셍", r: "아시아" }, { s: "000001.SS", n: "상해종합", r: "아시아" }, { s: "399001.SZ", n: "선전성분", r: "아시아" }, { s: "^TWII", n: "대만 가권", r: "아시아" }, { s: "^BSESN", n: "인도 센섹스", r: "아시아" }, { s: "^NSEI", n: "인도 니프티 50", r: "아시아" }, { s: "^STI", n: "싱가포르 STI", r: "아시아" }, { s: "^AXJO", n: "호주 ASX 200", r: "아시아" },
+  { s: "^STOXX50E", n: "유로스톡스 50", r: "유럽" }, { s: "^GDAXI", n: "독일 DAX", r: "유럽" }, { s: "^FTSE", n: "영국 FTSE 100", r: "유럽" }, { s: "^FCHI", n: "프랑스 CAC 40", r: "유럽" },
+  { s: "^GSPTSE", n: "캐나다 TSX", r: "기타" }, { s: "^BVSP", n: "브라질 보베스파", r: "기타" }, { s: "^MXX", n: "멕시코 IPC", r: "기타" },
+];
+const ytd = (rows) => { const y = rows.at(-1).d.slice(0, 4), b = [...rows].reverse().find((p) => p.d.slice(0, 4) < y); return b ? r2(((rows.at(-1).c - b.c) / b.c) * 100) : null; };
+const wrow = (meta, g) => {
+  const rows = g?.rows; if (!rows?.length) return { ...meta, err: true };
+  const last = rows.at(-1), hi = Math.max(...rows.slice(-250).map((p) => p.c));
+  return { ...meta, cur: g.cur, d: last.d, v: r2(last.c, 4), d1: chg(rows, 1), w1: chg(rows, 5), m1: chg(rows, 21), m3: chg(rows, 63), ytd: ytd(rows), y1: chg(rows, Math.min(250, rows.length - 1)), fromHi: r2(((last.c - hi) / hi) * 100), sp: spark(rows) };
+};
+async function inChunks(list, fn, n = 9) { const out = []; for (let i = 0; i < list.length; i += n) out.push(...(await Promise.all(list.slice(i, i + n).map(fn)))); return out; }
+export async function world(force, extra = []) {
+  let base = null;
+  if (!force) { const [c] = await redis([["GET", "stk:world"]]); const j = json(c); if (j && Date.now() - j.at < 10 * 60e3) base = j; }
+  if (!base) {
+    const gs = await inChunks(WORLD, (x) => chart(x.s, "2y"));
+    base = { at: Date.now(), rows: WORLD.map((m, i) => wrow(m, gs[i])) };
+    await redis([["SET", "stk:world", JSON.stringify(base)]]);
+  }
+  const ex = extra.filter((s) => !WORLD.some((w) => w.s === s)).slice(0, 12);
+  const eg = await inChunks(ex, (s) => chart(s, "2y"));
+  return { ...base, mine: ex.map((s, i) => wrow({ s, n: eg[i]?.name || s, r: "내 관심" }, eg[i])) };
 }
 
 // ── 뉴스 (1시간 캐시): 굵직한 매체 헤드라인
@@ -318,6 +346,8 @@ export async function stockHandler(req, res, isAdmin) {
   try {
     if (req.method === "GET") {
       if (op === "snap") return res.json(await snapshot(!!q.force));
+      if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
+      if (op === "world") return res.json(await world(!!q.force, String(q.x || "").split(",").map((x) => x.trim()).filter(Boolean)));
       if (op === "news") return res.json(await news(!!q.force));
       if (op === "brief") { const day = /^\d{4}-\d{2}-\d{2}$/.test(q.d || "") ? q.d : kstDay(); const r = await brief(day, !!q.force && day === kstDay()); const [list] = await redis([["LRANGE", "stk:briefs", 0, 60]]); return res.json({ ...r, list: list || [] }); }
       if (op === "masters") return res.json({ info: MASTERS.map(({ id, name, style, rule }) => ({ id, name, style, rule })), ...(await backtest(!!q.force)) });

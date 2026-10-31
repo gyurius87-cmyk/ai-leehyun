@@ -103,6 +103,20 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .gate { max-width: 420px; }
 .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 @media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } .news a { grid-template-columns: 1fr; gap: 0; } }
+.wt th[data-ws] { cursor: pointer; } .wt th[data-ws]:hover { color: var(--ink); }
+.wt td { vertical-align: middle; } .wt canvas { width: 110px; height: 26px; display: block; }
+.wt .sec td { background: var(--soft); font-size: 12px; font-weight: 700; color: var(--muted); }
+.wt button.ic { border: 0; background: none; font-size: 16px; cursor: pointer; color: var(--muted); padding: 0 2px; }
+.wt button.ic[aria-pressed="true"] { color: var(--amber); }
+.pill { border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.pill[aria-pressed="true"] { background: var(--board); color: var(--on-board); border-color: var(--board); }
+.leg { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: var(--soft); border-radius: 999px; padding: 2px 4px 2px 10px; }
+.leg i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.leg button { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 14px; }
+.bigg { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+.bigc canvas { width: 100%; height: 180px; display: block; margin-top: 6px; touch-action: none; }
+.bigc .why { font-size: 12px; color: var(--muted); }
+.tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -119,6 +133,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
   </section>
   <nav class="tabs" id="tabs" hidden>
     <button type="button" data-tab="dash" aria-pressed="true">대시보드</button>
+    <button type="button" data-tab="macro" aria-pressed="false">매크로</button>
     <button type="button" data-tab="masters" aria-pressed="false">대가</button>
     <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
@@ -145,6 +160,30 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <section class="box">
       <h2>주요 매체 헤드라인 <span id="newsAt"></span><span style="margin-left:auto" class="row"><button type="button" class="btn g s" data-nf="all" aria-pressed="true">전체</button><button type="button" class="btn g s" data-nf="en">해외</button><button type="button" class="btn g s" data-nf="ko">국내</button></span></h2>
       <div class="news" id="news"></div>
+    </section>
+  </div>
+
+  <!-- 매크로 -->
+  <div id="macro" hidden class="grid" style="gap:14px">
+    <section class="box">
+      <h2>겹쳐 보기 <span>시작일을 0%로 맞춰서 비교 · 아래 표에서 ☐를 눌러 더하기</span></h2>
+      <div class="row" id="cmpRange"></div>
+      <div class="row" id="cmpLeg" style="margin-top:8px"></div>
+      <div style="position:relative;margin-top:8px"><canvas id="cmp" style="width:100%;height:340px;display:block;touch-action:none"></canvas><div id="cmpTip" class="tip" hidden></div></div>
+    </section>
+    <section class="box">
+      <h2>지수 · 매크로 크게 보기 <span>대시보드 항목을 긴 기간으로 · 점선은 60일 평균 · 차트 위에 마우스를 올리면 그날 값</span></h2>
+      <div class="row" id="bigRange"></div>
+      <div class="grid bigg" id="big" style="margin-top:10px"></div>
+    </section>
+    <section class="box">
+      <h2>세계 지수 · 매크로 한눈에 <span id="wAt"></span></h2>
+      <div class="row" id="wReg"></div>
+      <form class="row" id="wAdd" style="margin-top:8px"><input id="wSym" placeholder="더 볼 것: 야후 코드 (예 ^VIX, 005930, AAPL, GC=F)" style="flex:1 1 260px"><button class="btn s">관심에 더하기</button><span class="msg" id="wMsg" style="margin:0"></span></form>
+      <div class="tw" style="margin-top:10px"><table class="wt">
+        <thead><tr><th>비교</th><th>★</th><th data-ws="n">이름</th><th class="r" data-ws="v">현재</th><th class="r" data-ws="d1">하루</th><th class="r" data-ws="w1">1주</th><th class="r" data-ws="m1">1달</th><th class="r" data-ws="m3">3달</th><th class="r" data-ws="ytd">올해</th><th class="r" data-ws="y1">1년</th><th class="r" data-ws="fromHi">고점 대비</th><th>석 달 흐름</th></tr></thead>
+        <tbody id="wBody"><tr><td colspan="12" class="note">불러오는 중… (처음엔 20초쯤)</td></tr></tbody>
+      </table></div>
     </section>
   </div>
 
