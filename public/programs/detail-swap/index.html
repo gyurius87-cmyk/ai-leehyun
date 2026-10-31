@@ -71,12 +71,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .seg button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.cw { display: grid; gap: 6px; align-content: start; }
+.cw > .btn { justify-self: start; }
 .card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--soft); cursor: pointer; display: grid; text-align: left; padding: 0; font: inherit; color: inherit; }
 .card[aria-pressed="true"] { outline: 3px solid var(--yellow); }
 .card .th { height: 150px; background: var(--line) center top / cover no-repeat; }
 .card .tt { padding: 8px 10px; font-size: 13px; }
 .card .tt b { display: block; font-size: 14px; }
 .fields { display: grid; gap: 10px; }
+.qs { display: grid; gap: 8px; }
+.q { display: grid; gap: 3px; }
+.q .ql { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; font-size: 13px; font-weight: 700; }
+.q .ql small { font-weight: 400; color: var(--muted); flex: 1; min-width: 120px; }
+.q .ql button { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; padding: 0 4px; }
 .fd { background: var(--soft); border-radius: 12px; padding: 10px 12px; border-left: 4px solid var(--c); display: grid; gap: 6px; min-width: 0; }
 .fd .h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-weight: 700; font-size: 14px; }
 .fd .h small { font-weight: 400; color: var(--muted); }
@@ -128,9 +135,11 @@ code.k { font-family: var(--mono); font-size: 12px; background: var(--soft); pad
       <div class="box">
         <h2 id="useTitle">바꿀 내용</h2>
         <div class="fd" style="--c:var(--yellow)" id="aiBox">
-          <div class="h">🤖 상품 정보로 글 칸 한 번에 채우기 <small>원래 글 길이·말투에 맞춰요</small></div>
-          <textarea id="aiMemo" rows="4" placeholder="상품명, 소재, 색상, 사이즈(cm), 특징, 세탁 방법 등 아는 대로 적어 주세요"></textarea>
-          <div class="row"><button type="button" class="btn s" id="aiBtn">AI로 글 채우기</button><span class="note" id="aiMsg" style="margin:0"></span></div>
+          <div class="h">📋 상품 정보 <small>이 상세페이지에 맞춘 질문칸이에요. 채우고 아래 버튼을 누르면 글 칸이 바뀌어요</small></div>
+          <div class="qs" id="qs"></div>
+          <div class="row" id="qsTools"></div>
+          <textarea id="aiMemo" rows="2" placeholder="그 밖에 알려 줄 것 (선택)"></textarea>
+          <div class="row"><button type="button" class="btn s" id="aiBtn">이 정보로 글 칸 채우기</button><span class="note" id="aiMsg" style="margin:0"></span></div>
         </div>
         <div class="fields" id="fields" style="margin-top:10px"></div>
         <div class="final">
@@ -158,7 +167,7 @@ code.k { font-family: var(--mono); font-size: 12px; background: var(--soft); pad
         <h2>칸 정하기 <span>미리보기를 누르거나 레이어를 골라요</span></h2>
         <div class="row">
           <input type="text" id="layerQ" placeholder="레이어 이름 찾기" aria-label="레이어 찾기" style="flex:1 1 160px">
-          <button type="button" class="btn g s" id="allText">글자 레이어 전부 글 칸으로</button>
+          <button type="button" class="btn g s" id="autoSlots">알아서 다시 정하기</button><button type="button" class="btn g s" id="noSlots">칸 모두 빼기</button>
         </div>
         <div class="layers" id="layerList" style="margin-top:8px"></div>
         <div class="slotset" id="slotSet" hidden></div>
@@ -183,6 +192,9 @@ code.k { font-family: var(--mono); font-size: 12px; background: var(--soft); pad
 
   <!-- ③ 글꼴 -->
   <section class="box" id="font" hidden>
+    <h2>PSD에 쓰인 글꼴 <span id="fontNeedSum"></span></h2>
+    <p class="note" style="margin-top:0">글 칸으로 정한 글자의 글꼴만 꼭 필요해요. 없으면 기본 글꼴(Noto Sans KR)로 써요.</p>
+    <div class="list" id="fontNeed" style="margin-bottom:18px"></div>
     <h2>글꼴 올리기 <span>TTF·OTF·WOFF 파일 · 포토샵 글꼴 이름이 같으면 글 칸에 저절로 골라져요</span></h2>
     <label class="drop" id="fontDrop">글꼴 파일을 여기에 끌어 놓거나 눌러서 고르세요 (여러 개 가능)<input type="file" id="fontIn" accept=".ttf,.otf,.woff,.woff2" multiple hidden></label>
     <p class="msg" id="fontMsg"></p>

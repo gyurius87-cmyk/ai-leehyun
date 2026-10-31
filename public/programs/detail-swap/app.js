@@ -92,7 +92,30 @@ async function addFonts(files) {
   if (ok) say(m, `글꼴 ${ok}개를 올렸어요.`, "ok");
   renderFonts(); if (cur) renderFields();
 }
+// PSD에 쓰인 글꼴: 글 칸에 쓰이면 '필요', 칸이 아니면 원래 그림 그대로라 없어도 됨
+function psdFonts() {
+  const m = new Map();
+  P.leaves.forEach((l) => {
+    if (!l.text) return;
+    const names = [l.text.style?.font?.name, ...(l.text.styleRuns || []).map((r) => r.style?.font?.name)].filter(Boolean);
+    const slot = P.slots.get(l.i)?.kind === "text";
+    new Set(names).forEach((ps) => { const o = m.get(ps) || { ps, slot: false, n: 0 }; o.n++; o.slot ||= slot; m.set(ps, o); });
+  });
+  return [...m.values()];
+}
+function renderNeeds() {
+  const el = $("fontNeed"); if (!el) return;
+  const m = new Map(), add = (ps, slot, where) => { const o = m.get(ps) || { ps, slot: false, where: new Set() }; o.slot ||= slot; o.where.add(where); m.set(ps, o); };
+  if (P) psdFonts().forEach((f) => add(f.ps, f.slot, `지금 연 PSD (${P.name})`));
+  TPLS.forEach((t) => (t.fonts || []).forEach((f) => add(f.ps, f.slot, `틀 '${t.name}'`)));
+  const rows = [...m.values()].map((o) => ({ ...o, f: autoFont(o.ps) })).sort((a, b) => (a.f ? 2 : a.slot ? 0 : 1) - (b.f ? 2 : b.slot ? 0 : 1) || a.ps.localeCompare(b.ps));
+  const need = rows.filter((r) => r.slot && !r.f).length;
+  $("fontNeedSum").textContent = rows.length ? `${rows.length}개 · 올림 ${rows.filter((r) => r.f).length} · 필요 ${need}` : "";
+  el.innerHTML = rows.length ? rows.map((r) => `<div class="li"><span class="g"><b>${esc(r.ps)}</b><br><span class="note">${esc([...r.where].join(", "))}</span></span>${r.f ? `<span class="chip" style="--c:var(--good)">올림 · ${esc(r.f.name)}</span>` : r.slot ? `<span class="chip" style="--c:var(--bad)">필요 · 글 칸에 쓰여요</span>` : `<span class="chip" style="--c:var(--muted)">없어도 돼요 · 칸이 아니라 원래 그림 그대로</span>`}</div>`).join("")
+    : `<p class="note">아직 읽은 PSD가 없어요. ② 틀 만들기에서 PSD를 열면 쓰인 글꼴이 여기 나와요.</p>`;
+}
 function renderFonts() {
+  renderNeeds();
   $("fontList").innerHTML = FONTS.length ? FONTS.map((f) => `<div class="li"><span class="g"><b style="font-family:'ds_${f.id}'">${esc(f.name)} 가나다 ABC 123</b><br><span class="note">포토샵 이름: ${esc(f.ps)} · ${esc(f.file)}</span></span><button type="button" class="btn g s danger" data-delfont="${f.id}">지우기</button></div>`).join("") : `<p class="note">아직 올린 글꼴이 없어요. 없으면 기본 글꼴(Noto Sans KR)로 써요.</p>`;
 }
 const pickDrop = (drop, input, fn) => {
@@ -122,14 +145,22 @@ async function openPsd(file) {
   await new Promise((r) => setTimeout(r, 30));
   try {
     const psd = agPsd.readPsd(await file.arrayBuffer(), { skipThumbnail: true });
-    const leaves = [];
-    const walk = (list, path, op, hidden, depth) => (list || []).forEach((ly) => {
+    const leaves = [], files = [...(psd.linkedFiles || [])]; let soOpen = 0, soKeep = 0;
+    // S = 고급 개체 안일 때 { map:{sx,sy,ox,oy}, rect, clipAll, blend } (안쪽 좌표 → 문서 좌표)
+    const walk = (list, path, op, hidden, depth, S) => (list || []).forEach((ly) => {
       const h = hidden || ly.hidden, o = op * (ly.opacity ?? 1);
-      if (ly.children) { walk(ly.children, [...path, ly.name], o, h, depth + 1); return; }
-      const x = ly.left ?? 0, y = ly.top ?? 0, w = (ly.right ?? 0) - x, hh = (ly.bottom ?? 0) - y;
-      leaves.push({ i: leaves.length, name: ly.name || "(이름 없음)", path, layer: ly, x, y, w, h: hh, canvas: maskedCanvas(ly), op: o, blend: blendOf(ly.blendMode), clip: !!ly.clipping, text: ly.text || null, hidden: h, depth, adj: !ly.canvas && !ly.text });
+      if (ly.children) { walk(ly.children, [...path, ly.name], o, h, depth + 1, S); return; }
+      if (ly.placedLayer) {
+        const sub = openSO(ly, files, S);
+        if (sub) { soOpen++; walk(sub.psd.children, [...path, "▣ " + (ly.name || "고급 개체")], o, h, depth + 1, sub.S); return; }
+        soKeep++;
+      }
+      let x = ly.left ?? 0, y = ly.top ?? 0, w = (ly.right ?? 0) - x, hh = (ly.bottom ?? 0) - y, canvas = maskedCanvas(ly);
+      if (S) { const pc = canvas && placeIn(canvas, x, y, S); const b = mapBox(x, y, w, hh, S); canvas = pc?.canvas || null; ({ x, y, w, h: hh } = pc || b); }
+      const blend = blendOf(ly.blendMode);
+      leaves.push({ i: leaves.length, name: ly.name || "(이름 없음)", path, layer: ly, x, y, w, h: hh, canvas, op: o, blend: S && blend === "source-over" ? S.blend : blend, clip: S?.clipAll || !!ly.clipping, text: ly.text || null, hidden: h, depth, adj: !ly.canvas && !ly.text, so: !!ly.placedLayer, S });
     });
-    walk(psd.children, [], 1, false, 0);
+    walk(psd.children, [], 1, false, 0, null);
     if (!psd.canvas) { psd.canvas = cv(psd.width, psd.height); const ctx = psd.canvas.getContext("2d"); leaves.forEach((l) => { if (!l.hidden && l.canvas) { ctx.globalAlpha = l.op; ctx.drawImage(l.canvas, l.x, l.y); } }); }
     P = { psd, name: file.name, w: psd.width, h: psd.height, leaves, slots: new Map() };
     selLeaf = -1;
@@ -137,7 +168,9 @@ async function openPsd(file) {
     $("mk").hidden = false;
     const c = $("mkc"); c.width = P.w; c.height = P.h; c.getContext("2d").drawImage(psd.canvas, 0, 0);
     $("mkNote").textContent = `${P.w}×${P.h}px · 레이어 ${leaves.length}개`;
-    say(m, `다 읽었어요. 레이어 ${leaves.length}개 (글자 ${leaves.filter((l) => l.text).length}개).${psd.canvas ? "" : " 합친 그림이 없어 레이어로 다시 그렸어요."}`, "ok");
+    say(m, `다 읽었어요. 레이어 ${leaves.length}개 (글자 ${leaves.filter((l) => l.text).length}개)${soOpen ? ` · 고급 개체 ${soOpen}개 펼침` : ""}${soKeep ? ` · 고급 개체 ${soKeep}개는 통째로 (사진이거나 기울어져 있어서)` : ""}.${psd.canvas ? "" : " 합친 그림이 없어 레이어로 다시 그렸어요."}`, "ok");
+    const auto = autoSlots();
+    m.textContent += ` 글 칸 ${auto.ti}개, 사진 칸 ${auto.ii}개를 알아서 정했어요. 필요 없는 칸은 눌러서 '칸 아님'으로 빼 주세요.`;
     renderLayers(); renderOverlay(); renderSlotSet();
   } catch (e) { console.error(e); say(m, "PSD를 읽지 못했어요. 포토샵에서 '호환성 최대화'를 켜고 다시 저장해 보세요.", "no"); }
 }
@@ -157,6 +190,50 @@ function maskedCanvas(ly) {
   ctx.drawImage(ly.canvas, 0, 0); ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(a, 0, 0);
   return c;
 }
+// 고급 개체: 안에 든 PSD를 꺼내 레이어를 하나씩 펼침 (반듯하게 놓인 것만. 기울이기·뒤틀기는 통째로)
+function openSO(ly, files, S) {
+  const pl = ly.placedLayer, f = files.find((x) => x.id === pl.id), d = f?.data;
+  if (!d || d.length < 26 || String.fromCharCode(d[0], d[1], d[2], d[3]) !== "8BPS") return null;
+  const t = pl.transform || [], near = (a, b) => Math.abs(a - b) < 0.6;
+  if (t.length < 8 || !near(t[1], t[3]) || !near(t[5], t[7]) || !near(t[0], t[6]) || !near(t[2], t[4]) || t[2] <= t[0] || t[7] <= t[1]) return null;
+  if (!flatWarp(pl.warp)) return null;
+  if (pl.nonAffineTransform && pl.nonAffineTransform.some((v, k) => !near(v, t[k]))) return null;
+  let psd; try { psd = agPsd.readPsd(d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength), { skipThumbnail: true, skipCompositeImageData: true }); } catch (e) { console.warn("고급 개체를 못 열었어요", ly.name, e); return null; }
+  if (!psd.width || !psd.height || !psd.children?.length) return null;
+  (psd.linkedFiles || []).forEach((x) => files.push(x));
+  const m = { sx: (t[2] - t[0]) / psd.width, sy: (t[7] - t[1]) / psd.height, ox: t[0], oy: t[1] };
+  const M = S ? { sx: m.sx * S.map.sx, sy: m.sy * S.map.sy, ox: S.map.ox + m.ox * S.map.sx, oy: S.map.oy + m.oy * S.map.sy } : m;
+  const r = { x: Math.round(M.ox), y: Math.round(M.oy), w: Math.round(psd.width * M.sx), h: Math.round(psd.height * M.sy) };
+  const R = S ? (() => { const x0 = Math.max(r.x, S.rect.x), y0 = Math.max(r.y, S.rect.y); return { x: x0, y: y0, w: Math.max(0, Math.min(r.x + r.w, S.rect.x + S.rect.w) - x0), h: Math.max(0, Math.min(r.y + r.h, S.rect.y + S.rect.h) - y0) }; })() : r;
+  const b = blendOf(ly.blendMode);
+  return { psd, S: { map: M, rect: R, clipAll: S?.clipAll || !!ly.clipping, blend: b !== "source-over" ? b : S?.blend || "source-over" } };
+}
+// 뒤틀기가 없거나, 있어도 반듯한 그대로인지
+function flatWarp(w) {
+  if (!w || !w.style || /none/i.test(w.style)) return true;
+  if (w.style !== "custom") return !w.value;
+  const pts = w.customEnvelopeWarp?.meshPoints, u = w.uOrder || 4, v = w.vOrder || 4, bd = w.bounds;
+  if (!pts || pts.length !== u * v || !bd) return false;
+  const L = bd.left?.value ?? 0, T = bd.top?.value ?? 0, R = bd.right?.value ?? 0, B = bd.bottom?.value ?? 0, tol = Math.max(1, (R - L + B - T) / 400);
+  return pts.every((p, k) => Math.abs(p.x - (L + (R - L) * (k % u) / (u - 1))) < tol && Math.abs(p.y - (T + (B - T) * Math.floor(k / u) / (v - 1))) < tol);
+}
+function mapBox(x, y, w, h, S) { const M = S.map; return { x: Math.round(M.ox + x * M.sx), y: Math.round(M.oy + y * M.sy), w: Math.round(w * M.sx), h: Math.round(h * M.sy) }; }
+// 안쪽 그림을 문서 크기·자리로 옮기고 고급 개체 테두리 밖은 자름
+function placeIn(src, left, top, S) {
+  const M = S.map, R = S.rect, x = M.ox + left * M.sx, y = M.oy + top * M.sy, w = src.width * M.sx, h = src.height * M.sy;
+  const x0 = Math.max(Math.floor(x), R.x), y0 = Math.max(Math.floor(y), R.y), x1 = Math.min(Math.ceil(x + w), R.x + R.w), y1 = Math.min(Math.ceil(y + h), R.y + R.h);
+  if (x1 <= x0 || y1 <= y0) return null;
+  const c = cv(x1 - x0, y1 - y0), ctx = c.getContext("2d"); ctx.imageSmoothingQuality = "high"; ctx.drawImage(src, x - x0, y - y0, w, h);
+  return { canvas: c, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+// 레이어 자체 마스크 모양 (사진 칸 테두리용)
+function ownMaskOf(l) {
+  const ly = l.layer, lw = (ly.right ?? 0) - (ly.left ?? 0), lh = (ly.bottom ?? 0) - (ly.top ?? 0);
+  const full = cv(Math.max(1, lw), Math.max(1, lh)); full.getContext("2d").fillRect(0, 0, full.width, full.height);
+  const mk = maskedCanvas({ ...ly, canvas: full });
+  if (!l.S) return { c: mk, x: l.x, y: l.y };
+  const p = placeIn(mk, ly.left ?? 0, ly.top ?? 0, l.S); return p ? { c: p.canvas, x: p.x, y: p.y } : null;
+}
 const baseOf = (l) => { if (!l.clip) return null; for (let j = l.i - 1; j >= 0; j--) { const b = P.leaves[j]; if (!b.clip) return b; } return null; };
 // 사진 칸이 채워질 자리: 클리핑이면 바닥 레이어 모양, 마스크가 있으면 그 범위, 아니면 레이어 크기
 function areaOf(l) {
@@ -165,7 +242,9 @@ function areaOf(l) {
   return { x: l.x, y: l.y, w: l.w, h: l.h, mask: l.layer.mask && !l.layer.mask.disabled ? "own" : "" };
 }
 function textInfo(l) {
-  const T = l.text, tr = T.transform || [1, 0, 0, 1, l.x, l.y], sc = Math.hypot(tr[2], tr[3]) || 1;
+  const T = l.text, M = l.S?.map;
+  const tr = T.transform ? (M ? [T.transform[0] * M.sx, T.transform[1] * M.sy, T.transform[2] * M.sx, T.transform[3] * M.sy, M.ox + T.transform[4] * M.sx, M.oy + T.transform[5] * M.sy] : T.transform) : [1, 0, 0, 1, l.x, l.y];
+  const sc = Math.hypot(tr[2], tr[3]) || 1;
   const st = T.style || {}, ps = T.paragraphStyle || {};
   const lines = String(T.text || "").replace(/\r\n|\r/g, "\n").replace(/\n$/, "").split("\n");
   const size = (st.fontSize || Math.max(8, l.h / Math.max(1, lines.length) / 1.2)) * sc;
@@ -180,6 +259,7 @@ function textInfo(l) {
 
 function renderLayers() {
   if (!P) return;
+  renderNeeds();
   const q = $("layerQ").value.trim().toLowerCase();
   const rows = [...P.leaves].reverse().filter((l) => !q || (l.name + " " + l.path.join(" ")).toLowerCase().includes(q));
   $("layerList").innerHTML = rows.map((l) => {
@@ -239,7 +319,40 @@ $("slotSet").oninput = (e) => {
   if (e.target.id === "slotLabel") s.label = e.target.value; if (e.target.id === "slotRep") s.rep = e.target.value.trim() || "반복1";
   renderLayers(); renderOverlay();
 };
-$("allText").onclick = () => { if (!P) return; P.leaves.forEach((l) => { if (l.text && !l.hidden && !P.slots.has(l.i)) P.slots.set(l.i, { kind: "text", label: (l.text.text || l.name).replace(/\s+/g, " ").slice(0, 16), rep: "" }); }); renderLayers(); renderOverlay(); };
+// PSD를 열면 알아서: 글자는 글 칸, 사진은 사진 칸 (같은 크기 사진이 같은 그룹에 여럿이면 반복 사진). 빼는 건 이현님이.
+const txtLabel = (l) => (l.text.text || l.name).replace(/\s+/g, " ").trim().slice(0, 16) || l.name;
+function flatColor(c) { // 한 가지 색으로 칠한 도형이면 true
+  try { const w = 16, h = 16, t = cv(w, h), x = t.getContext("2d"); x.drawImage(c, 0, 0, w, h); const d = x.getImageData(0, 0, w, h).data; let n = 0, s = [0, 0, 0], q = [0, 0, 0];
+    for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 200) continue; n++; for (let k = 0; k < 3; k++) { s[k] += d[i + k]; q[k] += d[i + k] ** 2; } }
+    if (n < 8) return true; return s.every((v, k) => q[k] / n - (v / n) ** 2 < 60); } catch { return false; }
+}
+function autoSlots() {
+  P.slots = new Map(); let ti = 0, ii = 0;
+  const isBase = (l) => P.leaves[l.i + 1]?.clip && !l.clip;
+  const pics = [];
+  for (const l of P.leaves) {
+    if (l.hidden) continue;
+    if (l.text) { P.slots.set(l.i, { kind: "text", label: txtLabel(l), rep: "" }); ti++; continue; }
+    if (!l.canvas || l.adj || l.w < 60 || l.h < 60) continue;
+    if (l.w >= P.w * 0.98 && l.h >= P.h * 0.5) continue; // 배경
+    if (!l.clip && (isBase(l) || l.layer.vectorFill || flatColor(l.canvas))) continue; // 틀·도형
+    if (l.clip && flatColor(l.canvas)) continue; // 색 덮개
+    pics.push(l);
+  }
+  // 같은 그룹 안에 크기가 같은 사진 칸이 2개 이상이면 반복 사진
+  const key = (l) => { const a = areaOf(l); return l.path.join("/") + "|" + Math.round(a.w / 4) + "x" + Math.round(a.h / 4); };
+  const cnt = {}; pics.forEach((l) => (cnt[key(l)] = (cnt[key(l)] || 0) + 1));
+  const repName = {}; let rn = 0;
+  pics.forEach((l) => {
+    const k = key(l);
+    if (cnt[k] >= 2) { repName[k] ||= (l.path[l.path.length - 1] || "반복") + (rn++ ? rn : ""); P.slots.set(l.i, { kind: "rep", label: "반복 사진", rep: repName[k] }); }
+    else P.slots.set(l.i, { kind: "img", label: l.name.slice(0, 16) || `사진 ${ii + 1}`, rep: "" });
+    ii++;
+  });
+  return { ti, ii };
+}
+$("autoSlots").onclick = () => { if (!P) return; const r = autoSlots(); say($("psdMsg"), `다시 정했어요. 글 칸 ${r.ti}개, 사진 칸 ${r.ii}개.`, "ok"); renderLayers(); renderOverlay(); renderSlotSet(); };
+$("noSlots").onclick = () => { if (!P) return; P.slots = new Map(); renderLayers(); renderOverlay(); renderSlotSet(); };
 
 // ── 틀 저장: 합친 그림 조각 + 바뀌는 구역별 레이어 더미
 const inter = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -284,7 +397,7 @@ $("saveTpl").onclick = async () => {
       } else {
         const a = areaOf(l), sl = { id, kind: s.kind, label: s.label || "사진", rep: s.kind === "rep" ? s.rep || "반복1" : "", leaf: i, x: a.x, y: a.y, w: a.w, h: a.h, ox: l.x, oy: l.y, orig: l.canvas ? track(put(l.canvas)) : null };
         if (a.mask === "base") { const bl = baseOf(l); if (bl?.canvas) { sl.mask = track(put(bl.canvas)); sl.mx = bl.x; sl.my = bl.y; } }
-        else if (a.mask === "own" && l.layer.mask?.canvas) { const mk = maskedCanvas({ ...l.layer, canvas: (() => { const c = cv(l.w, l.h); c.getContext("2d").fillRect(0, 0, l.w, l.h); return c; })() }); sl.mask = track(put(mk)); sl.mx = l.x; sl.my = l.y; }
+        else if (a.mask === "own" && l.layer.mask?.canvas) { const mk = ownMaskOf(l); if (mk) { sl.mask = track(put(mk.c)); sl.mx = mk.x; sl.my = mk.y; } }
         slots.push(sl); rects.push({ x: a.x, y: a.y, w: a.w, h: a.h, ids: [id] });
       }
     }
@@ -313,7 +426,7 @@ $("saveTpl").onclick = async () => {
     const thumb = track(put(th, "image/jpeg", 0.8));
     prog(); say(m, `그림 ${jobs.length}개 올리는 중…`);
     const deep = async (o) => { if (o instanceof Promise) return await o; if (Array.isArray(o)) return Promise.all(o.map(deep)); if (o && typeof o === "object") { const r = {}; for (const [k, v] of Object.entries(o)) r[k] = await deep(v); return r; } return o; };
-    const tpl = await deep({ id: uid(), name, w: W, h: H, src: P.name, tiles, regions, slots, thumb, v: 1 });
+    const tpl = await deep({ id: uid(), name, w: W, h: H, src: P.name, tiles, regions, slots, thumb, fonts: psdFonts().map(({ ps, slot }) => ({ ps, slot })), v: 1 });
     await api({ op: "tpl", tpl });
     const j = await api(); TPLS = j.tpls;
     say(m, `'${name}' 틀을 저장했어요. ① 교체하기에서 골라 쓰면 돼요.`, "ok");
@@ -322,6 +435,7 @@ $("saveTpl").onclick = async () => {
   finally { $("saveTpl").disabled = false; setTimeout(() => (bar.hidden = true), 800); }
 };
 function renderTplList() {
+  renderNeeds();
   $("tplList").innerHTML = TPLS.length ? TPLS.map((t) => `<div class="li"><span class="g"><b>${esc(t.name)}</b> <span class="note">${t.w}×${t.h}px · 칸 ${t.slots}개 · ${new Date(t.at).toLocaleDateString("ko-KR")}</span></span><button type="button" class="btn g s danger" data-deltpl="${t.id}">지우기</button></div>`).join("") : `<p class="note">아직 저장한 틀이 없어요.</p>`;
 }
 document.addEventListener("click", async (e) => {
@@ -335,7 +449,7 @@ document.addEventListener("click", async (e) => {
 // ── ① 교체하기
 let cur = null, S = null; // S = { vals, fonts, photos:{id:{bmp,url,z,ox,oy}}, reps:{name:[{bmp,url,z,ox,oy}]} }
 function renderTplCards() {
-  $("tplCards").innerHTML = TPLS.length ? TPLS.map((t) => `<button type="button" class="card" data-tpl="${t.id}" aria-pressed="${cur?.id === t.id}"><span class="th" data-th="${t.thumb}"></span><span class="tt"><b>${esc(t.name)}</b>${t.w}×${t.h}px · 칸 ${t.slots}개</span></button>`).join("") : `<p class="note">아직 틀이 없어요. ② 틀 만들기에서 PSD를 올려 주세요.</p>`;
+  $("tplCards").innerHTML = TPLS.length ? TPLS.map((t) => `<div class="cw"><button type="button" class="card" data-tpl="${t.id}" aria-pressed="${cur?.id === t.id}"><span class="th" data-th="${t.thumb}"></span><span class="tt"><b>${esc(t.name)}</b>${t.w}×${t.h}px · 칸 ${t.slots}개</span></button><button type="button" class="btn g s danger" data-deltpl="${t.id}">틀 지우기</button></div>`).join("") : `<p class="note">아직 틀이 없어요. ② 틀 만들기에서 PSD를 올려 주세요.</p>`;
   $$("[data-th]").forEach(async (el) => { if (!el.dataset.th) return; try { el.style.backgroundImage = `url(${URL.createObjectURL(await getBlob(el.dataset.th))})`; } catch {} });
 }
 $("tplCards").onclick = async (e) => {
@@ -345,12 +459,13 @@ $("tplCards").onclick = async (e) => {
     const r = await fetch(`/api/detail?tpl=${c.dataset.tpl}`, { headers: authH() }); if (!r.ok) throw new Error("tpl"); const { tpl } = await r.json();
     cur = tpl;
     const saved = ls.get("ds-work-" + tpl.id, {});
-    S = { vals: saved.vals || {}, fonts: saved.fonts || {}, photos: {}, reps: {} };
+    S = { vals: saved.vals || {}, fonts: saved.fonts || {}, ans: saved.ans || {}, photos: {}, reps: {} }; qsEdit = false;
     $("useTitle").textContent = `바꿀 내용 · ${tpl.name}`;
-    renderTplCards(); renderFields(); draw();
+    renderTplCards(); renderFields(); renderQs(); draw();
+    if (!tpl.qs && textSlots().length) makeQs();
   } catch (err) { console.error(err); $("useTitle").textContent = "틀을 불러오지 못했어요."; }
 };
-const saveWork = () => cur && ls.set("ds-work-" + cur.id, { vals: S.vals, fonts: S.fonts });
+const saveWork = () => cur && ls.set("ds-work-" + cur.id, { vals: S.vals, fonts: S.fonts, ans: S.ans });
 const repGroups = () => { const g = {}; cur.slots.filter((s) => s.kind === "rep").forEach((s) => (g[s.rep] ||= []).push(s)); return g; };
 function renderFields() {
   if (!cur) return;
@@ -522,11 +637,52 @@ $("dl").onclick = async () => {
 };
 
 // ── AI 글 채우기
+// 상품 정보 질문칸 (틀마다 AI가 만들고, 고치거나 더할 수 있음)
+const textSlots = () => cur.slots.filter((s) => s.kind === "text").sort((a, b) => a.y - b.y || a.x - b.x);
+let qsEdit = false;
+function renderQs() {
+  if (!cur) return;
+  const qs = cur.qs || [], A = S.ans ||= {};
+  $("qs").innerHTML = qs.length ? qs.map((q) => `<label class="q"><span class="ql">${esc(q.label)}<small>${esc(q.hint || "")}${q.fill ? " · 적으면 바로 들어가요" : ""}</small>${qsEdit ? `<button type="button" data-qdel="${q.id}" aria-label="질문 빼기">✕</button>` : ""}</span>${q.long ? `<textarea rows="3" data-q="${q.id}" placeholder="${esc(q.ex ? "예) " + q.ex : "")}">${esc(A[q.id] || "")}</textarea>` : `<input type="text" data-q="${q.id}" value="${esc(A[q.id] || "")}" placeholder="${esc(q.ex ? "예) " + q.ex : "")}">`}</label>`).join("")
+    : `<p class="note" style="margin:0">${textSlots().length ? "아직 질문칸이 없어요. AI가 이 상세페이지 글을 읽고 만들어요." : "이 틀에는 글 칸이 없어요. ② 틀 만들기에서 글 칸을 정하면 질문칸이 생겨요."}</p>`;
+  $("qsTools").innerHTML = !textSlots().length ? "" : qs.length
+    ? `<button type="button" class="btn g s" id="qsEditBtn">${qsEdit ? "다 고쳤어요" : "질문칸 고치기"}</button>${qsEdit ? `<form class="row" id="qAdd" style="flex:1 1 220px"><input type="text" id="qAddIn" placeholder="더할 질문 (예: 모델 착용 사이즈)" style="flex:1"><button class="btn g s">더하기</button></form><button type="button" class="btn g s" id="qsMake">AI로 다시 만들기</button>` : ""}`
+    : `<button type="button" class="btn s" id="qsMake">AI가 질문칸 만들기</button>`;
+}
+async function saveQs(qs) {
+  const j = await api({ op: "tplqs", id: cur.id, qs }); cur.qs = j.qs; renderQs();
+}
+async function makeQs() {
+  const m = $("aiMsg"), b = $("qsMake"); if (b) b.disabled = true;
+  m.textContent = "AI가 상세페이지를 읽고 질문칸을 만드는 중… (10~20초)";
+  try { const j = await api({ op: "qs", slots: textSlots().map((s) => ({ id: s.id, label: s.label, orig: s.t.text })) }); await saveQs(j.qs || []); m.textContent = `질문칸 ${cur.qs.length}개를 만들었어요. 필요 없으면 '질문칸 고치기'에서 빼 주세요.`; }
+  catch (e) { m.textContent = e.message === "busy" ? "지금 AI가 바빠요. 잠시 뒤 다시 눌러 주세요." : "질문칸을 만들지 못했어요. 다시 눌러 주세요."; renderQs(); }
+}
+$("aiBox").addEventListener("input", (e) => {
+  const id = e.target.dataset.q; if (!id) return;
+  const q = cur.qs.find((x) => x.id === id), v = e.target.value; S.ans[id] = v;
+  if (q?.fill) { if (v.trim()) S.vals[q.fill] = v; else delete S.vals[q.fill]; draw(); clearTimeout(renderQs.t); renderQs.t = setTimeout(renderFields, 600); }
+  saveWork();
+});
+$("aiBox").addEventListener("click", async (e) => {
+  const t = e.target;
+  if (t.id === "qsMake") return makeQs();
+  if (t.id === "qsEditBtn") { qsEdit = !qsEdit; return renderQs(); }
+  if (t.dataset.qdel) { e.preventDefault(); return saveQs(cur.qs.filter((q) => q.id !== t.dataset.qdel)).catch(() => {}); }
+});
+$("aiBox").addEventListener("submit", (e) => {
+  if (e.target.id !== "qAdd") return; e.preventDefault();
+  const label = $("qAddIn").value.trim(); if (!label) return;
+  let n = 1; while (cur.qs.some((q) => q.id === "q" + n)) n++;
+  saveQs([...cur.qs, { id: "q" + n, label, hint: "", ex: "", long: false, fill: "" }]).catch(() => {});
+});
 $("aiBtn").onclick = async () => {
   if (!cur) return;
-  const memo = $("aiMemo").value.trim(), m = $("aiMsg");
+  const m = $("aiMsg"), A = S.ans || {};
+  const facts = (cur.qs || []).filter((q) => (A[q.id] || "").trim()).map((q) => `${q.label}: ${A[q.id].trim()}`);
+  const memo = [...facts, $("aiMemo").value.trim()].filter(Boolean).join("\n");
   if (!memo) { m.textContent = "상품 정보를 먼저 적어 주세요."; return; }
-  const slots = cur.slots.filter((s) => s.kind === "text").map((s) => ({ id: s.id, label: s.label, orig: s.t.text, lines: s.t.lines }));
+  const slots = textSlots().map((s) => ({ id: s.id, label: s.label, orig: s.t.text, lines: s.t.lines }));
   if (!slots.length) { m.textContent = "이 틀에는 글 칸이 없어요."; return; }
   $("aiBtn").disabled = true; m.textContent = "AI가 쓰는 중… (10~20초)";
   try { const j = await api({ op: "ai", memo, slots }); let n = 0; for (const [k, v] of Object.entries(j.values || {})) if (v !== (S.vals[k] ?? cur.slots.find((s) => s.id === k)?.t.text)) { S.vals[k] = v; n++; } saveWork(); renderFields(); draw(); m.textContent = `${n}칸을 바꿨어요. 확인하고 고쳐 주세요.`; }

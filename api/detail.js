@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     const t = b.tpl, s = JSON.stringify(t || {});
     if (!t || !okId(t.id) || s.length > 900_000) return res.status(400).json({ error: "tpl" });
     t.name = clip(t.name, 60) || "이름 없는 틀"; t.at = Date.now();
-    const sum = { id: t.id, name: t.name, w: t.w, h: t.h, at: t.at, thumb: okId(t.thumb) ? t.thumb : "", slots: (t.slots || []).length };
+    const sum = { id: t.id, name: t.name, w: t.w, h: t.h, at: t.at, thumb: okId(t.thumb) ? t.thumb : "", slots: (t.slots || []).length, fonts: (Array.isArray(t.fonts) ? t.fonts : []).slice(0, 40).map((f) => ({ ps: clip(f?.ps, 80), slot: !!f?.slot })).filter((f) => f.ps) };
     await redis([["SET", `ds:tpl:${t.id}`, JSON.stringify(t)], ["HSET", "ds:tpls", t.id, JSON.stringify(sum)]]);
     return res.json({ ok: true, id: t.id });
   }
@@ -94,6 +94,15 @@ export default async function handler(req, res) {
     return res.json({ ok: true });
   }
   if (op === "ai") return aiFill(b, res);
+  if (op === "qs") return aiQs(b, res);
+  if (op === "tplqs") {
+    if (!okId(b.id)) return res.status(400).end();
+    const [t] = await redis([["GET", `ds:tpl:${b.id}`]]); const tpl = json(t);
+    if (!tpl) return res.status(404).json({ error: "none" });
+    tpl.qs = cleanQs(b.qs, new Set((tpl.slots || []).map((x) => x.id)));
+    await redis([["SET", `ds:tpl:${b.id}`, JSON.stringify(tpl)]]);
+    return res.json({ ok: true, qs: tpl.qs });
+  }
 
   // 공유 열쇠는 이현님만
   if (role !== "admin") return res.status(403).json({ error: "admin" });
@@ -107,6 +116,50 @@ async function dropBlobs(ids, extra) {
   const cmds = [...extra];
   ids.forEach((id, j) => { const n = json(metas[j])?.n || 0; cmds.push(["DEL", `ds:b:${id}`, ...Array.from({ length: n }, (_, i) => `ds:b:${id}:${i}`)]); });
   await redis(cmds);
+}
+
+// 질문칸: {id, label, hint, ex(원래 글에서 본 예), long(여러 줄), fill(그 답이 칸 글 전체면 그 칸 id)}
+function cleanQs(list, slotIds) {
+  const seen = new Set();
+  return (Array.isArray(list) ? list : []).slice(0, 30).map((q, i) => {
+    let id = /^q[a-z0-9]{1,12}$/.test(q?.id) ? q.id : "q" + (i + 1);
+    while (seen.has(id)) id += "x"; seen.add(id);
+    return { id, label: clip(q?.label, 30).trim(), hint: clip(q?.hint, 80), ex: clip(q?.ex, 200), long: !!q?.long, fill: slotIds.has(q?.fill) ? q.fill : "" };
+  }).filter((q) => q.label);
+}
+
+// 상세페이지 글을 읽고 이 틀에 맞는 상품 정보 질문칸을 만듦
+async function aiQs(b, res) {
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "no_key" });
+  const slots = (Array.isArray(b.slots) ? b.slots : []).slice(0, 60).map((s) => ({ id: clip(s.id, 30), label: clip(s.label, 40), orig: clip(s.orig, 300) })).filter((s) => s.id);
+  const other = clip(b.other, 3000);
+  if (!slots.length) return res.status(400).json({ error: "empty" });
+  const prompt = `너는 한국 온라인 쇼핑몰 상세페이지를 매일 새 상품으로 바꿔 만드는 일을 돕는 사람이야.
+아래는 한 상세페이지 틀의 글 칸들(위에서 아래 순서)이야. 이 페이지를 이해하고, 새 상품으로 바꿀 때 직원이 채워야 하는 '상품 정보 질문칸'을 만들어 줘.
+
+규칙
+- 정보 하나에 질문칸 하나: 예) 상품명, 컬러, 사이즈, 실측(총장·가슴단면 등), 소재, 두께감·신축성, 세탁, 핏, 추천 포인트… 이 페이지에 실제로 있는 정보만.
+- 상품이 바뀌어도 그대로인 글(브랜드명, 배송·교환 안내, 공통 문구)은 질문으로 만들지 마.
+- label은 짧게(2~8자). hint는 무엇을 어떻게 적는지 한 줄. ex는 원래 글에서 그대로 따온 예시.
+- 표처럼 여러 줄인 정보(사이즈별 실측 등)는 long: true.
+- 어떤 글 칸의 글 전체가 그 질문의 답 하나와 같으면(예: 상품명 칸) fill에 그 칸 id. 아니면 "".
+- 많아야 12개. 중요한 순서로.
+- JSON 한 덩어리만 답해: {"qs":[{"id":"q1","label":"","hint":"","ex":"","long":false,"fill":""}]}
+
+글 칸 (id | 이름 | 원래 글):
+${slots.map((s) => `- ${s.id} | ${s.label || "-"} | ${JSON.stringify(s.orig)}`).join("\n")}${other ? `\n\n칸이 아닌 다른 글(참고):\n${other}` : ""}`;
+  try {
+    const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 3000, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
+    await recordUsage(msg.usage || {}, MODEL);
+    const out = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
+    const r = json(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+    if (!Array.isArray(r?.qs)) return res.status(502).json({ error: "shape" });
+    return res.json({ qs: cleanQs(r.qs, new Set(slots.map((s) => s.id))) });
+  } catch (err) {
+    if (err instanceof Anthropic.RateLimitError) return res.status(429).json({ error: "busy" });
+    console.error(err);
+    return res.status(502).json({ error: "api" });
+  }
 }
 
 // 상품 메모를 읽고 글 칸마다 원래 글과 같은 길이·말투로 채움
