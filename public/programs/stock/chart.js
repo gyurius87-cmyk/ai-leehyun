@@ -44,14 +44,18 @@
 
   async function load() {
     make(); $("cMsg").textContent = "불러오는 중…";
-    let g; try { g = await api(`op=chart&s=${encodeURIComponent(S.sym)}&r=${S.r}&i=${S.iv}`); } catch { $("cMsg").textContent = "차트를 못 불러왔어요."; return; }
-    S.rows = (g.rows || []).filter((r) => r.c != null); S.name = S.name || g.name || S.sym; $("cMsg").textContent = g.src === "kiwoom" ? "키움 차트" : "";
+    // 이동평균(최대 120봉)이 화면 첫날부터 보이도록 앞쪽 기간을 더 받아 계산하고, 화면에는 고른 기간만 보여요
+    const DAYS = { "6mo": 183, "1y": 366, "2y": 731, "5y": 1827, "10y": 3653, max: 365 * 60 }, BAR = { "1d": 1.5, "1wk": 7, "1mo": 30.5 }[S.iv] || 1.5;
+    const need = DAYS[S.r] + 125 * BAR, fr = S.r === "max" ? "max" : ["1y", "2y", "5y", "10y"].find((k) => DAYS[k] >= need) || "max";
+    const cut = S.r === "max" ? "" : new Date(Date.now() - DAYS[S.r] * 864e5).toISOString().slice(0, 10);
+    let g; try { g = await api(`op=chart&s=${encodeURIComponent(S.sym)}&r=${fr}&i=${S.iv}`); } catch { $("cMsg").textContent = "차트를 못 불러왔어요."; return; }
+    const all = (g.rows || []).filter((r) => r.c != null); S.rows = all.filter((r) => !cut || r.d >= cut); S.name = S.name || g.name || S.sym; $("cMsg").textContent = g.src === "kiwoom" ? "키움 차트" : "";
     [main, vol, ...Object.values(maS), ...cmpS].forEach((s) => s && chart.removeSeries(s)); maS = {}; cmpS = [];
     main = S.type === "candle" ? chart.addCandlestickSeries({ upColor: up(), downColor: dn(), borderUpColor: up(), borderDownColor: dn(), wickUpColor: up(), wickDownColor: dn() }) : chart.addLineSeries({ color: css("--ink") || "#333", lineWidth: 2 });
     main.setData(S.type === "candle" ? S.rows.map((r) => ({ time: r.d, open: r.o ?? r.c, high: r.h ?? r.c, low: r.l ?? r.c, close: r.c })) : S.rows.map((r) => ({ time: r.d, value: r.c })));
     if (S.rows.some((r) => r.v)) { vol = chart.addHistogramSeries({ priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false }); chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } }); vol.setData(S.rows.map((r, i) => ({ time: r.d, value: r.v || 0, color: (r.c >= (S.rows[i - 1]?.c ?? r.c) ? up() : dn()) + "66" }))); } else vol = null;
     main.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: vol ? 0.22 : 0.06 } });
-    MAS.forEach(([n, c]) => { if (!S.ma.includes(n) || S.cmp.some((x) => x.s !== S.sym)) return; const s = chart.addLineSeries({ color: c, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false }); const out = []; let sum = 0; S.rows.forEach((r, i) => { sum += r.c; if (i >= n) sum -= S.rows[i - n].c; if (i >= n - 1) out.push({ time: r.d, value: sum / n }); }); s.setData(out); maS[n] = s; });
+    MAS.forEach(([n, c]) => { if (!S.ma.includes(n) || S.cmp.some((x) => x.s !== S.sym)) return; const s = chart.addLineSeries({ color: c, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false }); const out = []; let sum = 0; all.forEach((r, i) => { sum += r.c; if (i >= n) sum -= all[i - n].c; if (i >= n - 1 && (!cut || r.d >= cut)) out.push({ time: r.d, value: sum / n }); }); s.setData(out); maS[n] = s; });
     marks(); chart.timeScale().fitContent();
     // 겹쳐 보기: 다른 종목을 같은 차트에. 있으면 오른쪽 축을 %로 (각자 화면 첫날 기준)
     const cmps = S.cmp.filter((c) => c.s !== S.sym);
