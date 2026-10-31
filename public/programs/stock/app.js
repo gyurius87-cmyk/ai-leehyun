@@ -639,19 +639,25 @@ $("pvForm").onsubmit = async (e) => { e.preventDefault(); const pin = $("pvPin")
   try { const j = await api("", { op: "acctpin", pin, newPin: nw || undefined }); $("pvPin").value = $("pvNew").value = ""; $("pvNew").hidden = true; setPv(true); $("pvMsg").textContent = j.changed ? "비밀번호를 바꿨어요." : ""; }
   catch (err) { $("pvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요." : "확인하지 못했어요."; } };
 
-// 일별 DB
-let DB = null;
-async function loadDb() { try { DB = await api("op=db"); renderDb(); } catch { $("dbMsg").textContent = "못 불러왔어요."; } }
-function renderDb() {
-  const L = DB?.list || [], today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  $("dbMake").textContent = L.some((r) => r.day === today) ? "오늘 것 다시 만들기" : "오늘 것 지금 만들기";
-  const n = (k, v, u) => (v ? `${k} ${v}${u}` : "");
-  $("dbList").innerHTML = L.map((r) => { const c = r.counts || {};
-    return `<div class="dbr"><div class="dd num">${r.day.slice(2).replace(/-/g, ".")} (${"일월화수목금토"[new Date(r.day + "T00:00:00Z").getUTCDay()]})<small>${[n("영상", c.yt, "개"), n("발언", c.sns, "개"), n("대가 매매", c.master, "건")].filter(Boolean).join(" · ")}${r.partial ? "<br>하루 중간 기록" : ""}</small><button type="button" class="btn g s" data-dbre="${esc(r.day)}" style="margin-top:4px;font-size:11px;padding:1px 6px">다시</button></div>
-      <div style="min-width:0"><div class="ln">${r.mood ? `<span class="mood ${esc(r.mood)}">${esc(r.mood)}</span>` : ""}${esc(r.line)}</div>
-      <div>${(r.keys || []).map((k) => `<span class="kw">#${esc(k)}</span>`).join("")}${(r.hot || []).map((k) => `<span class="kw h">${esc(k)}</span>`).join("")}</div>
-      <div class="sub">${[["시장", r.market], ["많았던 이야기", r.talk], ["유튜버", r.yt], ["대가·포폴", r.masters]].filter(([, v]) => v).map(([k, v]) => `<div><b>${k}</b>${esc(v)}</div>`).join("")}</div></div></div>`; }).join("") || `<p class="note">아직 기록이 없어요. '오늘 것 지금 만들기'를 눌러 보세요. 내일 아침부터는 매일 자동으로 쌓여요.</p>`;
+// 일별 DB: 날짜 × 항목 엑셀 표
+let DB = null, DBFILL = false;
+const DBC = [["us", "미국 증시"], ["kr", "한국 증시"], ["macro", "금리·환율·유가"], ["semi", "반도체·AI"], ["news", "뉴스 많았던 얘기"], ["policy", "연준·정책·관세"], ["talk", "유명인 발언"], ["yt", "유튜버"], ["crowd", "개미 분위기"], ["masters", "대가·포폴"]];
+const kday = (ms) => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
+async function loadDb() {
+  try { DB = await api("op=db"); renderDb(); } catch { $("dbMsg").textContent = "못 불러왔어요."; return; }
+  const have = new Set((DB.list || []).filter((r) => r.cells).map((r) => r.day)), miss = [1, 2, 3, 4, 5, 6, 7].map((i) => kday(Date.now() - i * 864e5)).filter((d) => !have.has(d));
+  if (miss.length && !DBFILL) { DBFILL = true; $("dbMsg").textContent = `지난 7일 중 ${miss.length}일치를 만드는 중이에요… (1~2분)`; try { await api("", { op: "dbfill", n: 7 }); DB = await api("op=db"); $("dbMsg").textContent = ""; renderDb(); } catch (e) { $("dbMsg").textContent = "일부를 못 만들었어요. 다시 열면 이어서 만들어요."; DBFILL = false; } }
 }
-async function makeDb(d, btn) { btn.disabled = true; const o = btn.textContent; btn.textContent = "만드는 중… (30초쯤)"; try { await api("", { op: "dbmake", d }); await loadDb(); $("dbMsg").textContent = ""; } catch (e) { $("dbMsg").textContent = "못 만들었어요: " + (e?.message || ""); } btn.disabled = false; btn.textContent = o; renderDb(); }
+function renderDb() {
+  const L = DB?.list || [], today = kday(Date.now());
+  $("dbMake").textContent = L.some((r) => r.day === today && r.cells) ? "오늘 것 다시 만들기" : "오늘 것 지금 만들기";
+  const G = { 좋음: "gd", 나쁨: "bd", 중립: "nt" };
+  const cell = (c) => (c?.t ? `<td class="${G[c.g] || ""}">${c.g === "좋음" ? "▲ " : c.g === "나쁨" ? "▼ " : ""}${esc(c.t)}</td>` : `<td class="em">-</td>`);
+  const rows = L.map((r) => `<tr><th class="num">${r.day.slice(5).replace("-", ".")} <small>${"일월화수목금토"[new Date(r.day + "T00:00:00Z").getUTCDay()]}</small>${r.day === today ? "<small> (진행 중)</small>" : ""}<button type="button" class="redo" data-dbre="${esc(r.day)}" title="이 날 다시 만들기">↻</button></th>
+    <td class="one">${r.mood ? `<span class="mood ${esc(r.mood)}">${esc(r.mood)}</span>` : ""}${esc(r.line || "")}</td>${r.cells ? DBC.map(([k]) => cell(r.cells[k])).join("") : `<td colspan="${DBC.length}" class="em">예전 형식이에요. ↻를 누르면 표로 다시 만들어요.</td>`}
+    <td class="kw2">${(r.keys || []).map((k) => `#${esc(k)}`).join(" ")}${(r.hot || []).length ? `<br><b>${(r.hot || []).map(esc).join(", ")}</b>` : ""}</td></tr>`).join("");
+  $("dbList").innerHTML = L.length ? `<div class="dbt"><table><thead><tr><th>날짜</th><th>한 줄</th>${DBC.map(([, n]) => `<th>${n}</th>`).join("")}<th>키워드 · 많이 나온 종목</th></tr></thead><tbody>${rows}</tbody></table></div><p class="note">▲ 좋음(빨강) · ▼ 나쁨(파랑) · 미국 칸은 그 날짜 미국장 기준이에요.</p>` : `<p class="note">아직 기록이 없어요.</p>`;
+}
+async function makeDb(d, btn) { btn.disabled = true; const o = btn.textContent; btn.textContent = "…"; $("dbMsg").textContent = "만드는 중… (30초쯤)"; try { await api("", { op: "dbmake", d }); DB = await api("op=db"); $("dbMsg").textContent = ""; } catch (e) { $("dbMsg").textContent = "못 만들었어요: " + (e?.message || ""); } btn.disabled = false; btn.textContent = o; renderDb(); }
 $("dbMake").onclick = (e) => makeDb("", e.currentTarget);
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-dbre]"); if (b) makeDb(b.dataset.dbre, b); });

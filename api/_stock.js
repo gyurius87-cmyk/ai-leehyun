@@ -10,7 +10,7 @@ import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
 import { famousAll, famousRefresh } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
-import { dayDb, dayDbList } from "./_daydb.js";
+import { dayDb, dayDbList, dayDbFill } from "./_daydb.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" };
@@ -397,7 +397,7 @@ ${ctx}
   return { reply, hist: hist.slice(-40) };
 }
 
-const DBDEPS = { snapshot: () => snapshot(), news: () => news(), backtest: () => backtest() };
+const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
@@ -447,6 +447,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(8); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(4); return res.json({ added: c, ...(await ytAll()) }); }
+    if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
     if (b.op === "dbmake") { const d = /^\d{4}-\d{2}-\d{2}$/.test(b.d || "") ? b.d : kstDay(); const r = await dayDb(d, DBDEPS, true); return r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
     if (b.op === "socseen") { const id = String(b.id || "").slice(0, 300); if (id) await redis([[b.on ? "SADD" : "SREM", "stk:soc:seen", id]]); return res.json({ ok: true }); }
     if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
