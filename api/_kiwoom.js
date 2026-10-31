@@ -72,11 +72,11 @@ export async function kwFills(day) { // day: YYYY-MM-DD
 }
 
 // 내 계좌·매매 기록에 합치기 (키움에서 온 국내 종목은 덮어쓰고, 손으로 적은 해외 종목은 그대로)
-export async function kwSync(days = 7) {
+export async function kwSync(days = 7, mkt = null) { // mkt: 6자리 코드 → ".KS"|".KQ" (상장 목록)
   const [a, t] = await redis([["GET", "stk:acct"], ["GET", "stk:trades"]]);
   const acct = json(a) || { hold: [], cash: 0, cashUsd: 0 }, trades = json(t) || [];
   const H = await kwHoldings();
-  const sfx = (c) => (acct.hold.find((h) => h.sym?.startsWith(c + "."))?.sym?.slice(6)) || ".KS";
+  const sfx = (c) => mkt?.[c] || (acct.hold.find((h) => h.sym?.startsWith(c + "."))?.sym?.slice(6)) || ".KS";
   acct.hold = [...acct.hold.filter((h) => !(h.src === "kiwoom" || /^\d{6}\.(KS|KQ)$/.test(h.sym))), ...H.hold.map((h) => ({ sym: h.code + sfx(h.code), name: h.name, qty: h.qty, avg: h.avg, cur: "KRW", src: "kiwoom" }))];
   acct.cash = H.cash; acct.kwAt = Date.now();
   const seen = new Set(trades.map((x) => x.ord ? `${x.date}|${x.ord}|${x.side}` : `${x.date}|${x.name}|${x.side}|${x.price}|${x.qty}`));
@@ -91,6 +91,7 @@ export async function kwSync(days = 7) {
       trades.push({ id: Math.random().toString(36).slice(2, 12), date: f.date, sym: f.code + sfx(f.code), name: f.name, side: f.side, price: f.price, qty: f.qty, ord: f.ord, memo: "", feel: "", src: "kiwoom" }); added++;
     }
   }
+  if (mkt) trades.forEach((x) => { const m = /^(\d{6})\.(KS|KQ)$/.exec(x.sym || ""); if (m && mkt[m[1]]) x.sym = m[1] + mkt[m[1]]; });
   await redis([["SET", "stk:acct", JSON.stringify(acct)], ["SET", "stk:trades", JSON.stringify(trades)]]);
   return { ok: true, hold: H.hold.length, added, cash: H.cash, at: acct.kwAt };
 }

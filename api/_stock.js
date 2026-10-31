@@ -45,6 +45,11 @@ const MACRO_F = [
 ];
 
 // ── 야후 일봉
+// 국내 종목은 .KS로 안 나오면 .KQ(코스닥)로, 반대도 시도. 바뀐 코드는 fixed에
+async function chartKr(sym, range, iv) {
+  const g = await chart(sym, range, iv).catch(() => null); if (g || !/^\d{6}\.(KS|KQ)$/.test(sym)) return g;
+  const alt = sym.slice(0, 6) + (sym.endsWith(".KS") ? ".KQ" : ".KS"), h = await chart(alt, range, iv).catch(() => null); return h ? { ...h, fixed: alt } : null;
+}
 export async function chart(sym, range = "1y", iv = "1d") {
   for (const host of ["query1", "query2"]) {
     try {
@@ -373,6 +378,8 @@ export async function resolveSym(raw) {
 }
 
 // ── 이름으로 종목 찾기: 한국 종목은 상장 목록(키움 → 안 되면 한국거래소 KIND), 해외·영문은 야후 검색, 그래도 없으면 AI
+// 6자리 코드 → 시장 접미사 (코스닥이면 .KQ)
+async function krMkt() { const l = await krList().catch(() => []); return l.length ? Object.fromEntries(l.map((x) => [x.s.slice(0, 6), x.s.slice(6)])) : null; }
 async function krList() {
   const [c] = await redis([["GET", "stk:krlist"]]); const j = json(c); if (j && Date.now() - j.at < 7 * 864e5) return j.list;
   let list = await kwStockList().catch(() => null);
@@ -440,7 +447,7 @@ export async function acctAdvice(force) {
   const old = json(c), acct = json(a) || { hold: [], cash: 0, cashUsd: 0 }, trades = json(t) || [], br = json(b);
   if (!force) return old || null;
   if (!acct.hold?.length && !acct.cash && !acct.cashUsd) return { err: "empty" };
-  const [fx, ...gs] = await Promise.all([chart("KRW=X", "1y"), ...acct.hold.map((h) => chart(h.sym, "1y").catch(() => null))]);
+  const [fx, ...gs] = await Promise.all([chart("KRW=X", "1y"), ...acct.hold.map((h) => chartKr(h.sym, "1y"))]);
   const FX = fx?.price || 1400; let tot = (+acct.cash || 0) + (+acct.cashUsd || 0) * FX, buy = 0;
   const rows = acct.hold.map((h, i) => { const g = gs[i], k = h.cur === "USD" ? FX : 1, p = g?.price, v = p != null ? p * h.qty * k : null, cost = h.avg * h.qty * k; if (v != null) tot += v; buy += cost;
     const cl = g?.rows?.map((r) => r.c) || [], hi = cl.length ? Math.max(...cl) : null, ma = (n) => (cl.length >= n ? cl.slice(-n).reduce((x, y) => x + y, 0) / n : null), m50 = ma(50), m200 = ma(200);
@@ -457,24 +464,35 @@ ${lines.join("\n") || "- 없음 (전부 현금)"}
 최근 매매:
 ${recent.join("\n") || "- 기록 없음"}
 ${br?.headline ? `오늘 시장: ${br.headline} / ${br.verdict?.stance || ""} ${br.verdict?.summary || ""}` : ""}`;
-  const who = MASTERS.map((m) => `- id "${m.id}" ${m.name}: 스타일 ${m.style} / 말투 ${m.voice} / 원칙 ${m.rule}`).join("\n");
-  const prompt = `이현은 아래 8명의 스승에게 하나뿐인 제자예요. 스승들은 이현이 잘되기를 진심으로 바라고, 이현의 계좌를 다 들여다볼 수 있어요.
-각 스승의 투자 원칙과 말투로, 이현의 실제 보유 종목·비중·손익·최근 매매를 콕 집어 훈수를 써 주세요. 칭찬할 건 칭찬하고, 원칙에 어긋나는 건 따끔하게 말해요. 일반론 금지, 반드시 종목 이름과 숫자를 들어 말해요.
-이건 AI가 각 인물의 원칙으로 쓴 캐릭터 글이에요. 실제 발언을 인용하는 척하지 말고, 모르는 최신 사실은 지어내지 마요. 종목을 꼭 사라·팔라고 단정하기보다, 그 스승의 기준으로 "나라면 이렇게 하겠다"와 확인할 기준을 줘요.
+  // 대가마다 따로 동시에 부르기 (한 번에 8명은 길어서 시간 초과·JSON 깨짐 위험)
+  const one = async (m) => {
+    const prompt = `당신은 ${m.name}의 투자 원칙과 말투로 쓰는 AI 캐릭터예요 (실제 본인이 아니고, 실제 발언을 인용하는 척하지 않아요).
+스타일: ${m.style}
+말투: ${m.voice}
+원칙: ${m.rule}
 
-스승들:
-${who}
+이현은 당신의 하나뿐인 제자이고, 당신은 제자가 잘되기를 진심으로 바라요. 제자의 계좌를 다 볼 수 있어요.
+아래 실제 계좌를 보고 훈수를 둬요. 칭찬할 건 칭찬하고 원칙에 어긋나는 건 따끔하게. 일반론 말고 종목 이름과 숫자를 콕 집어서. 사라·팔라 단정 대신 "나라면 이렇게 하겠다"와 확인할 기준을 줘요. 모르는 최신 사실은 지어내지 마요.
 
 ${ctx}
 
-JSON만 출력:
-{"list":[{"id":"buffett","mood":"칭찬|걱정|경고|격려 중 하나","head":"한 줄 요약(25자 안)","text":"제자에게 말하듯 4~7문장, 그 스승의 말투","todo":["이번 주에 해 볼 것 1","2"]} ...8명 모두],
- "common":"스승들이 공통으로 짚은 것 한두 문장","split":"스승들 의견이 갈린 부분 한 문장"}`;
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 6000, messages: [{ role: "user", content: prompt }] });
-  await recordUsage(msg.usage || {}, MODEL);
-  const txt = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
-  if (!j?.list?.length) return { err: "ai" };
-  const out = { at: Date.now(), day: kstDay(), acctAt: acct.at || acct.kwAt || null, tot: Math.round(tot), list: j.list.filter((x) => MASTERS.some((m) => m.id === x.id)), common: j.common || "", split: j.split || "" };
+JSON 한 개만 출력: {"mood":"칭찬|걱정|경고|격려 중 하나","head":"한 줄 요약(25자 안)","text":"제자에게 말하듯 4~7문장","todo":["이번 주에 해 볼 것","하나 더"]}`;
+    try {
+      const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 1200, messages: [{ role: "user", content: prompt }] });
+      await recordUsage(msg.usage || {}, MODEL);
+      const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
+      return j?.text ? { id: m.id, mood: j.mood, head: j.head, text: j.text, todo: Array.isArray(j.todo) ? j.todo.slice(0, 3) : [] } : { id: m.id, mood: "", head: "", text: t.trim().slice(0, 1500), todo: [] };
+    } catch (e) { console.error("advice", m.id, e?.message); return null; }
+  };
+  const list = (await Promise.all(MASTERS.map(one))).filter(Boolean);
+  if (!list.length) return { err: "ai" };
+  let common = "", split = "";
+  try {
+    const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `스승 ${list.length}명이 제자 계좌에 준 훈수 요약이에요:\n${list.map((x) => `- ${MASTERS.find((m) => m.id === x.id)?.name}: ${x.head} / ${String(x.text).slice(0, 300)}`).join("\n")}\nJSON만: {"common":"공통으로 짚은 것 한두 문장","split":"의견이 갈린 부분 한 문장"}` }] });
+    await recordUsage(msg.usage || {}, MODEL);
+    const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {}; common = j.common || ""; split = j.split || "";
+  } catch {}
+  const out = { at: Date.now(), day: kstDay(), acctAt: acct.at || acct.kwAt || null, tot: Math.round(tot), list, common, split };
   await redis([["SET", "stk:advice", JSON.stringify(out)]]);
   return out;
 }
@@ -483,7 +501,7 @@ const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -511,7 +529,7 @@ export async function stockHandler(req, res, isAdmin) {
         if (kwChartable(sy)) { const days = { "1mo": 31, "3mo": 92, "6mo": 183, "1y": 366, "2y": 731, "5y": 1827, "10y": 3653, max: 365 * 40 }[rg]; const from = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); const k = await kwChart(sy, iv, from).catch((e) => (console.error("kwChart", e?.message), null)); if (k) return res.json({ sym: sy, cur: "KRW", src: "kiwoom", price: k.at(-1).c, rows: k }); }
         const g = (await chart(sy, rg, iv)) || (/\.KS$/.test(sy) ? await chart(sy.replace(/\.KS$/, ".KQ"), rg, iv) : null); return g ? res.json({ ...g, src: "yahoo" }) : res.status(404).json({ error: "none" });
       }
-      if (op === "quote") { const syms = String(q.s || "").split(",").filter(Boolean).slice(0, 40); const [fx, ...gs] = await Promise.all([chart("KRW=X", "5d"), ...syms.map((s) => chart(s, "5d"))]); return res.json({ fx: fx?.price || null, q: Object.fromEntries(syms.map((s, i) => [s, gs[i] ? { p: gs[i].price, prev: gs[i].rows.at(-2)?.c ?? gs[i].prev, cur: gs[i].cur, name: gs[i].name } : null])) }); }
+      if (op === "quote") { const syms = String(q.s || "").split(",").filter(Boolean).slice(0, 40); const [fx, ...gs] = await Promise.all([chart("KRW=X", "5d"), ...syms.map((s) => chartKr(s, "5d"))]); return res.json({ fx: fx?.price || null, q: Object.fromEntries(syms.map((s, i) => [s, gs[i] ? { p: gs[i].price, prev: gs[i].rows.at(-2)?.c ?? gs[i].prev, cur: gs[i].cur, name: gs[i].name, sym: gs[i].fixed || undefined } : null])) }); }
       if (op === "find") return res.json({ list: await findSym(q.q) });
       if (op === "sym") { const r = await resolveSym(q.s); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
       if (op === "kw") return res.json(kwReady());
@@ -544,7 +562,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
     if (b.op === "ytdel") { await ytDel(String(b.id || "")); return res.json(await ytAll()); }
     if (b.op === "ytsum") { const r = await ytOne(String(b.id || "")); return !r ? res.status(404).json({ error: "영상을 못 찾았어요" }) : r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
-    if (b.op === "kwsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env", ...k }); try { return res.json(await kwSync(Math.max(1, Math.min(120, +b.days || 7)))); } catch (e) { console.error(e); return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
+    if (b.op === "kwsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env", ...k }); try { return res.json(await kwSync(Math.max(1, Math.min(120, +b.days || 7)), await krMkt())); } catch (e) { console.error(e); return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "review") return res.json(await review({ sym: clip(b.t?.sym, 20), name: clip(b.t?.name, 40), date: clip(b.t?.date, 10), side: b.t?.side === "매도" ? "매도" : "매수", price: +b.t?.price || 0, qty: +b.t?.qty || 0, memo: b.t?.memo, feel: b.t?.feel }));
     return res.status(400).json({ error: "op" });
   } catch (err) {

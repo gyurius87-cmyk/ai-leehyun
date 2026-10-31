@@ -603,7 +603,7 @@ async function loadAdv() { if (!PUB) return; try { ADV = await api("op=advice");
 document.addEventListener("click", async (e) => {
   const c = e.target.closest("[data-advchat]"); if (c) { showTab("masters"); setMV(c.dataset.advchat); return; }
   if (e.target.id !== "advGo") return; const b = e.target; b.disabled = true; b.textContent = "스승님들이 계좌를 보는 중…";
-  try { ADV = await api("", { op: "advice" }); renderAdv(); } catch { $("advList").innerHTML = `<p class="msg no">훈수를 못 받았어요. 보유 종목이나 예수금을 먼저 저장했는지 확인하고 다시 눌러 주세요.</p>`; b.textContent = "다시 받기"; }
+  try { ADV = await api("", { op: "advice" }); renderAdv(); } catch (er) { const m = String(er?.message || ""); $("advList").innerHTML = `<p class="msg no">훈수를 못 받았어요 (${esc(m === "empty" ? "저장된 계좌가 비어 있어요. '저장'을 먼저 눌러 주세요" : m === "ai" ? "AI 답을 못 받았어요. 잠시 뒤 다시 눌러 주세요" : m || "연결 오류")}).</p>`; b.textContent = "다시 받기"; }
   b.disabled = false;
 });
 async function renderAcct() {
@@ -612,7 +612,10 @@ async function renderAcct() {
   renderKw();
   $("cash").value = ACCT.cash || ""; $("cashUsd").value = ACCT.cashUsd || "";
   const syms = ACCT.hold.map((h) => h.sym);
-  if (syms.length) try { const j = await api("op=quote&s=" + encodeURIComponent(syms.join(","))); Q = j.q; FX = j.fx || FX; } catch {}
+  if (syms.length) try { const j = await api("op=quote&s=" + encodeURIComponent(syms.join(","))); Q = j.q; FX = j.fx || FX;
+    // 코스닥 종목이 .KS로 들어와 있으면 .KQ로 고쳐서 저장
+    let fixed = 0; ACCT.hold.forEach((h) => { const f = Q[h.sym]?.sym; if (f && f !== h.sym) { Q[f] = Q[h.sym]; h.sym = f; fixed++; } }); if (fixed) api("", { op: "acct", acct: ACCT }).then((r) => (ACCT = r.acct)).catch(() => {});
+  } catch {}
   let tot = (+ACCT.cash || 0) + (+ACCT.cashUsd || 0) * FX, buy = 0, today = 0;
   const rows = ACCT.hold.map((h, i) => { const q = Q[h.sym], k = h.cur === "USD" ? FX : 1, p = q?.p, v = p != null ? p * h.qty * k : null, cost = h.avg * h.qty * k; if (v != null) { tot += v; today += (p - (q.prev || p)) * h.qty * k; } buy += cost; return { h, i, p, v, cost, pl: v != null && cost ? (v / cost - 1) * 100 : null }; });
   const stockV = rows.reduce((t, r) => t + (r.v || 0), 0);
