@@ -264,7 +264,7 @@ const md = (ymd) => (ymd ? `${+ymd.slice(5, 7)}/${+ymd.slice(8, 10)}` : '');
 
   // 새 소식 (하루 두 번 갱신되는 묶음, 중요한 것만)
   let newsP: Promise<any> | null = null;
-  const getNews = () => (newsP ||= fetch('/api/ai-news').then((r) => r.json()).catch(() => ({ items: [] })));
+  const getNews = () => (newsP ||= fetch('/api/market?ainews=1').then((r) => r.json()).catch(() => ({ items: [] })));
   const list = document.querySelector<HTMLOListElement>('.news')!;
   const when = document.querySelector<HTMLElement>('.news-when')!;
   const moreBtn = document.querySelector<HTMLButtonElement>('.more-btn')!;

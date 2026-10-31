@@ -1,5 +1,24 @@
 {
   "functions": {
-    "api/capture.js": { "maxDuration": 60, "memory": 2048, "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,fonts/**}" }
-  }
+    "api/capture.js": {
+      "maxDuration": 60,
+      "memory": 2048,
+      "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,fonts/**}"
+    },
+    "api/market.js": {
+      "maxDuration": 120
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/ai-news",
+      "destination": "/api/market?ainews=1"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/market?cron=1",
+      "schedule": "30 22 * * *"
+    }
+  ]
 }
