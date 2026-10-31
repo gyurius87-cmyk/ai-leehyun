@@ -335,7 +335,35 @@ async function drawCmp() {
   series.forEach((x) => { const el = document.querySelector(`[data-lv="${CSS.escape(x.s)}"]`); const v = x.vals.at(-1); if (el) { el.textContent = pct(v); el.className = "num " + ud(v); } });
 }
 // 큰 차트 그리기 (D = {days, series:[{s, vals, color}]}, opt.pct면 % 축)
+// 모든 큰 차트 공통: 휠 = 확대/축소, 끌기 = 옆으로 이동, 더블클릭 = 처음대로 (키움처럼)
 function paintChart(cnv, tip, D, hover, opt = {}) {
+  if (!cnv || !D) return;
+  if (cnv._D !== D) { const same = cnv._D && cnv._D.days.length === D.days.length && cnv._D.days[0] === D.days[0]; cnv._D = D; if (!same) cnv._vw = null; }
+  cnv._tip = tip; cnv._opt = opt;
+  if (!cnv._zoomOn) zoomable(cnv);
+  const n = D.days.length, v = cnv._vw || { a: 0, b: n - 1 };
+  const a = Math.max(0, Math.min(v.a, n - 2)), b = Math.min(n - 1, Math.max(v.b, a + 1));
+  const V = a === 0 && b === n - 1 ? D : { ...D, days: D.days.slice(a, b + 1), series: D.series.map((s) => ({ ...s, vals: s.vals.slice(a, b + 1) })), marks: (D.marks || []).filter((m) => m.d >= D.days[a] && m.d <= D.days[b]) };
+  paintCore(cnv, tip, V, hover, opt, hover != null ? cnv._hy : null);
+  if (cnv._hint) cnv._hint.hidden = a === 0 && b === n - 1;
+}
+function zoomable(cnv) {
+  cnv._zoomOn = true; cnv.style.cursor = "crosshair"; cnv.style.touchAction = "pan-y";
+  const W = () => cnv.getBoundingClientRect().width, redraw = (hx) => paintChart(cnv, cnv._tip, cnv._D, hx, cnv._opt);
+  const view = () => cnv._vw || { a: 0, b: cnv._D.days.length - 1 };
+  const hint = document.createElement("button"); hint.type = "button"; hint.className = "zreset"; hint.textContent = "전체 보기"; hint.hidden = true; hint.onclick = () => { cnv._vw = null; redraw(); };
+  if (cnv.parentElement && getComputedStyle(cnv.parentElement).position === "static") cnv.parentElement.style.position = "relative";
+  cnv.parentElement?.appendChild(hint); cnv._hint = hint;
+  cnv.addEventListener("wheel", (e) => { if (!cnv._D) return; e.preventDefault(); const n = cnv._D.days.length, v = view(), span = v.b - v.a, f = (e.offsetX - 6) / Math.max(1, W() - 50), c = v.a + span * Math.max(0, Math.min(1, f)); let ns = Math.round(span * (e.deltaY > 0 ? 1.2 : 1 / 1.2)); if (ns === span) ns += e.deltaY > 0 ? 1 : -1; ns = Math.max(5, Math.min(n - 1, ns)); let na = Math.round(c - ns * f); na = Math.max(0, Math.min(n - 1 - ns, na)); cnv._vw = { a: na, b: na + ns }; redraw(e.offsetX); }, { passive: false });
+  let drag = null;
+  cnv.addEventListener("pointerdown", (e) => { if (!cnv._D || e.pointerType === "touch") return; drag = { x: e.clientX, v: view() }; cnv.setPointerCapture(e.pointerId); cnv.style.cursor = "grabbing"; });
+  cnv.addEventListener("pointermove", (e) => { cnv._hy = e.offsetY; if (drag) { const n = cnv._D.days.length, span = drag.v.b - drag.v.a, sh = Math.round(((drag.x - e.clientX) / Math.max(1, W() - 50)) * span); const na = Math.max(0, Math.min(n - 1 - span, drag.v.a + sh)); cnv._vw = { a: na, b: na + span }; } redraw(e.offsetX); });
+  const up = () => { drag = null; cnv.style.cursor = "crosshair"; };
+  cnv.addEventListener("pointerup", up); cnv.addEventListener("pointercancel", up);
+  cnv.addEventListener("pointerleave", () => { cnv._hy = null; if (!drag) redraw(); });
+  cnv.addEventListener("dblclick", () => { cnv._vw = null; redraw(); });
+}
+function paintCore(cnv, tip, D, hover, opt = {}, hy = null) {
   if (!D || !cnv.offsetWidth) return;
   const r = cnv.getBoundingClientRect(), dpr = devicePixelRatio || 1, W = r.width, H = r.height; cnv.width = W * dpr; cnv.height = H * dpr;
   const x = cnv.getContext("2d"); x.scale(dpr, dpr); x.clearRect(0, 0, W, H);
@@ -354,8 +382,13 @@ function paintChart(cnv, tip, D, hover, opt = {}) {
   if (D.marks?.length) { const di = new Map(D.days.map((d, i) => [d, i])); D.marks.forEach((m) => { const se = D.series.find((z) => z.s === m.s), i = di.get(m.d); if (!se || i == null || se.vals[i] == null) return; const px_ = X(i), py = Y(se.vals[i]); x.fillStyle = m.side === "매수" ? css("--up") : css("--down"); x.strokeStyle = css("--panel"); x.lineWidth = 1.5; x.beginPath(); if (m.side === "매수") { x.moveTo(px_, py + 4); x.lineTo(px_ - 6, py + 14); x.lineTo(px_ + 6, py + 14); } else { x.moveTo(px_, py - 4); x.lineTo(px_ - 6, py - 14); x.lineTo(px_ + 6, py - 14); } x.closePath(); x.fill(); x.stroke(); }); }
   if (hover == null) { if (tip) tip.hidden = true; return; }
   const i = Math.max(0, Math.min(n - 1, Math.round(((hover - L) / (W - L - R)) * (n - 1))));
-  x.strokeStyle = css("--muted"); x.beginPath(); x.moveTo(X(i), T); x.lineTo(X(i), H - B); x.stroke();
-  if (opt.cross && D.series[0].vals[i] != null) { const y = Y(D.series[0].vals[i]); x.setLineDash([3, 3]); x.beginPath(); x.moveTo(L, y); x.lineTo(W - R, y); x.stroke(); x.setLineDash([]); const lb = fy(D.series[0].vals[i]), lw = x.measureText(lb).width + 8; x.fillStyle = css("--board"); x.fillRect(W - R + 2, y - 9, lw, 18); x.fillStyle = css("--on-board"); x.fillText(lb, W - R + 6, y + 4); const dl = D.days[i], dw = x.measureText(dl).width + 8; x.fillStyle = css("--board"); x.fillRect(Math.min(W - R - dw, Math.max(L, X(i) - dw / 2)), H - B + 3, dw, 17); x.fillStyle = css("--on-board"); x.fillText(dl, Math.min(W - R - dw, Math.max(L, X(i) - dw / 2)) + 4, H - 7); }
+  // 키움식 십자선: 세로는 그 날짜, 가로는 마우스 높이. 오른쪽에 그 값, 아래에 날짜
+  const yy = hy != null && hy >= T && hy <= H - B ? hy : opt.cross && D.series[0].vals[i] != null ? Y(D.series[0].vals[i]) : null;
+  x.strokeStyle = css("--muted"); x.lineWidth = 1; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(X(i), T); x.lineTo(X(i), H - B); x.stroke();
+  if (yy != null) { x.beginPath(); x.moveTo(L, yy); x.lineTo(W - R, yy); x.stroke(); }
+  x.setLineDash([]);
+  if (yy != null) { const v = lo + (1 - (yy - T) / (H - T - B)) * (hi - lo), lb = fy(opt.pct ? Math.round(v * 100) / 100 : +v.toPrecision(6)), lw = x.measureText(lb).width + 8; x.fillStyle = css("--board"); x.fillRect(W - R + 2, yy - 9, lw, 18); x.fillStyle = css("--on-board"); x.fillText(lb, W - R + 6, yy + 4); }
+  { const dl = D.days[i] + (hy != null ? " (" + "일월화수목금토"[new Date(D.days[i] + "T00:00:00Z").getUTCDay()] + ")" : ""), dw = x.measureText(dl).width + 8, dx = Math.min(W - R - dw, Math.max(L, X(i) - dw / 2)); x.fillStyle = css("--board"); x.fillRect(dx, H - B + 3, dw, 17); x.fillStyle = css("--on-board"); x.fillText(dl, dx + 4, H - 7); }
   D.series.forEach((s) => { const v = s.vals[i]; if (v == null || s.noDot) return; x.fillStyle = s.color; x.beginPath(); x.arc(X(i), Y(v), 3.5, 0, 7); x.fill(); });
   if (!tip) return;
   const evs = (D.marks || []).filter((m) => m.d === D.days[i] && D.series.some((z) => z.s === m.s));
