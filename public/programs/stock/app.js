@@ -145,14 +145,13 @@ function renderMaster(id) {
       <div class="row" style="margin-top:4px"><span class="big ${ud(m.ret)}">${pct(m.ret)}</span><span class="num">${won(m.value)}원</span><span class="note">현금 ${won(m.cash)}원 · 매매 ${m.nTrades}번 · 최대낙폭 ${pct(m.mdd)}</span></div>
       <p class="note" style="margin:6px 0 0"><b>매매 원칙</b> ${esc(info.rule)}</p>${said ? `<p style="margin:6px 0 0">💬 <b>오늘</b> <span class="mood ${esc(said.mood)}">${esc(said.mood)}</span> ${esc(said.say)}</p>` : ""}</div></div>
     <div class="chat"><h3 style="margin:0;display:flex;gap:8px;align-items:center">${esc(info.name)}에게 물어보기 <span class="note">AI가 이 대가의 원칙으로 답해요</span><button type="button" class="btn g s" id="mcClear" style="margin-left:auto">대화 지우기</button></h3><div class="msgs" id="mcMsgs"><p class="note">불러오는 중…</p></div><form class="row" id="mcForm"><input id="mcIn" placeholder="예: 지금 반도체 사도 될까요?" style="flex:1 1 200px" autocomplete="off"><button class="btn y s">보내기</button></form></div>
-    <div class="chat" style="background:var(--panel);border:1px solid var(--line)"><h3 style="margin:0">겹쳐 보기 <span class="note">계좌·지수·종목을 첫날 0%로 맞춰 비교 · ▲ 산 날 ▼ 판 날 · 이름을 눌러 켜고 끄기</span></h3>
-      <div class="row" id="moCtl"></div><div class="row" id="moLeg"></div>
+    <div class="chat" style="background:var(--panel);border:1px solid var(--line)"><h3 style="margin:0">겹쳐 보기 <span class="note">계좌·지수·종목을 첫날 0%로 맞춰 비교 · 마우스를 올리면 그날 수익률 · ▲ 산 날 ▼ 판 날 · 이름을 눌러 켜고 끄기</span></h3>
+      <div class="row" id="moCtl"></div><div id="moLeg"></div>
       <div style="position:relative"><canvas id="moCv" style="width:100%;height:340px;display:block;touch-action:none"></canvas><div class="tip" id="moTip" hidden></div></div></div>
-    <h3 style="margin-top:14px">계좌 흐름 <span class="note">회색 점선 = 시작 1억 · 마우스를 올리면 그날 금액</span></h3><div style="position:relative"><canvas class="eq" id="eq" style="height:260px;touch-action:none"></canvas><div class="tip" id="eqTip" hidden></div></div>
     <h3 style="margin-top:14px">지금 들고 있는 것</h3><div class="tw"><table><thead><tr><th>종목</th><th class="r">평단</th><th class="r">현재가</th><th class="r">평가액(원)</th><th class="r">손익</th><th>산 날</th></tr></thead><tbody>${m.hold.map((h) => `<tr><td>${esc(h.n)}</td><td class="r">${fmt(h.b)}</td><td class="r">${fmt(h.p)}</td><td class="r">${won(h.won)}</td><td class="r ${ud(h.pl)}">${pct(h.pl)}</td><td class="num">${h.since}</td></tr>`).join("") || `<tr><td colspan="6" class="note">전부 현금이에요.</td></tr>`}</tbody></table></div>
     <h3 style="margin-top:14px">매매 일지 <span class="note">${esc(info.name)}에 빙의해서 쓴 이유 · 최근 순</span></h3><div class="tw"><table><thead><tr><th>날짜</th><th>종목</th><th></th><th class="r">가격</th><th class="r">금액(원)</th><th class="r">손익(원)</th><th>이유</th></tr></thead><tbody>${m.trades.map((t) => `<tr><td class="num">${t.d}</td><td>${esc(t.n)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="r">${fmt(t.p)}</td><td class="r">${won(t.won)}</td><td class="r ${ud(t.pl)}">${t.pl != null ? won(t.pl) : ""}</td><td style="min-width:240px">${esc(t.why)}</td></tr>`).join("")}</tbody></table></div>`;
   EQD = { days: m.curve.map((c) => c[0]), series: [{ s: id, label: info.name, vals: m.curve.map((c) => c[1]), color: css("--amber") }, { s: "base", label: "시작 1억", vals: m.curve.map(() => 1e8), color: css("--muted"), w: 1, dash: [4, 4], noDot: true, noTip: true }] };
-  requestAnimationFrame(() => paintEq());
+
   loadChat(id); MO.id = id; MO.on = null; drawMO();
 }
 
@@ -194,16 +193,19 @@ document.addEventListener("pointerout", (e) => { if (e.target.id === "allEq") pa
 // 대가 한 명 겹쳐 보기: 계좌 + 지수 + 들고 있는 종목(+최근 판 종목), 매수·매도 표시
 const MO = { id: null, on: null, r: ls.get("stk-mor", "all"), D: null };
 const MOR = [["3m", "3달", 92], ["6m", "6달", 183], ["1y", "1년", 366], ["all", "전체", 1e5]];
-const MOIDX = [["^KS11", "코스피"], ["^GSPC", "S&P 500"], ["^IXIC", "나스닥"]];
+const MOIDX = [["^KS11", "코스피"], ["^KQ11", "코스닥"], ["^GSPC", "S&P 500"], ["^IXIC", "나스닥"], ["^SOX", "필라델피아 반도체"], ["^DJI", "다우"]];
 async function drawMO() {
   const id = MO.id, m = BT.masters[id]; if (!m || !$("moCv")) return;
-  const held = m.hold.map((h) => [h.s, h.n]), sold = [...new Map(m.trades.filter((t) => !m.hold.some((h) => h.s === t.s)).map((t) => [t.s, t.n])).entries()].slice(0, 6);
-  const items = [["acct", "계좌", true], ...MOIDX.map(([s, n]) => [s, n, s === "^GSPC" || s === "^KS11"]), ...held.map(([s, n]) => [s, n + " (보유)", true]), ...sold.map(([s, n]) => [s, n + " (팜)", false])];
+  const held = m.hold.map((h) => [h.s, h.n]), sold = [...new Map(m.trades.filter((t) => !m.hold.some((h) => h.s === t.s)).map((t) => [t.s, t.n])).entries()].slice(0, 12);
+  const items = [["acct", "계좌", true, "a"], ...MOIDX.map(([s, n]) => [s, n, s === "^GSPC" || s === "^KS11", "i"]), ...held.map(([s, n]) => [s, n, true, "h"]), ...sold.map(([s, n]) => [s, n, false, "s"])];
+  MO.items = items;
   if (!MO.on) MO.on = new Set(items.filter((x) => x[2]).map((x) => x[0]));
   const cols = ["#f2b632", "#868e96", "#495057", "#adb5bd", ...PAL.filter((c) => c !== "#f2b632")];
   const colOf = (s) => cols[items.findIndex((x) => x[0] === s) % cols.length];
   $("moCtl").innerHTML = `<span class="note">기간</span>` + MOR.map(([k, n]) => `<button type="button" class="pill" data-mor="${k}" aria-pressed="${k === MO.r}">${n}</button>`).join("");
-  $("moLeg").innerHTML = items.map(([s, n]) => { const on = MO.on.has(s); return `<span class="leg${on ? "" : " off"}"><button type="button" class="tg" data-mo="${esc(s)}" aria-pressed="${on}"><i style="background:${on ? colOf(s) : "var(--line)"}"></i>${esc(n)} <b class="num" data-mov="${esc(s)}"></b></button></span>`; }).join("");
+  const chip = ([s, n]) => { const on = MO.on.has(s); return `<span class="leg${on ? "" : " off"}"><button type="button" class="tg" data-mo="${esc(s)}" aria-pressed="${on}"><i style="background:${on ? colOf(s) : "var(--line)"}"></i>${esc(n)} <b class="num" data-mov="${esc(s)}"></b></button></span>`; };
+  const GR = [["a", "계좌"], ["i", "지수"], ["h", "지금 들고 있는 종목 (산 것)"], ["s", "팔았던 종목"]];
+  $("moLeg").innerHTML = `<div class="mog-all"><button type="button" class="btn g s" data-mog="*" data-on="1">다 넣기</button><button type="button" class="btn g s" data-mog="*" data-on="0">다 빼기</button></div>` + GR.map(([g, t]) => { const its = items.filter((x) => x[3] === g); if (!its.length) return ""; const all = its.every((x) => MO.on.has(x[0])); return `<div class="mog"><div class="mogh"><b>${t}</b>${g === "a" ? "" : `<button type="button" class="pill" data-mog="${g}" data-on="${all ? 0 : 1}">${all ? "다 빼기" : g === "i" ? "지수 다 넣기" : "종목 다 넣기"}</button>`}</div><div class="row">${its.map(chip).join("")}</div></div>`; }).join("");
   const want = items.filter((x) => MO.on.has(x[0]) && x[0] !== "acct").map((x) => x[0]);
   const got = await Promise.all(want.map((s) => { const k = s + "|2y|1d"; if (!CHC[k]) CHC[k] = api(`op=chart&s=${encodeURIComponent(s)}&r=2y&i=1d`).then((g) => g.rows).catch(() => null); return CHC[k]; }));
   if (MO.id !== id) return;
@@ -212,12 +214,12 @@ async function drawMO() {
   const days = [...new Set(Object.values(src).flatMap((rs) => rs.map((p) => p.d)))].filter((d) => d >= from && d <= last).sort();
   const series = Object.entries(src).filter(([s]) => MO.on.has(s)).map(([s, rs]) => { const mp = new Map(rs.map((p) => [p.d, p.c])); let lastV = null, base = null; const vals = days.map((d) => { if (mp.has(d)) lastV = mp.get(d); if (lastV == null) return null; base ??= lastV; return (lastV / base - 1) * 100; }); return { s, label: items.find((x) => x[0] === s)[1], vals, color: colOf(s), w: s === "acct" ? 3 : 1.8 }; });
   const marks = m.trades.filter((t) => t.d >= from && MO.on.has(t.s)).map((t) => ({ s: t.s, d: t.d, side: t.side, label: t.n }));
-  MO.D = { days, series, marks }; paintChart($("moCv"), $("moTip"), MO.D, null, { pct: true });
+  MO.D = { days, series, marks }; paintChart($("moCv"), $("moTip"), MO.D, null, { pct: true, cross: true });
   series.forEach((x) => { const el = document.querySelector(`[data-mov="${CSS.escape(x.s)}"]`), v = x.vals.at(-1); if (el) { el.textContent = pct(v); el.className = "num " + ud(v); } });
 }
-document.addEventListener("click", (e) => { const b = e.target.closest("[data-mo],[data-mor]"); if (!b) return; if (b.dataset.mor) { MO.r = b.dataset.mor; ls.set("stk-mor", MO.r); } else { const s = b.dataset.mo; MO.on.has(s) ? MO.on.delete(s) : MO.on.add(s); } drawMO(); });
-document.addEventListener("pointermove", (e) => { if (e.target.id === "moCv") paintChart(e.target, $("moTip"), MO.D, e.clientX - e.target.getBoundingClientRect().left, { pct: true }); });
-document.addEventListener("pointerout", (e) => { if (e.target.id === "moCv") paintChart(e.target, $("moTip"), MO.D, null, { pct: true }); });
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-mo],[data-mor],[data-mog]"); if (!b) return; if (b.dataset.mog) { const g = b.dataset.mog, on = b.dataset.on === "1"; (MO.items || []).filter((x) => g === "*" ? x[3] !== "a" : x[3] === g).forEach((x) => on ? MO.on.add(x[0]) : MO.on.delete(x[0])); } else if (b.dataset.mor) { MO.r = b.dataset.mor; ls.set("stk-mor", MO.r); } else { const s = b.dataset.mo; MO.on.has(s) ? MO.on.delete(s) : MO.on.add(s); } drawMO(); });
+document.addEventListener("pointermove", (e) => { if (e.target.id === "moCv") paintChart(e.target, $("moTip"), MO.D, e.clientX - e.target.getBoundingClientRect().left, { pct: true, cross: true }); });
+document.addEventListener("pointerout", (e) => { if (e.target.id === "moCv") paintChart(e.target, $("moTip"), MO.D, null, { pct: true, cross: true }); });
 
 // 대가 채팅방
 let MC = { id: null, hist: [] };
