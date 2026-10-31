@@ -1,6 +1,6 @@
 // 주식 프로그램 (이현님 전용). 지수·매크로·뉴스·오늘의 정리(Claude)·대가 7명 모의 매매·내 계좌·복기.
 // 시세는 야후 파이낸스 차트(키 필요 없음), 미국 경제지표는 FRED CSV(키 필요 없음), 뉴스는 구글 뉴스 RSS.
-// 저장(Redis): stk:snap (시세 10분), stk:news (1시간), stk:brief:<날짜> (오늘의 정리), stk:bt2:<날짜> (대가 모의 매매),
+// 저장(Redis): stk:snap (시세 10분), stk:news (1시간), stk:brief:<날짜> (오늘의 정리), stk:bt3:<날짜> (대가 모의 매매),
 //              stk:acct (내 계좌), stk:trades (내 매매 기록)
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
@@ -179,7 +179,7 @@ const UNIV = {
 const SIG = ["^VIX", "KRW=X", "^TNX"];
 export async function backtest(force) {
   const day = kstDay();
-  if (!force) { const [c] = await redis([["GET", `stk:bt2:${day}`]]); const j = json(c); if (j) return j; }
+  if (!force) { const [c] = await redis([["GET", `stk:bt3:${day}`]]); const j = json(c); if (j) return j; }
   const syms = [...Object.keys(UNIV), ...SIG];
   const got = await Promise.all(syms.map((s) => chart(s, "5y")));
   const S = {}; got.forEach((g, i) => { if (g?.rows?.length) S[syms[i]] = g; });
@@ -280,12 +280,12 @@ export async function backtest(force) {
     const last = run.at(-1), V = val(last); let peak = 0, mdd = 0; P.curve.forEach(([, v]) => { peak = Math.max(peak, v); mdd = Math.min(mdd, v / peak - 1); });
     out[M.id] = { value: Math.round(V), ret: r2((V / CAP - 1) * 100), mdd: r2(mdd * 100), cash: Math.round(P.cash), curve: P.curve,
       hold: Object.entries(P.pos).map(([s, o]) => { const p = px(s, last), k = krw(s, last); return { s, n: UNIV[s] || s, q: r2(o.q, 4), b: r2(o.b, 2), p: r2(p, 2), won: Math.round(o.q * p * k), pl: r2((p / o.b - 1) * 100), since: o.at }; }).sort((a, b) => b.won - a.won),
-      trades: P.trades.slice(-150).reverse(), nTrades: P.trades.length, expo: P.expo };
+      trades: P.trades.slice(-150).reverse(), nTrades: P.trades.length, realized: Math.round(P.trades.reduce((t, x) => t + (x.pl || 0), 0)), expo: P.expo };
   }
   // 비교용: 그냥 들고 있었다면
   const bench = {}; for (const [s, n] of [["^IXIC", "나스닥"], ["^KS11", "코스피"], ["SPY", "S&P500"]]) { if (!S[s] && !series[s]) { const g = await chart(s, "5y"); if (g) { series[s] = { rows: g.rows, idx: new Map(g.rows.map((r, i) => [r.d, i])) }; } } const a = px(s, run[0]), b = px(s, run.at(-1)); if (a && b) bench[n] = r2((b / a - 1) * 100); }
   const res = { day, start: START, cap: CAP, upto: run.at(-1), masters: out, bench, common: commonOf(out, run), at: Date.now() };
-  await redis([["SET", `stk:bt2:${day}`, JSON.stringify(res)], ["EXPIRE", `stk:bt2:${day}`, 60 * 60 * 24 * 3]]);
+  await redis([["SET", `stk:bt3:${day}`, JSON.stringify(res)], ["EXPIRE", `stk:bt3:${day}`, 60 * 60 * 24 * 3]]);
   return res;
 }
 // 받침이 있으면 '이', 없으면 '가'

@@ -138,6 +138,12 @@ function renderMasters() {
   renderMNav(); if (MV === "all" || !BT.masters[MV]) { MV = "all"; renderMNav(); renderAll(); } else renderMaster(MV);
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mm]"); if (b) setMV(b.dataset.mm); });
+const hPl = (h) => (h.pl != null && h.pl > -100 ? Math.round(h.won - h.won / (1 + h.pl / 100)) : null);
+function mAcctBox(m) {
+  const stock = m.hold.reduce((a, h) => a + (h.won || 0), 0), unreal = m.hold.reduce((a, h) => a + (hPl(h) || 0), 0), real = m.realized ?? m.trades.reduce((a, t) => a + (t.pl || 0), 0), tot = m.value || stock + (m.cash || 0), gain = tot - 1e8;
+  const c = (k, v, sub, cls = "") => `<div class="card" style="flex:1 1 150px"><div class="k">${k}</div><div class="v ${cls}">${v}</div>${sub ? `<div class="c">${sub}</div>` : ""}</div>`;
+  return `<div class="row" style="gap:8px;align-items:stretch">${c("총 평가액", won(tot) + "원", `총 손익 <span class="${ud(gain)}">${gain >= 0 ? "+" : ""}${won(gain)}원 (${pct(m.ret)})</span>`)}${c("보유 주식", won(stock) + "원", `${m.hold.length}종목 · 비중 ${tot ? fmt((stock / tot) * 100, 1) : 0}%`)}${c("보유 평가손익", (unreal >= 0 ? "+" : "") + won(unreal) + "원", stock - unreal ? pct((unreal / (stock - unreal)) * 100) + " (산 값 대비)" : "", ud(unreal))}${c("실현 손익", (real >= 0 ? "+" : "") + won(real) + "원", "판 종목에서 확정된 돈", ud(real))}${c("현금", won(m.cash) + "원", `비중 ${tot ? fmt(((m.cash || 0) / tot) * 100, 1) : 0}%`)}</div>`;
+}
 function renderMaster(id) {
   const info = INFO.find((m) => m.id === id), m = BT.masters[id]; if (!info || !m) return;
   const said = (BRIEF?.masters || []).find((x) => x.id === id);
@@ -148,7 +154,8 @@ function renderMaster(id) {
     <div class="chat" style="background:var(--panel);border:1px solid var(--line)"><h3 style="margin:0">겹쳐 보기 <span class="note">계좌·지수·종목을 첫날 0%로 맞춰 비교 · 마우스를 올리면 그날 수익률 · ▲ 산 날 ▼ 판 날 · 이름을 눌러 켜고 끄기</span></h3>
       <div class="row" id="moCtl"></div><div id="moLeg"></div>
       <div style="position:relative"><canvas id="moCv" style="width:100%;height:340px;display:block;touch-action:none"></canvas><div class="tip" id="moTip" hidden></div></div></div>
-    <h3 style="margin-top:14px">지금 들고 있는 것</h3><div class="tw"><table><thead><tr><th>종목</th><th class="r">평단</th><th class="r">현재가</th><th class="r">평가액(원)</th><th class="r">손익</th><th>산 날</th></tr></thead><tbody>${m.hold.map((h) => `<tr><td>${esc(h.n)}</td><td class="r">${fmt(h.b)}</td><td class="r">${fmt(h.p)}</td><td class="r">${won(h.won)}</td><td class="r ${ud(h.pl)}">${pct(h.pl)}</td><td class="num">${h.since}</td></tr>`).join("") || `<tr><td colspan="6" class="note">전부 현금이에요.</td></tr>`}</tbody></table></div>
+    <h3 style="margin-top:14px">계좌 상황 <span class="note">시작 1억 원 · ${esc(BT.upto || "")} 종가 기준</span></h3>${mAcctBox(m)}
+    <h3 style="margin-top:14px">지금 들고 있는 것</h3><div class="tw"><table><thead><tr><th>종목</th><th class="r">평단</th><th class="r">현재가</th><th class="r">평가액(원)</th><th class="r">손익(원)</th><th class="r">손익</th><th class="r">비중</th><th>산 날</th></tr></thead><tbody>${m.hold.map((h) => `<tr><td>${esc(h.n)}</td><td class="r">${fmt(h.b)}</td><td class="r">${fmt(h.p)}</td><td class="r">${won(h.won)}</td><td class="r ${ud(h.pl)}">${won(hPl(h))}</td><td class="r ${ud(h.pl)}">${pct(h.pl)}</td><td class="r">${m.value ? fmt((h.won / m.value) * 100, 1) + "%" : "-"}</td><td class="num">${h.since}</td></tr>`).join("") || `<tr><td colspan="8" class="note">전부 현금이에요.</td></tr>`}</tbody></table></div>
     <h3 style="margin-top:14px">매매 일지 <span class="note">${esc(info.name)}에 빙의해서 쓴 이유 · 최근 순</span></h3><div class="tw"><table><thead><tr><th>날짜</th><th>종목</th><th></th><th class="r">가격</th><th class="r">금액(원)</th><th class="r">손익(원)</th><th>이유</th></tr></thead><tbody>${m.trades.map((t) => `<tr><td class="num">${t.d}</td><td>${esc(t.n)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="r">${fmt(t.p)}</td><td class="r">${won(t.won)}</td><td class="r ${ud(t.pl)}">${t.pl != null ? won(t.pl) : ""}</td><td style="min-width:240px">${esc(t.why)}</td></tr>`).join("")}</tbody></table></div>`;
   EQD = { days: m.curve.map((c) => c[0]), series: [{ s: id, label: info.name, vals: m.curve.map((c) => c[1]), color: css("--amber") }, { s: "base", label: "시작 1억", vals: m.curve.map(() => 1e8), color: css("--muted"), w: 1, dash: [4, 4], noDot: true, noTip: true }] };
 
