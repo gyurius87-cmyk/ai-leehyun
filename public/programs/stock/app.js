@@ -586,8 +586,29 @@ document.addEventListener("click", async (e) => {
   catch (err) { m.textContent = "키움에서 못 받았어요. IP 등록(키움)과 프록시 허용 목록(api.kiwoom.com)을 확인해 주세요."; }
   b.disabled = false;
 });
+// ── 스승님들의 훈수 (내 계좌 아래)
+let ADV = null;
+function renderAdv() {
+  const NM = { buffett: "워런 버핏", lynch: "피터 린치", oneil: "윌리엄 오닐", livermore: "제시 리버모어", dalio: "레이 달리오", druckenmiller: "스탠리 드러켄밀러", kostolany: "앙드레 코스톨라니", zero: "제로 (AI)" };
+  const a = ADV, nm = (id) => INFO.find((m) => m.id === id)?.name || NM[id] || id;
+  $("advGo").textContent = a?.list?.length ? "다시 받기" : "훈수 받기";
+  if (!a?.list?.length) { $("advAt").textContent = ""; $("advSum").innerHTML = ""; $("advList").innerHTML = `<p class="note">'훈수 받기'를 누르면 30초쯤 걸려요.</p>`; return; }
+  const d = new Date(a.at), stale = ACCT.at && a.acctAt && ACCT.at > a.acctAt;
+  $("advAt").textContent = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} 기준${stale ? " · 그 뒤 계좌가 바뀌었어요" : ""}`;
+  $("advSum").innerHTML = a.common || a.split ? `<div class="advs">${a.common ? `<b>공통으로 짚은 것</b> ${esc(a.common)}` : ""}${a.split ? `<br><b>의견이 갈린 것</b> ${esc(a.split)}` : ""}</div>` : "";
+  const cls = { 칭찬: "g", 격려: "g", 경고: "w", 걱정: "w" };
+  $("advList").innerHTML = a.list.map((x) => `<div class="advc"><div class="hd">${face(x.id)}<div><b>${esc(nm(x.id))}</b> <span class="md ${cls[x.mood] || ""}">${esc(x.mood || "")}</span><div style="font-weight:600">${esc(x.head || "")}</div></div></div><p>${esc(x.text || "")}</p>${x.todo?.length ? `<ul>${x.todo.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}<div><button type="button" class="btn g s" data-advchat="${esc(x.id)}">더 여쭤보기</button></div></div>`).join("");
+}
+async function loadAdv() { if (!PUB) return; try { ADV = await api("op=advice"); } catch {} renderAdv(); }
+document.addEventListener("click", async (e) => {
+  const c = e.target.closest("[data-advchat]"); if (c) { showTab("masters"); setMV(c.dataset.advchat); return; }
+  if (e.target.id !== "advGo") return; const b = e.target; b.disabled = true; b.textContent = "스승님들이 계좌를 보는 중…";
+  try { ADV = await api("", { op: "advice" }); renderAdv(); } catch { $("advList").innerHTML = `<p class="msg no">훈수를 못 받았어요. 보유 종목이나 예수금을 먼저 저장했는지 확인하고 다시 눌러 주세요.</p>`; b.textContent = "다시 받기"; }
+  b.disabled = false;
+});
 async function renderAcct() {
-  if (!PUB) { $("hold").innerHTML = ""; $("acctSum").innerHTML = ""; $("kwBox").innerHTML = ""; $("cash").value = $("cashUsd").value = ""; return; } // 비공개면 아예 그리지 않음
+  if (!PUB) { $("hold").innerHTML = ""; $("acctSum").innerHTML = ""; $("kwBox").innerHTML = ""; $("advList").innerHTML = $("advSum").innerHTML = ""; $("cash").value = $("cashUsd").value = ""; return; }
+  if (!ADV) loadAdv(); // 비공개면 아예 그리지 않음
   renderKw();
   $("cash").value = ACCT.cash || ""; $("cashUsd").value = ACCT.cashUsd || "";
   const syms = ACCT.hold.map((h) => h.sym);

@@ -409,14 +409,16 @@ export async function findSym(q) {
 // ── 대가와 대화 (대가별 채팅방, 최근 40개 저장)
 export async function masterChat(id, text) {
   const M = MASTERS.find((m) => m.id === id); if (!M) return null;
-  const day = kstDay(), [h, b, a] = await redis([["GET", "stk:mchat:" + id], ["GET", `stk:brief:${day}`], ["GET", "stk:acct"]]);
-  const hist = json(h) || [], br = json(b), acct = json(a), bt = await backtest().catch(() => null), me = bt?.masters?.[id];
+  const day = kstDay(), [h, b, a, ad] = await redis([["GET", "stk:mchat:" + id], ["GET", `stk:brief:${day}`], ["GET", "stk:acct"], ["GET", "stk:advice"]]);
+  const hist = json(h) || [], br = json(b), acct = json(a), adv = json(ad), bt = await backtest().catch(() => null), me = bt?.masters?.[id];
   const ctx = [
     br?.headline ? `오늘 시장 정리: ${br.headline} / 결론: ${br.verdict?.stance || ""} ${br.verdict?.summary || ""}` : "",
     me ? `당신의 모의 계좌(2025-01부터 1억): 지금 ${Math.round(me.value / 1e6)}백만 원, 수익률 ${me.ret}%, 보유 ${me.hold.slice(0, 6).map((x) => `${x.n}(${x.pl}%)`).join(", ") || "현금"}, 최근 매매 ${me.trades.slice(0, 4).map((t) => `${t.d} ${t.n} ${t.side}`).join(", ")}` : "",
-    acct?.hold?.length ? `질문하는 사람(이현)의 보유 종목: ${acct.hold.map((x) => x.name || x.sym).slice(0, 15).join(", ")}` : "",
+    acct?.hold?.length ? `제자 이현의 계좌(당신이 다 볼 수 있어요): ${acct.hold.slice(0, 20).map((x) => `${x.name || x.sym} ${x.qty}주 평단 ${x.avg}${x.cur === "USD" ? "달러" : "원"}`).join(", ")} / 원화 예수금 ${Math.round(+acct.cash || 0).toLocaleString("ko-KR")}원, 달러 ${+acct.cashUsd || 0}` : "",
+    adv?.list?.find((x) => x.id === id) ? `당신이 최근 제자에게 한 훈수: ${adv.list.find((x) => x.id === id).text}` : "",
   ].filter(Boolean).join("\n");
   const system = `당신은 ${M.name}의 투자 원칙과 말투를 따라 답하는 AI 캐릭터예요. 실제 ${M.name} 본인이 아니고, 실제 발언을 인용하는 척하지 않아요.
+대화 상대 이현은 당신의 하나뿐인 제자이고, 당신은 제자가 잘되기를 진심으로 바라요. 제자의 계좌를 알고 있으니 필요하면 실제 종목과 숫자를 들어 훈수해요.
 투자 스타일: ${M.style}
 말투와 성격: ${M.voice}
 매매 원칙: ${M.rule}
@@ -430,6 +432,51 @@ ${ctx}
   hist.push({ role: "assistant", content: reply });
   await redis([["SET", "stk:mchat:" + id, JSON.stringify(hist.slice(-40))]]);
   return { reply, hist: hist.slice(-40) };
+}
+
+// ── 스승님들의 훈수: 대가 8명이 이현의 계좌를 보고 한 사람씩 조언 (한 번의 호출, stk:advice에 저장)
+export async function acctAdvice(force) {
+  const [c, a, t, b] = await redis([["GET", "stk:advice"], ["GET", "stk:acct"], ["GET", "stk:trades"], ["GET", `stk:brief:${kstDay()}`]]);
+  const old = json(c), acct = json(a) || { hold: [], cash: 0, cashUsd: 0 }, trades = json(t) || [], br = json(b);
+  if (!force) return old || null;
+  if (!acct.hold?.length && !acct.cash && !acct.cashUsd) return { err: "empty" };
+  const [fx, ...gs] = await Promise.all([chart("KRW=X", "1y"), ...acct.hold.map((h) => chart(h.sym, "1y").catch(() => null))]);
+  const FX = fx?.price || 1400; let tot = (+acct.cash || 0) + (+acct.cashUsd || 0) * FX, buy = 0;
+  const rows = acct.hold.map((h, i) => { const g = gs[i], k = h.cur === "USD" ? FX : 1, p = g?.price, v = p != null ? p * h.qty * k : null, cost = h.avg * h.qty * k; if (v != null) tot += v; buy += cost;
+    const cl = g?.rows?.map((r) => r.c) || [], hi = cl.length ? Math.max(...cl) : null, ma = (n) => (cl.length >= n ? cl.slice(-n).reduce((x, y) => x + y, 0) / n : null), m50 = ma(50), m200 = ma(200);
+    return { n: h.name || h.sym, s: h.sym, cur: h.cur, qty: h.qty, avg: h.avg, p, v, pl: v != null && cost ? (v / cost - 1) * 100 : null, offHi: p && hi ? (p / hi - 1) * 100 : null, above50: m50 && p ? p > m50 : null, above200: m200 && p ? p > m200 : null, r3m: cl.length > 63 ? (cl.at(-1) / cl.at(-64) - 1) * 100 : null, memo: h.memo };
+  });
+  const f1 = (x) => (x == null ? "?" : (Math.round(x * 10) / 10).toString()), man = (x) => (x == null ? "?" : Math.round(x / 1e4).toLocaleString("ko-KR") + "만원");
+  const lines = rows.sort((x, y) => (y.v || 0) - (x.v || 0)).map((r) => `- ${r.n}(${r.s}) ${r.qty}주, 평단 ${r.avg}${r.cur === "USD" ? "달러" : "원"}, 현재 ${r.p ?? "?"}, 평가 ${man(r.v)} (비중 ${f1(r.v && tot ? (r.v / tot) * 100 : null)}%), 손익 ${f1(r.pl)}%, 1년 고점 대비 ${f1(r.offHi)}%, 3개월 ${f1(r.r3m)}%, 50일선 ${r.above50 == null ? "?" : r.above50 ? "위" : "아래"}, 200일선 ${r.above200 == null ? "?" : r.above200 ? "위" : "아래"}${r.memo ? `, 메모: ${String(r.memo).slice(0, 80)}` : ""}`);
+  const cashW = tot ? (((+acct.cash || 0) + (+acct.cashUsd || 0) * FX) / tot) * 100 : 0, stockV = rows.reduce((x, r) => x + (r.v || 0), 0);
+  const recent = trades.slice().sort((x, y) => String(y.date).localeCompare(String(x.date))).slice(0, 15).map((x) => `${x.date} ${x.name} ${x.side} ${x.qty}주 @${x.price}${x.memo ? ` (메모: ${String(x.memo).slice(0, 60)})` : ""}${x.feel ? ` (기분: ${x.feel})` : ""}`);
+  const ctx = `[이현의 계좌, ${kstDay()} 기준]
+총 자산 ${man(tot)}, 주식 ${man(stockV)}, 현금 비중 ${f1(cashW)}%, 주식 전체 손익 ${f1(buy ? (stockV / buy - 1) * 100 : null)}%
+보유 ${rows.length}종목:
+${lines.join("\n") || "- 없음 (전부 현금)"}
+최근 매매:
+${recent.join("\n") || "- 기록 없음"}
+${br?.headline ? `오늘 시장: ${br.headline} / ${br.verdict?.stance || ""} ${br.verdict?.summary || ""}` : ""}`;
+  const who = MASTERS.map((m) => `- id "${m.id}" ${m.name}: 스타일 ${m.style} / 말투 ${m.voice} / 원칙 ${m.rule}`).join("\n");
+  const prompt = `이현은 아래 8명의 스승에게 하나뿐인 제자예요. 스승들은 이현이 잘되기를 진심으로 바라고, 이현의 계좌를 다 들여다볼 수 있어요.
+각 스승의 투자 원칙과 말투로, 이현의 실제 보유 종목·비중·손익·최근 매매를 콕 집어 훈수를 써 주세요. 칭찬할 건 칭찬하고, 원칙에 어긋나는 건 따끔하게 말해요. 일반론 금지, 반드시 종목 이름과 숫자를 들어 말해요.
+이건 AI가 각 인물의 원칙으로 쓴 캐릭터 글이에요. 실제 발언을 인용하는 척하지 말고, 모르는 최신 사실은 지어내지 마요. 종목을 꼭 사라·팔라고 단정하기보다, 그 스승의 기준으로 "나라면 이렇게 하겠다"와 확인할 기준을 줘요.
+
+스승들:
+${who}
+
+${ctx}
+
+JSON만 출력:
+{"list":[{"id":"buffett","mood":"칭찬|걱정|경고|격려 중 하나","head":"한 줄 요약(25자 안)","text":"제자에게 말하듯 4~7문장, 그 스승의 말투","todo":["이번 주에 해 볼 것 1","2"]} ...8명 모두],
+ "common":"스승들이 공통으로 짚은 것 한두 문장","split":"스승들 의견이 갈린 부분 한 문장"}`;
+  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 6000, messages: [{ role: "user", content: prompt }] });
+  await recordUsage(msg.usage || {}, MODEL);
+  const txt = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+  if (!j?.list?.length) return { err: "ai" };
+  const out = { at: Date.now(), day: kstDay(), acctAt: acct.at || acct.kwAt || null, tot: Math.round(tot), list: j.list.filter((x) => MASTERS.some((m) => m.id === x.id)), common: j.common || "", split: j.split || "" };
+  await redis([["SET", "stk:advice", JSON.stringify(out)]]);
+  return out;
 }
 
 const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
@@ -448,6 +495,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "db") return res.json(await dayDbList(+q.n || 90));
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
+      if (op === "advice") return res.json((await acctAdvice(false)) || {});
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(); a = await ytAll(); } return res.json(a); }
@@ -484,6 +532,7 @@ export async function stockHandler(req, res, isAdmin) {
     }
     if (b.op === "acct") { const a = { hold: (Array.isArray(b.acct?.hold) ? b.acct.hold : []).slice(0, 100).map((h) => ({ sym: clip(h.sym, 20), name: clip(h.name, 40), qty: +h.qty || 0, avg: +h.avg || 0, cur: h.cur === "USD" ? "USD" : "KRW", memo: clip(h.memo, 200), src: h.src === "kiwoom" ? "kiwoom" : undefined })).filter((h) => h.sym), cash: +b.acct?.cash || 0, cashUsd: +b.acct?.cashUsd || 0, kwAt: +b.acct?.kwAt || undefined, at: Date.now() }; await redis([["SET", "stk:acct", JSON.stringify(a)]]); return res.json({ ok: true, acct: a }); }
     if (b.op === "trades") { const list = (Array.isArray(b.trades) ? b.trades : []).slice(0, 3000).map((t) => ({ id: clip(t.id, 20), date: clip(t.date, 10), sym: clip(t.sym, 20), name: clip(t.name, 40), side: t.side === "매도" ? "매도" : "매수", price: +t.price || 0, qty: +t.qty || 0, memo: clip(t.memo, 1000), feel: clip(t.feel, 40), ord: clip(t.ord, 30) || undefined, src: t.src === "kiwoom" ? "kiwoom" : undefined, rv: t.rv && typeof t.rv === "object" ? t.rv : undefined })).filter((t) => t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.date)); const s = JSON.stringify(list); if (s.length > 2_500_000) return res.status(400).json({ error: "big" }); await redis([["SET", "stk:trades", s]]); return res.json({ ok: true, n: list.length }); }
+    if (b.op === "advice") { const r = await acctAdvice(true); return r?.err ? res.status(r.err === "empty" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(); return res.json({ added: c, ...(await ytAll()) }); }
