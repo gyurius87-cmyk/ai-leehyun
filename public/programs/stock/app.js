@@ -529,6 +529,7 @@ document.addEventListener("click", async (e) => {
   b.disabled = false;
 });
 async function renderAcct() {
+  if (!PUB) { $("hold").innerHTML = ""; $("acctSum").innerHTML = ""; $("kwBox").innerHTML = ""; $("cash").value = $("cashUsd").value = ""; return; } // 비공개면 아예 그리지 않음
   renderKw();
   $("cash").value = ACCT.cash || ""; $("cashUsd").value = ACCT.cashUsd || "";
   const syms = ACCT.hold.map((h) => h.sym);
@@ -626,8 +627,8 @@ pickFile($("xlsDrop"), $("xlsIn"), async (file) => {
 boot();
 
 // 내 계좌 공개/비공개: 열 때마다 비공개로 시작, 비밀번호를 넣어야 공개 (이 탭을 닫으면 다시 비공개)
-let PUB = false; try { PUB = sessionStorage.getItem("stk-acct-pub") === "1"; } catch {}
-function setPv(on) { PUB = on; try { sessionStorage.setItem("stk-acct-pub", on ? "1" : "0"); } catch {} $("acct").classList.toggle("priv", !on); $("pvPriv").setAttribute("aria-pressed", !on); $("pvPub").setAttribute("aria-pressed", on); if (on) $("pvForm").hidden = true; }
+var PUB = false; try { PUB = sessionStorage.getItem("stk-acct-pub") === "1"; } catch {}
+function setPv(on) { PUB = on; try { sessionStorage.setItem("stk-acct-pub", on ? "1" : "0"); } catch {} $("acct").classList.toggle("priv", !on); $("pvPriv").setAttribute("aria-pressed", !on); $("pvPub").setAttribute("aria-pressed", on); if (on) $("pvForm").hidden = true; renderAcct(); }
 setPv(PUB);
 $("pvPriv").onclick = () => { setPv(false); $("pvForm").hidden = true; };
 $("pvPub").onclick = async () => { if (PUB) return; $("pvForm").hidden = false; $("pvNew").hidden = true; $("pvMsg").textContent = ""; $("pvPin").value = ""; $("pvPin").focus();
