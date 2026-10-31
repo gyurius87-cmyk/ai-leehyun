@@ -88,8 +88,8 @@ export async function ytSync(max = 8) {
   const all = lists.flat().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 120);
   await redis([["SET", "stk:yt:feed", JSON.stringify(all)], ["SET", "stk:yt:at", String(Date.now())]]);
   const recent = all.filter((v) => Date.now() - Date.parse(v.at) < 10 * 864e5).slice(0, 40);
-  const have = recent.length ? await redis(recent.map((v) => ["EXISTS", "stk:yt:s:" + v.id])) : [];
-  const todo = recent.filter((_, i) => !+have[i]).slice(0, max);
+  const have = recent.length ? await redis(recent.map((v) => ["GET", "stk:yt:s:" + v.id])) : [];
+  const todo = recent.filter((_, i) => { const h = json(have[i]); return !h || h.basis === "설명란"; }).slice(0, max);
   for (let i = 0; i < todo.length; i += 4) await Promise.all(todo.slice(i, i + 4).map((v) => summarize(v).catch((e) => console.error("yt sum", e?.message))));
   return { videos: all.length, summarized: todo.length };
 }
