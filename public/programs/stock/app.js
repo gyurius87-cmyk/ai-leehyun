@@ -321,7 +321,10 @@ function renderCmpCtl() {
 }
 let CMPD = null, EVT = null, EVTL = false;
 // 차트에 찍을 큰 사건 (AI 정리 + 일별 DB)
-async function loadEvents() { if (EVTL) return; EVTL = true; try { EVT = (await api("op=events")).list || []; if (CMPD) { CMPD = { ...CMPD, events: EVT }; paintCmp(); } } catch { EVTL = false; } }
+let EVON = ls.get("stk-cmpev", true);
+async function loadEvents(n = 0) { if (EVTL && !n) return; EVTL = true; try { const j = await api("op=events"); EVT = j.list || []; if (CMPD) { CMPD = { ...CMPD, events: EVON ? EVT : null }; paintCmp(); } evBtn(j.missing); if (j.missing && n < 3) loadEvents(n + 1); } catch { EVTL = false; } }
+function evBtn(miss) { const b = $("cmpEv"); if (!b) return; b.setAttribute("aria-pressed", EVON); b.innerHTML = `<b style="color:var(--up)">●</b><b style="color:var(--down)">●</b> 큰 사건 ${EVON ? "켜짐" : "꺼짐"}${EVT ? ` <span class="note">${EVT.length}개${miss ? " · 더 만드는 중…" : ""}</span>` : ""}`; }
+document.addEventListener("click", (e) => { if (!e.target.closest("#cmpEv")) return; EVON = !EVON; ls.set("stk-cmpev", EVON); evBtn(); if (CMPD) { CMPD = { ...CMPD, events: EVON ? EVT : null }; paintCmp(); } });
 $("cmpAdd").onchange = (e) => { const s = e.target.value; if (!s) return; if (!CMPL.includes(s)) CMPL.push(s); if (!CMP.includes(s)) CMP = [...CMP, s].slice(-10); saveCmp(); renderCmpCtl(); drawCmp(); };
 async function drawCmp() {
   const want = [...CMP], r = cmpR, iv = IV;
@@ -333,7 +336,7 @@ async function drawCmp() {
     const vals = days.map((d) => { if (m.has(d)) last = m.get(d); if (last == null) return null; if (base == null) base = last; return (last / base - 1) * 100; });
     return { s: want[i], vals, color: colorOf(want[i]) };
   }).filter(Boolean);
-  CMPD = { days, series, events: EVT }; paintCmp(); if (!EVT) loadEvents();
+  CMPD = { days, series, events: EVON ? EVT : null }; paintCmp(); if (!EVT) loadEvents(); evBtn();
   series.forEach((x) => { const el = document.querySelector(`[data-lv="${CSS.escape(x.s)}"]`); const v = x.vals.at(-1); if (el) { el.textContent = pct(v); el.className = "num " + ud(v); } });
 }
 // 큰 차트 그리기 (D = {days, series:[{s, vals, color}]}, opt.pct면 % 축)
