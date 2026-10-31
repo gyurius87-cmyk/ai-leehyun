@@ -1,6 +1,6 @@
 // 주식 프로그램 (이현님 전용). 지수·매크로·뉴스·오늘의 정리(Claude)·대가 7명 모의 매매·내 계좌·복기.
 // 시세는 야후 파이낸스 차트(키 필요 없음), 미국 경제지표는 FRED CSV(키 필요 없음), 뉴스는 구글 뉴스 RSS.
-// 저장(Redis): stk:snap (시세 10분), stk:news (1시간), stk:brief:<날짜> (오늘의 정리), stk:bt:<날짜> (대가 모의 매매),
+// 저장(Redis): stk:snap (시세 10분), stk:news (1시간), stk:brief:<날짜> (오늘의 정리), stk:bt2:<날짜> (대가 모의 매매),
 //              stk:acct (내 계좌), stk:trades (내 매매 기록)
 import Anthropic from "@anthropic-ai/sdk";
 import { redis, kstDay } from "./_redis.js";
@@ -175,7 +175,7 @@ const UNIV = {
 const SIG = ["^VIX", "KRW=X", "^TNX"];
 export async function backtest(force) {
   const day = kstDay();
-  if (!force) { const [c] = await redis([["GET", `stk:bt:${day}`]]); const j = json(c); if (j) return j; }
+  if (!force) { const [c] = await redis([["GET", `stk:bt2:${day}`]]); const j = json(c); if (j) return j; }
   const syms = [...Object.keys(UNIV), ...SIG];
   const got = await Promise.all(syms.map((s) => chart(s, "5y")));
   const S = {}; got.forEach((g, i) => { if (g?.rows?.length) S[syms[i]] = g; });
@@ -281,7 +281,7 @@ export async function backtest(force) {
   // 비교용: 그냥 들고 있었다면
   const bench = {}; for (const [s, n] of [["^IXIC", "나스닥"], ["^KS11", "코스피"], ["SPY", "S&P500"]]) { if (!S[s] && !series[s]) { const g = await chart(s, "5y"); if (g) { series[s] = { rows: g.rows, idx: new Map(g.rows.map((r, i) => [r.d, i])) }; } } const a = px(s, run[0]), b = px(s, run.at(-1)); if (a && b) bench[n] = r2((b / a - 1) * 100); }
   const res = { day, start: START, cap: CAP, upto: run.at(-1), masters: out, bench, common: commonOf(out, run), at: Date.now() };
-  await redis([["SET", `stk:bt:${day}`, JSON.stringify(res)], ["EXPIRE", `stk:bt:${day}`, 60 * 60 * 24 * 3]]);
+  await redis([["SET", `stk:bt2:${day}`, JSON.stringify(res)], ["EXPIRE", `stk:bt2:${day}`, 60 * 60 * 24 * 3]]);
   return res;
 }
 // 받침이 있으면 '이', 없으면 '가'
