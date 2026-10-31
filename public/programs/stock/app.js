@@ -56,7 +56,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "masters", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "masters") loadMasters(); if (t === "acct") renderAcct(); if (t === "review") renderTrades(); }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "masters", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "masters") loadMasters(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -67,7 +67,7 @@ async function boot() {
   api("op=snap").then((j) => { SNAP = j; renderSnap(); }).catch(() => ($("idx").innerHTML = `<p class="msg no">시세를 못 불러왔어요.</p>`));
   api("op=news").then((j) => { NEWS = j; renderNews(); }).catch(() => {});
   loadBrief();
-  api("op=acct").then((j) => { ACCT = { cash: 0, cashUsd: 0, ...j.acct }; TRADES = j.trades || []; if (!$("acct").hidden) renderAcct(); if (!$("review").hidden) renderTrades(); }).catch(() => {});
+  api("op=acct").then((j) => { ACCT = { cash: 0, cashUsd: 0, ...j.acct }; TRADES = j.trades || []; if (!$("acct").hidden) renderAcct(); if (!$("review").hidden) { renderTrades(); renderKwRv(); } }).catch(() => {});
 }
 
 // ── 시세
@@ -150,12 +150,20 @@ async function renderKw() {
   $("kwBox").innerHTML = on ? `<span class="note" style="margin:0">키움 연결됨${at ? ` · 마지막 ${at}` : ""} · 매일 아침 자동으로 받아요</span><button type="button" class="btn y s" data-kw="7">키움에서 지금 받기</button><button type="button" class="btn g s" data-kw="90">최근 90일 체결 한 번에</button><button type="button" class="btn g s" data-kwip="1">나가는 IP 확인</button>`
     : `<span class="note" style="margin:0">키움 자동 연결 준비 중: Vercel에 ${[!KW.key && "KIWOOM_APPKEY · KIWOOM_SECRETKEY", !KW.proxy && "OUTBOUND_PROXY_URL"].filter(Boolean).join(", ")} 를 넣으면 켜져요.</span>${KW.proxy ? `<button type="button" class="btn g s" data-kwip="1">나가는 IP 확인</button>` : ""}`;
 }
+// 복기 탭 위쪽: 키움 체결을 바로 받아 오기 (연결 전이면 엑셀 올리기를 펼쳐 둠)
+async function renderKwRv() {
+  if (!KW) KW = await api("op=kw").catch(() => ({}));
+  const on = KW.key && KW.proxy, at = ACCT.kwAt ? new Date(ACCT.kwAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+  $("kwRv").innerHTML = on ? `<span class="note" style="margin:0">키움 체결 자동 연동${at ? ` · 마지막 ${at}` : ""} · 매일 아침 자동</span><button type="button" class="btn y s" data-kw="7">최근 1주 받기</button><button type="button" class="btn g s" data-kw="30">1달</button><button type="button" class="btn g s" data-kw="90">3달</button>`
+    : `<span class="note" style="margin:0">키움 연결 전이에요. 내 계좌 탭의 안내대로 키를 넣으면 여기서 바로 받아져요.</span>`;
+  $("xlsWrap").open = !on;
+}
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-kw],[data-kwip]"); if (!b) return;
-  const m = $("acctMsg"); b.disabled = true;
+  const m = b.closest("#kwRv") ? $("kwRvMsg") : $("acctMsg"); b.disabled = true;
   if (b.dataset.kwip) { try { const j = await api("op=kwip"); m.textContent = `사이트가 키움으로 나가는 IP: ${j.ip} (키움에 등록한 IP와 같아야 해요)`; } catch { m.textContent = "프록시로 나가지 못했어요. OUTBOUND_PROXY_URL 값을 확인해 주세요."; } b.disabled = false; return; }
-  m.textContent = `키움에서 받는 중… (${b.dataset.kw === "90" ? "1분쯤" : "10초쯤"})`;
-  try { const j = await api("", { op: "kwsync", days: +b.dataset.kw }); const a = await api("op=acct"); ACCT = { cash: 0, cashUsd: 0, ...a.acct }; TRADES = a.trades || []; m.textContent = `받았어요. 보유 ${j.hold}종목, 새 체결 ${j.added}건.`; renderAcct(); }
+  m.textContent = `키움에서 받는 중… (${+b.dataset.kw >= 30 ? "1분쯤" : "10초쯤"})`;
+  try { const j = await api("", { op: "kwsync", days: +b.dataset.kw }); const a = await api("op=acct"); ACCT = { cash: 0, cashUsd: 0, ...a.acct }; TRADES = a.trades || []; m.textContent = `받았어요. 보유 ${j.hold}종목, 새 체결 ${j.added}건.`; renderAcct(); renderTrades(); renderKwRv(); }
   catch (err) { m.textContent = "키움에서 못 받았어요. IP 등록(키움)과 프록시 허용 목록(api.kiwoom.com)을 확인해 주세요."; }
   b.disabled = false;
 });
@@ -186,7 +194,7 @@ function renderTrades() {
   TRADES.sort((a, b) => b.date.localeCompare(a.date));
   const n = TRADES.length, rv = TRADES.filter((t) => t.rv).length;
   $("tSum").textContent = n ? `${n}건 · 복기 ${rv}건` : "";
-  $("trades").innerHTML = TRADES.map((t) => `<tr class="trow${t.id === selT ? " sel" : ""}" data-tid="${t.id}"><td class="num">${t.date}</td><td>${esc(t.name || t.sym)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="r">${fmt(t.price, t.price % 1 ? 2 : 0)}</td><td class="r">${fmt(t.qty, t.qty % 1 ? 4 : 0)}</td><td class="r">${t.rv ? `<b>${esc(t.rv.grade)}</b>` : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="note">키움 체결내역을 올리거나 직접 적어 주세요.</td></tr>`;
+  $("trades").innerHTML = TRADES.map((t) => `<tr class="trow${t.id === selT ? " sel" : ""}" data-tid="${t.id}"><td class="num">${t.date}</td><td>${esc(t.name || t.sym)}${t.src === "kiwoom" ? ` <span class="note" title="키움에서 자동으로 받은 체결">키움</span>` : ""}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="r">${fmt(t.price, t.price % 1 ? 2 : 0)}</td><td class="r">${fmt(t.qty, t.qty % 1 ? 4 : 0)}</td><td class="r">${t.rv ? `<b>${esc(t.rv.grade)}</b>` : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="note">위의 '최근 1주 받기'를 누르면 키움 체결이 들어와요.</td></tr>`;
 }
 $("tAdd").onsubmit = async (e) => {
   e.preventDefault(); const raw = $("tSym").value.trim(); if (!raw || !$("tDate").value) return;

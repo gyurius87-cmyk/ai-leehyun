@@ -177,11 +177,15 @@ canvas.eq { width: 100%; height: 220px; display: block; }
   <div id="review" hidden class="split">
     <section class="box">
       <h2>내 매매 기록 <span id="tSum"></span></h2>
-      <label class="drop" id="xlsDrop">키움 영웅문 체결내역 엑셀(xlsx·csv)을 끌어 놓거나 눌러서 고르세요<input type="file" id="xlsIn" accept=".xlsx,.xls,.csv" hidden></label>
+      <div class="row" id="kwRv"></div>
+      <p class="msg" id="kwRvMsg"></p>
+      <details id="xlsWrap" style="margin-top:4px"><summary class="note" style="cursor:pointer">키움 연결이 안 될 때: 체결내역 엑셀 올리기 · 직접 적기</summary>
+      <label class="drop" id="xlsDrop" style="margin-top:6px">키움 영웅문 체결내역 엑셀(xlsx·csv)을 끌어 놓거나 눌러서 고르세요<input type="file" id="xlsIn" accept=".xlsx,.xls,.csv" hidden></label>
       <p class="msg" id="xlsMsg"></p>
       <form class="row" id="tAdd" style="margin-top:6px">
         <input type="date" id="tDate" style="flex:1 1 130px"><input id="tSym" placeholder="종목코드" style="flex:1 1 100px"><select id="tSide"><option>매수</option><option>매도</option></select><input id="tPrice" type="number" step="any" placeholder="가격" style="flex:1 1 90px"><input id="tQty" type="number" step="any" placeholder="수량" style="flex:1 1 70px"><button class="btn s">적기</button>
       </form>
+      </details>
       <div class="tw" style="margin-top:10px;max-height:70vh;overflow:auto"><table>
         <thead><tr><th>날짜</th><th>종목</th><th></th><th class="r">가격</th><th class="r">수량</th><th class="r">복기</th></tr></thead>
         <tbody id="trades"></tbody>
