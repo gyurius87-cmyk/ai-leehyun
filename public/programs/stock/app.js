@@ -30,6 +30,7 @@ const LOOK = {
   kostolany: { skin: "#ecc09c", hair: "#cfcfcf", style: "bald", glasses: "round", brow: "#bbb", extra: "cigar", tie: "#6b3e26" },
 };
 function face(id) {
+  if (id === "zero") return `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="var(--soft)"/><path d="M18 100c2-14 14-20 32-20s30 6 32 20z" fill="#1c2027"/><path d="M50 14v8" stroke="#f2b632" stroke-width="3"/><circle cx="50" cy="12" r="4" fill="#f2b632"/><rect x="24" y="24" width="52" height="50" rx="14" fill="#2b313c"/><rect x="30" y="34" width="40" height="22" rx="8" fill="#0f1217"/><circle cx="41" cy="45" r="5" fill="#f2b632"/><circle cx="59" cy="45" r="5" fill="#f2b632"/><path d="M40 64q10 5 20 0" stroke="#f2b632" stroke-width="2.6" fill="none" stroke-linecap="round"/><rect x="18" y="42" width="6" height="14" rx="3" fill="#2b313c"/><rect x="76" y="42" width="6" height="14" rx="3" fill="#2b313c"/><text x="50" y="94" text-anchor="middle" font-size="10" font-family="monospace" fill="#f2b632">0</text></svg>`;
   const L = LOOK[id] || LOOK.buffett;
   const hair = { side: `<path d="M24 40c0-16 10-24 26-24s26 8 26 22c-6-8-14-10-26-10-8 0-18 4-26 12z" fill="${L.hair}"/>`, mop: `<path d="M22 44c-2-20 10-30 28-30s30 10 28 30c-4-10-12-16-28-16S26 34 22 44z" fill="${L.hair}"/><path d="M30 30c8-4 24-6 34 2" stroke="${L.hair}" stroke-width="6" fill="none"/>`, thin: `<path d="M26 40c2-14 12-20 24-20s22 6 24 20c-6-6-14-8-24-8s-18 2-24 8z" fill="${L.hair}"/>`, slick: `<path d="M24 42c0-18 12-26 26-26s26 8 26 26c-4-10-12-14-26-14s-22 4-26 14z" fill="${L.hair}"/><path d="M32 24l26 4" stroke="#555" stroke-width="2"/>`, bald: `<path d="M23 50c0-8 2-12 5-14M77 50c0-8-2-12-5-14" stroke="${L.hair}" stroke-width="6" fill="none" stroke-linecap="round"/>`, short: `<path d="M25 42c0-16 11-24 25-24s25 8 25 24c-5-8-13-11-25-11s-20 3-25 11z" fill="${L.hair}"/>` }[L.style];
   const gl = { big: `<rect x="31" y="45" width="15" height="12" rx="3" fill="none" stroke="#222" stroke-width="2.4"/><rect x="54" y="45" width="15" height="12" rx="3" fill="none" stroke="#222" stroke-width="2.4"/><path d="M46 50h8" stroke="#222" stroke-width="2"/>`, rim: `<rect x="32" y="46" width="14" height="9" rx="2" fill="none" stroke="#444" stroke-width="1.8"/><rect x="54" y="46" width="14" height="9" rx="2" fill="none" stroke="#444" stroke-width="1.8"/><path d="M46 50h8" stroke="#444" stroke-width="1.6"/>`, round: `<circle cx="39" cy="51" r="7" fill="none" stroke="#333" stroke-width="2"/><circle cx="61" cy="51" r="7" fill="none" stroke="#333" stroke-width="2"/><path d="M46 51h8" stroke="#333" stroke-width="1.8"/>`, "": "" }[L.glasses];
@@ -127,7 +128,7 @@ function renderMasters() {
   $("btInfo").textContent = `${BT.start} ~ ${BT.upto} · 각자 1억 원 · 종가 체결 · 수수료·세금 0.2%`;
   $("msRank").innerHTML = list.map((m, k) => `<button type="button" class="mcard" data-mm="${m.id}" aria-pressed="${m.id === sel}">${face(m.id)}<span class="nm">${k + 1}위 ${esc(m.name)}</span><span class="rt"><b class="${ud(m.ret)}">${pct(m.ret)}</b> · ${eok(m.value)} · 최대낙폭 ${pct(m.mdd)}</span><span class="say note" style="margin:0">${esc(m.style)}</span></button>`).join("");
   $("bench").textContent = "같은 기간 그냥 들고 있었다면: " + Object.entries(BT.bench || {}).map(([k, v]) => `${k} ${pct(v)}`).join(" · ");
-  renderMaster(sel);
+  renderMaster(sel); renderAll();
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mm]"); if (!b) return; ls.set("stk-m", b.dataset.mm); $$("[data-mm]").forEach((x) => x.setAttribute("aria-pressed", x === b)); renderMaster(b.dataset.mm); });
 function renderMaster(id) {
@@ -146,6 +147,38 @@ function renderMaster(id) {
 }
 
 
+
+
+// 모두의 계좌 흐름 + 공통점
+const MCOL = { buffett: "#e8590c", lynch: "#2f9e44", oneil: "#1c7ed6", livermore: "#ae3ec9", dalio: "#0ca678", druckenmiller: "#d6336c", kostolany: "#a0522d", zero: "#f2b632" };
+let ALLOFF = ls.get("stk-alloff", []), ALLD = null, allR = ls.get("stk-allr", "all"), allIv = ls.get("stk-alliv", "1d");
+const ALLR = [["1w", "1주", 7], ["1m", "1달", 31], ["3m", "3달", 92], ["6m", "6달", 183], ["1y", "1년", 366], ["all", "전체", 1e5]];
+const mName = (id) => INFO.find((m) => m.id === id)?.name || id;
+const whoFaces = (ids) => `<span class="who">${ids.map((id) => `<span title="${esc(mName(id))}">${face(id)}</span>`).join("")}</span>`;
+function renderAll() {
+  const ids = INFO.map((m) => m.id), days0 = BT.masters[ids[0]]?.curve.map((c) => c[0]) || [];
+  const cut = new Date(Date.parse(days0.at(-1) || Date.now()) - (ALLR.find((r) => r[0] === allR)?.[2] || 1e5) * 864e5).toISOString().slice(0, 10);
+  // 기간 자르기 → 단위(일·주·월)로 묶기 → 첫날 0%
+  const pick = resample(days0.filter((d) => d >= cut).map((d) => ({ d, c: 0 })), allIv).map((p) => p.d);
+  const days = pick.length ? [days0[Math.max(0, days0.indexOf(pick[0]) - 1)], ...pick].filter((d, i, a) => a.indexOf(d) === i) : [];
+  const ser = ids.filter((id) => BT.masters[id]).map((id) => { const m = new Map(BT.masters[id].curve), base = m.get(days[0]); return { s: id, label: mName(id), color: MCOL[id] || "#888", vals: days.map((d) => (m.has(d) && base ? (m.get(d) / base - 1) * 100 : null)) }; });
+  $("allCtl").innerHTML = `<span class="note">기간</span>` + ALLR.map(([k, n]) => `<button type="button" class="pill" data-allr="${k}" aria-pressed="${k === allR}">${n}</button>`).join("") + `<span class="note" style="margin-left:8px">단위</span>` + IVS.map(([v, n]) => `<button type="button" class="pill" data-alliv="${v}" aria-pressed="${v === allIv}">${n}</button>`).join("");
+  $("allLeg").innerHTML = ser.map((x) => { const on = !ALLOFF.includes(x.s), r = x.vals.at(-1); return `<span class="leg${on ? "" : " off"}"><button type="button" class="tg" data-allm="${x.s}" aria-pressed="${on}"><i style="background:${on ? x.color : "var(--line)"}"></i>${esc(x.label)} <b class="num ${ud(r)}">${pct(r2c(r ?? 0))}</b></button></span>`; }).sort((a, b) => 0).join("");
+  ALLD = { days, series: ser.filter((x) => !ALLOFF.includes(x.s)) };
+  requestAnimationFrame(() => paintChart($("allEq"), $("allTip"), ALLD, null, { pct: true }));
+  const C = BT.common; if (!C) { $("common").innerHTML = `<p class="note">다음 모의 매매 계산 때 나와요.</p>`; return; }
+  const avgExpo = C.now.filter((x) => x.expo != null), inMkt = avgExpo.filter((x) => x.expo >= 50).length;
+  $("common").innerHTML = `<p style="margin:0 0 10px">지금 <b>${avgExpo.length}명 중 ${inMkt}명</b>이 주식을 절반 넘게 들고 있어요. ${avgExpo.sort((a, b) => b.expo - a.expo).map((x) => `${esc(mName(x.id))} ${x.expo}%`).join(" · ")}</p>
+  <div class="cm3">
+    <div><h3>같이 들고 있는 것</h3><ul>${C.hold.map((h) => `<li>${whoFaces(h.who.map((w) => w.id))} <b>${esc(h.n)}</b> <span class="note">${h.who.length}명 · ${h.who.map((w) => `${esc(mName(w.id))} <span class="${ud(w.pl)}">${pct(w.pl)}</span>`).join(", ")}</span></li>`).join("") || `<li class="note">지금 2명 이상 겹치는 종목이 없어요.</li>`}</ul></div>
+    <div><h3>같은 주에 같은 행보</h3><ul>${C.moves.slice(0, 15).map((m) => `<li><span class="num note">${m.d.slice(2).replace(/-/g, ".")}</span> ${whoFaces(m.who)} <b>${esc(m.n)}</b> <span class="chip ${m.side}">${m.side}</span> <span class="note">${m.who.length}명 (${m.who.map(mName).join(", ")})</span></li>`).join("") || `<li class="note">아직 없어요.</li>`}</ul></div>
+    <div><h3>한꺼번에 이탈 · 진입</h3><ul>${C.shifts.slice(0, 12).map((x) => `<li><span class="num note">${x.d.slice(2).replace(/-/g, ".")}</span> <b class="${x.kind === "이탈" ? "down" : "up"}">${x.who.length}명 ${x.kind}</b> ${whoFaces(x.who.map((w) => w.id))}<br><span class="note">${x.who.map((w) => `${esc(mName(w.id))} 주식 ${w.from}% → ${w.to}%`).join(" · ")}</span></li>`).join("") || `<li class="note">같은 주에 2명 이상이 주식 비중을 20%p 넘게 바꾼 적이 아직 없어요.</li>`}</ul></div>
+  </div>`;
+}
+document.addEventListener("click", (e) => { const r = e.target.closest("[data-allr],[data-alliv]"); if (r) { if (r.dataset.allr) { allR = r.dataset.allr; ls.set("stk-allr", allR); } else { allIv = r.dataset.alliv; ls.set("stk-alliv", allIv); } renderAll(); } });
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-allm]"); if (!b) return; const id = b.dataset.allm; ALLOFF = ALLOFF.includes(id) ? ALLOFF.filter((x) => x !== id) : [...ALLOFF, id]; ls.set("stk-alloff", ALLOFF); renderAll(); });
+document.addEventListener("pointermove", (e) => { if (e.target.id === "allEq") paintChart(e.target, $("allTip"), ALLD, e.clientX - e.target.getBoundingClientRect().left, { pct: true }); });
+document.addEventListener("pointerout", (e) => { if (e.target.id === "allEq") paintChart(e.target, $("allTip"), ALLD, null, { pct: true }); });
 
 // 대가 채팅방
 let MC = { id: null, hist: [] };

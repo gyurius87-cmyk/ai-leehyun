@@ -161,6 +161,7 @@ export const MASTERS = [
   { id: "dalio", name: "레이 달리오", style: "올웨더 · 위험을 고르게 나눠 담기", voice: "원칙을 중시하는 차분한 매크로 사상가. 경제를 기계처럼 설명함. '미래를 모르니 어떤 환경에서도 버티게 나눠라', '고통 + 반성 = 성장'.", rule: "주식(S&P500) 30%, 장기채 40%, 중기채 15%, 금 7.5%, 원자재 7.5%로 나눠 담고 분기마다 원래 비율로 맞춤." },
   { id: "druckenmiller", name: "스탠리 드러켄밀러", style: "매크로 집중 · 유동성을 따라 크게", voice: "직설적이고 공격적인 매크로 트레이더. '주가를 움직이는 건 이익이 아니라 유동성', '확신이 들 때는 크게 베팅'.", rule: "매주 점검. 나스닥이 200일선 위이고 10년물 금리가 50일선 아래(돈이 풀림)면 나스닥100·반도체에 100%. 나스닥이 200일선 위인데 금리가 오르면 나스닥 60%+현금. 200일선 아래면 현금 70%+금 30%." },
   { id: "kostolany", name: "앙드레 코스톨라니", style: "역발상 · 공포에 사고 수면제", voice: "유럽 투자의 대부, 이야기꾼. 강아지와 산책하는 주인 비유를 즐김. '주식을 사고 수면제를 먹고 자라', '돈과 인내가 있어야 한다'.", rule: "처음엔 현금. VIX 28 이상이거나 지수가 1년 고점에서 12% 넘게 빠지면 S&P500과 KODEX200을 50% 매수. 산 뒤 30% 넘게 오르고 VIX가 14 아래(모두가 낙관)면 절반을 팜." },
+  { id: "zero", name: "제로 (AI)", style: "AI 자율 · 데이터로 국면을 읽고 스스로 비중 조절", voice: "이현님의 AI 비서 제로. 감정 없이 숫자와 확률로 말하지만 친근함. 근거를 짧게 대고, 틀릴 수 있다는 걸 인정함. '확신이 아니라 확률로 움직여요', '살아남는 게 먼저예요'.", rule: "AI가 스스로 짠 규칙. 매주: S&P500이 200일선 위이고 VIX 25 미만이면 '공격 국면' → 모든 종목·ETF 중 100일선 위에 있고 모멘텀(1·3·6개월 가중)이 가장 센 6개를 변동성이 낮을수록 더 많이(역변동성) 90%, 금 10%. 아니면 '방어 국면' → 장기채 30%·금 30%·중기채 20%·현금 20%. 방어 국면이라도 VIX 30 이상에 S&P500이 고점 대비 15% 넘게 빠지면 S&P500 30%를 역발상 매수. 종목마다 산 뒤 최고가에서 12% 빠지면 정리." },
 ];
 
 // ── 모의 매매 (2025-01-02부터, 각자 1억 원, 종가에 체결, 수수료·세금 0.2%)
@@ -192,11 +193,13 @@ export async function backtest(force) {
   const volAvg = (s, d, n) => { const i = at(s, d); if (i < n) return null; let t = 0; for (let k = i - n; k < i; k++) t += series[s].rows[k].v; return t / n; };
   const ret = (s, d, n) => { const i = at(s, d); if (i < n) return null; return series[s].rows[i].c / series[s].rows[i - n].c - 1; };
   const isTrading = (s, d) => series[s]?.idx.has(d);
+  const vol = (s, d, n) => { const i = at(s, d); if (i < n + 1) return null; const r = []; for (let k = i - n + 1; k <= i; k++) r.push(Math.log(series[s].rows[k].c / series[s].rows[k - 1].c)); const m = r.reduce((a, b) => a + b, 0) / n; return Math.sqrt(r.reduce((a, b) => a + (b - m) ** 2, 0) / n); };
+  const SAFE = new Set(["TLT", "IEF", "GLD", "DBC"]);
   const run = days.filter((d) => d >= START);
 
   const out = {};
   for (const M of MASTERS) {
-    const P = { cash: CAP, pos: {}, trades: [], curve: [], st: {} };
+    const P = { cash: CAP, pos: {}, trades: [], curve: [], st: {}, expo: [] };
     const val = (d) => P.cash + Object.entries(P.pos).reduce((t, [s, p]) => t + p.q * (px(s, d) || p.b) * krw(s, d), 0);
     const buy = (s, d, won, why) => { if (!isTrading(s, d)) return; won = Math.min(won, P.cash); const p = px(s, d), k = krw(s, d); if (!p || won < 100_000) return; const q = Math.floor((won / (1 + FEE)) / (p * k) * 1e4) / 1e4; if (q <= 0) return; const cost = q * p * k * (1 + FEE); P.cash -= cost; const o = P.pos[s] || { q: 0, b: 0, cost: 0 }; o.cost += cost; o.q += q; o.b = o.cost / o.q / k; o.at ||= d; P.pos[s] = o; P.trades.push({ d, s, n: UNIV[s] || s, side: "매수", p: r2(p, 2), q: r2(q, 4), won: Math.round(cost), why }); };
     const sell = (s, d, frac, why) => { const o = P.pos[s]; if (!o || !isTrading(s, d)) return; const p = px(s, d), k = krw(s, d), q = frac >= 0.999 ? o.q : o.q * frac; const got = q * p * k * (1 - FEE), pl = got - o.cost * (q / o.q); P.cash += got; o.cost -= o.cost * (q / o.q); o.q -= q; if (o.q < 1e-6 || frac >= 0.999) delete P.pos[s]; P.trades.push({ d, s, n: UNIV[s] || s, side: "매도", p: r2(p, 2), q: r2(q, 4), won: Math.round(got), pl: Math.round(pl), why }); };
@@ -248,26 +251,53 @@ export async function backtest(force) {
             else if (mode === "half") target(d, { QQQ: 0.6 }, "추세는 살아 있는데 금리가 오르고 있어요. 나스닥 60%만 두고 나머지는 현금으로 대비해요.");
             else target(d, { GLD: 0.3 }, "나스닥이 200일선 아래로 내려왔어요. 돈이 빠지는 시장과 싸우지 않아요. 현금 70%, 금 30%."); }
         }
+      } else if (M.id === "zero") {
+        for (const [s, o] of Object.entries(P.pos)) { if (!isTrading(s, d)) continue; const p = px(s, d); o.peak = Math.max(o.peak || o.b, p); if (!SAFE.has(s) && s !== "SPY" && p < o.peak * 0.88) sell(s, d, 1, `${ga(UNIV[s])} 산 뒤 최고가에서 ${Math.round((1 - p / o.peak) * 100)}% 내려왔어요. 손실을 키우지 않으려고 규칙대로 정리해요.`); }
+        if (newW || di === 0) {
+          const m200 = ma("SPY", d, 200), vix = px("^VIX", d), h = hiN("SPY", d, 250), on = m200 && px("SPY", d) > m200 && (!vix || vix < 25);
+          if (on) {
+            const cands = Object.keys(UNIV).filter((s) => !SAFE.has(s) && series[s]).map((s) => { const m = ma(s, d, 100), a = ret(s, d, 21), b = ret(s, d, 63), c = ret(s, d, 126), v = vol(s, d, 63); return m && px(s, d) > m && c != null && v ? [s, 0.2 * a + 0.3 * b + 0.5 * c, v] : null; }).filter(Boolean).sort((x, y) => y[1] - x[1]).slice(0, 6);
+            const inv = cands.reduce((t, [, , v]) => t + 1 / v, 0), w = Object.fromEntries(cands.map(([s, , v]) => [s, (0.9 * (1 / v)) / inv])); w.GLD = 0.1;
+            const key = "on:" + cands.map(([s]) => s).sort().join(",");
+            if (P.st.key !== key) { P.st.key = key; target(d, w, `공격 국면(S&P500 200일선 위, VIX ${vix ? vix.toFixed(0) : "-"}). 모멘텀 상위 ${cands.map(([s]) => UNIV[s]).join("·")}를 변동성 낮은 순으로 더 담고, 금 10%로 보험을 들어요.`); }
+          } else {
+            const panic = vix >= 30 && h && px("SPY", d) < h * 0.85, key = panic ? "panic" : "off";
+            if (P.st.key !== key) { P.st.key = key; target(d, panic ? { SPY: 0.3, TLT: 0.25, GLD: 0.25, IEF: 0.1 } : { TLT: 0.3, GLD: 0.3, IEF: 0.2 }, panic ? `VIX ${vix.toFixed(0)}, S&P500 고점 대비 ${Math.round((1 - px("SPY", d) / h) * 100)}% 하락. 공포가 과하면 기대수익이 높아져요. 30%만 역발상으로 사요.` : `방어 국면(${m200 && px("SPY", d) <= m200 ? "S&P500이 200일선 아래" : `VIX ${vix ? vix.toFixed(0) : "-"}로 높음`}). 주식을 빼고 채권·금·현금으로 살아남기에 집중해요.`); }
+          }
+        }
       } else if (M.id === "kostolany") {
         for (const s of ["SPY", "069500.KS"]) { if (!isTrading(s, d)) continue; const p = px(s, d), vix = px("^VIX", d), h = hiN(s, d, 250), o = P.pos[s];
           if (!o && ((vix && vix >= 28) || (h && p < h * 0.88)) && P.cash > val(d) * 0.2) buy(s, d, val(d) * 0.5, vix >= 28 ? `VIX가 ${vix.toFixed(0)}, 모두가 겁에 질렸어요. 지금이 사는 때예요. 사고 나서는 수면제를 먹고 자요.` : `${ga(UNIV[s])} 고점에서 ${Math.round((1 - p / h) * 100)}% 빠졌어요. 주인(경제)은 그대로인데 강아지(주가)가 뒤로 달아났을 뿐.`);
           else if (o && p >= o.b * 1.3 && vix && vix < 14 && !o.half) { sell(s, d, 0.5, `30% 넘게 올랐고 VIX ${vix.toFixed(0)}, 모두가 낙관해요. 이럴 때 절반은 팔아요.`); if (P.pos[s]) P.pos[s].half = true; } }
       }
-      if (di % 5 === 0 || di === run.length - 1) P.curve.push([d, Math.round(val(d))]);
+      P.curve.push([d, Math.round(val(d))]); // 매일 (기간·단위 보기용)
+      if (di % 5 === 0 || di === run.length - 1) { const V = val(d); P.expo.push([d, Math.round((Object.entries(P.pos).filter(([s]) => !SAFE.has(s)).reduce((t, [s, o]) => t + o.q * (px(s, d) || o.b) * krw(s, d), 0) / V) * 100)]); }
     });
     const last = run.at(-1), V = val(last); let peak = 0, mdd = 0; P.curve.forEach(([, v]) => { peak = Math.max(peak, v); mdd = Math.min(mdd, v / peak - 1); });
     out[M.id] = { value: Math.round(V), ret: r2((V / CAP - 1) * 100), mdd: r2(mdd * 100), cash: Math.round(P.cash), curve: P.curve,
       hold: Object.entries(P.pos).map(([s, o]) => { const p = px(s, last), k = krw(s, last); return { s, n: UNIV[s] || s, q: r2(o.q, 4), b: r2(o.b, 2), p: r2(p, 2), won: Math.round(o.q * p * k), pl: r2((p / o.b - 1) * 100), since: o.at }; }).sort((a, b) => b.won - a.won),
-      trades: P.trades.slice(-150).reverse(), nTrades: P.trades.length };
+      trades: P.trades.slice(-150).reverse(), nTrades: P.trades.length, expo: P.expo };
   }
   // 비교용: 그냥 들고 있었다면
   const bench = {}; for (const [s, n] of [["^IXIC", "나스닥"], ["^KS11", "코스피"], ["SPY", "S&P500"]]) { if (!S[s] && !series[s]) { const g = await chart(s, "5y"); if (g) { series[s] = { rows: g.rows, idx: new Map(g.rows.map((r, i) => [r.d, i])) }; } } const a = px(s, run[0]), b = px(s, run.at(-1)); if (a && b) bench[n] = r2((b / a - 1) * 100); }
-  const res = { day, start: START, cap: CAP, upto: run.at(-1), masters: out, bench, at: Date.now() };
+  const res = { day, start: START, cap: CAP, upto: run.at(-1), masters: out, bench, common: commonOf(out, run), at: Date.now() };
   await redis([["SET", `stk:bt:${day}`, JSON.stringify(res)], ["EXPIRE", `stk:bt:${day}`, 60 * 60 * 24 * 3]]);
   return res;
 }
 // 받침이 있으면 '이', 없으면 '가'
 const ga = (w = "") => { const c = w.charCodeAt(w.length - 1); return w + (c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? "이" : "가"); };
+// 대가들의 공통점: 2명 이상이 같이 들고 있는 것 · 같은 주에 같은 종목을 같은 방향으로 · 같은 주에 주식 비중을 크게 줄이거나(이탈) 늘림(진입)
+function commonOf(out, run) {
+  const ids = Object.keys(out), wk = (d) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); };
+  const hm = new Map(); ids.forEach((id) => out[id].hold.forEach((h) => { const o = hm.get(h.s) || { s: h.s, n: h.n, who: [], won: 0 }; o.who.push({ id, won: h.won, pl: h.pl }); o.won += h.won; hm.set(h.s, o); }));
+  const hold = [...hm.values()].filter((o) => o.who.length >= 2).sort((a, b) => b.who.length - a.who.length || b.won - a.won);
+  const mm = new Map(); ids.forEach((id) => out[id].trades.forEach((t) => { const k = wk(t.d) + "|" + t.s + "|" + t.side; const o = mm.get(k) || { w: wk(t.d), d: t.d, s: t.s, n: t.n, side: t.side, who: [] }; if (!o.who.includes(id)) o.who.push(id); if (t.d > o.d) o.d = t.d; mm.set(k, o); }));
+  const moves = [...mm.values()].filter((o) => o.who.length >= 2).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 40);
+  const em = new Map(); ids.forEach((id) => { const e = out[id].expo || []; for (let i = 1; i < e.length; i++) { const ch = e[i][1] - e[i - 1][1]; if (Math.abs(ch) < 20) continue; const k = wk(e[i][0]) + "|" + (ch < 0 ? "이탈" : "진입"); const o = em.get(k) || { w: wk(e[i][0]), d: e[i][0], kind: ch < 0 ? "이탈" : "진입", who: [] }; o.who.push({ id, from: e[i - 1][1], to: e[i][1] }); em.set(k, o); } });
+  const shifts = [...em.values()].filter((o) => o.who.length >= 2).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 30);
+  const now = ids.map((id) => ({ id, expo: out[id].expo?.at(-1)?.[1] ?? null }));
+  return { hold, moves, shifts, now };
+}
 const daysBetween = (a, b) => (Date.parse(b) - Date.parse(a)) / 864e5;
 
 // ── 오늘의 정리 (Claude): 왜 올랐나/내렸나, 전문가들 말, 대가들 한마디, 그래서 어떻게

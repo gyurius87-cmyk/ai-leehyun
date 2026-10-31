@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* 주식 프로그램: 매일 지수·매크로·뉴스 → AI 정리, 대가 7명의 한마디와 1억 모의 매매, 내 계좌, 복기 */
+/* 주식 프로그램: 매일 지수·매크로·뉴스 → AI 정리, 대가 8명의 한마디와 1억 모의 매매, 내 계좌, 복기 */
 :root {
   --bg: #eceef1; --panel: #ffffff; --ink: #1c2027; --muted: #5d6572; --line: #d6dae0; --soft: #f5f6f8;
   --board: #121821; --on-board: #e9edf2; --board-mute: #8e98a6; --amber: #f2b632;
@@ -136,13 +136,16 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .bub { max-width: 85%; border-radius: 12px; padding: 8px 11px; font-size: 14px; line-height: 1.5; }
 .bub.me { align-self: flex-end; background: var(--amber); color: #1c2027; }
 .bub.them { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); }
+.cm3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.cm3 ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; } .cm3 li { background: var(--soft); border-radius: 10px; padding: 7px 10px; font-size: 14px; }
+.who { display: inline-flex; gap: 2px; vertical-align: middle; } .who svg { width: 22px; height: 22px; border-radius: 50%; background: var(--panel); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
 <body>
 <div class="top"><div class="wrap">
   <a class="brand" href="/programs"><b>AI이현</b> / 프로그램</a>
-  <h1>주식 프로그램 <small>매크로 · 지수 · 대가 7명 · 내 계좌 · 복기</small></h1>
+  <h1>주식 프로그램 <small>매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기</small></h1>
   <div class="tape" id="tape"></div>
 </div></div>
 <div class="wrap"><main>
@@ -217,6 +220,16 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <h2>1억 모의 매매 순위 <span id="btInfo"></span></h2>
       <div class="ms" id="msRank"></div>
       <p class="note" id="bench"></p>
+    </section>
+    <section class="box">
+      <h2>모두의 계좌 흐름 <span>고른 기간의 첫날을 0%로 · 이름을 눌러 켜고 끄기 · 마우스를 올리면 그날 순위</span></h2>
+      <div class="row" id="allCtl"></div>
+      <div class="row" id="allLeg" style="margin-top:8px"></div>
+      <div style="position:relative;margin-top:8px"><canvas id="allEq" style="width:100%;height:300px;display:block;touch-action:none"></canvas><div class="tip" id="allTip" hidden></div></div>
+    </section>
+    <section class="box">
+      <h2>대가들의 공통점 <span>2명 이상이 같이 한 것만 모았어요</span></h2>
+      <div id="common"></div>
     </section>
     <section class="box" id="mDetail"></section>
   </div>
