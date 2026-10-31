@@ -52,17 +52,31 @@ async function transcript(vid) {
 
 // 구글 Gemini는 유튜브 주소만 주면 영상을 직접 보고 내용을 정리해 줌 (GEMINI_API_KEY가 있을 때)
 // 무료 한도(분당 토큰)에 걸리지 않게 화면은 10초에 한 장, 저해상도로만 봄. 실패하면 이유를 돌려줌.
+let GM = null;
+async function geminiModels(key) {
+  if (GM) return GM;
+  const want = [process.env.GEMINI_MODEL, "gemini-flash-latest"];
+  try {
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } }); const j = await r.json();
+    const ok = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes("generateContent")).map((m) => m.name.replace(/^models\//, ""));
+    const flash = ok.filter((n) => /^gemini-[\d.]+-flash$/.test(n) || /^gemini-[\d.]+-flash-preview/.test(n)).sort((a, b) => parseFloat(b.split("-")[1]) - parseFloat(a.split("-")[1]) || a.length - b.length);
+    want.push(...flash, ...ok.filter((n) => /flash/.test(n) && !/lite|image|tts|live|audio|embed/.test(n)));
+  } catch {}
+  GM = [...new Set(want.filter(Boolean))].slice(0, 6); return GM;
+}
 async function geminiNotes(vid) {
   const key = process.env.GEMINI_API_KEY; if (!key) return { t: "", err: "GEMINI_API_KEY가 Vercel에 없어요" };
-  const call = async (meta) => {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-2.5-flash"}:generateContent`, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify({
+  const call = async (meta, model) => {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify({
       contents: [{ parts: [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${vid}` }, ...(meta ? { video_metadata: { fps: 0.1 } } : {}) }, { text: "이 주식·경제 영상의 내용을 한국어로 자세히 정리해 주세요. 말한 주장, 근거로 든 숫자·차트, 언급한 종목과 그에 대한 의견(사라/팔라/관망), 결론을 빠짐없이. 2000자 이내." }] }],
       generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW", maxOutputTokens: 4000, thinkingConfig: { thinkingBudget: 0 } } }) });
     const j = await r.json().catch(() => ({}));
     return { status: r.status, t: (j?.candidates?.[0]?.content?.parts || []).map((x) => x.text || "").join("").trim(), msg: j?.error?.message || j?.candidates?.[0]?.finishReason || "" };
   };
   try {
-    let o = await call(true); if (o.status === 400) o = await call(false);
+    // 구글이 모델을 자주 바꿔서: 쓸 수 있는 flash 모델을 목록에서 골라 차례로 시도 (막힌 모델은 건너뜀)
+    const models = await geminiModels(key); let o = null;
+    for (const m of models) { o = await call(true, m); if (o.status === 400) o = await call(false, m); if (o.status !== 404 && o.status !== 403) break; }
     if (o.t) return { t: o.t };
     const why = o.status === 429 ? "Gemini 무료 한도에 걸렸어요 (잠시 뒤 다시)" : o.status === 400 || o.status === 403 ? `Gemini가 거절했어요 (${o.status}): ${o.msg.slice(0, 120)}` : `Gemini 응답 없음 (${o.status} ${o.msg.slice(0, 80)})`;
     return { t: "", err: why };
@@ -91,7 +105,7 @@ JSON 하나만 답해 주세요:
 }
 
 // 새 영상 받기 + 아직 요약 없는 최근 영상 요약 (한 번에 max개까지)
-export async function ytSync(max = 8) {
+export async function ytSync(max = 0) { // 이현님 요청(10/31): 자동 요약 안 함. 요약은 영상마다 버튼을 누를 때만 (Gemini 무료 한도 아끼기)
   const ch = await channels(), lists = await Promise.all(ch.map((c) => feed(c).catch(() => [])));
   const all = lists.flat().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 120);
   await redis([["SET", "stk:yt:feed", JSON.stringify(all)], ["SET", "stk:yt:at", String(Date.now())]]);
