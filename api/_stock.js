@@ -11,6 +11,7 @@ import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
+import { studyAsk, studyFollow, studyList, studyDel } from "./_study.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" };
@@ -407,6 +408,7 @@ export async function stockHandler(req, res, isAdmin) {
   const op = q.op || req.body?.op;
   try {
     if (req.method === "GET") {
+      if (op === "study") return res.json(await studyList());
       if (op === "draw") { const [d] = await redis([["GET", "stk:draw:" + String(q.s || "").slice(0, 30)]]); return res.json({ list: json(d) || [] }); }
       if (op === "events") return res.json(await marketEvents(!!q.force));
       if (op === "db") return res.json(await dayDbList(+q.n || 90));
@@ -450,6 +452,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(); return res.json({ added: c, ...(await ytAll()) }); }
+    if (b.op === "study") { try { if (b.del) return res.json(await studyDel(String(b.del))); if (b.id) return res.json(await studyFollow(String(b.id), b.text)); const [bf] = await redis([["GET", `stk:brief:${kstDay()}`]]); const B = json(bf); return res.json(await studyAsk(b.text, (s, r) => chart(s, r), B ? `${B.headline} / 미국: ${B.us?.move || ""} / 한국: ${B.kr?.move || ""}` : "")); } catch (e) { return res.status(502).json({ error: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "draw") { const k = "stk:draw:" + String(b.s || "").slice(0, 30), L = (Array.isArray(b.list) ? b.list : []).slice(0, 200); await redis([L.length ? ["SET", k, JSON.stringify(L).slice(0, 60000)] : ["DEL", k]]); return res.json({ ok: true }); }
     if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
     if (b.op === "dbmake") { const d = /^\d{4}-\d{2}-\d{2}$/.test(b.d || "") ? b.d : kstDay(); const r = await dayDb(d, DBDEPS, true); return r.err ? res.status(502).json({ error: r.err }) : res.json(r); }

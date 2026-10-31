@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -57,7 +57,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db", "study"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -711,3 +711,46 @@ function renderDb() {
 async function makeDb(d, btn) { btn.disabled = true; const o = btn.textContent; btn.textContent = "…"; $("dbMsg").textContent = "만드는 중… (30초쯤)"; try { await api("", { op: "dbmake", d }); DB = await api("op=db"); $("dbMsg").textContent = ""; } catch (e) { $("dbMsg").textContent = "못 만들었어요: " + (e?.message || ""); } btn.disabled = false; btn.textContent = o; renderDb(); }
 $("dbMake").onclick = (e) => makeDb("", e.currentTarget);
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-dbre]"); if (b) makeDb(b.dataset.dbre, b); });
+
+// ── 공부: 질문·백테스트 기록
+let ST = null, stOpen = ls.get("stk-stopen", "");
+const EXQ = ["코스피가 200일선 위에 있을 때만 들고 있었다면 10년 동안 어땠을까?", "삼성전자를 RSI 30 아래에서 사고 70 위에서 팔았다면?", "QQQ 매달 적립식 vs 한 번에 사서 보유, 2015년부터 비교", "VIX가 40 넘었을 때 S&P500을 샀다면 1년 뒤 수익은?", "금리 인하가 시작되면 보통 어떤 업종이 올라?"];
+function mdh(t) { // 아주 간단한 마크다운 → HTML (제목·굵게·목록·표·줄바꿈)
+  const L = esc(t || "").split("\n"), out = []; let ul = false, tb = false;
+  const inl = (x) => x.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  L.forEach((l) => { const m = l.match(/^(#{1,4})\s+(.*)/), li = l.match(/^\s*(?:[-*]|\d+\.)\s+(.*)/), row = /^\s*\|.*\|\s*$/.test(l);
+    if (!li && ul) { out.push("</ul>"); ul = false; } if (!row && tb) { out.push("</table></div>"); tb = false; }
+    if (m) out.push(`<h4>${inl(m[2])}</h4>`); else if (li) { if (!ul) { out.push("<ul>"); ul = true; } out.push(`<li>${inl(li[1])}</li>`); }
+    else if (row) { if (/^\s*\|[\s:|-]+\|\s*$/.test(l)) return; if (!tb) { out.push('<div class="tw"><table>'); tb = true; } out.push("<tr>" + l.trim().slice(1, -1).split("|").map((c) => `<td>${inl(c.trim())}</td>`).join("") + "</tr>"); }
+    else if (l.trim()) out.push(`<p style="margin:4px 0">${inl(l)}</p>`); });
+  if (ul) out.push("</ul>"); if (tb) out.push("</table></div>"); return out.join("");
+}
+async function loadStudy() {
+  $("stEx").innerHTML = EXQ.map((q) => `<button type="button" class="pill" data-stex="${esc(q)}">${esc(q.length > 26 ? q.slice(0, 26) + "…" : q)}</button>`).join("");
+  try { ST = await api("op=study"); renderStudy(); } catch { $("stList").innerHTML = `<p class="msg no">기록을 못 불러왔어요.</p>`; }
+}
+function renderStudy() {
+  const q = $("stQ").value.trim(), L = (ST?.list || []).filter((r) => !q || (r.q + r.title + (r.answer || "")).includes(q));
+  $("stCnt").textContent = `기록 ${ST?.list?.length || 0}개`;
+  $("stList").innerHTML = L.map((r) => { const b = r.bt, d = new Date(r.at);
+    return `<details class="stc" data-stid="${esc(r.id)}"${r.id === stOpen ? " open" : ""}><summary><span class="k ${r.kind}">${r.kind === "bt" ? "백테스트" : "질문"}</span><span class="t">${esc(r.title)}</span><span class="note">${d.toLocaleDateString("ko-KR")} ${d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>${b ? `<span class="num ${b.me.ret > (b.bm?.ret ?? 0) ? "up" : "down"}">${b.me.ret > 0 ? "+" : ""}${b.me.ret}% <span class="note">vs ${esc(b.bench)} ${b.bm?.ret}%</span></span>` : ""}</summary>
+      <div class="qq">${esc(r.q)}</div>
+      ${r.plain ? `<p class="note" style="margin:6px 0">이렇게 해석해서 계산했어요: ${esc(r.plain)}</p>` : ""}
+      ${b ? `<div class="st"><div>총수익<b class="${b.me.ret >= 0 ? "up" : "down"}">${b.me.ret}%</b></div><div>연평균<b>${b.me.cagr}%</b></div><div>최대 낙폭<b class="down">${b.me.mdd}%</b></div><div>거래<b>${b.nTrades}번</b></div><div>비교 ${esc(b.bench)}<b>${b.bm?.ret}%</b><span class="note">연 ${b.bm?.cagr}% · 낙폭 ${b.bm?.mdd}%</span></div><div>기간<b style="font-size:13px">${b.start} ~ ${b.end}</b></div></div>
+        <div style="position:relative"><canvas class="stcv" data-stcv="${esc(r.id)}" style="width:100%;height:260px;display:block"></canvas><div class="tip" data-sttip="${esc(r.id)}" hidden></div></div>` : ""}
+      ${r.msgs.slice(1).map((m, i) => (m.role === "user" ? `<div class="qq">${esc(m.content)}</div>` : `<div class="md">${mdh(m.content)}</div>`)).join("")}
+      ${b?.trades?.length ? `<details style="margin-top:8px"><summary class="note">최근 매매 ${b.trades.length}개 보기</summary><div class="tw"><table><tbody>${b.trades.map((t) => `<tr><td class="num">${t.d}</td><td>${esc(t.s)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="num r">${t.p ?? ""}</td><td class="num r ${t.pl > 0 ? "up" : t.pl < 0 ? "down" : ""}">${t.pl != null ? t.pl + "%" : ""}</td><td class="note">${esc(t.why)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
+      <form class="row stf" data-stf="${esc(r.id)}" style="gap:6px;margin-top:10px"><input placeholder="이어서 물어보기 (예: 손절 -10%를 넣으면?)" style="flex:1 1 240px"><button class="btn s">보내기</button><button type="button" class="btn g s" data-stdel="${esc(r.id)}">기록 지우기</button></form></details>`; }).join("") || `<p class="note">아직 기록이 없어요. 위에 물어보세요.</p>`;
+  requestAnimationFrame(() => document.querySelectorAll("details.stc[open] canvas.stcv").forEach(drawSt));
+}
+function drawSt(cv) { const r = ST.list.find((x) => x.id === cv.dataset.stcv), b = r?.bt; if (!b) return; const D = { days: b.curve.map((x) => x[0]), series: [{ s: "me", label: "이 전략", vals: b.curve.map((x) => (x[1] / 1e8 - 1) * 100), color: css("--amber") || "#f2b632", w: 2.4 }, { s: "bm", label: b.bench + " 그냥 보유", vals: b.bcurve.map((x) => (x[1] == null ? null : (x[1] / 1e8 - 1) * 100)), color: css("--muted"), w: 1.4 }] }; paintChart(cv, document.querySelector(`[data-sttip="${CSS.escape(r.id)}"]`), D, null, { pct: true }); }
+document.addEventListener("toggle", (e) => { const d = e.target; if (!d.matches?.("details.stc")) return; if (d.open) { stOpen = d.dataset.stid; ls.set("stk-stopen", stOpen); const cv = d.querySelector("canvas.stcv"); if (cv) requestAnimationFrame(() => drawSt(cv)); } }, true);
+document.addEventListener("click", async (e) => {
+  const ex = e.target.closest("[data-stex]"); if (ex) { $("stIn").value = ex.dataset.stex; $("stIn").focus(); return; }
+  const del = e.target.closest("[data-stdel]"); if (del) { if (del.dataset.sure !== "1") { del.dataset.sure = "1"; del.textContent = "정말 지울까요?"; return; } ST = await api("", { op: "study", del: del.dataset.stdel }); renderStudy(); }
+});
+$("stQ").oninput = () => renderStudy();
+$("stForm").onsubmit = async (e) => { e.preventDefault(); const t = $("stIn").value.trim(); if (!t) return; $("stGo").disabled = true; $("stMsg").textContent = "생각하는 중… 백테스트면 1분쯤 걸려요";
+  try { const r = await api("", { op: "study", text: t }); ST.list.unshift(r); stOpen = r.id; $("stIn").value = ""; $("stMsg").textContent = ""; renderStudy(); } catch (err) { $("stMsg").textContent = "못 했어요: " + (err?.message || ""); } $("stGo").disabled = false; };
+document.addEventListener("submit", async (e) => { const f = e.target.closest("[data-stf]"); if (!f) return; e.preventDefault(); const inp = f.querySelector("input"), t = inp.value.trim(); if (!t) return; const btn = f.querySelector("button"); btn.disabled = true; btn.textContent = "생각 중…";
+  try { const r = await api("", { op: "study", id: f.dataset.stf, text: t }); const i = ST.list.findIndex((x) => x.id === r.id); if (i >= 0) ST.list[i] = r; stOpen = r.id; renderStudy(); } catch (err) { btn.disabled = false; btn.textContent = "다시"; } });

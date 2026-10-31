@@ -119,6 +119,13 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .crow { gap: 4px; margin-top: 6px; } .crow .sep { width: 10px; } .crow .pill i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
 .cdot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); cursor: pointer; } .cdot[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 .cinfo { font-size: 13px; margin-top: 6px; min-height: 20px; } .cinfo .up { color: var(--up); } .cinfo .down { color: var(--down); }
+.stform textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); resize: vertical; }
+.stc { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; background: var(--panel); }
+.stc > summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; list-style: none; } .stc > summary::-webkit-details-marker { display: none; }
+.stc .k { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; background: var(--soft); } .stc .k.bt { background: var(--amber, #f2b632); color: #111; }
+.stc .t { font-weight: 700; } .stc .st { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; } .stc .st div { background: var(--soft); border-radius: 8px; padding: 6px 10px; font-size: 12px; } .stc .st b { display: block; font-size: 16px; }
+.stc .md { line-height: 1.65; font-size: 14px; } .stc .md h3, .stc .md h4 { margin: 10px 0 4px; } .stc .md table { border-collapse: collapse; } .stc .md td, .stc .md th { border: 1px solid var(--line); padding: 3px 6px; }
+.stc .qq { margin-top: 10px; padding: 6px 10px; border-radius: 8px; background: var(--soft); font-weight: 600; }
 .chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; }
 .chip.매수 { background: var(--up); color: #fff; } .chip.매도 { background: var(--down); color: #fff; }
 .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); cursor: pointer; background: var(--soft); display: block; }
@@ -192,7 +199,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 <body>
 <div class="top"><div class="wrap">
   <a class="brand" href="/programs"><b>AI이현</b> / 프로그램</a>
-  <h1>주식 프로그램 <small>차트 · 매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기 · DB</small></h1>
+  <h1>주식 프로그램 <small>차트 · 매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기 · DB · 공부</small></h1>
   <div class="tape" id="tape"></div>
 </div></div>
 <div class="wrap"><main>
@@ -212,6 +219,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
     <button type="button" data-tab="db" aria-pressed="false">DB</button>
+    <button type="button" data-tab="study" aria-pressed="false">공부</button>
   </nav>
 
   <!-- 대시보드 -->
@@ -350,6 +358,16 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <div class="cinfo" id="cInfo"></div>
     <div id="cBox"><input id="cText" class="ctext" hidden placeholder="글자 쓰고 Enter"></div>
     <p class="note" style="margin:4px 0 0;text-align:right">차트 엔진: <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a></p>
+  </section>
+
+  <!-- 공부 -->
+  <section class="box" id="study" hidden>
+    <h2>공부 <span>궁금한 걸 묻거나, 해보고 싶은 전략을 말로 쓰면 과거 시세로 백테스트해 줘요. 모든 질문과 결과가 아래에 기록으로 쌓여요.</span></h2>
+    <form id="stForm" class="stform"><textarea id="stIn" rows="3" placeholder="예) 나스닥이 52주 고점 대비 20% 빠졌을 때 QQQ를 사서 30% 오르면 팔았다면 10년 동안 어땠을까?&#10;예) 금리 인하기에 반도체 주식은 보통 어떻게 움직여?"></textarea>
+      <div class="row" style="gap:6px"><button class="btn y s" id="stGo">물어보기</button><span class="note" id="stMsg"></span></div></form>
+    <div class="row" id="stEx" style="gap:4px;margin:6px 0 12px"></div>
+    <div class="row" style="gap:6px;margin-bottom:6px"><input id="stQ" placeholder="기록 검색" style="flex:0 1 220px"><span class="note" id="stCnt"></span></div>
+    <div id="stList"></div>
   </section>
 
   <!-- 일별 DB -->
