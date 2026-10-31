@@ -55,6 +55,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .pv { max-height: calc(100vh - 120px); overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); position: relative; }
 .pv canvas, .pv img { display: block; width: 100%; height: auto; }
 .pvwrap { position: relative; }
+#pvc { touch-action: none; cursor: pointer; }
+#pvSel { position: absolute; outline: 2px solid var(--yellow); box-shadow: 0 0 0 1px #0006; pointer-events: none; }
+#pvSel[data-t="obj"] { outline-color: var(--good); }
+#pvSel .tools { position: absolute; left: 0; bottom: 100%; margin-bottom: 4px; display: flex; gap: 2px; pointer-events: auto; background: var(--charcoal); border-radius: 8px; padding: 2px; white-space: nowrap; }
+#pvSel .tools button { border: 0; background: none; color: var(--on-charcoal); font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 6px; cursor: pointer; }
+#pvSel .tools button:hover { background: #fff2; }
+#pvSel .hd { position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px; background: var(--good); border: 2px solid #fff; border-radius: 3px; cursor: nwse-resize; pointer-events: auto; touch-action: none; }
+#pvSel[data-t="ph"] .hd { display: none; }
+#fillBtn[aria-pressed="true"] { background: var(--yellow); color: #222; }
+#pvFill { position: absolute; outline: 2px dashed var(--yellow); background: #f5d33f22; pointer-events: none; }
+#pvFill .tools { position: absolute; left: 0; top: 100%; margin-top: 6px; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px; width: max(240px, 100%); max-width: 360px; box-shadow: 0 4px 14px #0003; }
+#pvFill .tools:empty { display: none; }
+#pvFill input { flex: 1 1 160px; min-width: 0; }
 .ov { position: absolute; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); pointer-events: none; }
 .ov b { position: absolute; left: -2px; top: -2px; transform: translateY(-100%); background: var(--c); color: #fff; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px 4px 0 0; white-space: nowrap; }
 .ov.sel { border-width: 3px; border-style: dashed; }
@@ -90,6 +103,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tb { position: relative; width: 74px; }
 .tb img { width: 74px; height: 74px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+.tb.pl { cursor: grab; }
+.tb.used img { opacity: .55; }
+.tb .ub { position: absolute; left: 4px; top: 4px; background: var(--good); color: #fff; font-size: 10px; font-weight: 700; border-radius: 6px; padding: 1px 5px; }
 .tb .a { display: flex; justify-content: space-between; margin-top: 2px; }
 .tb .a button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0 4px; font-size: 13px; }
 .adj { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 12px; color: var(--muted); align-items: center; }
@@ -141,6 +157,13 @@ code.k { font-family: var(--mono); font-size: 12px; background: var(--soft); pad
           <textarea id="aiMemo" rows="2" placeholder="그 밖에 알려 줄 것 (선택)"></textarea>
           <div class="row"><button type="button" class="btn s" id="aiBtn">이 정보로 글 칸 채우기</button><span class="note" id="aiMsg" style="margin:0"></span></div>
         </div>
+        <div class="fd" style="--c:var(--img);margin-top:10px">
+          <div class="h">🖼 사진 모아두기 <small id="poolSum"></small></div>
+          <label class="drop" id="poolDrop" style="padding:12px">이번에 쓸 사진을 한꺼번에 끌어 놓거나 눌러서 고르세요<input type="file" id="poolIn" accept="image/*" multiple hidden></label>
+          <div class="thumbs pool" id="pool"></div>
+          <p class="note" style="margin:0">사진을 끌어서 오른쪽 미리보기의 칸이나 아래 사진 칸에 놓으면 바뀌어요.</p>
+        </div>
+        <p class="note" id="objNote" style="margin:10px 0 0"></p>
         <div class="fields" id="fields" style="margin-top:10px"></div>
         <div class="final">
           <span class="info" id="outInfo"></span>
@@ -149,8 +172,9 @@ code.k { font-family: var(--mono); font-size: 12px; background: var(--soft); pad
         </div>
       </div>
       <div class="box sticky">
-        <h2>미리보기 <span id="pvNote"></span></h2>
-        <div class="pv"><canvas id="pvc"></canvas></div>
+        <h2>미리보기 <span id="pvNote"></span> <button type="button" class="btn g s" id="fillBtn" aria-pressed="false" style="margin-left:auto">✨ 빈칸 채우기 (AI)</button></h2>
+        <p class="note" id="fillHint" hidden style="margin:0 0 8px"></p>
+        <div class="pv"><div class="pvwrap"><canvas id="pvc"></canvas><div id="pvSel" hidden><div class="tools" id="pvTools"></div><span class="hd" aria-label="크기 조절"></span></div><div id="pvFill" hidden><div class="tools" id="fillTools"></div></div></div></div>
       </div>
     </div>
   </div>

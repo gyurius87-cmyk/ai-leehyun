@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const [tpls, fonts, keys] = await redis([["HGETALL", "ds:tpls"], ["HGETALL", "ds:fonts"], ["HGETALL", "ds:keys"]]);
     const list = (h) => Object.values(pairs(h)).map(json).filter(Boolean).sort((a, b) => (b.at || 0) - (a.at || 0));
     res.setHeader("Cache-Control", "no-store");
-    return res.json({ role, tpls: list(tpls), fonts: list(fonts), keys: role === "admin" ? Object.entries(pairs(keys)).map(([k, v]) => ({ k, ...json(v) })) : undefined });
+    return res.json({ role, fill: !!process.env.OPENAI_API_KEY, tpls: list(tpls), fonts: list(fonts), keys: role === "admin" ? Object.entries(pairs(keys)).map(([k, v]) => ({ k, ...json(v) })) : undefined });
   }
 
   let b = req.body || {};
@@ -95,6 +95,7 @@ export default async function handler(req, res) {
   }
   if (op === "ai") return aiFill(b, res);
   if (op === "qs") return aiQs(b, res);
+  if (op === "fill") return genFill(b, res);
   if (op === "tplqs") {
     if (!okId(b.id)) return res.status(400).end();
     const [t] = await redis([["GET", `ds:tpl:${b.id}`]]); const tpl = json(t);
@@ -116,6 +117,30 @@ async function dropBlobs(ids, extra) {
   const cmds = [...extra];
   ids.forEach((id, j) => { const n = json(metas[j])?.n || 0; cmds.push(["DEL", `ds:b:${id}`, ...Array.from({ length: n }, (_, i) => `ds:b:${id}:${i}`)]); });
   await redis(cmds);
+}
+
+// 빈칸 채우기 (포토샵 생성형 채우기처럼): 주변 그림 + 칠한 자리(마스크) → OpenAI 이미지가 그 자리만 새로 그림
+const FILL_MODEL = process.env.FILL_MODEL || "gpt-image-1";
+async function genFill(b, res) {
+  if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "no_key" });
+  const size = ["1024x1024", "1536x1024", "1024x1536"].includes(b.size) ? b.size : "1024x1024";
+  const img = String(b.img || ""), mask = String(b.mask || "");
+  if (!/^[A-Za-z0-9+/=]+$/.test(img) || !/^[A-Za-z0-9+/=]+$/.test(mask) || img.length > 3_000_000 || mask.length > 600_000) return res.status(400).json({ error: "img" });
+  const want = clip(b.prompt, 300).trim();
+  const prompt = `Fill the transparent masked area of this e-commerce product detail page so it blends seamlessly with the surroundings: match lighting, colors, texture, perspective and style exactly. ${want ? `Draw: ${want}.` : "Continue the existing background naturally; do not add text, logos or new objects."} Keep everything outside the mask unchanged.`;
+  const fd = new FormData();
+  fd.append("model", FILL_MODEL); fd.append("prompt", prompt); fd.append("size", size); fd.append("n", "1");
+  fd.append("quality", ["low", "medium", "high"].includes(b.quality) ? b.quality : "medium");
+  fd.append("output_format", "jpeg"); fd.append("output_compression", "90");
+  fd.append("image", new Blob([Buffer.from(img, "base64")], { type: "image/jpeg" }), "image.jpg");
+  fd.append("mask", new Blob([Buffer.from(mask, "base64")], { type: "image/png" }), "mask.png");
+  try {
+    const r = await fetch(`${process.env.OPENAI_BASE_URL || "https://api.openai.com/v1"}/images/edits`, { method: "POST", headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: fd });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { console.error("fill", r.status, j?.error?.message); return res.status(r.status === 429 ? 429 : 502).json({ error: r.status === 429 ? "busy" : r.status === 400 ? "refused" : "api", msg: clip(j?.error?.message, 200) }); }
+    const out = j?.data?.[0]?.b64_json; if (!out) return res.status(502).json({ error: "shape" });
+    return res.json({ img: out });
+  } catch (err) { console.error(err); return res.status(502).json({ error: "api" }); }
 }
 
 // 질문칸: {id, label, hint, ex(원래 글에서 본 예), long(여러 줄), fill(그 답이 칸 글 전체면 그 칸 id)}

@@ -9,14 +9,14 @@ const ls = { get: (k, d) => { try { const v = localStorage.getItem(k); return v 
 const kb = (n) => (n > 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.round(n / 1024) + "KB");
 const cv = (w, h) => { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
 const say = (el, t, cls = "") => { el.textContent = t; el.className = "msg " + cls; };
-const COLORS = { img: "var(--img)", text: "var(--txt)", rep: "var(--rep)" };
-const KIND = { img: "사진 칸", text: "글 칸", rep: "반복 사진" };
+const COLORS = { img: "var(--img)", text: "var(--txt)", rep: "var(--rep)", obj: "var(--good)" };
+const KIND = { img: "사진 칸", text: "글 칸", rep: "반복 사진", obj: "도형" };
 
 // ── 들어가기: 관리자 키 또는 공유 주소(?k=)
 let adminKey = (() => { try { return localStorage.getItem("ai-admin-key") || ""; } catch { return ""; } })();
 let shareKey = new URLSearchParams(location.search).get("k") || ls.get("ds-share", "");
 if (new URLSearchParams(location.search).get("k")) ls.set("ds-share", shareKey);
-let role = "", TPLS = [], FONTS = [], KEYS = [];
+let canFill = false, role = "", TPLS = [], FONTS = [], KEYS = [];
 const authH = () => (adminKey ? { "x-admin-key": adminKey } : shareKey ? { "x-share-key": shareKey } : {});
 async function api(body) {
   const r = await fetch("/api/detail", body ? { method: "POST", headers: { "Content-Type": "application/json", ...authH() }, body: JSON.stringify(body) } : { headers: authH() });
@@ -29,7 +29,7 @@ function gateOpen() { $("gate").hidden = false; $("tabs").hidden = true; ["use",
 $("keyForm").onsubmit = async (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} await boot(); };
 async function boot() {
   if (!adminKey && !shareKey) return gateOpen();
-  try { const j = await api(); role = j.role; TPLS = j.tpls; FONTS = j.fonts; KEYS = j.keys || []; } catch (e) { if (e.message !== "auth") alertBox("불러오지 못했어요. 새로고침해 주세요."); return; }
+  try { const j = await api(); role = j.role; canFill = !!j.fill; TPLS = j.tpls; FONTS = j.fonts; KEYS = j.keys || []; } catch (e) { if (e.message !== "auth") alertBox("불러오지 못했어요. 새로고침해 주세요."); return; }
   $("gate").hidden = true; $("tabs").hidden = false;
   $$('[data-tab="share"]')[0].hidden = role !== "admin";
   showTab(ls.get("ds-tab", "use"));
@@ -170,7 +170,7 @@ async function openPsd(file) {
     $("mkNote").textContent = `${P.w}×${P.h}px · 레이어 ${leaves.length}개`;
     say(m, `다 읽었어요. 레이어 ${leaves.length}개 (글자 ${leaves.filter((l) => l.text).length}개)${soOpen ? ` · 고급 개체 ${soOpen}개 펼침` : ""}${soKeep ? ` · 고급 개체 ${soKeep}개는 통째로 (사진이거나 기울어져 있어서)` : ""}.${psd.canvas ? "" : " 합친 그림이 없어 레이어로 다시 그렸어요."}`, "ok");
     const auto = autoSlots();
-    m.textContent += ` 글 칸 ${auto.ti}개, 사진 칸 ${auto.ii}개를 알아서 정했어요. 필요 없는 칸은 눌러서 '칸 아님'으로 빼 주세요.`;
+    m.textContent += ` 글 칸 ${auto.ti}개, 사진 칸 ${auto.ii}개, 도형 ${auto.oi}개를 알아서 정했어요. 필요 없는 칸은 눌러서 '칸 아님'으로 빼 주세요.`;
     renderLayers(); renderOverlay(); renderSlotSet();
   } catch (e) { console.error(e); say(m, "PSD를 읽지 못했어요. 포토샵에서 '호환성 최대화'를 켜고 다시 저장해 보세요.", "no"); }
 }
@@ -299,7 +299,7 @@ function renderSlotSet() {
   if (!P || selLeaf < 0) { box.hidden = true; return; }
   const l = P.leaves[selLeaf], s = P.slots.get(selLeaf), k = s?.kind || "";
   const reps = [...new Set([...P.slots.values()].filter((x) => x.kind === "rep").map((x) => x.rep))];
-  const kinds = l.text ? [["", "칸 아님"], ["text", "글 칸"], ["img", "사진 칸"]] : [["", "칸 아님"], ["img", "사진 칸"], ["rep", "반복 사진"]];
+  const kinds = l.text ? [["", "칸 아님"], ["text", "글 칸"], ["img", "사진 칸"]] : [["", "칸 아님"], ["img", "사진 칸"], ["rep", "반복 사진"], ["obj", "도형 (옮기기·지우기)"]];
   box.hidden = false;
   box.innerHTML = `<div><b>${esc(l.name)}</b> <span class="note">${l.w}×${l.h}px${l.clip ? " · 아래 레이어 모양에 맞춰 들어가요" : ""}${l.text ? " · 글자 레이어" : ""}</span></div>
     <div class="seg" role="group" aria-label="칸 종류">${kinds.map(([v, n]) => `<button type="button" data-kind="${v}" aria-pressed="${k === v}">${n}</button>`).join("")}</div>
@@ -311,7 +311,7 @@ $("slotSet").onclick = (e) => {
   const b = e.target.closest("[data-kind]"); if (!b) return;
   const l = P.leaves[selLeaf], k = b.dataset.kind;
   if (!k) P.slots.delete(selLeaf);
-  else { const old = P.slots.get(selLeaf); const n = [...P.slots.values()].filter((x) => x.kind === k).length + 1; P.slots.set(selLeaf, { kind: k, label: old?.kind === k ? old.label : k === "text" ? (l.text?.text || l.name).replace(/\s+/g, " ").slice(0, 16) : k === "rep" ? `반복 사진` : `사진 ${n}`, rep: old?.rep || (k === "rep" ? "반복1" : "") }); }
+  else { const old = P.slots.get(selLeaf); const n = [...P.slots.values()].filter((x) => x.kind === k).length + 1; P.slots.set(selLeaf, { kind: k, label: old?.kind === k ? old.label : k === "text" ? (l.text?.text || l.name).replace(/\s+/g, " ").slice(0, 16) : k === "rep" ? `반복 사진` : k === "obj" ? l.name.slice(0, 16) || "도형" : `사진 ${n}`, rep: old?.rep || (k === "rep" ? "반복1" : "") }); }
   renderLayers(); renderOverlay(); renderSlotSet();
 };
 $("slotSet").oninput = (e) => {
@@ -327,15 +327,17 @@ function flatColor(c) { // 한 가지 색으로 칠한 도형이면 true
     if (n < 8) return true; return s.every((v, k) => q[k] / n - (v / n) ** 2 < 60); } catch { return false; }
 }
 function autoSlots() {
-  P.slots = new Map(); let ti = 0, ii = 0;
+  P.slots = new Map(); let ti = 0, ii = 0, oi = 0;
   const isBase = (l) => P.leaves[l.i + 1]?.clip && !l.clip;
   const pics = [];
   for (const l of P.leaves) {
     if (l.hidden) continue;
     if (l.text) { P.slots.set(l.i, { kind: "text", label: txtLabel(l), rep: "" }); ti++; continue; }
-    if (!l.canvas || l.adj || l.w < 60 || l.h < 60) continue;
-    if (l.w >= P.w * 0.98 && l.h >= P.h * 0.5) continue; // 배경
-    if (!l.clip && (isBase(l) || l.layer.vectorFill || flatColor(l.canvas))) continue; // 틀·도형
+    if (!l.canvas || l.adj || l.w < 8 || l.h < 8) continue;
+    if (l.w >= P.w * 0.9 || l.w * l.h >= P.w * P.h * 0.2) continue; // 배경·큰 판
+    const shape = !l.clip && !isBase(l) && (l.layer.vectorFill || flatColor(l.canvas));
+    if (shape) { P.slots.set(l.i, { kind: "obj", label: l.name.slice(0, 16) || "도형", rep: "" }); oi++; continue; } // 뱃지·아이콘 같은 도형은 옮기기·지우기용
+    if (l.w < 60 || l.h < 60 || (!l.clip && isBase(l))) continue; // 작은 조각, 사진 틀
     if (l.clip && flatColor(l.canvas)) continue; // 색 덮개
     pics.push(l);
   }
@@ -349,9 +351,9 @@ function autoSlots() {
     else P.slots.set(l.i, { kind: "img", label: l.name.slice(0, 16) || `사진 ${ii + 1}`, rep: "" });
     ii++;
   });
-  return { ti, ii };
+  return { ti, ii, oi };
 }
-$("autoSlots").onclick = () => { if (!P) return; const r = autoSlots(); say($("psdMsg"), `다시 정했어요. 글 칸 ${r.ti}개, 사진 칸 ${r.ii}개.`, "ok"); renderLayers(); renderOverlay(); renderSlotSet(); };
+$("autoSlots").onclick = () => { if (!P) return; const r = autoSlots(); say($("psdMsg"), `다시 정했어요. 글 칸 ${r.ti}개, 사진 칸 ${r.ii}개, 도형 ${r.oi}개.`, "ok"); renderLayers(); renderOverlay(); renderSlotSet(); };
 $("noSlots").onclick = () => { if (!P) return; P.slots = new Map(); renderLayers(); renderOverlay(); renderSlotSet(); };
 
 // ── 틀 저장: 합친 그림 조각 + 바뀌는 구역별 레이어 더미
@@ -394,6 +396,9 @@ $("saveTpl").onclick = async () => {
         const box = { x: l.x - pad * 2, y: l.y - pad, w: l.w + pad * 4, h: l.h + pad * 2 };
         slots.push({ id, kind: "text", label: s.label || "글", leaf: i, x: l.x, y: l.y, w: l.w, h: l.h, t, orig: l.canvas ? track(put(l.canvas)) : null });
         rects.push({ ...box, ids: [id] });
+      } else if (s.kind === "obj") {
+        slots.push({ id, kind: "obj", label: s.label || "도형", leaf: i, x: l.x, y: l.y, w: l.w, h: l.h, blend: l.blend, op: +l.op.toFixed(3), orig: l.canvas ? track(put(l.canvas)) : null });
+        rects.push({ x: l.x, y: l.y, w: l.w, h: l.h, ids: [id] });
       } else {
         const a = areaOf(l), sl = { id, kind: s.kind, label: s.label || "사진", rep: s.kind === "rep" ? s.rep || "반복1" : "", leaf: i, x: a.x, y: a.y, w: a.w, h: a.h, ox: l.x, oy: l.y, orig: l.canvas ? track(put(l.canvas)) : null };
         if (a.mask === "base") { const bl = baseOf(l); if (bl?.canvas) { sl.mask = track(put(bl.canvas)); sl.mx = bl.x; sl.my = bl.y; } }
@@ -459,22 +464,25 @@ $("tplCards").onclick = async (e) => {
     const r = await fetch(`/api/detail?tpl=${c.dataset.tpl}`, { headers: authH() }); if (!r.ok) throw new Error("tpl"); const { tpl } = await r.json();
     cur = tpl;
     const saved = ls.get("ds-work-" + tpl.id, {});
-    S = { vals: saved.vals || {}, fonts: saved.fonts || {}, ans: saved.ans || {}, photos: {}, reps: {} }; qsEdit = false;
+    S = { vals: saved.vals || {}, fonts: saved.fonts || {}, ans: saved.ans || {}, objs: saved.objs || {}, photos: {}, reps: {}, pool: S?.pool || [], patches: [] }; fillMode(false); pvSel = null; qsEdit = false;
     $("useTitle").textContent = `바꿀 내용 · ${tpl.name}`;
     renderTplCards(); renderFields(); renderQs(); draw();
     if (!tpl.qs && textSlots().length) makeQs();
   } catch (err) { console.error(err); $("useTitle").textContent = "틀을 불러오지 못했어요."; }
 };
-const saveWork = () => cur && ls.set("ds-work-" + cur.id, { vals: S.vals, fonts: S.fonts, ans: S.ans });
+const saveWork = () => cur && ls.set("ds-work-" + cur.id, { vals: S.vals, fonts: S.fonts, ans: S.ans, objs: S.objs });
 const repGroups = () => { const g = {}; cur.slots.filter((s) => s.kind === "rep").forEach((s) => (g[s.rep] ||= []).push(s)); return g; };
 function renderFields() {
   if (!cur) return;
   const items = [];
-  cur.slots.filter((s) => s.kind !== "rep").forEach((s) => items.push({ y: s.y, x: s.x, s }));
+  cur.slots.filter((s) => s.kind !== "rep" && s.kind !== "obj").forEach((s) => items.push({ y: s.y, x: s.x, s }));
   Object.entries(repGroups()).forEach(([name, list]) => items.push({ y: Math.min(...list.map((s) => s.y)), x: 0, rep: name, list }));
   items.sort((a, b) => a.y - b.y || a.x - b.x);
   const fontOpts = (sel) => `<option value="">기본 (Noto Sans KR)</option>${FONTS.map((f) => `<option value="${f.id}" ${f.id === sel ? "selected" : ""}>${esc(f.name)}</option>`).join("")}`;
   const adj = (key, p) => `<div class="adj"><span>확대</span><input type="range" min="100" max="300" value="${p?.z ?? 100}" data-adj="${key}:z"><span>좌우</span><input type="range" min="-100" max="100" value="${p?.ox ?? 0}" data-adj="${key}:ox"><span>위아래</span><input type="range" min="-100" max="100" value="${p?.oy ?? 0}" data-adj="${key}:oy"></div>`;
+  const gone = cur.slots.filter((s) => s.kind === "obj" && S.objs[s.id]?.del).length, moved = Object.keys(S.objs).length;
+  $("objNote").innerHTML = cur.slots.some((s) => s.kind === "obj" || s.kind === "img" || s.kind === "rep") ? `미리보기에서 도형·사진을 눌러 끌면 옮겨져요. 도형은 모서리로 크기 조절, Delete 키로 지워요.${moved ? ` <button type="button" class="btn g s" data-objreset="1">도형 모두 원래대로${gone ? ` (지운 ${gone}개 포함)` : ""}</button>` : ""}` : "";
+  setTimeout(renderPool);
   $("fields").innerHTML = items.map((it) => {
     if (it.rep) {
       const ph = S.reps[it.rep] || [], cols = rowsOf(it.list)[0].length, rows = rowsOf(it.list).length;
@@ -519,11 +527,185 @@ $("fields").addEventListener("click", (e) => {
   const d = e.target.closest("[data-pdrop],[data-repdrop]"); if (!d) return;
   e.preventDefault(); d.classList.toggle("on", ev === "dragover");
   if (ev !== "drop") return;
+  if (poolDrag >= 0) { const it = S.pool[poolDrag]; poolDrag = -1; if (!it) return; if (d.dataset.pdrop) S.photos[d.dataset.pdrop] = fromPool(it); else (S.reps[d.dataset.repdrop] ||= []).push(fromPool(it)); renderFields(); renderPool(); draw(); return; }
   const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/")); if (!files.length) return;
   if (d.dataset.pdrop) S.photos[d.dataset.pdrop] = await photoOf(files[0]);
   else (S.reps[d.dataset.repdrop] ||= []).push(...(await Promise.all(files.map(photoOf))));
   renderFields(); draw();
 }));
+
+// ── 미리보기에서 마우스로: 도형 옮기기·크기·지우기, 사진 위치 옮기기
+let pvSel = null, drag = null; // pvSel = { t:"obj", id } | { t:"ph", p }
+const pvScale = () => $("pvc").width / $("pvc").getBoundingClientRect().width;
+const pvPt = (e) => { const r = $("pvc").getBoundingClientRect(), k = pvScale(); return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k }; };
+const selHit = () => pvSel && HITS.find((h) => h.t === pvSel.t && (h.t === "obj" ? h.id === pvSel.id : h.p === pvSel.p));
+function showSel() {
+  const box = $("pvSel"), h = selHit(), c = $("pvc");
+  if (!h || !c.width) { box.hidden = true; return; }
+  box.hidden = false; box.dataset.t = h.t;
+  Object.assign(box.style, { left: (h.x / c.width) * 100 + "%", top: (h.y / c.height) * 100 + "%", width: (h.w / c.width) * 100 + "%", height: (h.h / c.height) * 100 + "%" });
+  $("pvTools").innerHTML = h.t === "obj"
+    ? `<button type="button" data-pv="small">작게</button><button type="button" data-pv="big">크게</button><button type="button" data-pv="back">원래대로</button><button type="button" data-pv="del">지우기</button>`
+    : `<button type="button" data-pv="zout">축소</button><button type="button" data-pv="zin">확대</button><button type="button" data-pv="center">가운데로</button>`;
+}
+const objOf = (id) => (S.objs[id] ||= {});
+function photoMove(p, h, dx, dy) { // 사진을 끈 만큼 옮김 (coverDraw 기준)
+  const img = p.bmp, s = Math.max(h.w / img.width, h.h / img.height) * ((p.z || 100) / 100), ew = img.width * s - h.w, eh = img.height * s - h.h;
+  if (ew > 0.5) p.ox = Math.max(-100, Math.min(100, (p.ox || 0) - (dx / (ew / 2)) * 100));
+  if (eh > 0.5) p.oy = Math.max(-100, Math.min(100, (p.oy || 0) - (dy / (eh / 2)) * 100));
+}
+$("pvc").addEventListener("pointerdown", (e) => {
+  if (!cur) return;
+  if (fillOn) { e.preventDefault(); $("pvc").setPointerCapture(e.pointerId); const pt = pvPt(e); fillSel = { x0: pt.x, y0: pt.y, x: pt.x, y: pt.y, w: 0, h: 0, drawing: true }; showFill(); return; }
+  const pt = pvPt(e), inH = (h) => pt.x >= h.x && pt.y >= h.y && pt.x < h.x + h.w && pt.y < h.y + h.h;
+  const h = [...HITS].reverse().find((h) => h.t === "obj" && inH(h)) || [...HITS].reverse().find((h) => h.t === "ph" && inH(h)); // 도형이 사진보다 먼저
+  pvSel = h ? (h.t === "obj" ? { t: "obj", id: h.id } : { t: "ph", p: h.p }) : null; showSel();
+  if (!h) return;
+  e.preventDefault(); $("pvc").setPointerCapture(e.pointerId);
+  drag = { pt, h: { ...h }, o: h.t === "obj" ? { ...objOf(h.id) } : null, moved: false };
+});
+$("pvSel").addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".hd")) return;
+  const h = selHit(); if (!h || h.t !== "obj") return;
+  e.preventDefault(); e.stopPropagation(); $("pvSel").setPointerCapture(e.pointerId);
+  drag = { pt: pvPt(e), h: { ...h }, o: { ...objOf(h.id) }, resize: true };
+});
+const dragMove = (e) => {
+  if (fillSel?.drawing) { const pt = pvPt(e), c = $("pvc"), cx = (v, m) => Math.max(0, Math.min(m, v)); const x1 = cx(pt.x, c.width), y1 = cx(pt.y, c.height); Object.assign(fillSel, { x: Math.min(fillSel.x0, x1), y: Math.min(fillSel.y0, y1), w: Math.abs(x1 - fillSel.x0), h: Math.abs(y1 - fillSel.y0) }); showFill(); return; }
+  if (!drag) return;
+  const pt = pvPt(e), dx = pt.x - drag.pt.x, dy = pt.y - drag.pt.y; drag.moved = true;
+  if (drag.h.t === "obj") {
+    const o = objOf(drag.h.id), s = cur.slots.find((x) => x.id === drag.h.id);
+    if (drag.resize) o.sc = Math.max(0.1, Math.min(8, (drag.o.sc || 1) * Math.max((drag.h.w + dx) / drag.h.w, (drag.h.h + dy) / drag.h.h)));
+    else { o.dx = (drag.o.dx || 0) + dx; o.dy = (drag.o.dy || 0) + dy; }
+    const b = objBox(s), c = $("pvc"), box = $("pvSel"); // 상자는 바로, 그림은 조금 뒤에
+    Object.assign(box.style, { left: (((b.x + drag.h.x - s.x - (drag.o.dx || 0))) / c.width) * 100 + "%", top: ((b.y + drag.h.y - s.y - (drag.o.dy || 0)) / c.height) * 100 + "%", width: (b.w / c.width) * 100 + "%", height: (b.h / c.height) * 100 + "%" });
+  } else { photoMove(drag.h.p, drag.h, pt.x - drag.pt.x, pt.y - drag.pt.y); drag.pt = pt; }
+  clearTimeout(drawT); drawT = setTimeout(doDraw, 60);
+};
+const dragEnd = () => {
+  if (fillSel?.drawing) { fillSel.drawing = false; if (fillSel.w < 8 || fillSel.h < 8) fillSel = null; showFill(); if (fillSel) setTimeout(() => $("fillP")?.focus()); return; }
+  if (!drag) return; const m = drag.moved; drag = null; if (m) { saveWork(); renderFields(); draw(); } };
+["pvc", "pvSel"].forEach((id) => { $(id).addEventListener("pointermove", dragMove); $(id).addEventListener("pointerup", dragEnd); $(id).addEventListener("pointercancel", dragEnd); });
+function pvAct(a) {
+  const h = selHit(); if (!h) return;
+  if (h.t === "obj") {
+    const o = objOf(h.id), s = cur.slots.find((x) => x.id === h.id), sc0 = o.sc || 1;
+    if (a === "del") { o.del = true; pvSel = null; }
+    else if (a === "back") delete S.objs[h.id];
+    else { const sc = Math.max(0.1, sc0 * (a === "big" ? 1.1 : 1 / 1.1)); o.dx = (o.dx || 0) - (s.w * (sc - sc0)) / 2; o.dy = (o.dy || 0) - (s.h * (sc - sc0)) / 2; o.sc = sc; } // 가운데 기준
+    saveWork(); renderFields();
+  } else {
+    const p = h.p;
+    if (a === "center") { p.ox = 0; p.oy = 0; } else p.z = Math.max(100, Math.min(300, (p.z || 100) + (a === "zin" ? 10 : -10)));
+    renderFields();
+  }
+  draw();
+}
+$("pvTools").addEventListener("click", (e) => { const b = e.target.closest("[data-pv]"); if (b) pvAct(b.dataset.pv); });
+$("pvTools").addEventListener("pointerdown", (e) => e.stopPropagation());
+document.addEventListener("keydown", (e) => {
+  if (!pvSel || $("use").hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) return;
+  if ((e.key === "Delete" || e.key === "Backspace") && pvSel.t === "obj") { e.preventDefault(); pvAct("del"); }
+  if (e.key === "Escape") { pvSel = null; showSel(); }
+});
+$("objNote").addEventListener("click", (e) => { if (e.target.closest("[data-objreset]")) { S.objs = {}; saveWork(); renderFields(); draw(); } });
+
+// ── 빈칸 채우기 (포토샵 생성형 채우기처럼): 네모로 고르면 주변을 보고 AI가 그 자리를 그려 넣음
+let fillOn = false, fillSel = null, lastFill = null;
+function fillMode(on) {
+  fillOn = on; fillSel = null; if (!$("fillBtn")) return;
+  $("fillBtn").setAttribute("aria-pressed", on); $("pvc").style.cursor = on ? "crosshair" : "";
+  if (on) { pvSel = null; showSel(); }
+  $("fillHint").hidden = !on; showFill();
+}
+$("fillBtn").onclick = () => { if (!canFill) { $("fillHint").hidden = false; $("fillHint").textContent = "AI 이미지 키가 아직 없어요. Vercel에 OPENAI_API_KEY 를 넣으면 켜져요."; return; } $("fillHint").textContent = "미리보기에서 채울 곳을 네모로 끌어 고르세요. 빈 곳, 지운 자리, 넓힐 곳 모두 돼요."; fillMode(!fillOn); };
+function showFill() {
+  const box = $("pvFill"), c = $("pvc"), f = fillSel;
+  if (!f || !c.width) { box.hidden = true; return; }
+  box.hidden = false;
+  Object.assign(box.style, { left: (f.x / c.width) * 100 + "%", top: (f.y / c.height) * 100 + "%", width: (f.w / c.width) * 100 + "%", height: (f.h / c.height) * 100 + "%" });
+  if (f.drawing) { $("fillTools").innerHTML = ""; return; }
+  if (!$("fillP")) $("fillTools").innerHTML = `<input type="text" id="fillP" placeholder="무엇을 그릴까요? (비우면 주변과 어울리게)"><button type="button" class="btn y s" id="fillGo">생성</button><button type="button" class="btn g s" id="fillX">취소</button><span class="note" id="fillMsg" style="margin:0;width:100%"></span>`;
+}
+// 고른 자리를 가운데 두고 주변을 넉넉히 담은 네모 (OpenAI 크기 비율에 맞춤)
+function fillBox(f, W, H) {
+  const sizes = [[1024, 1024], [1536, 1024], [1024, 1536]], ar = f.w / f.h;
+  const [tw, th] = sizes.reduce((a, b) => Math.abs(Math.log(b[0] / b[1] / ar)) < Math.abs(Math.log(a[0] / a[1] / ar)) ? b : a);
+  let bw = Math.max(f.w * 2, f.w + 240), bh = bw * th / tw;
+  if (bh < Math.max(f.h * 2, f.h + 240)) { bh = Math.max(f.h * 2, f.h + 240); bw = bh * tw / th; }
+  const k = Math.min(1, W / bw, H / bh); bw = Math.round(bw * k); bh = Math.round(bh * k);
+  const bx = Math.round(Math.max(0, Math.min(W - bw, f.x + f.w / 2 - bw / 2))), by = Math.round(Math.max(0, Math.min(H - bh, f.y + f.h / 2 - bh / 2)));
+  return { bx, by, bw, bh, tw, th };
+}
+async function runFill() {
+  const f = fillSel; if (!f) return;
+  const m = $("fillMsg"), go = $("fillGo"); go.disabled = true; m.textContent = "AI가 그리는 중… (20~60초)";
+  try {
+    const page = $("pvc"), B = fillBox(f, page.width, page.height);
+    const img = cv(B.tw, B.th), ix = img.getContext("2d"); ix.drawImage(page, B.bx, B.by, B.bw, B.bh, 0, 0, B.tw, B.th);
+    const mk = cv(B.tw, B.th), mx = mk.getContext("2d"), sx = B.tw / B.bw, sy = B.th / B.bh;
+    mx.fillStyle = "#000"; mx.fillRect(0, 0, B.tw, B.th); mx.clearRect((f.x - B.bx) * sx, (f.y - B.by) * sy, f.w * sx, f.h * sy); // 투명 = 새로 그릴 곳
+    const b64 = async (c, t, q) => { const b = await toBlob(c, t, q), u = new Uint8Array(await b.arrayBuffer()); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+    const j = await api({ op: "fill", img: await b64(img, "image/jpeg", 0.9), mask: await b64(mk, "image/png"), size: `${B.tw}x${B.th}`, prompt: $("fillP").value.trim() });
+    const res = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = "data:image/jpeg;base64," + j.img; });
+    // 고른 자리만, 가장자리는 부드럽게 섞음
+    const feather = Math.max(4, Math.round(Math.min(f.w, f.h) * 0.06)), x0 = Math.max(0, Math.floor(f.x - feather)), y0 = Math.max(0, Math.floor(f.y - feather));
+    const pw = Math.min(page.width, Math.ceil(f.x + f.w + feather)) - x0, ph = Math.min(page.height, Math.ceil(f.y + f.h + feather)) - y0;
+    const pc = cv(pw, ph), px = pc.getContext("2d"); px.drawImage(res, (B.bx - x0), (B.by - y0), B.bw, B.bh);
+    const a = cv(pw, ph), ax = a.getContext("2d"); ax.filter = `blur(${feather / 2}px)`; ax.fillStyle = "#000"; ax.fillRect(f.x - x0, f.y - y0, f.w, f.h);
+    px.globalCompositeOperation = "destination-in"; px.drawImage(a, 0, 0);
+    if (lastFill && lastFill.sel === f) S.patches.splice(S.patches.indexOf(lastFill.patch), 1);
+    const patch = { c: pc, x: x0, y: y0 }; S.patches.push(patch); lastFill = { sel: f, patch };
+    m.innerHTML = `채웠어요. 마음에 안 들면 <button type="button" class="btn g s" id="fillUndo">되돌리기</button> 또는 '생성'을 다시 눌러요.`; draw();
+  } catch (e) { m.textContent = e.message === "busy" ? "지금 AI가 바빠요. 잠시 뒤 다시 눌러 주세요." : e.message === "no_key" ? "AI 이미지 키가 없어요." : e.message === "refused" ? "AI가 이 그림은 못 그린대요. 다른 말로 적어 보세요." : "채우지 못했어요. 다시 눌러 주세요."; }
+  go.disabled = false; go.textContent = "다시 생성";
+}
+$("pvFill").addEventListener("pointerdown", (e) => e.stopPropagation());
+$("pvFill").addEventListener("click", (e) => {
+  if (e.target.id === "fillGo") runFill();
+  if (e.target.id === "fillX") { fillSel = null; lastFill = null; showFill(); }
+  if (e.target.id === "fillUndo") { if (lastFill) S.patches.splice(S.patches.indexOf(lastFill.patch), 1); lastFill = null; $("fillMsg").textContent = "되돌렸어요."; draw(); }
+});
+$("pvFill").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "fillP") runFill(); });
+
+// ── 사진 모아두기: 한꺼번에 올리고, 끌어서 칸에 넣기 (쓴 사진은 '사용됨')
+const fromPool = (it) => ({ bmp: it.bmp, url: it.url, src: it, z: 100, ox: 0, oy: 0 });
+const usedPool = (it) => Object.values(S.photos).some((p) => p?.src === it) || Object.values(S.reps).some((a) => a.some((p) => p?.src === it));
+function renderPool() {
+  if (!S) return;
+  const n = S.pool.filter(usedPool).length;
+  $("poolSum").textContent = S.pool.length ? `${S.pool.length}장 · 사용 ${n}장` : "";
+  $("pool").innerHTML = S.pool.map((it, k) => { const u = usedPool(it); return `<div class="tb pl${u ? " used" : ""}" draggable="true" data-pool="${k}"><img src="${it.url}" alt="${esc(it.name)}" draggable="false">${u ? `<span class="ub">사용됨</span>` : ""}<div class="a"><span class="note" style="font-size:11px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:54px">${esc(it.name)}</span><button type="button" data-pooldel="${k}" aria-label="빼기">✕</button></div></div>`; }).join("");
+}
+async function addPool(files) {
+  const add = await Promise.all([...files].filter((f) => f.type.startsWith("image/")).map(async (f) => ({ ...(await photoOf(f)), name: f.name })));
+  S.pool.push(...add); renderPool();
+}
+pickDrop($("poolDrop"), $("poolIn"), (fs) => cur && addPool(fs));
+let poolDrag = -1;
+$("pool").addEventListener("dragstart", (e) => { const t = e.target.closest("[data-pool]"); if (!t) return; poolDrag = +t.dataset.pool; e.dataTransfer.setData("text/plain", "pool:" + poolDrag); e.dataTransfer.effectAllowed = "copy"; });
+$("pool").addEventListener("dragend", () => { poolDrag = -1; $("pvSel").hidden = !selHit(); showSel(); });
+$("pool").addEventListener("click", (e) => { const d = e.target.closest("[data-pooldel]"); if (!d) return; S.pool.splice(+d.dataset.pooldel, 1); renderPool(); });
+// 미리보기 위에 놓기: 그 자리 사진 칸에
+const slotAt = (e) => { const pt = pvPt(e); return [...HITS].reverse().find((h) => h.t === "slot" && pt.x >= h.x && pt.y >= h.y && pt.x < h.x + h.w && pt.y < h.y + h.h); };
+function putPool(target, it) {
+  if (target.id) S.photos[target.id] = fromPool(it);
+  else { const a = (S.reps[target.rep] ||= []); a[target.k] = fromPool(it); for (let k = 0; k < a.length; k++) if (!a[k]) a.splice(k--, 1); }
+  renderFields(); renderPool(); draw();
+}
+$("pvc").addEventListener("dragover", (e) => {
+  if (poolDrag < 0 && !e.dataTransfer.types.includes("Files")) return;
+  const h = slotAt(e); if (!h) return; e.preventDefault();
+  const c = $("pvc"), box = $("pvSel"); box.hidden = false; box.dataset.t = "ph"; $("pvTools").innerHTML = `<button type="button">여기에 넣기</button>`;
+  Object.assign(box.style, { left: (h.x / c.width) * 100 + "%", top: (h.y / c.height) * 100 + "%", width: (h.w / c.width) * 100 + "%", height: (h.h / c.height) * 100 + "%" });
+});
+$("pvc").addEventListener("drop", async (e) => {
+  const h = slotAt(e); if (!h) return; e.preventDefault();
+  let it = poolDrag >= 0 ? S.pool[poolDrag] : null;
+  if (!it) { const f = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/")); if (!f) return; it = { ...(await photoOf(f)), name: f.name }; S.pool.push(it); }
+  poolDrag = -1; putPool(h, it);
+});
 
 // ── 그리기
 function rowsOf(list) { const rows = []; [...list].sort((a, b) => a.y - b.y || a.x - b.x).forEach((s) => { const r = rows.find((r) => Math.abs(r[0].y - s.y) < Math.max(8, s.h * 0.25)); r ? r.push(s) : rows.push([s]); }); rows.forEach((r) => r.sort((a, b) => a.x - b.x)); return rows; }
@@ -566,7 +748,7 @@ async function doDraw() {
   if (!cur) return;
   if (drawing) { drawAgain = true; return; }
   drawing = true; drawAgain = false;
-  try { const c = await renderPage(); const pv = $("pvc"); pv.width = c.width; pv.height = c.height; pv.getContext("2d").drawImage(c, 0, 0); $("pvNote").textContent = `${c.width}×${c.height}px`; $("outInfo").textContent = ""; }
+  try { const c = await renderPage(); const pv = $("pvc"); pv.width = c.width; pv.height = c.height; pv.getContext("2d").drawImage(c, 0, 0); showSel(); $("pvNote").textContent = `${c.width}×${c.height}px`; $("outInfo").textContent = ""; }
   catch (e) { console.error(e); $("pvNote").textContent = "그리다 문제가 생겼어요"; }
   drawing = false; if (drawAgain) doDraw();
 }
@@ -586,12 +768,27 @@ async function renderPage() {
       if (e.t === "skip") { flush(); continue; }
       let piece = null;
       if (e.t === "px") piece = { c: await bmp(e.img), x: e.x, y: e.y };
-      else { const s = byId[e.id]; piece = s && (await slotCanvas(s, s.kind === "img" ? S.photos[s.id] : s.kind === "rep" ? repPhoto[s.id] : null)); }
+      else { const s = byId[e.id]; piece = s && s.kind !== "obj" && (await slotCanvas(s, s.kind === "img" ? S.photos[s.id] : s.kind === "rep" ? repPhoto[s.id] : null)); }
       if (!e.clip) { flush(); g = cv(r.w, r.h); gb = e.blend || "source-over"; go = e.op ?? 1; if (piece) g.getContext("2d").drawImage(piece.c, piece.x - r.x, piece.y - r.y); }
       else if (g && piece) { const gx = g.getContext("2d"); gx.globalCompositeOperation = "source-atop"; gx.globalAlpha = e.op ?? 1; gx.drawImage(piece.c, piece.x - r.x, piece.y - r.y); gx.globalAlpha = 1; gx.globalCompositeOperation = "source-over"; }
     }
     flush();
     ctx.fillStyle = "#fff"; ctx.fillRect(r.x, r.y, r.w, r.h); ctx.drawImage(rc, r.x, r.y);
+  }
+  // 도형: 원래 자리는 비우고 옮긴 자리·크기로 맨 위에
+  const hits = [];
+  for (const s of T.slots) {
+    if (s.kind !== "obj" || !s.orig) continue;
+    const o = S.objs[s.id] || {}; if (o.del) continue;
+    const b = objBox(s); ctx.globalAlpha = s.op ?? 1; ctx.globalCompositeOperation = s.blend || "source-over";
+    ctx.drawImage(await bmp(s.orig), b.x, b.y, b.w, b.h); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    hits.push({ t: "obj", id: s.id, ...b });
+  }
+  for (const s of T.slots) if (s.kind === "img") hits.push({ t: "slot", id: s.id, x: s.x, y: s.y, w: s.w, h: s.h });
+  Object.entries(groups).forEach(([name, list]) => rowsOf(list).flat().forEach((s, k) => hits.push({ t: "slot", rep: name, k, x: s.x, y: s.y, w: s.w, h: s.h })));
+  for (const s of T.slots) {
+    if (s.kind === "img" && S.photos[s.id]) hits.push({ t: "ph", p: S.photos[s.id], x: s.x, y: s.y, w: s.w, h: s.h });
+    if (s.kind === "rep" && repPhoto[s.id]) hits.push({ t: "ph", p: repPhoto[s.id], x: s.x, y: s.y, w: s.w, h: s.h });
   }
   // 반복 사진 줄 늘리기·줄이기 (아래 묶음부터)
   let out = c;
@@ -610,19 +807,28 @@ async function renderPage() {
       for (let k = 0; k < add; k++) for (let j = 0; j < cols; j++) {
         const p = ph[(have + k) * cols + j], s = last[j]; if (!s) continue;
         const dy = (k + 1) * step;
+        hits.push({ t: "slot", rep: name, k: (have + k) * cols + j, x: s.x, y: s.y + dy, w: s.w, h: s.h, extra: 1 });
         if (!p) continue;
         const piece = await slotCanvas(s, p); nx.drawImage(piece.c, piece.x, piece.y + dy);
+        hits.push({ t: "ph", p, x: s.x, y: s.y + dy, w: s.w, h: s.h, extra: 1 });
       }
+      hits.forEach((h) => { if (h.y >= bottom && !h.extra) h.y += add * step; }); hits.forEach((h) => delete h.extra);
       out = n;
     } else {
       const cut = (have - need) * step, n = cv(out.width, out.height - cut), nx = n.getContext("2d");
       nx.drawImage(out, 0, 0, out.width, bottom - cut, 0, 0, out.width, bottom - cut);
       nx.drawImage(out, 0, bottom, out.width, out.height - bottom, 0, bottom - cut, out.width, out.height - bottom);
+      for (let k = hits.length - 1; k >= 0; k--) { const h = hits[k]; if (h.y >= bottom) h.y -= cut; else if (h.y >= bottom - cut) hits.splice(k, 1); }
       out = n;
     }
   }
+  // AI로 채운 곳 (완성 페이지 기준 자리)
+  if (S.patches.length) { const ox = out.getContext("2d"); S.patches.forEach((p) => ox.drawImage(p.c, p.x, p.y)); }
+  HITS = hits;
   return out;
 }
+let HITS = [];
+const objBox = (s) => { const o = S.objs[s.id] || {}, sc = o.sc || 1; return { x: Math.round(s.x + (o.dx || 0)), y: Math.round(s.y + (o.dy || 0)), w: Math.round(s.w * sc), h: Math.round(s.h * sc) }; };
 $("dl").onclick = async () => {
   if (!cur) return;
   $("dl").disabled = true; $("outInfo").textContent = "만드는 중…";
