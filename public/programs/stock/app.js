@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -57,7 +57,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -638,3 +638,20 @@ $("pvChg").onclick = () => { $("pvNew").hidden = !$("pvNew").hidden; $("pvGo").t
 $("pvForm").onsubmit = async (e) => { e.preventDefault(); const pin = $("pvPin").value, nw = $("pvNew").hidden ? "" : $("pvNew").value;
   try { const j = await api("", { op: "acctpin", pin, newPin: nw || undefined }); $("pvPin").value = $("pvNew").value = ""; $("pvNew").hidden = true; setPv(true); $("pvMsg").textContent = j.changed ? "비밀번호를 바꿨어요." : ""; }
   catch (err) { $("pvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요." : "확인하지 못했어요."; } };
+
+// 일별 DB
+let DB = null;
+async function loadDb() { try { DB = await api("op=db"); renderDb(); } catch { $("dbMsg").textContent = "못 불러왔어요."; } }
+function renderDb() {
+  const L = DB?.list || [], today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  $("dbMake").textContent = L.some((r) => r.day === today) ? "오늘 것 다시 만들기" : "오늘 것 지금 만들기";
+  const n = (k, v, u) => (v ? `${k} ${v}${u}` : "");
+  $("dbList").innerHTML = L.map((r) => { const c = r.counts || {};
+    return `<div class="dbr"><div class="dd num">${r.day.slice(2).replace(/-/g, ".")} (${"일월화수목금토"[new Date(r.day + "T00:00:00Z").getUTCDay()]})<small>${[n("영상", c.yt, "개"), n("발언", c.sns, "개"), n("대가 매매", c.master, "건")].filter(Boolean).join(" · ")}${r.partial ? "<br>하루 중간 기록" : ""}</small><button type="button" class="btn g s" data-dbre="${esc(r.day)}" style="margin-top:4px;font-size:11px;padding:1px 6px">다시</button></div>
+      <div style="min-width:0"><div class="ln">${r.mood ? `<span class="mood ${esc(r.mood)}">${esc(r.mood)}</span>` : ""}${esc(r.line)}</div>
+      <div>${(r.keys || []).map((k) => `<span class="kw">#${esc(k)}</span>`).join("")}${(r.hot || []).map((k) => `<span class="kw h">${esc(k)}</span>`).join("")}</div>
+      <div class="sub">${[["시장", r.market], ["많았던 이야기", r.talk], ["유튜버", r.yt], ["대가·포폴", r.masters]].filter(([, v]) => v).map(([k, v]) => `<div><b>${k}</b>${esc(v)}</div>`).join("")}</div></div></div>`; }).join("") || `<p class="note">아직 기록이 없어요. '오늘 것 지금 만들기'를 눌러 보세요. 내일 아침부터는 매일 자동으로 쌓여요.</p>`;
+}
+async function makeDb(d, btn) { btn.disabled = true; const o = btn.textContent; btn.textContent = "만드는 중… (30초쯤)"; try { await api("", { op: "dbmake", d }); await loadDb(); $("dbMsg").textContent = ""; } catch (e) { $("dbMsg").textContent = "못 만들었어요: " + (e?.message || ""); } btn.disabled = false; btn.textContent = o; renderDb(); }
+$("dbMake").onclick = (e) => makeDb("", e.currentTarget);
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-dbre]"); if (b) makeDb(b.dataset.dbre, b); });

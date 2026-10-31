@@ -95,6 +95,13 @@ td.r, th.r { text-align: right; font-family: var(--mono); white-space: nowrap; }
 .prof svg { width: 96px; height: 96px; border-radius: 50%; background: var(--soft); }
 .big { font-family: var(--mono); font-size: 26px; font-weight: 600; }
 canvas.eq { width: 100%; height: 220px; display: block; }
+.dbr { display: grid; grid-template-columns: 116px 1fr; gap: 4px 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.dbr .dd { font-weight: 700; } .dbr .dd small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.dbr .ln { font-size: 15px; font-weight: 700; } .dbr .sub { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2px 14px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.dbr .sub b { color: var(--ink); font-weight: 600; margin-right: 4px; } .dbr .kw { display: inline-block; font-size: 12px; background: var(--soft); border-radius: 999px; padding: 0 8px; margin: 2px 4px 0 0; }
+.dbr .kw.h { background: none; border: 1px solid var(--line); } .mood { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; margin-right: 6px; background: var(--soft); vertical-align: 2px; }
+.mood.강세 { background: var(--up); color: #fff; } .mood.약세 { background: var(--down); color: #fff; }
+@media (max-width: 560px) { .dbr { grid-template-columns: 1fr; } }
 .chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; }
 .chip.매수 { background: var(--up); color: #fff; } .chip.매도 { background: var(--down); color: #fff; }
 .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); cursor: pointer; background: var(--soft); display: block; }
@@ -168,7 +175,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 <body>
 <div class="top"><div class="wrap">
   <a class="brand" href="/programs"><b>AI이현</b> / 프로그램</a>
-  <h1>주식 프로그램 <small>매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기</small></h1>
+  <h1>주식 프로그램 <small>매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기 · DB</small></h1>
   <div class="tape" id="tape"></div>
 </div></div>
 <div class="wrap"><main>
@@ -186,6 +193,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <button type="button" data-tab="soc" aria-pressed="false">SNS 발언</button>
     <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
+    <button type="button" data-tab="db" aria-pressed="false">DB</button>
   </nav>
 
   <!-- 대시보드 -->
@@ -312,6 +320,14 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <input id="hSym" placeholder="종목코드" style="flex:1 1 110px"><input id="hQty" type="number" step="any" placeholder="수량" style="flex:1 1 80px"><input id="hAvg" type="number" step="any" placeholder="평단" style="flex:1 1 90px"><button class="btn s">더하기</button>
     </form>
     <div class="row pvedit" style="margin-top:10px"><label class="note">원화 예수금 <input id="cash" type="number" step="any" style="width:140px"></label><label class="note">달러 예수금 <input id="cashUsd" type="number" step="any" style="width:110px"></label><button type="button" class="btn y s" id="acctSave">저장</button><span class="msg" id="acctMsg" style="margin:0"></span></div>
+  </section>
+
+  <!-- 일별 DB -->
+  <section class="box" id="db" hidden>
+    <h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">일별 DB <span>모든 탭(오늘의 정리·뉴스·유튜버·SNS 발언·레딧·유명인 포폴·대가 매매)을 모아 하루 한 줄씩 남겨요. 매일 아침 어제 것을 자동으로 만들어요.</span>
+      <button type="button" class="btn y s" id="dbMake" style="margin-left:auto">오늘 것 지금 만들기</button></h2>
+    <p class="msg" id="dbMsg"></p>
+    <div id="dbList"></div>
   </section>
 
   <!-- 복기 -->

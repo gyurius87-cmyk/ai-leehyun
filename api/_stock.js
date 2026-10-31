@@ -10,6 +10,7 @@ import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
 import { famousAll, famousRefresh } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
+import { dayDb, dayDbList } from "./_daydb.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" };
@@ -396,15 +397,17 @@ ${ctx}
   return { reply, hist: hist.slice(-40) };
 }
 
+const DBDEPS = { snapshot: () => snapshot(), news: () => news(), backtest: () => backtest() };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync(10).catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync(10).catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
   try {
     if (req.method === "GET") {
+      if (op === "db") return res.json(await dayDbList(+q.n || 90));
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
@@ -444,6 +447,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(8); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(4); return res.json({ added: c, ...(await ytAll()) }); }
+    if (b.op === "dbmake") { const d = /^\d{4}-\d{2}-\d{2}$/.test(b.d || "") ? b.d : kstDay(); const r = await dayDb(d, DBDEPS, true); return r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
     if (b.op === "socseen") { const id = String(b.id || "").slice(0, 300); if (id) await redis([[b.on ? "SADD" : "SREM", "stk:soc:seen", id]]); return res.json({ ok: true }); }
     if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
     if (b.op === "ytdel") { await ytDel(String(b.id || "")); return res.json(await ytAll()); }
