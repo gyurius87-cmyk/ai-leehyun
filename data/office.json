@@ -195,12 +195,29 @@
           "acc": "pencil"
         },
         {
+          "team": "시장팀",
+          "name": "차트·매크로 담당",
+          "status": "working",
+          "doing": "차트 그리기·종목 겹치기와 큰 사건 동그라미를 챙겨요",
+          "prop": "📈",
+          "acc": "pencil"
+        },
+        {
           "team": "대가팀",
           "name": "대가 모의투자 담당",
           "status": "working",
           "doing": "대가 7명과 제로의 1억 모의 계좌를 매일 굴려요",
           "prop": "🧓",
           "acc": "bowtie"
+        },
+        {
+          "team": "계좌팀",
+          "name": "내 계좌·복기 담당",
+          "status": "waiting",
+          "doing": "키움 받기 첫 결과와 해외(글로벌) 체결 엑셀을 기다려요",
+          "prop": "💳",
+          "acc": "tie",
+          "since": "2026-10-31"
         },
         {
           "team": "리서치팀",
