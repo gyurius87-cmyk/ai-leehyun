@@ -271,15 +271,12 @@ function render() {
   pot();
 }
 
-// ── 지금까지 모인 돈: 모두 보고, 관리 키가 있는 이현님만 고침
+// ── 참가비 안내: 관리 키가 있는 이현님만 보고 고침 (모인 돈 표시는 2026-10-31에 뺌)
 function pot() {
-  const P = $("#pot"), v = S.meta.pot || 0;
-  if (!S.admin && !v) { P.hidden = true; return; }
-  // 관리 화면: 모인 돈 + 참가비 안내 입력
+  const P = $("#pot");
+  if (!S.admin) { P.hidden = true; return; }
   P.hidden = false;
-  P.innerHTML = `<div class="row" style="justify-content:space-between"><div><span class="note">지금까지 모인 돈</span><div class="potv">${v.toLocaleString("ko-KR")}<small>원</small></div>${S.meta.potAt ? `<span class="note">${new Date(S.meta.potAt).toLocaleDateString("ko-KR")} 기준</span>` : ""}</div>
-    ${S.admin ? `<div class="row"><span class="note">참가비 안내</span><input type="text" id="piBank" placeholder="은행" value="${esc(S.meta.payInfo?.bank || "")}" style="width:90px"><input type="text" id="piAcc" inputmode="numeric" placeholder="계좌번호" value="${esc(S.meta.payInfo?.account || "")}" style="width:150px"><input type="text" id="piFee" inputmode="numeric" placeholder="금액" value="${S.meta.payInfo?.fee || ""}" style="width:80px"><span>원</span><button id="piSave">저장</button></div>` : ""}
-    ${S.admin ? `<div class="row"><input type="text" id="potIn" inputmode="numeric" placeholder="금액" value="${v ? v.toLocaleString("ko-KR") : ""}" style="width:140px;text-align:right"><span>원</span><button class="main" id="potSave">저장</button></div>` : ""}</div>`;
+  P.innerHTML = `<div class="row"><span class="note">참가비 안내</span><input type="text" id="piBank" placeholder="은행" value="${esc(S.meta.payInfo?.bank || "")}" style="width:90px"><input type="text" id="piAcc" inputmode="numeric" placeholder="계좌번호" value="${esc(S.meta.payInfo?.account || "")}" style="width:150px"><input type="text" id="piFee" inputmode="numeric" placeholder="금액" value="${S.meta.payInfo?.fee || ""}" style="width:80px"><span>원</span><button id="piSave">저장</button></div>`;
 }
 $("#pot").addEventListener("click", async (e) => {
   if (e.target.id === "piSave") {
@@ -287,9 +284,7 @@ $("#pot").addEventListener("click", async (e) => {
     catch { toast("저장 못 했어요"); }
     return;
   }
-  if (e.target.id !== "potSave") return;
-  const n = Number($("#potIn").value.replace(/[^\d]/g, "")) || 0;
-  try { const r = await api("POST", { g: G, op: "pot", pot: n }); S.meta.pot = r.pot; S.meta.potAt = Date.now(); pot(); toast("모인 돈을 저장했어요"); }
+}); S.meta.pot = r.pot; S.meta.potAt = Date.now(); pot(); toast("모인 돈을 저장했어요"); }
   catch { toast("저장 못 했어요"); }
 });
 
