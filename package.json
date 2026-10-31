@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.133.0",
     "@sparticuz/chromium": "^153.0.0",
     "astro": "5.18.2",
-    "puppeteer-core": "^25.16.0"
+    "puppeteer-core": "^25.16.0",
+    "undici": "^6.29.1"
   }
 }
