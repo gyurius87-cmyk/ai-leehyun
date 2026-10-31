@@ -116,6 +116,10 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .bigg { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
 .bigc canvas { width: 100%; height: 180px; display: block; margin-top: 6px; touch-action: none; }
 .bigc .why { font-size: 12px; color: var(--muted); }
+.ini { width: 56px; height: 56px; grid-row: span 2; border-radius: 50%; background: var(--board); color: var(--amber); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+.bar { height: 6px; background: var(--amber); border-radius: 3px; }
+.chg { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+.chg.new { background: var(--up); color: #fff; } .chg.add { color: var(--up); } .chg.cut { color: var(--down); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
@@ -135,6 +139,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <button type="button" data-tab="dash" aria-pressed="true">대시보드</button>
     <button type="button" data-tab="macro" aria-pressed="false">매크로</button>
     <button type="button" data-tab="masters" aria-pressed="false">대가</button>
+    <button type="button" data-tab="famous" aria-pressed="false">유명인 포폴</button>
     <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
   </nav>
@@ -195,6 +200,16 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <p class="note" id="bench"></p>
     </section>
     <section class="box" id="mDetail"></section>
+  </div>
+
+  <!-- 유명인 포폴 -->
+  <div id="famous" hidden class="split">
+    <section class="box">
+      <h2>유명인 포트폴리오 <span id="fAt"></span><button type="button" class="btn g s" id="fRe" style="margin-left:auto">새 공시 확인</button></h2>
+      <p class="note" style="margin:0 0 8px">펀드는 미국 SEC 13F 공시(분기마다, 분기 끝나고 45일 안에), ARK는 매일 공개분이에요. 매일 아침 새로 나온 게 있는지 확인해요. 미국 주식만 나와요.</p>
+      <div class="ms" id="fList"><p class="note">불러오는 중… (처음엔 30초쯤)</p></div>
+    </section>
+    <section class="box" id="fDetail"><p class="note">왼쪽에서 사람을 고르면 보유 종목과 지난번 대비 바뀐 것이 나와요.</p></section>
   </div>
 
   <!-- 내 계좌 -->

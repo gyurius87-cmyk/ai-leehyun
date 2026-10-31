@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -56,7 +56,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -273,6 +273,38 @@ document.addEventListener("click", (e) => { const b = e.target.closest("[data-bi
 document.addEventListener("pointermove", (e) => { const cv = e.target.closest?.("[data-big]"); if (!cv) return; const i = cv.dataset.big; paintChart(cv, document.querySelector(`[data-bigtip="${i}"]`), BIGD[i], e.clientX - cv.getBoundingClientRect().left); });
 document.addEventListener("pointerout", (e) => { const cv = e.target.closest?.("[data-big]"); if (!cv) return; const i = cv.dataset.big; paintChart(cv, document.querySelector(`[data-bigtip="${i}"]`), BIGD[i]); });
 addEventListener("resize", () => { if (!$("macro").hidden) Object.keys(BIGD).forEach((i) => { const cv = document.querySelector(`[data-big="${i}"]`); if (cv) paintChart(cv, null, BIGD[i]); }); });
+
+
+// ── 유명인 포폴
+let FAM = null, fSel = ls.get("stk-fam", "buffett");
+const usd = (v) => (v == null ? "-" : v >= 1e9 ? "$" + (v / 1e9).toFixed(1) + "B" : v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v).toLocaleString("en-US"));
+const chgTag = (c) => (c === "new" ? `<span class="chg new">새로 삼</span>` : c == null || c === 0 ? "" : `<span class="chg ${c > 0 ? "add" : "cut"}">${c > 0 ? "+" : ""}${c}%</span>`);
+async function loadFam(refresh) {
+  if (FAM && !refresh) return renderFam();
+  $("fRe").disabled = true; if (refresh) $("fAt").textContent = "확인하는 중… (30초쯤)";
+  try { FAM = await api("op=fam" + (refresh ? "&refresh=1" : "")); renderFam(); } catch { $("fList").innerHTML = `<p class="msg no">못 불러왔어요. 잠시 뒤 '새 공시 확인'을 눌러 주세요.</p>`; }
+  $("fRe").disabled = false;
+}
+$("fRe").onclick = () => loadFam(true);
+function renderFam() {
+  $("fAt").textContent = FAM.at ? new Date(FAM.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 확인" : "";
+  $("fList").innerHTML = FAM.list.map((f) => { const d = f.data, news = d ? d.rows.filter((r) => r.ch === "new").length : 0;
+    return `<button type="button" class="mcard" data-fam="${f.id}" aria-pressed="${f.id === fSel}">${LOOK[f.id] ? face(f.id) : `<span class="ini">${esc(f.who.slice(0, 1))}</span>`}<div class="nm">${esc(f.who)}${news ? `<span class="chg new">새로 ${news}</span>` : ""}</div><div class="note" style="margin:0">${esc(f.fund)}</div><div class="say">${d ? `<span class="note">${d.kind === "ark" ? d.day + " 기준" : d.period + " 분기 · " + d.filed + " 공시"}</span><br>${d.rows.slice(0, 3).map((r) => esc(r.t || r.n)).join(" · ")}` : `<span class="note">아직 못 받았어요</span>`}</div></button>`; }).join("");
+  renderFamDetail();
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-fam]"); if (!b) return; fSel = b.dataset.fam; ls.set("stk-fam", fSel); renderFam(); if (innerWidth < 860) $("fDetail").scrollIntoView({ behavior: "smooth" }); });
+function renderFamDetail() {
+  const f = FAM.list.find((x) => x.id === fSel), d = f?.data, box = $("fDetail"); if (!f) return;
+  if (!d) { box.innerHTML = `<h2>${esc(f.who)}</h2><p class="note">아직 데이터를 못 받았어요. '새 공시 확인'을 눌러 보세요.</p>`; return; }
+  const ark = d.kind === "ark", max = d.rows[0]?.val || 1;
+  const adds = d.rows.filter((r) => r.ch === "new" || r.ch > 0).slice(0, 8), cuts = d.rows.filter((r) => typeof r.ch === "number" && r.ch < 0).slice(0, 8);
+  box.innerHTML = `<div class="prof">${LOOK[f.id] ? face(f.id) : `<span class="ini" style="width:96px;height:96px;font-size:30px">${esc(f.who.slice(0, 1))}</span>`}<div><h2 style="margin:0">${esc(f.who)} <span>${esc(f.fund)}</span></h2><p class="note" style="margin:2px 0">${esc(f.note)}</p>
+    <div class="big">${usd(d.total)}</div><p class="note" style="margin:0">${d.count}종목 · ${ark ? `${d.day} 기준${d.prevDay ? ` (비교: ${d.prevDay})` : ""}` : `${d.period} 분기말 기준 · ${d.filed} 공시${d.prevPeriod ? ` · 비교: ${d.prevPeriod} 분기` : ""}`}</p></div></div>
+    ${d.prevPeriod || d.prevDay ? `<div class="two" style="margin-top:12px"><div><h3 class="up">산 것 · 늘린 것</h3>${adds.map((r) => `<div>${esc(r.t || r.n)} ${chgTag(r.ch)}</div>`).join("") || `<p class="note">없어요</p>`}</div><div><h3 class="down">줄인 것 · 다 판 것</h3>${cuts.map((r) => `<div>${esc(r.t || r.n)} ${chgTag(r.ch)}</div>`).join("")}${d.sold.slice(0, 8).map((r) => `<div>${esc(r.t || r.n)} <span class="chg cut">다 팖</span></div>`).join("")}${!cuts.length && !d.sold.length ? `<p class="note">없어요</p>` : ""}</div></div>` : ""}
+    <h3 style="margin-top:14px">보유 종목 <span class="note">금액 순 · 상위 ${Math.min(d.rows.length, 60)}개</span></h3>
+    <div class="tw"><table><thead><tr><th>종목</th><th class="r">비중</th><th style="width:28%"></th><th class="r">금액</th><th class="r">주식 수</th><th>변화</th></tr></thead><tbody>${d.rows.slice(0, 60).map((r) => `<tr><td><b>${esc(r.t || r.n)}</b>${r.t ? `<br><span class="note">${esc(r.n)}</span>` : r.pc ? ` <span class="note">${esc(r.pc)}</span>` : r.cls && !/^COM/i.test(r.cls) ? ` <span class="note">${esc(r.cls)}</span>` : ""}</td><td class="r">${fmt(ark ? r.w : (r.val / d.total) * 100, 1)}%</td><td style="vertical-align:middle"><div class="bar" style="width:${Math.max(2, (r.val / max) * 100)}%"></div></td><td class="r">${usd(r.val)}</td><td class="r">${Math.round(r.sh).toLocaleString("en-US")}</td><td>${chgTag(r.ch)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note" style="margin-top:8px">${ark ? "출처: ARK Invest 매일 공개 보유 내역" : "출처: 미국 SEC EDGAR 13F-HR. 미국 상장 주식·옵션만 신고돼서 현금·채권·해외 주식은 빠져요. 분기말 기준이라 지금은 이미 바뀌었을 수 있어요."}</p>`;
+}
 
 // ── 내 계좌
 let KW = null;

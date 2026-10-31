@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp } from "./_kiwoom.js";
+import { famousAll, famousRefresh } from "./_famous.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" };
@@ -339,7 +340,7 @@ export async function resolveSym(raw) {
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); await backtest().catch(() => {}); const k = kwReady(); if (k.key && k.proxy) await kwSync(4).catch((e) => console.error(e)); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -347,6 +348,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (req.method === "GET") {
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
+      if (op === "fam") { let a = await famousAll(); if (q.refresh || !a.at) { await famousRefresh(!!q.force); a = await famousAll(); } return res.json(a); }
       if (op === "world") return res.json(await world(!!q.force, String(q.x || "").split(",").map((x) => x.trim()).filter(Boolean)));
       if (op === "news") return res.json(await news(!!q.force));
       if (op === "brief") { const day = /^\d{4}-\d{2}-\d{2}$/.test(q.d || "") ? q.d : kstDay(); const r = await brief(day, !!q.force && day === kstDay()); const [list] = await redis([["LRANGE", "stk:briefs", 0, 60]]); return res.json({ ...r, list: list || [] }); }
