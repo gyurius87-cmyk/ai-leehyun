@@ -146,8 +146,20 @@ function renderMaster(id) {
 // ── 매크로: 세계 지수 표 + 겹쳐 보기
 const PAL = ["#e8590c", "#1c7ed6", "#2f9e44", "#ae3ec9", "#f2b632", "#0ca678", "#d6336c", "#495057", "#5c7cfa", "#a9e34b"];
 let WD = null, wReg = ls.get("stk-wreg", "전체"), wSort = null, STAR = ls.get("stk-star", []), MINE = ls.get("stk-mine", []);
-let CMP = ls.get("stk-cmp", ["^KS11", "^GSPC", "^IXIC", "^N225"]), cmpR = ls.get("stk-cmpr", "1y");
-const CHC = {}; // 겹쳐 보기 차트 캐시 sym|range → rows
+// 겹쳐 보기 목록: CMPL = 목록(켜고 끌 수 있음), CMP = 지금 켜진 것
+const REC = { "^KS11": "코스피", "^KQ11": "코스닥", "^GSPC": "S&P 500", "^IXIC": "나스닥", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^N225": "닛케이 225", "^HSI": "홍콩 항셍", "000001.SS": "상해종합", "^GDAXI": "독일 DAX", "^TNX": "미국 10년물 금리", "DX-Y.NYB": "달러 인덱스", "KRW=X": "원/달러 환율", "^VIX": "VIX 공포지수", "GC=F": "금", "CL=F": "WTI 유가", "HG=F": "구리", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "NVDA": "엔비디아", "AAPL": "애플", "MSFT": "마이크로소프트", "TSLA": "테슬라" };
+const PRESETS = [
+  ["한·미 대표 지수", ["^KS11", "^GSPC", "^IXIC"]], ["세계 증시 한판", ["^GSPC", "^KS11", "^N225", "^HSI", "^GDAXI"]], ["반도체 사이클", ["^SOX", "NVDA", "005930.KS", "000660.KS"]],
+  ["금리 vs 성장주", ["^TNX", "^IXIC"]], ["달러 vs 한국 증시", ["DX-Y.NYB", "KRW=X", "^KS11"]], ["안전자산 vs 위험자산", ["GC=F", "BTC-USD", "^GSPC"]],
+  ["공포와 주가", ["^VIX", "^GSPC"]], ["경기 신호 (구리·유가)", ["HG=F", "CL=F", "^GSPC"]], ["빅테크", ["AAPL", "MSFT", "NVDA", "TSLA"]],
+];
+let CMP = ls.get("stk-cmp", ["^KS11", "^GSPC", "^IXIC", "^N225"]), cmpR = ls.get("stk-cmpr", "1y"), IV = ls.get("stk-iv", "1d");
+let CMPL = ls.get("stk-cmpl", null) || [...new Set([...CMP, "^SOX", "^TNX", "DX-Y.NYB", "KRW=X", "^VIX", "GC=F", "BTC-USD", "005930.KS", "NVDA"])];
+const saveCmp = () => { ls.set("stk-cmp", CMP); ls.set("stk-cmpl", CMPL); };
+const colorOf = (s) => PAL[Math.max(0, CMPL.indexOf(s)) % PAL.length];
+const IVS = [["1d", "일"], ["1wk", "주"], ["1mo", "월"]];
+const ivPills = (k) => `<span class="note" style="margin-left:8px">단위</span>` + IVS.map(([v, n]) => `<button type="button" class="pill" data-iv="${v}" aria-pressed="${v === IV}">${n}</button>`).join("");
+const CHC = {}; // 차트 캐시 sym|range|단위 → rows
 const REGS = ["전체", "★ 관심", "미국", "한국", "아시아", "유럽", "기타", "매크로"];
 async function loadWorld(force) {
   renderCmpCtl(); drawCmp();
@@ -161,7 +173,7 @@ async function loadWorld(force) {
     renderWorld(); renderCmpCtl(); drawCmp();
   } catch { $("wBody").innerHTML = `<tr><td colspan="12" class="note">못 불러왔어요. 잠시 뒤 다시 열어 주세요.</td></tr>`; }
 }
-const nameOf = (sym) => [...(WD?.rows || []), ...(WD?.macro || [])].find((r) => r.s === sym)?.n || sym;
+const nameOf = (sym) => [...(WD?.rows || []), ...(WD?.macro || [])].find((r) => r.s === sym)?.n || REC[sym] || sym;
 function renderWorld() {
   $("wReg").innerHTML = REGS.map((r) => `<button type="button" class="pill" data-wreg="${r}" aria-pressed="${r === wReg}">${r}</button>`).join("");
   const all = [...WD.rows, ...WD.macro];
@@ -179,34 +191,41 @@ function renderWorld() {
   requestAnimationFrame(() => $$("[data-wsp]").forEach((cv) => { const r = all.find((x) => x.s === cv.dataset.wsp); if (r?.sp) line(cv, r.sp, { color: r.sp.at(-1) >= r.sp[0] ? css("--up") : css("--down") }); }));
 }
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-wreg],[data-star],[data-cmp],[data-mdel],th[data-ws],[data-cmpr],[data-cdel]"); if (!t) return;
+  const t = e.target.closest("[data-wreg],[data-star],[data-cdel],[data-cmp],[data-mdel],th[data-ws],[data-cmpr],[data-preset],[data-iv]"); if (!t) return;
   if (t.dataset.wreg) { wReg = t.dataset.wreg; ls.set("stk-wreg", wReg); renderWorld(); }
   else if (t.dataset.star) { const s = t.dataset.star; STAR = STAR.includes(s) ? STAR.filter((x) => x !== s) : [...STAR, s]; ls.set("stk-star", STAR); renderWorld(); }
-  else if (t.dataset.cmp || t.dataset.cdel) { const s = t.dataset.cmp || t.dataset.cdel; CMP = CMP.includes(s) ? CMP.filter((x) => x !== s) : [...CMP, s].slice(-10); ls.set("stk-cmp", CMP); renderWorld(); renderCmpCtl(); drawCmp(); }
+  else if (t.dataset.cmp) { const s = t.dataset.cmp; if (CMP.includes(s)) CMP = CMP.filter((x) => x !== s); else { CMP = [...CMP, s].slice(-10); if (!CMPL.includes(s)) CMPL.push(s); } saveCmp(); if (WD) renderWorld(); renderCmpCtl(); drawCmp(); }
+  else if (t.dataset.cdel) { const s = t.dataset.cdel; CMPL = CMPL.filter((x) => x !== s); CMP = CMP.filter((x) => x !== s); saveCmp(); if (WD) renderWorld(); renderCmpCtl(); drawCmp(); }
   else if (t.dataset.mdel) { MINE = MINE.filter((x) => x !== t.dataset.mdel); ls.set("stk-mine", MINE); WD.rows = WD.rows.filter((r) => r.s !== t.dataset.mdel); renderWorld(); }
   else if (t.dataset.ws) { const k = t.dataset.ws; wSort = wSort?.k === k ? (wSort.d > 0 ? { k, d: -1 } : null) : { k, d: 1 }; renderWorld(); }
   else if (t.dataset.cmpr) { cmpR = t.dataset.cmpr; ls.set("stk-cmpr", cmpR); renderCmpCtl(); drawCmp(); }
+  else if (t.dataset.preset) { const [, list] = PRESETS[+t.dataset.preset]; list.forEach((x) => { if (!CMPL.includes(x)) CMPL.push(x); }); CMP = [...list]; saveCmp(); if (WD) renderWorld(); renderCmpCtl(); drawCmp(); }
+  else if (t.dataset.iv) { IV = t.dataset.iv; ls.set("stk-iv", IV); renderCmpCtl(); drawCmp(); renderBig(); }
 });
 $("wAdd").onsubmit = async (e) => {
   e.preventDefault(); const raw = $("wSym").value.trim(); if (!raw) return; $("wMsg").textContent = "찾는 중…";
   try { const r = await api("op=sym&s=" + encodeURIComponent(raw)); if (!MINE.includes(r.sym)) MINE.push(r.sym); ls.set("stk-mine", MINE); if (!STAR.includes(r.sym)) { STAR.push(r.sym); ls.set("stk-star", STAR); } $("wSym").value = ""; $("wMsg").textContent = `${r.name || r.sym} 더했어요.`; WD = null; loadWorld(); }
   catch { $("wMsg").textContent = "그 코드를 못 찾았어요. 야후 파이낸스 코드로 적어 주세요."; }
 };
-const RANGES = [["1mo", "1달"], ["3mo", "3달"], ["6mo", "6달"], ["1y", "1년"], ["2y", "2년"], ["5y", "5년"]];
+const RANGES = [["1mo", "1달"], ["3mo", "3달"], ["6mo", "6달"], ["1y", "1년"], ["2y", "2년"], ["5y", "5년"], ["10y", "10년"], ["max", "전체"]];
 function renderCmpCtl() {
-  $("cmpRange").innerHTML = RANGES.map(([k, n]) => `<button type="button" class="pill" data-cmpr="${k}" aria-pressed="${k === cmpR}">${n}</button>`).join("");
-  $("cmpLeg").innerHTML = CMP.map((s, i) => `<span class="leg"><i style="background:${PAL[i % PAL.length]}"></i>${esc(nameOf(s))} <b class="num" data-lv="${esc(s)}"></b><button type="button" data-cdel="${esc(s)}" aria-label="빼기">✕</button></span>`).join("") || `<span class="note">아래 표에서 ☐를 눌러 비교할 지수를 고르세요.</span>`;
+  $("cmpRange").innerHTML = RANGES.map(([k, n]) => `<button type="button" class="pill" data-cmpr="${k}" aria-pressed="${k === cmpR}">${n}</button>`).join("") + ivPills();
+  $("cmpPre").innerHTML = `<span class="note">추천 묶음</span>` + PRESETS.map(([n], i) => `<button type="button" class="pill" data-preset="${i}">${esc(n)}</button>`).join("");
+  $("cmpLeg").innerHTML = CMPL.map((s) => { const on = CMP.includes(s); return `<span class="leg${on ? "" : " off"}"><button type="button" class="tg" data-cmp="${esc(s)}" aria-pressed="${on}" title="켜기/끄기"><i style="background:${on ? colorOf(s) : "var(--line)"}"></i>${esc(nameOf(s))} <b class="num" data-lv="${esc(s)}"></b></button><button type="button" data-cdel="${esc(s)}" aria-label="목록에서 빼기">✕</button></span>`; }).join("") || `<span class="note">추천 묶음을 누르거나 아래 표에서 ☐를 눌러 더하세요.</span>`;
+  const rest = Object.keys(REC).filter((s) => !CMPL.includes(s));
+  $("cmpAdd").innerHTML = `<option value="">+ 추천 차트 더하기</option>` + rest.map((s) => `<option value="${esc(s)}">${esc(REC[s])}</option>`).join("");
 }
 let CMPD = null;
+$("cmpAdd").onchange = (e) => { const s = e.target.value; if (!s) return; if (!CMPL.includes(s)) CMPL.push(s); if (!CMP.includes(s)) CMP = [...CMP, s].slice(-10); saveCmp(); renderCmpCtl(); drawCmp(); };
 async function drawCmp() {
-  const want = [...CMP], r = cmpR;
-  const got = await Promise.all(want.map(async (s) => { const k = s + "|" + r; if (!CHC[k]) CHC[k] = api(`op=chart&s=${encodeURIComponent(s)}&r=${r}`).then((g) => g.rows).catch(() => null); return CHC[k]; }));
-  if (r !== cmpR || want.join() !== CMP.join()) return; // 그새 바뀜
+  const want = [...CMP], r = cmpR, iv = IV;
+  const got = await Promise.all(want.map(async (s) => { const k = s + "|" + r + "|" + iv; if (!CHC[k]) CHC[k] = api(`op=chart&s=${encodeURIComponent(s)}&r=${r}&i=${iv}`).then((g) => g.rows).catch(() => null); return CHC[k]; }));
+  if (r !== cmpR || iv !== IV || want.join() !== CMP.join()) return; // 그새 바뀜
   const days = [...new Set(got.flatMap((g) => (g || []).map((p) => p.d)))].sort();
   const series = got.map((g, i) => {
     if (!g?.length) return null; const m = new Map(g.map((p) => [p.d, p.c])); let last = null, base = null;
     const vals = days.map((d) => { if (m.has(d)) last = m.get(d); if (last == null) return null; if (base == null) base = last; return (last / base - 1) * 100; });
-    return { s: want[i], vals, color: PAL[i % PAL.length] };
+    return { s: want[i], vals, color: colorOf(want[i]) };
   }).filter(Boolean);
   CMPD = { days, series }; paintCmp();
   series.forEach((x) => { const el = document.querySelector(`[data-lv="${CSS.escape(x.s)}"]`); const v = x.vals.at(-1); if (el) { el.textContent = pct(v); el.className = "num " + ud(v); } });
@@ -243,25 +262,28 @@ addEventListener("resize", () => { if (!$("macro").hidden) paintCmp(); });
 
 // ── 대시보드 지표 크게 보기
 let bigR = ls.get("stk-bigr", "1y"); const BIGD = {};
-const FROM = { "3mo": 92, "6mo": 183, "1y": 366, "2y": 731, "5y": 1827 };
-async function rowsOf(m, r) {
-  const k = m.s + "|" + r;
-  if (!CHC[k]) CHC[k] = (m.abs ? api(`op=fred&id=${encodeURIComponent(m.s)}&from=${new Date(Date.now() - (FROM[r] + (m.yoy ? 400 : 0)) * 864e5).toISOString().slice(0, 10)}${m.yoy ? "&yoy=1" : ""}`) : api(`op=chart&s=${encodeURIComponent(m.s)}&r=${r}`)).then((g) => g.rows).catch(() => null);
-  return CHC[k];
+const FROM = { "3mo": 92, "6mo": 183, "1y": 366, "2y": 731, "5y": 1827, "10y": 3653, "max": 36500 };
+// 주·월 단위로 묶기 (그 주·달의 마지막 값)
+const resample = (rows, iv) => { if (iv === "1d") return rows; const key = (d) => (iv === "1mo" ? d.slice(0, 7) : (() => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); })()); const m = new Map(); rows.forEach((p) => m.set(key(p.d), p)); return [...m.values()]; };
+async function rowsOf(m, r, iv) {
+  const k = m.s + "|" + r + "|" + (m.abs ? "f" : iv);
+  if (!CHC[k]) CHC[k] = (m.abs ? api(`op=fred&id=${encodeURIComponent(m.s)}&from=${new Date(Date.now() - (Math.min(FROM[r], 9000) + (m.yoy ? 400 : 0)) * 864e5).toISOString().slice(0, 10)}${m.yoy ? "&yoy=1" : ""}`) : api(`op=chart&s=${encodeURIComponent(m.s)}&r=${r}&i=${iv}`)).then((g) => g.rows).catch(() => null);
+  const rows = await CHC[k]; return rows && m.abs ? resample(rows, iv) : rows;
 }
 function renderBig() {
   if (!SNAP) return;
-  $("bigRange").innerHTML = RANGES.filter(([k]) => FROM[k]).map(([k, n]) => `<button type="button" class="pill" data-bigr="${k}" aria-pressed="${k === bigR}">${n}</button>`).join("");
+  $("bigRange").innerHTML = RANGES.filter(([k]) => FROM[k]).map(([k, n]) => `<button type="button" class="pill" data-bigr="${k}" aria-pressed="${k === bigR}">${n}</button>`).join("") + ivPills();
   const items = [...SNAP.indices, ...SNAP.macro];
   $("big").innerHTML = items.map((m, i) => `<div class="card bigc"><div class="k"><b style="color:var(--ink)">${esc(m.n)}</b><span class="num" data-bigv="${i}"></span></div>${m.why ? `<div class="why">${esc(m.why)}</div>` : ""}<div style="position:relative"><canvas data-big="${i}"></canvas><div class="tip" data-bigtip="${i}" hidden></div></div></div>`).join("");
   items.forEach(async (m, i) => {
-    const r = bigR, rows = await rowsOf(m, r); if (r !== bigR) return;
+    const r = bigR, iv = IV, rows = await rowsOf(m, r, iv); if (r !== bigR || iv !== IV) return;
     const cv = document.querySelector(`[data-big="${i}"]`); if (!cv) return;
     if (!rows?.length) { cv.parentElement.innerHTML = `<p class="note">못 불러왔어요</p>`; return; }
     const cut = new Date(Date.now() - FROM[r] * 864e5).toISOString().slice(0, 10), rs = rows.filter((p) => p.d >= cut);
     const vals = rs.map((p) => p.c), ma = (n) => vals.map((_, k) => (k + 1 >= n ? vals.slice(k + 1 - n, k + 1).reduce((a, b) => a + b, 0) / n : null));
     const up = vals.at(-1) >= vals[0], series = [{ s: m.s, label: m.n, vals, color: up ? css("--up") : css("--down") }];
-    if (!m.abs && vals.length > 80) series.push({ s: "ma", label: "60일 평균", vals: ma(60), color: css("--muted"), w: 1.2, dash: [4, 3], noDot: true });
+    const [mn, ml] = iv === "1mo" ? [12, "12달 평균"] : iv === "1wk" ? [13, "13주 평균"] : [60, "60일 평균"];
+    if (!m.abs && vals.length > mn + 20) series.push({ s: "ma", label: ml, vals: ma(mn), color: css("--muted"), w: 1.2, dash: [4, 3], noDot: true });
     BIGD[i] = { days: rs.map((p) => p.d), series, u: m.u };
     const ch = m.abs ? vals.at(-1) - vals[0] : (vals.at(-1) / vals[0] - 1) * 100, hi = Math.max(...vals), lo = Math.min(...vals);
     const el = document.querySelector(`[data-bigv="${i}"]`); if (el) el.innerHTML = `${fmt(vals.at(-1), vals.at(-1) > 1000 ? 0 : 2)} <span class="${ud(ch)}">${pct(r2c(ch), m.abs)}${m.abs ? (m.u || "") : ""}</span> <span class="note">고 ${fmt(hi, hi > 1000 ? 0 : 2)} · 저 ${fmt(lo, lo > 1000 ? 0 : 2)}</span>`;

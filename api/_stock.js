@@ -40,10 +40,10 @@ const MACRO_F = [
 ];
 
 // ── 야후 일봉
-export async function chart(sym, range = "1y") {
+export async function chart(sym, range = "1y", iv = "1d") {
   for (const host of ["query1", "query2"]) {
     try {
-      const r = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=1d&includePrePost=false`, { headers: UA });
+      const r = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${iv}&includePrePost=false`, { headers: UA });
       if (!r.ok) continue;
       const j = await r.json(), x = j?.chart?.result?.[0]; if (!x?.timestamp) continue;
       const q = x.indicators.quote[0], out = [];
@@ -353,7 +353,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "news") return res.json(await news(!!q.force));
       if (op === "brief") { const day = /^\d{4}-\d{2}-\d{2}$/.test(q.d || "") ? q.d : kstDay(); const r = await brief(day, !!q.force && day === kstDay()); const [list] = await redis([["LRANGE", "stk:briefs", 0, 60]]); return res.json({ ...r, list: list || [] }); }
       if (op === "masters") return res.json({ info: MASTERS.map(({ id, name, style, rule }) => ({ id, name, style, rule })), ...(await backtest(!!q.force)) });
-      if (op === "chart") { const rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y"].includes(q.r) ? q.r : "1y", sy = String(q.s || ""); const g = (await chart(sy, rg)) || (/\.KS$/.test(sy) ? await chart(sy.replace(/\.KS$/, ".KQ"), rg) : null); return g ? res.json(g) : res.status(404).json({ error: "none" }); }
+      if (op === "chart") { const rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"].includes(q.r) ? q.r : "1y", iv = ["1d", "1wk", "1mo"].includes(q.i) ? q.i : "1d", sy = String(q.s || ""); const g = (await chart(sy, rg, iv)) || (/\.KS$/.test(sy) ? await chart(sy.replace(/\.KS$/, ".KQ"), rg, iv) : null); return g ? res.json(g) : res.status(404).json({ error: "none" }); }
       if (op === "quote") { const syms = String(q.s || "").split(",").filter(Boolean).slice(0, 40); const [fx, ...gs] = await Promise.all([chart("KRW=X", "5d"), ...syms.map((s) => chart(s, "5d"))]); return res.json({ fx: fx?.price || null, q: Object.fromEntries(syms.map((s, i) => [s, gs[i] ? { p: gs[i].price, prev: gs[i].rows.at(-2)?.c ?? gs[i].prev, cur: gs[i].cur, name: gs[i].name } : null])) }); }
       if (op === "sym") { const r = await resolveSym(q.s); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
       if (op === "kw") return res.json(kwReady());
