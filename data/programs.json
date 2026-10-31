@@ -218,6 +218,16 @@
       "private": true,
       "href": "/programs/capture",
       "cat": "업무·운영"
+    },
+    {
+      "id": "detail-swap",
+      "name": "쇼핑몰 상페 교체 (psd버전)",
+      "status": "using",
+      "summary": "PSD 상세페이지 틀에 사진 칸·글 칸을 정해 두면, 매일 사진과 글만 바꿔 JPG로 뽑아 줍니다. 반복 사진은 장수에 맞춰 줄이 늘어나요.",
+      "start": "2026-10-31",
+      "private": true,
+      "href": "/programs/detail-swap/",
+      "cat": "업무·운영"
     }
   ]
 }

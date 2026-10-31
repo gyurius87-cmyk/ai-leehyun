@@ -1,5 +1,6 @@
 // 방문·클릭 기록. 개인정보 없이 브라우저마다 무작위 id만 받아 '방문자 수'를 셈.
 import { redis, hasRedis, kstDay, expire } from "./_redis.js";
+import { statsHandler } from "./_stats.js";
 
 // 유입 경로: 릴스용 링크 표시(?r=) > 앱(인스타·카톡) > 검색 > 기타 사이트 > 직접
 function source(ref, ua, tag, host) {
@@ -23,6 +24,7 @@ function source(ref, ua, tag, host) {
 const clip = (s, n) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
 export default async function handler(req, res) {
+  if (req.query?.stats) return statsHandler(req, res); // 애널리틱스 화면(관리자 키 필요)
   if (req.method !== "POST") return res.status(405).end();
   if (!hasRedis()) return res.status(204).end();
   let b = req.body || {};

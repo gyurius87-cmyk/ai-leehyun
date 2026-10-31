@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<title>쇼핑몰 상페 교체 (psd버전)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap">
+<style>
+/* PSD 틀 등록(사진 칸·글 칸·반복 사진 칸) → 매일 사진·글만 바꿔 JPG로 */
+:root {
+  --bg: #eef0f2; --panel: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d5d9de; --soft: #f6f7f8;
+  --charcoal: #24272c; --on-charcoal: #f4f5f6; --yellow: #f5d33f; --good: #2b8a3e; --bad: #d9480f; --img: #1c7ed6; --txt: #e8590c; --rep: #7048e8;
+  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #17191c; --panel: #212429; --ink: #eceef0; --muted: #9aa1aa; --line: #343840; --soft: #1b1e22; --good: #51b768; --bad: #ff7a45; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.top { background: var(--charcoal); color: var(--on-charcoal); padding: 20px 0 54px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+.brand { color: inherit; text-decoration: none; font-family: var(--mono); font-size: 13px; }
+.brand b { color: var(--yellow); font-weight: 500; }
+h1 { margin: 6px 0 0; font-size: 24px; }
+h1 small { font-size: 13px; font-weight: 500; color: #b8bdc4; margin-left: 8px; }
+main { margin-top: -36px; display: grid; gap: 14px; padding-bottom: 60px; }
+.box { background: var(--panel); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); min-width: 0; }
+h2 { margin: 0 0 10px; font-size: 16px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+h2 span, .note { font-size: 13px; font-weight: 400; color: var(--muted); }
+.note { margin: 6px 0 0; }
+input[type=text], input[type=password], textarea, select { font: inherit; font-size: 14px; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+textarea { width: 100%; resize: vertical; line-height: 1.45; }
+.btn { border: 0; border-radius: 10px; padding: 9px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--charcoal); color: #fff; }
+.btn.y { background: var(--yellow); color: #222; }
+.btn.g { background: transparent; border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
+.btn.s { padding: 4px 10px; font-size: 13px; border-radius: 8px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.danger { color: var(--bad); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { flex: 1 1 0; min-width: 90px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 12px; padding: 10px 8px; font: inherit; font-weight: 700; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+.msg { font-size: 14px; color: var(--muted); min-height: 1.4em; margin: 8px 0 0; }
+.msg.ok { color: var(--good); } .msg.no { color: var(--bad); }
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; color: var(--muted); cursor: pointer; background: var(--soft); }
+.drop.on { border-color: var(--charcoal); color: var(--ink); }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.sticky { position: sticky; top: 10px; }
+.pv { max-height: calc(100vh - 120px); overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); position: relative; }
+.pv canvas, .pv img { display: block; width: 100%; height: auto; }
+.pvwrap { position: relative; }
+.ov { position: absolute; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); pointer-events: none; }
+.ov b { position: absolute; left: -2px; top: -2px; transform: translateY(-100%); background: var(--c); color: #fff; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px 4px 0 0; white-space: nowrap; }
+.ov.sel { border-width: 3px; border-style: dashed; }
+.layers { max-height: 46vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.ly { display: flex; gap: 6px; align-items: center; padding: 5px 8px; font-size: 13px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ly:hover { background: var(--soft); }
+.ly.sel { background: color-mix(in srgb, var(--yellow) 35%, transparent); }
+.ly .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ly .ic { width: 18px; text-align: center; color: var(--muted); flex: none; }
+.ly .gp { color: var(--muted); font-size: 12px; }
+.chip { font-size: 11px; font-weight: 700; color: #fff; background: var(--c); border-radius: 999px; padding: 0 7px; flex: none; }
+.slotset { display: grid; gap: 8px; background: var(--soft); border-radius: 12px; padding: 12px; margin-top: 10px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.seg button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--soft); cursor: pointer; display: grid; text-align: left; padding: 0; font: inherit; color: inherit; }
+.card[aria-pressed="true"] { outline: 3px solid var(--yellow); }
+.card .th { height: 150px; background: var(--line) center top / cover no-repeat; }
+.card .tt { padding: 8px 10px; font-size: 13px; }
+.card .tt b { display: block; font-size: 14px; }
+.fields { display: grid; gap: 10px; }
+.fd { background: var(--soft); border-radius: 12px; padding: 10px 12px; border-left: 4px solid var(--c); display: grid; gap: 6px; min-width: 0; }
+.fd .h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-weight: 700; font-size: 14px; }
+.fd .h small { font-weight: 400; color: var(--muted); }
+.thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tb { position: relative; width: 74px; }
+.tb img { width: 74px; height: 74px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+.tb .a { display: flex; justify-content: space-between; margin-top: 2px; }
+.tb .a button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0 4px; font-size: 13px; }
+.adj { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 12px; color: var(--muted); align-items: center; }
+.adj input { width: 100%; }
+.pick { display: inline-flex; align-items: center; gap: 6px; }
+.final { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.info { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.list { display: grid; gap: 6px; }
+.li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 10px; background: var(--soft); border-radius: 10px; font-size: 14px; }
+.li .g { flex: 1; min-width: 160px; overflow-wrap: anywhere; }
+code.k { font-family: var(--mono); font-size: 12px; background: var(--soft); padding: 2px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.bar b { display: block; height: 100%; background: var(--yellow); width: 0; transition: width .2s; }
+@media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } .sticky { position: static; } .pv { max-height: 70vh; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/programs"><b>AI이현</b> / 프로그램</a>
+  <h1>쇼핑몰 상페 교체 (psd버전)<small>같은 틀에 사진·글만 바꿔 JPG로</small></h1>
+</div></header>
+<div class="wrap"><main>
+  <section class="box" id="gate" hidden>
+    <h2>들어가기</h2>
+    <form class="row" id="keyForm"><input type="password" id="keyIn" placeholder="관리자 키" autocomplete="current-password" aria-label="관리자 키" style="flex:1 1 220px"><button class="btn">들어가기</button></form>
+    <p class="note">이현님은 관리자 키를, 다른 분은 이현님이 보내 준 주소로 들어오면 돼요.</p>
+  </section>
+
+  <nav class="tabs" id="tabs" hidden aria-label="화면">
+    <button type="button" data-tab="use" aria-pressed="true">① 교체하기</button>
+    <button type="button" data-tab="make" aria-pressed="false">② 틀 만들기</button>
+    <button type="button" data-tab="font" aria-pressed="false">③ 글꼴</button>
+    <button type="button" data-tab="share" aria-pressed="false" hidden>공유 주소</button>
+  </nav>
+
+  <!-- ① 교체하기 -->
+  <div id="use" hidden>
+    <section class="box">
+      <h2>틀 고르기 <span>틀은 ② 틀 만들기에서 PSD로 만들어요</span></h2>
+      <div class="cards" id="tplCards"></div>
+    </section>
+    <div class="split" id="useMain" hidden style="margin-top:14px">
+      <div class="box">
+        <h2 id="useTitle">바꿀 내용</h2>
+        <div class="fd" style="--c:var(--yellow)" id="aiBox">
+          <div class="h">🤖 상품 정보로 글 칸 한 번에 채우기 <small>원래 글 길이·말투에 맞춰요</small></div>
+          <textarea id="aiMemo" rows="4" placeholder="상품명, 소재, 색상, 사이즈(cm), 특징, 세탁 방법 등 아는 대로 적어 주세요"></textarea>
+          <div class="row"><button type="button" class="btn s" id="aiBtn">AI로 글 채우기</button><span class="note" id="aiMsg" style="margin:0"></span></div>
+        </div>
+        <div class="fields" id="fields" style="margin-top:10px"></div>
+        <div class="final">
+          <span class="info" id="outInfo"></span>
+          <label class="pick note" style="margin:0">품질 <select id="q"><option value="0.92">높게</option><option value="0.84" selected>보통 (추천)</option><option value="0.74">작게</option></select></label>
+          <button type="button" class="btn y" id="dl">JPG 다운로드</button>
+        </div>
+      </div>
+      <div class="box sticky">
+        <h2>미리보기 <span id="pvNote"></span></h2>
+        <div class="pv"><canvas id="pvc"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 틀 만들기 -->
+  <div id="make" hidden>
+    <section class="box">
+      <h2>PSD 올리기 <span>포토샵에서 '호환성 최대화'로 저장한 PSD가 가장 정확해요</span></h2>
+      <label class="drop" id="psdDrop">PSD 파일을 여기에 끌어 놓거나 눌러서 고르세요<input type="file" id="psdIn" accept=".psd,.psb" hidden></label>
+      <p class="msg" id="psdMsg"></p>
+    </section>
+    <div class="split" id="mk" hidden style="margin-top:14px">
+      <div class="box">
+        <h2>칸 정하기 <span>미리보기를 누르거나 레이어를 골라요</span></h2>
+        <div class="row">
+          <input type="text" id="layerQ" placeholder="레이어 이름 찾기" aria-label="레이어 찾기" style="flex:1 1 160px">
+          <button type="button" class="btn g s" id="allText">글자 레이어 전부 글 칸으로</button>
+        </div>
+        <div class="layers" id="layerList" style="margin-top:8px"></div>
+        <div class="slotset" id="slotSet" hidden></div>
+        <div class="fd" style="--c:var(--charcoal);margin-top:12px">
+          <div class="h">틀 저장</div>
+          <div class="row"><input type="text" id="tplName" placeholder="틀 이름 (예: 원피스 기본형)" style="flex:1 1 200px"><button type="button" class="btn y" id="saveTpl">이 틀 저장</button></div>
+          <div class="bar" hidden id="saveBar"><b></b></div>
+          <p class="msg" id="saveMsg"></p>
+        </div>
+      </div>
+      <div class="box sticky">
+        <h2>PSD 미리보기 <span id="mkNote"></span></h2>
+        <div class="pv" id="mkPv"><div class="pvwrap" id="mkWrap"><canvas id="mkc"></canvas></div></div>
+      </div>
+    </div>
+    <section class="box" style="margin-top:14px">
+      <h2>저장된 틀</h2>
+      <div class="list" id="tplList"></div>
+      <p class="note">틀을 고치려면 같은 PSD를 다시 올려서 새로 저장하고, 예전 틀은 지우면 돼요.</p>
+    </section>
+  </div>
+
+  <!-- ③ 글꼴 -->
+  <section class="box" id="font" hidden>
+    <h2>글꼴 올리기 <span>TTF·OTF·WOFF 파일 · 포토샵 글꼴 이름이 같으면 글 칸에 저절로 골라져요</span></h2>
+    <label class="drop" id="fontDrop">글꼴 파일을 여기에 끌어 놓거나 눌러서 고르세요 (여러 개 가능)<input type="file" id="fontIn" accept=".ttf,.otf,.woff,.woff2" multiple hidden></label>
+    <p class="msg" id="fontMsg"></p>
+    <div class="list" id="fontList" style="margin-top:10px"></div>
+    <p class="note">글꼴은 이 프로그램 안에서만 써요. 상업용으로 쓸 수 있는 글꼴인지 확인하고 올려 주세요.</p>
+  </section>
+
+  <!-- 공유 -->
+  <section class="box" id="share" hidden>
+    <h2>공유 주소 <span>이 주소를 받은 사람은 틀 만들기·교체하기·글꼴을 쓸 수 있어요 (AI 글 채우기는 이현님 API 키로)</span></h2>
+    <form class="row" id="keyAdd"><input type="text" id="keyName" placeholder="누구에게 (예: 디자이너 김OO)" style="flex:1 1 220px"><button class="btn">주소 만들기</button></form>
+    <div class="list" id="keyList" style="margin-top:10px"></div>
+  </section>
+</main></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ag-psd@34.1.0/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script src="/programs/detail-swap/app.js"></script>
+</body>
+</html>

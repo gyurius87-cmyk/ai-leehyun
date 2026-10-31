@@ -132,7 +132,7 @@ const usd = (n) => "$" + Number(n || 0).toFixed(2), won = (n) => "약 " + num(Ma
 let key = ""; try { key = localStorage.getItem("ai-admin-key") || ""; } catch {}
 
 async function load(post) {
-  const res = await fetch("/api/stats", post ? { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(post) } : { headers: { "x-admin-key": key } });
+  const res = await fetch("/api/track?stats=1", post ? { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(post) } : { headers: { "x-admin-key": key } });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw data.error || "server";
   return data;

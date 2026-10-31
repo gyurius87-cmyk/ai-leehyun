@@ -1,4 +1,5 @@
 // AI이현 전용 애널리틱스 데이터. ADMIN_KEY(Vercel 환경변수)를 아는 사람만 볼 수 있음.
+// Vercel 무료 요금제 함수 12개 제한 때문에 따로 함수로 두지 않고 /api/track?stats=1 이 이 처리기를 부름.
 import { redis, hasRedis, kstDay } from "./_redis.js";
 
 const days = (n) => Array.from({ length: n }, (_, i) => kstDay(new Date(Date.now() - i * 864e5))).reverse();
@@ -6,7 +7,7 @@ const pairs = (flat) => { const o = {}; for (let i = 0; flat && i < flat.length;
 const merge = (list) => { const o = {}; list.forEach((h) => Object.entries(pairs(h)).forEach(([k, v]) => (o[k] = (o[k] || 0) + v))); return o; };
 const top = (o, n) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n);
 
-export default async function handler(req, res) {
+export async function statsHandler(req, res) {
   const key = process.env.ADMIN_KEY;
   if (!key) return res.status(503).json({ error: "no_admin_key" });
   if (req.headers["x-admin-key"] !== key) return res.status(401).json({ error: "auth" });
