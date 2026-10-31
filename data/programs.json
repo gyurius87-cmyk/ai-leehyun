@@ -208,6 +208,16 @@
       "private": false,
       "href": "/wiki",
       "cat": "공부·생각"
+    },
+    {
+      "id": "capture",
+      "name": "웹페이지 전체 캡처",
+      "status": "using",
+      "summary": "주소를 넣으면 그 페이지를 끝까지 한 장의 JPG로 찍어 줍니다. 바로 받거나 복사해서 붙여 넣어요.",
+      "start": "2026-10-31",
+      "private": true,
+      "href": "/programs/capture",
+      "cat": "업무·운영"
     }
   ]
 }
