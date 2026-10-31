@@ -50,13 +50,25 @@ async function transcript(vid) {
   } catch { return ""; }
 }
 
+// 구글 Gemini는 유튜브 주소만 주면 영상을 직접 보고 내용을 정리해 줌 (GEMINI_API_KEY가 있을 때)
+async function geminiNotes(vid) {
+  const key = process.env.GEMINI_API_KEY; if (!key) return "";
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-2.5-flash"}:generateContent?key=${key}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      contents: [{ parts: [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${vid}` } }, { text: "이 주식·경제 영상의 내용을 한국어로 자세히 정리해 주세요. 말한 주장, 근거로 든 숫자·차트, 언급한 종목과 그에 대한 의견(사라/팔라/관망), 결론을 빠짐없이. 2000자 이내." }] }],
+      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW", maxOutputTokens: 3000 } }) });
+    const j = await r.json(); return (j?.candidates?.[0]?.content?.parts || []).map((x) => x.text || "").join("").trim();
+  } catch { return ""; }
+}
+
 async function summarize(v) {
-  const tx = await transcript(v.id), basis = tx.length > 300 ? "자막" : "설명란";
+  let tx = await transcript(v.id), basis = tx.length > 300 ? "자막" : "설명란";
+  if (basis === "설명란" && !v.short) { const g = await geminiNotes(v.id); if (g.length > 200) { tx = g; basis = "영상"; } }
   const prompt = `주식 유튜브 영상을 한국어로 요약해 주세요. ${basis === "설명란" ? "자막을 못 받아서 제목과 설명란만 있어요. 거기 없는 내용은 지어내지 말고, 정보가 적으면 적다고 써 주세요." : ""}
 채널: ${v.chName}
 제목: ${v.title}
 설명란: ${v.desc.slice(0, 1500)}
-${tx ? `자막(앞부분): ${tx.slice(0, 14000)}` : ""}
+${tx ? `${basis === "영상" ? "영상 내용 정리" : "자막(앞부분)"}: ${tx.slice(0, 14000)}` : ""}
 
 JSON 하나만 답해 주세요:
 {"sum":["핵심 한 줄","핵심 한 줄","핵심 한 줄"],"points":["숫자·근거가 담긴 포인트 (최대 5개)"],"stocks":["언급된 종목·자산 이름 (최대 8개)"],"tone":"강세|약세|중립|정보"}`;
