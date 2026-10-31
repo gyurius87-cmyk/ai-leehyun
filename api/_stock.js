@@ -446,7 +446,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(4); return res.json({ added: c, ...(await ytAll()) }); }
     if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
     if (b.op === "ytdel") { await ytDel(String(b.id || "")); return res.json(await ytAll()); }
-    if (b.op === "ytsum") { const r = await ytOne(String(b.id || "")); return r ? res.json(r) : res.status(502).json({ error: "sum" }); }
+    if (b.op === "ytsum") { const r = await ytOne(String(b.id || "")); return !r ? res.status(404).json({ error: "영상을 못 찾았어요" }) : r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
     if (b.op === "kwsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env", ...k }); try { return res.json(await kwSync(Math.max(1, Math.min(120, +b.days || 7)))); } catch (e) { console.error(e); return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "review") return res.json(await review({ sym: clip(b.t?.sym, 20), name: clip(b.t?.name, 40), date: clip(b.t?.date, 10), side: b.t?.side === "매도" ? "매도" : "매수", price: +b.t?.price || 0, qty: +b.t?.qty || 0, memo: b.t?.memo, feel: b.t?.feel }));
     return res.status(400).json({ error: "op" });

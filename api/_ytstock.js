@@ -51,20 +51,28 @@ async function transcript(vid) {
 }
 
 // 구글 Gemini는 유튜브 주소만 주면 영상을 직접 보고 내용을 정리해 줌 (GEMINI_API_KEY가 있을 때)
+// 무료 한도(분당 토큰)에 걸리지 않게 화면은 10초에 한 장, 저해상도로만 봄. 실패하면 이유를 돌려줌.
 async function geminiNotes(vid) {
-  const key = process.env.GEMINI_API_KEY; if (!key) return "";
+  const key = process.env.GEMINI_API_KEY; if (!key) return { t: "", err: "GEMINI_API_KEY가 Vercel에 없어요" };
+  const call = async (meta) => {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-2.5-flash"}:generateContent`, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify({
+      contents: [{ parts: [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${vid}` }, ...(meta ? { video_metadata: { fps: 0.1 } } : {}) }, { text: "이 주식·경제 영상의 내용을 한국어로 자세히 정리해 주세요. 말한 주장, 근거로 든 숫자·차트, 언급한 종목과 그에 대한 의견(사라/팔라/관망), 결론을 빠짐없이. 2000자 이내." }] }],
+      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW", maxOutputTokens: 4000, thinkingConfig: { thinkingBudget: 0 } } }) });
+    const j = await r.json().catch(() => ({}));
+    return { status: r.status, t: (j?.candidates?.[0]?.content?.parts || []).map((x) => x.text || "").join("").trim(), msg: j?.error?.message || j?.candidates?.[0]?.finishReason || "" };
+  };
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-2.5-flash"}:generateContent?key=${key}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-      contents: [{ parts: [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${vid}` } }, { text: "이 주식·경제 영상의 내용을 한국어로 자세히 정리해 주세요. 말한 주장, 근거로 든 숫자·차트, 언급한 종목과 그에 대한 의견(사라/팔라/관망), 결론을 빠짐없이. 2000자 이내." }] }],
-      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW", maxOutputTokens: 3000 } }) });
-    const j = await r.json(); return (j?.candidates?.[0]?.content?.parts || []).map((x) => x.text || "").join("").trim();
-  } catch { return ""; }
+    let o = await call(true); if (o.status === 400) o = await call(false);
+    if (o.t) return { t: o.t };
+    const why = o.status === 429 ? "Gemini 무료 한도에 걸렸어요 (잠시 뒤 다시)" : o.status === 400 || o.status === 403 ? `Gemini가 거절했어요 (${o.status}): ${o.msg.slice(0, 120)}` : `Gemini 응답 없음 (${o.status} ${o.msg.slice(0, 80)})`;
+    return { t: "", err: why };
+  } catch (e) { return { t: "", err: "Gemini 연결 실패: " + String(e?.message || e).slice(0, 80) }; }
 }
 
 async function summarize(v) {
-  let tx = await transcript(v.id), basis = tx.length > 300 ? "자막" : "설명란";
-  if (basis === "설명란" && !v.short) { const g = await geminiNotes(v.id); if (g.length > 200) { tx = g; basis = "영상"; } }
-  if (basis === "설명란") return null; // 이현님 요청(10/31): 설명란만 보고 하는 요약은 안 함
+  let tx = await transcript(v.id), basis = tx.length > 300 ? "자막" : "설명란", gErr = "";
+  if (basis === "설명란") { const g = await geminiNotes(v.id); if (g.t.length > 200) { tx = g.t; basis = "영상"; } else gErr = g.err || "영상 내용을 거의 못 받았어요"; }
+  if (basis === "설명란") { await redis([["SET", "stk:yt:e:" + v.id, JSON.stringify({ err: gErr, at: Date.now() }), "EX", "86400"]]); return { err: gErr }; } // 이현님 요청(10/31): 설명란만 보고 하는 요약은 안 함
   const prompt = `주식 유튜브 영상을 한국어로 요약해 주세요. ${basis === "설명란" ? "자막을 못 받아서 제목과 설명란만 있어요. 거기 없는 내용은 지어내지 말고, 정보가 적으면 적다고 써 주세요." : ""}
 채널: ${v.chName}
 제목: ${v.title}
@@ -88,17 +96,19 @@ export async function ytSync(max = 8) {
   const all = lists.flat().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 120);
   await redis([["SET", "stk:yt:feed", JSON.stringify(all)], ["SET", "stk:yt:at", String(Date.now())]]);
   const recent = all.filter((v) => Date.now() - Date.parse(v.at) < 10 * 864e5).slice(0, 40);
-  const have = recent.length ? await redis(recent.map((v) => ["GET", "stk:yt:s:" + v.id])) : [];
-  const todo = recent.filter((_, i) => { const h = json(have[i]); return !h || h.basis === "설명란"; }).slice(0, max);
-  for (let i = 0; i < todo.length; i += 4) await Promise.all(todo.slice(i, i + 4).map((v) => summarize(v).catch((e) => console.error("yt sum", e?.message))));
-  return { videos: all.length, summarized: todo.length };
+  const have = recent.length ? await redis([...recent.map((v) => ["GET", "stk:yt:s:" + v.id]), ...recent.map((v) => ["GET", "stk:yt:e:" + v.id])]) : [];
+  const todo = recent.filter((_, i) => { const h = json(have[i]), e = json(have[recent.length + i]); return (!h || h.basis === "설명란") && !(e && Date.now() - e.at < 3600e3 && !/GEMINI_API_KEY/.test(e.err)); }).slice(0, max);
+  // 서버 시간 제한(120초) 안에 끝나도록: 75초가 지나면 새로 시작하지 않음
+  const t0 = Date.now(); let done = 0;
+  for (let i = 0; i < todo.length && Date.now() - t0 < 75e3; i += 3) { const rs = await Promise.all(todo.slice(i, i + 3).map((v) => summarize(v).catch((e) => ({ err: String(e?.message || e) })))); done += rs.filter((r) => r && !r.err).length; }
+  return { videos: all.length, summarized: done, tried: todo.length };
 }
 export async function ytOne(vid) { const [f] = await redis([["GET", "stk:yt:feed"]]); const v = (json(f) || []).find((x) => x.id === vid); return v ? summarize(v) : null; }
 
 export async function ytAll() {
   const [c, f, at, seen] = await redis([["GET", "stk:yt:ch"], ["GET", "stk:yt:feed"], ["GET", "stk:yt:at"], ["SMEMBERS", "stk:yt:seen"]]);
-  const feedL = (json(f) || []).slice(0, 80), sums = feedL.length ? await redis(feedL.map((v) => ["GET", "stk:yt:s:" + v.id])) : [];
-  return { at: +at || 0, seen: seen || [], ch: json(c) || [], feed: feedL.map((v, i) => { const sm = json(sums[i]); return { ...v, desc: v.desc.slice(0, 300), s: sm && sm.basis !== "설명란" ? sm : null }; }) };
+  const feedL = (json(f) || []).slice(0, 80), sums = feedL.length ? await redis([...feedL.map((v) => ["GET", "stk:yt:s:" + v.id]), ...feedL.map((v) => ["GET", "stk:yt:e:" + v.id])]) : [];
+  return { at: +at || 0, gem: !!process.env.GEMINI_API_KEY, seen: seen || [], ch: json(c) || [], feed: feedL.map((v, i) => { const sm = json(sums[i]), e = json(sums[feedL.length + i]); return { ...v, desc: v.desc.slice(0, 300), s: sm && sm.basis !== "설명란" ? sm : null, e: e?.err || null }; }) };
 }
 
 // 내가 본 영상 표시 (사이트에서 열었거나 '봤어요'를 누른 것)

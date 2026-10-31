@@ -457,20 +457,20 @@ function renderYt() {
   const cnt = Object.fromEntries(dayList.map((d) => [d, { up: 0, w: 0 }])); list.forEach((v) => { const c = cnt[kd(v.at)]; if (c) { c.up++; if (SEEN.has(v.id)) c.w++; } });
   const mx = Math.max(1, ...Object.values(cnt).map((c) => c.up)), tot = Object.values(cnt).reduce((a, c) => [a[0] + c.up, a[1] + c.w], [0, 0]);
   $("yWeek").innerHTML = dayList.map((d) => { const c = cnt[d], wd = "일월화수목금토"[new Date(d + "T00:00:00Z").getUTCDay()]; return `<div class="d${d === today ? " today" : ""}"><b>${wd}</b><span class="note num">${d.slice(5).replace("-", ".")}</span><div class="bars"><i style="height:${(c.up / mx) * 100}%" title="올라온 ${c.up}"></i><i class="w" style="height:${(c.w / mx) * 100}%" title="본 ${c.w}"></i></div><span class="num">${c.w}/${c.up}</span></div>`; }).join("") + `<p class="note" style="grid-column:1/-1;margin:4px 0 0">2주 동안 올라온 ${tot[0]}개 중 <b>${tot[1]}개</b> 봤어요 · 회색 막대 = 올라온 영상, 노란 막대 = 본 영상</p>`;
-  $("yList").innerHTML = list.map((v) => { const s = v.s, url = `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}`;
+  $("yList").innerHTML = (YT.gem === false ? `<p class="msg no">GEMINI_API_KEY가 서버에 안 보여요. Vercel에 넣은 뒤 Deployments에서 Redeploy를 눌러야 적용돼요.</p>` : "") + list.map((v) => { const s = v.s, url = `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}`;
     const seen = SEEN.has(v.id);
     return `<article class="yv${seen ? " seen" : ""}"><a href="${url}" target="_blank" rel="noopener" data-yopen="${esc(v.id)}"><img loading="lazy" src="https://i.ytimg.com/vi/${encodeURIComponent(v.id)}/mqdefault.jpg" alt=""></a><div>
       <h3><a href="${url}" target="_blank" rel="noopener" data-yopen="${esc(v.id)}">${esc(v.title)}</a> <button type="button" class="pill seenb" data-yseen="${esc(v.id)}" aria-pressed="${seen}">${seen ? "✓ 봤어요" : "봤어요"}</button></h3>
       <p class="note" style="margin:2px 0 0">${esc(v.chName)} · ${ago(v.at)}${v.short ? " · 쇼츠" : ""}${s ? ` · <span class="tone ${esc(s.tone)}">${esc(s.tone)}</span> <span class="note">${esc(s.basis)} 기준 요약</span>` : ""}</p>
       ${s ? `<ul>${s.sum.map((x) => `<li><b>${esc(x)}</b></li>`).join("")}${s.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>${s.stocks.length ? `<div style="margin-top:4px">${s.stocks.map((x) => `<span class="stk">${esc(x)}</span>`).join("")}</div>` : ""}`
-        : `<div class="row" style="margin-top:6px"><button type="button" class="btn g s" data-ysum="${esc(v.id)}">AI 요약 만들기</button><span class="note">${esc(v.desc.slice(0, 120))}</span></div>`}
+        : `<div class="row" style="margin-top:6px"><button type="button" class="btn g s" data-ysum="${esc(v.id)}">AI 요약 만들기</button>${v.e ? `<span class="note no">요약 실패: ${esc(v.e)}</span>` : ""}</div>`}
     </div></article>`; }).join("") || `<p class="note">아직 영상이 없어요. '새 영상 확인'을 눌러 보세요.</p>`;
 }
 document.addEventListener("click", async (e) => {
   const t = e.target.closest("[data-ych],[data-ydel],[data-ysum]"); if (!t) return;
   if (t.dataset.ych != null && !t.dataset.ydel && !t.dataset.ysum) { yCh = t.dataset.ych; ls.set("stk-ych", yCh); renderYt(); return; }
   if (t.dataset.ydel) { if (t.dataset.sure !== "1") { t.dataset.sure = "1"; t.textContent = "빼기?"; return; } YT = await api("", { op: "ytdel", id: t.dataset.ydel }); if (yCh === t.dataset.ydel) yCh = ""; renderYt(); return; }
-  if (t.dataset.ysum) { t.disabled = true; t.textContent = "요약하는 중… (20초쯤)"; try { const s = await api("", { op: "ytsum", id: t.dataset.ysum }); const v = YT.feed.find((x) => x.id === t.dataset.ysum); if (v) v.s = s; renderYt(); } catch { t.textContent = "영상 내용을 못 받아서 요약을 못 했어요"; } }
+  if (t.dataset.ysum) { t.disabled = true; t.textContent = "영상 보는 중… (1분쯤)"; try { const s = await api("", { op: "ytsum", id: t.dataset.ysum }); const v = YT.feed.find((x) => x.id === t.dataset.ysum); if (v) v.s = s; renderYt(); } catch (err) { t.disabled = false; t.textContent = "다시 시도"; const n = t.nextElementSibling?.classList.contains("no") ? t.nextElementSibling : t.insertAdjacentElement("afterend", Object.assign(document.createElement("span"), { className: "note no" })); n.textContent = "요약 실패: " + (err?.message || ""); } }
 });
 async function markSeen(id, on) { const S = new Set(YT.seen || []); on ? S.add(id) : S.delete(id); YT.seen = [...S]; renderYt(); api("", { op: "ytseen", id, on }).catch(() => {}); }
 document.addEventListener("click", (e) => { const o = e.target.closest("[data-yopen]"); if (o && !(YT.seen || []).includes(o.dataset.yopen)) markSeen(o.dataset.yopen, true); const b = e.target.closest("[data-yseen]"); if (b) markSeen(b.dataset.yseen, b.getAttribute("aria-pressed") !== "true"); });
