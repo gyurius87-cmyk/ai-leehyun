@@ -1,0 +1,89 @@
+// 주식 유튜버: 등록한 채널의 새 영상(RSS, 키 없음) + 자막(되면)이나 설명란으로 AI 요약
+import Anthropic from "@anthropic-ai/sdk";
+import { redis } from "./_redis.js";
+import { recordUsage } from "./_usage.js";
+
+const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
+const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" };
+const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
+const unxml = (s) => String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim();
+
+// 처음 등록해 두는 채널 (이현님이 지우거나 더할 수 있음)
+const SEED = ["@syukaworld", "@3protv", "@sosumonkey"];
+
+// 채널 주소·@핸들·UC아이디 → { id, name, handle }
+export async function resolveChannel(raw) {
+  const t = String(raw || "").trim(); let id = (t.match(/(UC[\w-]{22})/) || [])[1], handle = (t.match(/@([\w.\-가-힣%]+)/) || [])[1];
+  const page = id ? `https://www.youtube.com/channel/${id}` : handle ? `https://www.youtube.com/@${handle}` : null; if (!page) return null;
+  const r = await fetch(page, { headers: UA }); if (!r.ok) return null; const h = await r.text();
+  id ||= (h.match(/"externalId":"(UC[\w-]{22})"/) || h.match(/channel\/(UC[\w-]{22})/) || [])[1]; if (!id) return null;
+  const name = unxml((h.match(/<meta property="og:title" content="([^"]*)"/) || [])[1]) || handle || id;
+  return { id, name, handle: handle ? "@" + decodeURIComponent(handle) : "" };
+}
+
+async function channels() {
+  const [c] = await redis([["GET", "stk:yt:ch"]]); let ch = json(c);
+  if (!ch) { ch = (await Promise.all(SEED.map((h) => resolveChannel(h).catch(() => null)))).filter(Boolean); await redis([["SET", "stk:yt:ch", JSON.stringify(ch)]]); }
+  return ch;
+}
+export async function ytAdd(raw) { const ch = await channels(), c = await resolveChannel(raw); if (!c) return null; if (!ch.some((x) => x.id === c.id)) ch.push(c); await redis([["SET", "stk:yt:ch", JSON.stringify(ch)]]); return c; }
+export async function ytDel(id) { const ch = (await channels()).filter((x) => x.id !== id); await redis([["SET", "stk:yt:ch", JSON.stringify(ch)]]); return ch; }
+
+async function feed(c) {
+  const r = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${c.id}`, { headers: UA }); if (!r.ok) return [];
+  const x = await r.text();
+  return [...x.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(([, e]) => ({
+    id: (e.match(/<yt:videoId>([^<]+)/) || [])[1], ch: c.id, chName: c.name, title: unxml((e.match(/<title>([\s\S]*?)<\/title>/) || [])[1]),
+    at: (e.match(/<published>([^<]+)/) || [])[1], desc: unxml((e.match(/<media:description>([\s\S]*?)<\/media:description>/) || [])[1]).slice(0, 3000),
+    short: /\/shorts\//.test((e.match(/<link rel="alternate" href="([^"]+)"/) || [])[1] || ""),
+  })).filter((v) => v.id);
+}
+
+// 자막 (유튜브가 서버 접속을 막으면 빈 문자열 → 설명란으로 요약)
+async function transcript(vid) {
+  try {
+    const r = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", { method: "POST", headers: { ...UA, "Content-Type": "application/json" }, body: JSON.stringify({ context: { client: { clientName: "ANDROID", clientVersion: "20.10.38", hl: "ko" } }, videoId: vid }) });
+    const j = await r.json(), tr = j?.captions?.playerCaptionsTracklistRenderer?.captionTracks || []; if (!tr.length) return "";
+    const pick = tr.find((t) => t.languageCode === "ko" && t.kind !== "asr") || tr.find((t) => t.languageCode === "ko") || tr[0];
+    const x = await (await fetch(pick.baseUrl.replace(/&fmt=[^&]*/, ""), { headers: UA })).text();
+    return [...x.matchAll(/<(?:text|p)\b[^>]*>([\s\S]*?)<\/(?:text|p)>/g)].map(([, t]) => unxml(t.replace(/<[^>]+>/g, ""))).join(" ").replace(/\s+/g, " ").trim();
+  } catch { return ""; }
+}
+
+async function summarize(v) {
+  const tx = await transcript(v.id), basis = tx.length > 300 ? "자막" : "설명란";
+  const prompt = `주식 유튜브 영상을 한국어로 요약해 주세요. ${basis === "설명란" ? "자막을 못 받아서 제목과 설명란만 있어요. 거기 없는 내용은 지어내지 말고, 정보가 적으면 적다고 써 주세요." : ""}
+채널: ${v.chName}
+제목: ${v.title}
+설명란: ${v.desc.slice(0, 1500)}
+${tx ? `자막(앞부분): ${tx.slice(0, 14000)}` : ""}
+
+JSON 하나만 답해 주세요:
+{"sum":["핵심 한 줄","핵심 한 줄","핵심 한 줄"],"points":["숫자·근거가 담긴 포인트 (최대 5개)"],"stocks":["언급된 종목·자산 이름 (최대 8개)"],"tone":"강세|약세|중립|정보"}`;
+  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 1500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
+  await recordUsage(msg.usage || {}, MODEL);
+  const txt = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), o = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+  if (!o?.sum) return null;
+  const out = { sum: o.sum.slice(0, 3), points: (o.points || []).slice(0, 5), stocks: (o.stocks || []).slice(0, 8), tone: o.tone || "정보", basis, at: Date.now() };
+  await redis([["SET", "stk:yt:s:" + v.id, JSON.stringify(out)]]);
+  return out;
+}
+
+// 새 영상 받기 + 아직 요약 없는 최근 영상 요약 (한 번에 max개까지)
+export async function ytSync(max = 8) {
+  const ch = await channels(), lists = await Promise.all(ch.map((c) => feed(c).catch(() => [])));
+  const all = lists.flat().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 120);
+  await redis([["SET", "stk:yt:feed", JSON.stringify(all)], ["SET", "stk:yt:at", String(Date.now())]]);
+  const recent = all.filter((v) => Date.now() - Date.parse(v.at) < 10 * 864e5).slice(0, 40);
+  const have = recent.length ? await redis(recent.map((v) => ["EXISTS", "stk:yt:s:" + v.id])) : [];
+  const todo = recent.filter((_, i) => !+have[i]).slice(0, max);
+  for (let i = 0; i < todo.length; i += 4) await Promise.all(todo.slice(i, i + 4).map((v) => summarize(v).catch((e) => console.error("yt sum", e?.message))));
+  return { videos: all.length, summarized: todo.length };
+}
+export async function ytOne(vid) { const [f] = await redis([["GET", "stk:yt:feed"]]); const v = (json(f) || []).find((x) => x.id === vid); return v ? summarize(v) : null; }
+
+export async function ytAll() {
+  const [c, f, at] = await redis([["GET", "stk:yt:ch"], ["GET", "stk:yt:feed"], ["GET", "stk:yt:at"]]);
+  const feedL = (json(f) || []).slice(0, 80), sums = feedL.length ? await redis(feedL.map((v) => ["GET", "stk:yt:s:" + v.id])) : [];
+  return { at: +at || 0, ch: json(c) || [], feed: feedL.map((v, i) => ({ ...v, desc: v.desc.slice(0, 300), s: json(sums[i]) })) };
+}

@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "yt", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -56,7 +56,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "yt", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -136,12 +136,42 @@ function renderMaster(id) {
   $("mDetail").innerHTML = `<div class="prof">${face(id)}<div><h2 style="margin:0">${esc(info.name)} <span>${esc(info.style)}</span></h2>
       <div class="row" style="margin-top:4px"><span class="big ${ud(m.ret)}">${pct(m.ret)}</span><span class="num">${won(m.value)}원</span><span class="note">현금 ${won(m.cash)}원 · 매매 ${m.nTrades}번 · 최대낙폭 ${pct(m.mdd)}</span></div>
       <p class="note" style="margin:6px 0 0"><b>매매 원칙</b> ${esc(info.rule)}</p>${said ? `<p style="margin:6px 0 0">💬 <b>오늘</b> <span class="mood ${esc(said.mood)}">${esc(said.mood)}</span> ${esc(said.say)}</p>` : ""}</div></div>
-    <h3 style="margin-top:14px">계좌 흐름 <span class="note">회색 점선 = 1억</span></h3><canvas class="eq" id="eq"></canvas>
+    <div class="chat"><h3 style="margin:0;display:flex;gap:8px;align-items:center">${esc(info.name)}에게 물어보기 <span class="note">AI가 이 대가의 원칙으로 답해요</span><button type="button" class="btn g s" id="mcClear" style="margin-left:auto">대화 지우기</button></h3><div class="msgs" id="mcMsgs"><p class="note">불러오는 중…</p></div><form class="row" id="mcForm"><input id="mcIn" placeholder="예: 지금 반도체 사도 될까요?" style="flex:1 1 200px" autocomplete="off"><button class="btn y s">보내기</button></form></div>
+    <h3 style="margin-top:14px">계좌 흐름 <span class="note">회색 점선 = 시작 1억 · 마우스를 올리면 그날 금액</span></h3><div style="position:relative"><canvas class="eq" id="eq" style="height:260px;touch-action:none"></canvas><div class="tip" id="eqTip" hidden></div></div>
     <h3 style="margin-top:14px">지금 들고 있는 것</h3><div class="tw"><table><thead><tr><th>종목</th><th class="r">평단</th><th class="r">현재가</th><th class="r">평가액(원)</th><th class="r">손익</th><th>산 날</th></tr></thead><tbody>${m.hold.map((h) => `<tr><td>${esc(h.n)}</td><td class="r">${fmt(h.b)}</td><td class="r">${fmt(h.p)}</td><td class="r">${won(h.won)}</td><td class="r ${ud(h.pl)}">${pct(h.pl)}</td><td class="num">${h.since}</td></tr>`).join("") || `<tr><td colspan="6" class="note">전부 현금이에요.</td></tr>`}</tbody></table></div>
     <h3 style="margin-top:14px">매매 일지 <span class="note">${esc(info.name)}에 빙의해서 쓴 이유 · 최근 순</span></h3><div class="tw"><table><thead><tr><th>날짜</th><th>종목</th><th></th><th class="r">가격</th><th class="r">금액(원)</th><th class="r">손익(원)</th><th>이유</th></tr></thead><tbody>${m.trades.map((t) => `<tr><td class="num">${t.d}</td><td>${esc(t.n)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td class="r">${fmt(t.p)}</td><td class="r">${won(t.won)}</td><td class="r ${ud(t.pl)}">${t.pl != null ? won(t.pl) : ""}</td><td style="min-width:240px">${esc(t.why)}</td></tr>`).join("")}</tbody></table></div>`;
-  requestAnimationFrame(() => line($("eq"), m.curve.map((c) => c[1]), { color: css("--amber"), base: 1e8, pad: 6 }));
+  EQD = { days: m.curve.map((c) => c[0]), series: [{ s: id, label: info.name, vals: m.curve.map((c) => c[1]), color: css("--amber") }, { s: "base", label: "시작 1억", vals: m.curve.map(() => 1e8), color: css("--muted"), w: 1, dash: [4, 4], noDot: true, noTip: true }] };
+  requestAnimationFrame(() => paintEq());
+  loadChat(id);
 }
 
+
+
+// 대가 채팅방
+let MC = { id: null, hist: [] };
+const mdText = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+function renderChat(pending) {
+  const box = $("mcMsgs"); if (!box) return;
+  box.innerHTML = MC.hist.map((m) => `<div class="bub ${m.role === "user" ? "me" : "them"}">${mdText(m.content)}</div>`).join("") + (pending ? `<div class="bub them note">생각하는 중…</div>` : "") || `<p class="note">궁금한 걸 물어보세요. 오늘 시장 정리, 이 대가의 모의 계좌, 내 보유 종목을 알고 답해요.</p>`;
+  box.scrollTop = box.scrollHeight;
+}
+async function loadChat(id) { MC = { id, hist: [] }; try { const j = await api("op=mchat&id=" + id); if (MC.id === id) { MC.hist = j.hist; renderChat(); } } catch { renderChat(); } }
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "mcForm") return; e.preventDefault();
+  const inp = $("mcIn"), t = inp.value.trim(), id = MC.id; if (!t || !id) return;
+  inp.value = ""; MC.hist.push({ role: "user", content: t }); renderChat(true); inp.disabled = true;
+  try { const j = await api("", { op: "mchat", id, text: t }); if (MC.id === id) { MC.hist = j.hist; renderChat(); } }
+  catch { MC.hist.push({ role: "assistant", content: "(답을 못 받았어요. 다시 보내 주세요.)" }); renderChat(); }
+  inp.disabled = false; inp.focus();
+});
+document.addEventListener("click", async (e) => { if (e.target.id !== "mcClear") return; if (e.target.dataset.sure !== "1") { e.target.dataset.sure = "1"; e.target.textContent = "한 번 더 누르면 지워요"; return; } await api("", { op: "mchat", id: MC.id, clear: 1 }).catch(() => {}); MC.hist = []; renderChat(); e.target.dataset.sure = ""; e.target.textContent = "대화 지우기"; });
+
+// 대가 계좌 흐름 차트 (날짜·금액 축, 십자선)
+let EQD = null;
+const eqFmt = (v) => (v / 1e8).toFixed(Math.abs(v) >= 1e9 ? 1 : 2) + "억";
+const paintEq = (hover) => paintChart($("eq"), $("eqTip"), EQD, hover, { fmt: eqFmt, cross: true, tipFmt: (v) => won(v) + "원 (" + pct((v / 1e8 - 1) * 100) + ")" });
+document.addEventListener("pointermove", (e) => { if (e.target.id === "eq") paintEq(e.clientX - e.target.getBoundingClientRect().left); });
+document.addEventListener("pointerout", (e) => { if (e.target.id === "eq") paintEq(); });
 
 // ── 매크로: 세계 지수 표 + 겹쳐 보기
 const PAL = ["#e8590c", "#1c7ed6", "#2f9e44", "#ae3ec9", "#f2b632", "#0ca678", "#d6336c", "#495057", "#5c7cfa", "#a9e34b"];
@@ -249,9 +279,10 @@ function paintChart(cnv, tip, D, hover, opt = {}) {
   if (hover == null) { if (tip) tip.hidden = true; return; }
   const i = Math.max(0, Math.min(n - 1, Math.round(((hover - L) / (W - L - R)) * (n - 1))));
   x.strokeStyle = css("--muted"); x.beginPath(); x.moveTo(X(i), T); x.lineTo(X(i), H - B); x.stroke();
+  if (opt.cross && D.series[0].vals[i] != null) { const y = Y(D.series[0].vals[i]); x.setLineDash([3, 3]); x.beginPath(); x.moveTo(L, y); x.lineTo(W - R, y); x.stroke(); x.setLineDash([]); const lb = fy(D.series[0].vals[i]), lw = x.measureText(lb).width + 8; x.fillStyle = css("--board"); x.fillRect(W - R + 2, y - 9, lw, 18); x.fillStyle = css("--on-board"); x.fillText(lb, W - R + 6, y + 4); const dl = D.days[i], dw = x.measureText(dl).width + 8; x.fillStyle = css("--board"); x.fillRect(Math.min(W - R - dw, Math.max(L, X(i) - dw / 2)), H - B + 3, dw, 17); x.fillStyle = css("--on-board"); x.fillText(dl, Math.min(W - R - dw, Math.max(L, X(i) - dw / 2)) + 4, H - 7); }
   D.series.forEach((s) => { const v = s.vals[i]; if (v == null || s.noDot) return; x.fillStyle = s.color; x.beginPath(); x.arc(X(i), Y(v), 3.5, 0, 7); x.fill(); });
   if (!tip) return;
-  tip.innerHTML = `<div>${D.days[i]}</div>` + D.series.filter((s) => !s.noTip).map((s) => [s, s.vals[i]]).sort((a, b) => (b[1] ?? -1e9) - (a[1] ?? -1e9)).map(([s, v]) => `<div><span style="color:${s.color}">●</span> ${esc(s.label || nameOf(s.s))} <span class="${opt.pct ? ud(v) : ""}">${opt.pct ? pct(v) : fy(v)}</span></div>`).join("");
+  tip.innerHTML = `<div>${D.days[i]}</div>` + D.series.filter((s) => !s.noTip).map((s) => [s, s.vals[i]]).sort((a, b) => (b[1] ?? -1e9) - (a[1] ?? -1e9)).map(([s, v]) => `<div><span style="color:${s.color}">●</span> ${esc(s.label || nameOf(s.s))} <span class="${opt.pct ? ud(v) : ""}">${opt.pct ? pct(v) : (opt.tipFmt || fy)(v)}</span></div>`).join("");
   tip.hidden = false; const tw = tip.offsetWidth; tip.style.left = Math.max(0, X(i) + 12 + tw > W ? X(i) - tw - 12 : X(i) + 12) + "px";
 }
 const paintCmp = (hover) => paintChart($("cmp"), $("cmpTip"), CMPD, hover, { pct: true });
@@ -327,6 +358,41 @@ function renderFamDetail() {
     <div class="tw"><table><thead><tr><th>종목</th><th class="r">비중</th><th style="width:28%"></th><th class="r">금액</th><th class="r">주식 수</th><th>변화</th></tr></thead><tbody>${d.rows.slice(0, 60).map((r) => `<tr><td><b>${esc(r.t || r.n)}</b>${r.t ? `<br><span class="note">${esc(r.n)}</span>` : r.pc ? ` <span class="note">${esc(r.pc)}</span>` : r.cls && !/^COM/i.test(r.cls) ? ` <span class="note">${esc(r.cls)}</span>` : ""}</td><td class="r">${fmt(ark ? r.w : (r.val / d.total) * 100, 1)}%</td><td style="vertical-align:middle"><div class="bar" style="width:${Math.max(2, (r.val / max) * 100)}%"></div></td><td class="r">${usd(r.val)}</td><td class="r">${Math.round(r.sh).toLocaleString("en-US")}</td><td>${chgTag(r.ch)}</td></tr>`).join("")}</tbody></table></div>
     <p class="note" style="margin-top:8px">${ark ? "출처: ARK Invest 매일 공개 보유 내역" : "출처: 미국 SEC EDGAR 13F-HR. 미국 상장 주식·옵션만 신고돼서 현금·채권·해외 주식은 빠져요. 분기말 기준이라 지금은 이미 바뀌었을 수 있어요."}</p>`;
 }
+
+
+// ── 유튜버
+let YT = null, yCh = ls.get("stk-ych", "");
+const ago = (iso) => { const m = (Date.now() - Date.parse(iso)) / 6e4; return m < 60 ? `${Math.max(1, Math.round(m))}분 전` : m < 1440 ? `${Math.round(m / 60)}시간 전` : `${Math.round(m / 1440)}일 전`; };
+async function loadYt(force) {
+  if (YT && !force) return renderYt();
+  $("yRe").disabled = true; if (force) $("yAt").textContent = "새 영상 받고 요약하는 중… (1분쯤)";
+  try { YT = force ? await api("", { op: "ytsync" }) : await api("op=yt"); renderYt(); } catch { $("yList").innerHTML = `<p class="msg no">못 불러왔어요. '새 영상 확인'을 눌러 주세요.</p>`; }
+  $("yRe").disabled = false;
+}
+$("yRe").onclick = () => loadYt(true);
+function renderYt() {
+  $("yAt").textContent = YT.at ? new Date(YT.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 확인" : "";
+  $("yCh").innerHTML = `<button type="button" class="pill" data-ych="" aria-pressed="${!yCh}">전체</button>` + YT.ch.map((c) => `<span class="leg"><button type="button" class="tg" data-ych="${esc(c.id)}" aria-pressed="${c.id === yCh}" style="${c.id === yCh ? "font-weight:700" : ""}">${esc(c.name)}</button><button type="button" data-ydel="${esc(c.id)}" aria-label="채널 빼기">✕</button></span>`).join("");
+  const list = YT.feed.filter((v) => !yCh || v.ch === yCh);
+  $("yList").innerHTML = list.map((v) => { const s = v.s, url = `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}`;
+    return `<article class="yv"><a href="${url}" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/${encodeURIComponent(v.id)}/mqdefault.jpg" alt=""></a><div>
+      <h3><a href="${url}" target="_blank" rel="noopener">${esc(v.title)}</a></h3>
+      <p class="note" style="margin:2px 0 0">${esc(v.chName)} · ${ago(v.at)}${v.short ? " · 쇼츠" : ""}${s ? ` · <span class="tone ${esc(s.tone)}">${esc(s.tone)}</span> <span class="note">${esc(s.basis)} 기준 요약</span>` : ""}</p>
+      ${s ? `<ul>${s.sum.map((x) => `<li><b>${esc(x)}</b></li>`).join("")}${s.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>${s.stocks.length ? `<div style="margin-top:4px">${s.stocks.map((x) => `<span class="stk">${esc(x)}</span>`).join("")}</div>` : ""}`
+        : `<div class="row" style="margin-top:6px"><button type="button" class="btn g s" data-ysum="${esc(v.id)}">AI 요약 만들기</button><span class="note">${esc(v.desc.slice(0, 120))}</span></div>`}
+    </div></article>`; }).join("") || `<p class="note">아직 영상이 없어요. '새 영상 확인'을 눌러 보세요.</p>`;
+}
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-ych],[data-ydel],[data-ysum]"); if (!t) return;
+  if (t.dataset.ych != null && !t.dataset.ydel && !t.dataset.ysum) { yCh = t.dataset.ych; ls.set("stk-ych", yCh); renderYt(); return; }
+  if (t.dataset.ydel) { if (t.dataset.sure !== "1") { t.dataset.sure = "1"; t.textContent = "빼기?"; return; } YT = await api("", { op: "ytdel", id: t.dataset.ydel }); if (yCh === t.dataset.ydel) yCh = ""; renderYt(); return; }
+  if (t.dataset.ysum) { t.disabled = true; t.textContent = "요약하는 중… (20초쯤)"; try { const s = await api("", { op: "ytsum", id: t.dataset.ysum }); const v = YT.feed.find((x) => x.id === t.dataset.ysum); if (v) v.s = s; renderYt(); } catch { t.textContent = "요약 실패 · 다시 누르기"; t.disabled = false; } }
+});
+$("yAdd").onsubmit = async (e) => {
+  e.preventDefault(); const u = $("yUrl").value.trim(); if (!u) return; $("yMsg").textContent = "채널 찾는 중…";
+  try { const j = await api("", { op: "ytadd", url: u }); YT = j; $("yUrl").value = ""; $("yMsg").textContent = `${j.added.name} 더했어요.`; renderYt(); }
+  catch { $("yMsg").textContent = "그 채널을 못 찾았어요. 채널 주소를 그대로 붙여 넣어 보세요."; }
+};
 
 // ── 내 계좌
 let KW = null;

@@ -122,6 +122,20 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .bar { height: 6px; background: var(--amber); border-radius: 3px; }
 .chg { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; white-space: nowrap; }
 .chg.new { background: var(--up); color: #fff; } .chg.add { color: var(--up); } .chg.cut { color: var(--down); }
+.ytl { display: grid; gap: 10px; }
+.yv { background: var(--panel); border-radius: 14px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.06); display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; }
+.yv img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 10px; background: var(--soft); display: block; }
+.yv h3 { margin: 0; font-size: 15px; } .yv h3 a { color: inherit; text-decoration: none; } .yv h3 a:hover { text-decoration: underline; }
+.yv ul { margin: 6px 0 0; padding-left: 18px; } .yv li { margin: 2px 0; }
+.tone { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 8px; background: var(--line); }
+.tone.강세 { background: var(--up); color: #fff; } .tone.약세 { background: var(--down); color: #fff; }
+.stk { display: inline-block; font-size: 12px; background: var(--soft); border-radius: 6px; padding: 0 6px; margin: 2px 4px 0 0; }
+@media (max-width: 640px) { .yv { grid-template-columns: minmax(0, 1fr); } }
+.chat { margin-top: 14px; background: var(--soft); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.msgs { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding: 2px; }
+.bub { max-width: 85%; border-radius: 12px; padding: 8px 11px; font-size: 14px; line-height: 1.5; }
+.bub.me { align-self: flex-end; background: var(--amber); color: #1c2027; }
+.bub.them { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
@@ -142,6 +156,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <button type="button" data-tab="macro" aria-pressed="false">매크로</button>
     <button type="button" data-tab="masters" aria-pressed="false">대가</button>
     <button type="button" data-tab="famous" aria-pressed="false">유명인 포폴</button>
+    <button type="button" data-tab="yt" aria-pressed="false">유튜버</button>
     <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
   </nav>
@@ -214,6 +229,17 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <div class="ms" id="fList"><p class="note">불러오는 중… (처음엔 30초쯤)</p></div>
     </section>
     <section class="box" id="fDetail"><p class="note">왼쪽에서 사람을 고르면 보유 종목과 지난번 대비 바뀐 것이 나와요.</p></section>
+  </div>
+
+  <!-- 유튜버 -->
+  <div id="yt" hidden class="grid" style="gap:14px">
+    <section class="box">
+      <h2>주식 유튜버 새 영상 <span id="yAt"></span><button type="button" class="btn g s" id="yRe" style="margin-left:auto">새 영상 확인</button></h2>
+      <div class="row" id="yCh"></div>
+      <form class="row" id="yAdd" style="margin-top:8px"><input id="yUrl" placeholder="채널 주소나 @핸들 (예: youtube.com/@syukaworld)" style="flex:1 1 260px"><button class="btn s">채널 더하기</button><span class="msg" id="yMsg" style="margin:0"></span></form>
+      <p class="note" style="margin:6px 0 0">최근 10일 영상은 AI가 요약해 둬요. 자막을 받으면 자막으로, 못 받으면 제목·설명란으로 요약하고 어느 쪽인지 표시해요.</p>
+    </section>
+    <div class="ytl" id="yList"><p class="note">불러오는 중… (처음엔 30초쯤)</p></div>
   </div>
 
   <!-- 내 계좌 -->
