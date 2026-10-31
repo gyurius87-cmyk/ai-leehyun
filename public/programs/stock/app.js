@@ -536,9 +536,9 @@ async function renderAcct() {
   let tot = (+ACCT.cash || 0) + (+ACCT.cashUsd || 0) * FX, buy = 0, today = 0;
   const rows = ACCT.hold.map((h, i) => { const q = Q[h.sym], k = h.cur === "USD" ? FX : 1, p = q?.p, v = p != null ? p * h.qty * k : null, cost = h.avg * h.qty * k; if (v != null) { tot += v; today += (p - (q.prev || p)) * h.qty * k; } buy += cost; return { h, i, p, v, cost, pl: v != null && cost ? (v / cost - 1) * 100 : null }; });
   const stockV = rows.reduce((t, r) => t + (r.v || 0), 0);
-  $("hold").innerHTML = rows.map(({ h, i, p, v, pl }) => `<tr><td><b>${esc(h.name || h.sym)}</b><br><span class="note num">${esc(h.sym)}</span></td><td class="r">${fmt(h.qty, h.qty % 1 ? 4 : 0)}</td><td class="r">${fmt(h.avg, h.cur === "USD" ? 2 : 0)}</td><td class="r">${p != null ? fmt(p, h.cur === "USD" ? 2 : 0) : "-"}</td><td class="r">${won(v)}</td><td class="r ${ud(pl)}">${pct(pl)}</td><td class="r">${v && tot ? fmt((v / tot) * 100, 1) + "%" : "-"}</td><td><button type="button" class="btn g s" data-hdel="${i}" aria-label="빼기">✕</button></td></tr>`).join("") || `<tr><td colspan="8" class="note">아래에서 보유 종목을 더해 주세요.</td></tr>`;
+  $("hold").innerHTML = rows.map(({ h, i, p, v, pl }) => `<tr><td><b>${esc(h.name || h.sym)}</b><br><span class="note num">${esc(h.sym)}</span></td><td class="r"><span class="mz">${fmt(h.qty, h.qty % 1 ? 4 : 0)}</span></td><td class="r"><span class="mz">${fmt(h.avg, h.cur === "USD" ? 2 : 0)}</span></td><td class="r">${p != null ? fmt(p, h.cur === "USD" ? 2 : 0) : "-"}</td><td class="r"><span class="mz">${won(v)}</span></td><td class="r ${ud(pl)}">${pct(pl)}</td><td class="r">${v && tot ? fmt((v / tot) * 100, 1) + "%" : "-"}</td><td><button type="button" class="btn g s" data-hdel="${i}" aria-label="빼기">✕</button></td></tr>`).join("") || `<tr><td colspan="8" class="note">아래에서 보유 종목을 더해 주세요.</td></tr>`;
   const plAll = buy ? (stockV / buy - 1) * 100 : null;
-  $("acctSum").innerHTML = `<div class="card" style="flex:1 1 180px"><div class="k">총 자산</div><div class="v">${won(tot)}원</div></div><div class="card" style="flex:1 1 180px"><div class="k">주식 손익</div><div class="v ${ud(plAll)}">${won(stockV - buy)}원</div><div class="c"><span class="${ud(plAll)}">${pct(plAll)}</span></div></div><div class="card" style="flex:1 1 180px"><div class="k">오늘 변동</div><div class="v ${ud(today)}">${won(today)}원</div><div class="c"><span>환율 ${fmt(FX, 1)}원</span></div></div>`;
+  $("acctSum").innerHTML = `<div class="card" style="flex:1 1 180px"><div class="k">총 자산</div><div class="v mz">${won(tot)}원</div></div><div class="card" style="flex:1 1 180px"><div class="k">주식 손익</div><div class="v ${ud(plAll)}"><span class="mz">${won(stockV - buy)}원</span></div><div class="c"><span class="${ud(plAll)}">${pct(plAll)}</span></div></div><div class="card" style="flex:1 1 180px"><div class="k">오늘 변동</div><div class="v ${ud(today)}"><span class="mz">${won(today)}원</span> <small>${tot ? pct((today / tot) * 100) : ""}</small></div><div class="c"><span>환율 ${fmt(FX, 1)}원</span></div></div>`;
 }
 $("holdAdd").onsubmit = async (e) => {
   e.preventDefault(); const raw = $("hSym").value.trim(); if (!raw) return; $("acctMsg").textContent = "종목 찾는 중…";
@@ -624,3 +624,15 @@ pickFile($("xlsDrop"), $("xlsIn"), async (file) => {
 });
 
 boot();
+
+// 내 계좌 공개/비공개: 열 때마다 비공개로 시작, 비밀번호를 넣어야 공개 (이 탭을 닫으면 다시 비공개)
+let PUB = false; try { PUB = sessionStorage.getItem("stk-acct-pub") === "1"; } catch {}
+function setPv(on) { PUB = on; try { sessionStorage.setItem("stk-acct-pub", on ? "1" : "0"); } catch {} $("acct").classList.toggle("priv", !on); $("pvPriv").setAttribute("aria-pressed", !on); $("pvPub").setAttribute("aria-pressed", on); if (on) $("pvForm").hidden = true; }
+setPv(PUB);
+$("pvPriv").onclick = () => { setPv(false); $("pvForm").hidden = true; };
+$("pvPub").onclick = async () => { if (PUB) return; $("pvForm").hidden = false; $("pvNew").hidden = true; $("pvMsg").textContent = ""; $("pvPin").value = ""; $("pvPin").focus();
+  try { const j = await api("", { op: "acctpin", check: true }); if (!j.set) { $("pvGo").textContent = "이 비밀번호로 정하고 공개"; $("pvMsg").textContent = "처음이에요. 쓸 비밀번호(4자 이상)를 정해 주세요."; } else $("pvGo").textContent = "공개로 전환"; } catch {} };
+$("pvChg").onclick = () => { $("pvNew").hidden = !$("pvNew").hidden; $("pvGo").textContent = $("pvNew").hidden ? "공개로 전환" : "비밀번호 바꾸기"; $("pvMsg").textContent = $("pvNew").hidden ? "" : "지금 비밀번호와 새 비밀번호를 넣어 주세요."; };
+$("pvForm").onsubmit = async (e) => { e.preventDefault(); const pin = $("pvPin").value, nw = $("pvNew").hidden ? "" : $("pvNew").value;
+  try { const j = await api("", { op: "acctpin", pin, newPin: nw || undefined }); $("pvPin").value = $("pvNew").value = ""; $("pvNew").hidden = true; setPv(true); $("pvMsg").textContent = j.changed ? "비밀번호를 바꿨어요." : ""; }
+  catch (err) { $("pvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요." : "확인하지 못했어요."; } };

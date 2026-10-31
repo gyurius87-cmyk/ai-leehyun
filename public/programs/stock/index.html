@@ -115,6 +115,10 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .leg button { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 14px; }
 .leg .tg { color: var(--ink); font: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; padding: 0; }
 #moLeg { display: grid; gap: 8px; margin: 8px 0; } .mog { border-left: 3px solid var(--line); padding-left: 10px; } .mogh { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 4px; } .mog-all { display: flex; gap: 6px; }
+#acct.priv .mz { filter: blur(8px); user-select: none; pointer-events: none; }
+#acct.priv #kwBox, #acct.priv #holdAdd, #acct.priv .pvedit, #acct.priv [data-hdel] { display: none !important; }
+#acct:not(.priv) .pvnote { display: none; }
+.pvsw { display: inline-flex; gap: 4px; }
 .leg.off { opacity: .55; } .leg.off .tg { text-decoration: line-through; }
 .bigg { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
 .bigc canvas { width: 100%; height: 180px; display: block; margin-top: 6px; touch-action: none; }
@@ -292,7 +296,10 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 
   <!-- 내 계좌 -->
   <section class="box" id="acct" hidden>
-    <h2>내 계좌 <span>키움에서 보유 종목을 옮겨 적어요. 종목코드(예: 005930, AAPL)만 넣으면 이름과 현재가를 찾아요.</span></h2>
+    <h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">내 계좌 <span>키움에서 보유 종목을 옮겨 적어요. 종목코드(예: 005930, AAPL)만 넣으면 이름과 현재가를 찾아요.</span>
+      <span class="pvsw" style="margin-left:auto"><button type="button" class="pill" id="pvPriv">🔒 비공개</button><button type="button" class="pill" id="pvPub">🔓 공개</button></span></h2>
+    <form class="row pvform" id="pvForm" hidden><input id="pvPin" type="password" inputmode="numeric" autocomplete="off" placeholder="비밀번호" style="flex:0 1 160px"><input id="pvNew" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호" style="flex:0 1 160px" hidden><button class="btn y s" id="pvGo">공개로 전환</button><button type="button" class="btn g s" id="pvChg">비밀번호 바꾸기</button><span class="msg" id="pvMsg" style="margin:0"></span></form>
+    <p class="note pvnote">비공개 모드예요. 금액·수량·평단은 가려지고 수익률(%)만 보여요.</p>
     <div class="row" id="kwBox" style="margin-bottom:10px"></div>
     <div class="row" id="acctSum"></div>
     <div class="tw" style="margin-top:10px"><table>
@@ -302,7 +309,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <form class="row" id="holdAdd" style="margin-top:10px">
       <input id="hSym" placeholder="종목코드" style="flex:1 1 110px"><input id="hQty" type="number" step="any" placeholder="수량" style="flex:1 1 80px"><input id="hAvg" type="number" step="any" placeholder="평단" style="flex:1 1 90px"><button class="btn s">더하기</button>
     </form>
-    <div class="row" style="margin-top:10px"><label class="note">원화 예수금 <input id="cash" type="number" step="any" style="width:140px"></label><label class="note">달러 예수금 <input id="cashUsd" type="number" step="any" style="width:110px"></label><button type="button" class="btn y s" id="acctSave">저장</button><span class="msg" id="acctMsg" style="margin:0"></span></div>
+    <div class="row pvedit" style="margin-top:10px"><label class="note">원화 예수금 <input id="cash" type="number" step="any" style="width:140px"></label><label class="note">달러 예수금 <input id="cashUsd" type="number" step="any" style="width:110px"></label><button type="button" class="btn y s" id="acctSave">저장</button><span class="msg" id="acctMsg" style="margin:0"></span></div>
   </section>
 
   <!-- 복기 -->

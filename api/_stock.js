@@ -3,6 +3,7 @@
 // 저장(Redis): stk:snap (시세 10분), stk:news (1시간), stk:brief:<날짜> (오늘의 정리), stk:bt2:<날짜> (대가 모의 매매),
 //              stk:acct (내 계좌), stk:trades (내 매매 기록)
 import Anthropic from "@anthropic-ai/sdk";
+import { createHash } from "node:crypto";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
@@ -428,6 +429,16 @@ export async function stockHandler(req, res, isAdmin) {
       return res.status(400).json({ error: "op" });
     }
     let b = req.body || {}; if (typeof b === "string") b = json(b) || {};
+    if (b.op === "acctpin") { // 내 계좌 공개 전환 비밀번호 (해시만 저장)
+      const pin = String(b.pin || ""), h = (x) => createHash("sha256").update("stk-acct|" + x).digest("hex");
+      const [cur] = await redis([["GET", "stk:acctpin"]]);
+      if (b.check) return res.json({ set: !!cur });
+      if (pin.length < 4) return res.status(400).json({ error: "short" });
+      if (!cur) { await redis([["SET", "stk:acctpin", h(pin)]]); return res.json({ ok: true, created: true }); }
+      if (cur !== h(pin)) return res.status(403).json({ error: "wrong" });
+      if (b.newPin) { if (String(b.newPin).length < 4) return res.status(400).json({ error: "short" }); await redis([["SET", "stk:acctpin", h(String(b.newPin))]]); return res.json({ ok: true, changed: true }); }
+      return res.json({ ok: true });
+    }
     if (b.op === "acct") { const a = { hold: (Array.isArray(b.acct?.hold) ? b.acct.hold : []).slice(0, 100).map((h) => ({ sym: clip(h.sym, 20), name: clip(h.name, 40), qty: +h.qty || 0, avg: +h.avg || 0, cur: h.cur === "USD" ? "USD" : "KRW", memo: clip(h.memo, 200), src: h.src === "kiwoom" ? "kiwoom" : undefined })).filter((h) => h.sym), cash: +b.acct?.cash || 0, cashUsd: +b.acct?.cashUsd || 0, kwAt: +b.acct?.kwAt || undefined, at: Date.now() }; await redis([["SET", "stk:acct", JSON.stringify(a)]]); return res.json({ ok: true, acct: a }); }
     if (b.op === "trades") { const list = (Array.isArray(b.trades) ? b.trades : []).slice(0, 3000).map((t) => ({ id: clip(t.id, 20), date: clip(t.date, 10), sym: clip(t.sym, 20), name: clip(t.name, 40), side: t.side === "매도" ? "매도" : "매수", price: +t.price || 0, qty: +t.qty || 0, memo: clip(t.memo, 1000), feel: clip(t.feel, 40), ord: clip(t.ord, 30) || undefined, src: t.src === "kiwoom" ? "kiwoom" : undefined, rv: t.rv && typeof t.rv === "object" ? t.rv : undefined })).filter((t) => t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.date)); const s = JSON.stringify(list); if (s.length > 2_500_000) return res.status(400).json({ error: "big" }); await redis([["SET", "stk:trades", s]]); return res.json({ ok: true, n: list.length }); }
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
