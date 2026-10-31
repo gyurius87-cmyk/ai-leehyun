@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -57,7 +57,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;

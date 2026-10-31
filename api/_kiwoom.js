@@ -100,9 +100,9 @@ const IDX = { "^KS11": "001", "^KQ11": "101", "^KS200": "201" };
 const TRS = { stock: { "1d": ["ka10081", "stk_dt_pole_chart_qry"], "1wk": ["ka10082", "stk_stk_pole_chart_qry"], "1mo": ["ka10083", "stk_mth_pole_chart_qry"] }, idx: { "1d": ["ka20006", "inds_dt_pole_qry"], "1wk": ["ka20007", "inds_stk_pole_qry"], "1mo": ["ka20008", "inds_mth_pole_qry"] } };
 export const kwChartable = (sym) => !!IDX[sym] || /^\d{6}\.(KS|KQ)$/.test(sym);
 export function kwChartRows(rows, isIdx, f = "") {
-  let out = rows.map((x) => ({ d: String(x.dt || x.date || ""), c: num(x.cur_prc ?? x.close_pric ?? x.clpr), v: num(x.trde_qty) })).filter((p) => /^\d{8}$/.test(p.d) && p.c > 0 && p.d >= f)
-    .map((p) => ({ d: `${p.d.slice(0, 4)}-${p.d.slice(4, 6)}-${p.d.slice(6, 8)}`, c: p.c, v: p.v })).sort((a, b) => a.d.localeCompare(b.d));
-  if (isIdx && out.length && out.at(-1).c > 20000) out = out.map((p) => ({ ...p, c: p.c / 100 })); // 업종 지수는 100배로 오는 경우가 있음
+  let out = rows.map((x) => ({ d: String(x.dt || x.date || ""), c: num(x.cur_prc ?? x.close_pric ?? x.clpr), v: num(x.trde_qty), o: num(x.open_pric), h: num(x.high_pric), l: num(x.low_pric) })).filter((p) => /^\d{8}$/.test(p.d) && p.c > 0 && p.d >= f)
+    .map((p) => ({ d: `${p.d.slice(0, 4)}-${p.d.slice(4, 6)}-${p.d.slice(6, 8)}`, c: p.c, v: p.v, o: p.o || p.c, h: p.h || p.c, l: p.l || p.c })).sort((a, b) => a.d.localeCompare(b.d));
+  if (isIdx && out.length && out.at(-1).c > 20000) out = out.map((p) => ({ ...p, c: p.c / 100, o: p.o / 100, h: p.h / 100, l: p.l / 100 })); // 업종 지수는 100배로 오는 경우가 있음
   return out;
 }
 export async function kwChart(sym, iv = "1d", from = "2000-01-01") {

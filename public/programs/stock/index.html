@@ -113,6 +113,12 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 @media (max-width: 560px) { .dbr { grid-template-columns: 1fr; } }
 .zreset { position: absolute; top: 4px; left: 8px; font-size: 11px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 1px 8px; cursor: pointer; z-index: 2; }
 .tip .evt { max-width: 280px; white-space: normal; margin: 2px 0 4px; padding: 4px 6px; border-radius: 6px; background: var(--soft); } .tip .evt.up b { color: var(--up); } .tip .evt.down b { color: var(--down); } .tip .evt span { color: var(--ink); font-size: 12px; }
+#cBox { position: relative; height: 68vh; min-height: 380px; margin-top: 6px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.cdraw { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.ctext { position: absolute; z-index: 4; width: 180px; font-size: 13px; padding: 2px 6px; }
+.crow { gap: 4px; margin-top: 6px; } .crow .sep { width: 10px; } .crow .pill i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.cdot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); cursor: pointer; } .cdot[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+.cinfo { font-size: 13px; margin-top: 6px; min-height: 20px; } .cinfo .up { color: var(--up); } .cinfo .down { color: var(--down); }
 .chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; }
 .chip.매수 { background: var(--up); color: #fff; } .chip.매도 { background: var(--down); color: #fff; }
 .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); cursor: pointer; background: var(--soft); display: block; }
@@ -186,7 +192,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 <body>
 <div class="top"><div class="wrap">
   <a class="brand" href="/programs"><b>AI이현</b> / 프로그램</a>
-  <h1>주식 프로그램 <small>매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기 · DB</small></h1>
+  <h1>주식 프로그램 <small>차트 · 매크로 · 대가 8명 · 유명인 포폴 · 유튜버 · 내 계좌 · 복기 · DB</small></h1>
   <div class="tape" id="tape"></div>
 </div></div>
 <div class="wrap"><main>
@@ -198,6 +204,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
   <nav class="tabs" id="tabs" hidden>
     <button type="button" data-tab="dash" aria-pressed="true">대시보드</button>
     <button type="button" data-tab="macro" aria-pressed="false">매크로</button>
+    <button type="button" data-tab="chart" aria-pressed="false">차트</button>
     <button type="button" data-tab="masters" aria-pressed="false">대가</button>
     <button type="button" data-tab="famous" aria-pressed="false">유명인 포폴</button>
     <button type="button" data-tab="yt" aria-pressed="false">유튜버</button>
@@ -333,6 +340,18 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <div class="row pvedit" style="margin-top:10px"><label class="note">원화 예수금 <input id="cash" type="number" step="any" style="width:140px"></label><label class="note">달러 예수금 <input id="cashUsd" type="number" step="any" style="width:110px"></label><button type="button" class="btn y s" id="acctSave">저장</button><span class="msg" id="acctMsg" style="margin:0"></span></div>
   </section>
 
+  <!-- 차트 (트레이딩뷰처럼) -->
+  <section class="box" id="chart" hidden>
+    <div class="row" style="gap:8px;align-items:center"><select id="cSym" aria-label="종목"></select><form id="cFind" class="row" style="gap:4px;margin:0"><input id="cQ" placeholder="종목코드·티커 (005930, AAPL)" style="width:190px"><button class="btn s">보기</button></form><span class="note" id="cMsg"></span></div>
+    <div class="row crow" id="cRange"></div>
+    <div class="row crow" id="cOpt"></div>
+    <div class="row crow" id="cTools"></div>
+    <p class="note" id="cHelp" style="margin:2px 0"></p>
+    <div class="cinfo" id="cInfo"></div>
+    <div id="cBox"><input id="cText" class="ctext" hidden placeholder="글자 쓰고 Enter"></div>
+    <p class="note" style="margin:4px 0 0;text-align:right">차트 엔진: <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a></p>
+  </section>
+
   <!-- 일별 DB -->
   <section class="box" id="db" hidden>
     <h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">일별 DB <span>날짜마다 항목별로 좋았는지(▲) 나빴는지(▼), 어떤 이야기가 있었는지 한 칸씩. 지수·그날 기사·유튜버·SNS·대가 매매를 모아 만들고, 매일 아침 어제 줄이 추가돼요.</span>
@@ -363,6 +382,8 @@ canvas.eq { width: 100%; height: 220px; display: block; }
   </div>
 </main></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" defer></script>
 <script src="/programs/stock/app.js" defer></script>
+<script src="/programs/stock/chart.js" defer></script>
 </body>
 </html>

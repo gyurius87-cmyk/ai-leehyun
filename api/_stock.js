@@ -51,7 +51,7 @@ export async function chart(sym, range = "1y", iv = "1d") {
       if (!r.ok) continue;
       const j = await r.json(), x = j?.chart?.result?.[0]; if (!x?.timestamp) continue;
       const q = x.indicators.quote[0], out = [];
-      x.timestamp.forEach((t, i) => { const c = q.close[i]; if (c != null) out.push({ d: kstDay(new Date(t * 1000)), c, v: q.volume?.[i] || 0 }); });
+      x.timestamp.forEach((t, i) => { const c = q.close[i]; if (c != null) out.push({ d: kstDay(new Date(t * 1000)), c, v: q.volume?.[i] || 0, o: q.open?.[i] ?? c, h: q.high?.[i] ?? c, l: q.low?.[i] ?? c }); });
       // 같은 날짜가 두 번이면 뒤의 것
       const m = new Map(); out.forEach((p) => m.set(p.d, p));
       return { sym, cur: x.meta?.currency || "", name: x.meta?.shortName || x.meta?.longName || "", price: x.meta?.regularMarketPrice ?? out.at(-1)?.c, prev: x.meta?.chartPreviousClose, rows: [...m.values()] };
@@ -407,6 +407,7 @@ export async function stockHandler(req, res, isAdmin) {
   const op = q.op || req.body?.op;
   try {
     if (req.method === "GET") {
+      if (op === "draw") { const [d] = await redis([["GET", "stk:draw:" + String(q.s || "").slice(0, 30)]]); return res.json({ list: json(d) || [] }); }
       if (op === "events") return res.json(await marketEvents(!!q.force));
       if (op === "db") return res.json(await dayDbList(+q.n || 90));
       if (op === "snap") return res.json(await snapshot(!!q.force));
@@ -448,6 +449,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(); return res.json({ added: c, ...(await ytAll()) }); }
+    if (b.op === "draw") { const k = "stk:draw:" + String(b.s || "").slice(0, 30), L = (Array.isArray(b.list) ? b.list : []).slice(0, 200); await redis([L.length ? ["SET", k, JSON.stringify(L).slice(0, 60000)] : ["DEL", k]]); return res.json({ ok: true }); }
     if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
     if (b.op === "dbmake") { const d = /^\d{4}-\d{2}-\d{2}$/.test(b.d || "") ? b.d : kstDay(); const r = await dayDb(d, DBDEPS, true); return r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
     if (b.op === "socseen") { const id = String(b.id || "").slice(0, 300); if (id) await redis([[b.on ? "SADD" : "SREM", "stk:soc:seen", id]]); return res.json({ ok: true }); }
