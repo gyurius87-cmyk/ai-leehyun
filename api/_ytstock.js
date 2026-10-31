@@ -76,9 +76,10 @@ async function geminiNotes(vid) {
   try {
     // 구글이 모델을 자주 바꿔서: 쓸 수 있는 flash 모델을 목록에서 골라 차례로 시도 (막힌 모델은 건너뜀)
     const models = await geminiModels(key); let o = null;
-    for (const m of models) { o = await call(true, m); if (o.status === 400) o = await call(false, m); if (o.status !== 404 && o.status !== 403) break; }
+    // 막힘(404·403)·붐빔(503·500)·한도(429)면 다른 모델로 넘어감. 붐빔은 2초 쉬고 한 번 더.
+    for (const m of models) { o = await call(true, m); if (o.status === 400) o = await call(false, m); if (o.status === 503 || o.status === 500) { await new Promise((r) => setTimeout(r, 2000)); o = await call(true, m); } if (o.t || ![404, 403, 503, 500, 429].includes(o.status)) break; }
     if (o.t) return { t: o.t };
-    const why = o.status === 429 ? "Gemini 무료 한도에 걸렸어요 (잠시 뒤 다시)" : o.status === 400 || o.status === 403 ? `Gemini가 거절했어요 (${o.status}): ${o.msg.slice(0, 120)}` : `Gemini 응답 없음 (${o.status} ${o.msg.slice(0, 80)})`;
+    const why = o.status === 429 ? "Gemini 무료 한도에 걸렸어요 (잠시 뒤 다시)" : o.status === 503 || o.status === 500 ? "구글 Gemini가 지금 붐벼요. 잠시 뒤 다시 눌러 주세요" : o.status === 400 || o.status === 403 ? `Gemini가 거절했어요 (${o.status}): ${o.msg.slice(0, 120)}` : `Gemini 응답 없음 (${o.status} ${o.msg.slice(0, 80)})`;
     return { t: "", err: why };
   } catch (e) { return { t: "", err: "Gemini 연결 실패: " + String(e?.message || e).slice(0, 80) }; }
 }

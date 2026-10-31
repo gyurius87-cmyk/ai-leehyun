@@ -1,6 +1,8 @@
 // 유명인 포트폴리오: 미국 SEC 13F(분기, 45일 늦음) + ARK(매일 공개)
 // 매일 아침 cron에서 새 공시가 있는지만 보고, 바뀐 것만 다시 받음.
+import Anthropic from "@anthropic-ai/sdk";
 import { redis } from "./_redis.js";
+import { recordUsage } from "./_usage.js";
 
 // SEC는 연락처가 담긴 User-Agent를 요구함 (Vercel env SEC_UA로 바꿀 수 있음)
 const SEC_UA = { "User-Agent": process.env.SEC_UA || "AI-leehyun personal research tool (ai-leehyun.vercel.app)", Accept: "application/json, text/xml, */*" };
@@ -57,10 +59,10 @@ async function refresh13F(f, force) {
   const R = sub?.filings?.recent || {}, list = [];
   (R.form || []).forEach((form, i) => { if (form === "13F-HR") list.push({ acc: R.accessionNumber[i], filed: R.filingDate[i], period: R.reportDate[i] }); });
   if (!list.length) throw new Error("no 13F");
-  if (!force && old?.acc === list[0].acc) return old;
+  if (!force && old?.acc === list[0].acc && old.hist) return old;
   const cur = await filing13F(f.cik, list[0].acc), prev = list[1] ? await filing13F(f.cik, list[1].acc) : null;
   const total = cur.reduce((t, r) => t + r.val, 0), d = diff(cur, prev);
-  const out = { id: f.id, kind: "13f", secName: sub.name, acc: list[0].acc, filed: list[0].filed, period: list[0].period, prevPeriod: list[1]?.period || null, total, count: cur.length, rows: d.rows.slice(0, 60), sold: d.sold, at: Date.now() };
+  const out = { id: f.id, kind: "13f", secName: sub.name, acc: list[0].acc, filed: list[0].filed, period: list[0].period, prevPeriod: list[1]?.period || null, total, count: cur.length, rows: d.rows.slice(0, 60), sold: d.sold, hist: list.slice(0, 12), at: Date.now() };
   await redis([["SET", "stk:fam:" + f.id, JSON.stringify(out)]]);
   return out;
 }
@@ -96,5 +98,45 @@ export async function famousRefresh(force) {
 export async function famousAll() {
   const vals = await redis([...FAMOUS.map((f) => ["GET", "stk:fam:" + f.id]), ["GET", "stk:fam:at"]]);
   const at = +vals.pop() || 0;
-  return { at, list: FAMOUS.map((f, i) => { const d = json(vals[i]); if (d) delete d.raw; return { ...f, data: d }; }) };
+  const ds = FAMOUS.map((f, i) => { const d = json(vals[i]); if (d) delete d.raw; return d; });
+  const M = await koMap(ds.flatMap((d) => [...(d?.rows || []), ...(d?.sold || [])].map((r) => r.n)));
+  ds.forEach((d) => { if (!d) return; d.rows.forEach((r) => (r.ko = M[r.n] || "")); (d.sold || []).forEach((r) => (r.ko = M[r.n] || "")); });
+  return { at, list: FAMOUS.map((f, i) => ({ ...f, data: ds[i] })) };
+}
+
+// 지난 분기 보기: 그 분기 공시 + 바로 전 분기와 비교 (한 번 받으면 계속 저장)
+export async function famQuarter(id, acc) {
+  const f = FAMOUS.find((x) => x.id === id); if (!f?.cik) return null;
+  const ck = `stk:famq:${id}:${acc}`, [c, l] = await redis([["GET", ck], ["GET", "stk:fam:" + id]]); const hit = json(c); if (hit) return withKo(hit);
+  const hist = json(l)?.hist || [], i = hist.findIndex((h) => h.acc === acc); if (i < 0) return null;
+  const cur = await filing13F(f.cik, acc), prev = hist[i + 1] ? await filing13F(f.cik, hist[i + 1].acc) : null;
+  const total = cur.reduce((t, r) => t + r.val, 0), d = diff(cur, prev);
+  const out = { id, kind: "13f", acc, filed: hist[i].filed, period: hist[i].period, prevPeriod: hist[i + 1]?.period || null, total, count: cur.length, rows: d.rows.slice(0, 60), sold: d.sold, past: true, at: Date.now() };
+  await redis([["SET", ck, JSON.stringify(out)]]);
+  return withKo(out);
+}
+
+// 종목 한글 이름: 한 번 번역한 건 stk:konames에 모아 둠
+async function koMap(names) {
+  const [c] = await redis([["GET", "stk:konames"]]); const M = json(c) || {};
+  const miss = [...new Set(names.filter((n) => n && !(n in M)))].slice(0, 300);
+  if (miss.length && process.env.ANTHROPIC_API_KEY) {
+    try {
+      const model = process.env.STOCK_MODEL || "claude-sonnet-5-5";
+      const msg = await new Anthropic().messages.create({ model, max_tokens: 8000, output_config: { effort: "low" }, messages: [{ role: "user", content: `미국 증권 공시에 나온 회사·ETF 이름이에요. 한국 투자자가 흔히 부르는 한글 이름으로 바꿔 주세요 (예: APPLE INC → 애플, AMERICAN EXPRESS CO → 아메리칸 익스프레스, SPDR S&P 500 ETF TR → SPDR S&P500 ETF). 모르는 회사는 영어 발음대로 한글로 적어 주세요.
+${miss.map((n, i) => `${i}. ${n}`).join("\n")}
+
+JSON 하나만: {"0":"한글 이름", "1":"..."}` }] });
+      await recordUsage(msg.usage || {}, model);
+      const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), o = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {};
+      miss.forEach((n, i) => { if (o[i]) M[n] = String(o[i]).slice(0, 40); });
+      await redis([["SET", "stk:konames", JSON.stringify(M)]]);
+    } catch (e) { console.error("koMap", e?.message); }
+  }
+  return M;
+}
+async function withKo(d) {
+  if (!d) return d; const M = await koMap([...(d.rows || []), ...(d.sold || [])].map((r) => r.n));
+  (d.rows || []).forEach((r) => (r.ko = M[r.n] || "")); (d.sold || []).forEach((r) => (r.ko = M[r.n] || ""));
+  return d;
 }

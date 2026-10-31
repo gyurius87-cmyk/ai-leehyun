@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
-import { famousAll, famousRefresh } from "./_famous.js";
+import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
@@ -415,7 +415,8 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(); a = await ytAll(); } return res.json(a); }
-      if (op === "fam") { let a = await famousAll(); if (q.refresh || !a.at) { await famousRefresh(!!q.force); a = await famousAll(); } return res.json(a); }
+      if (op === "famq") { const r = await famQuarter(String(q.id || ""), String(q.acc || "")); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
+      if (op === "fam") { let a = await famousAll(); if (q.refresh || !a.at || a.list.some((f) => f.cik && f.data && !f.data.hist)) { await famousRefresh(!!q.force); a = await famousAll(); } return res.json(a); }
       if (op === "world") return res.json(await world(!!q.force, String(q.x || "").split(",").map((x) => x.trim()).filter(Boolean)));
       if (op === "news") return res.json(await news(!!q.force));
       if (op === "brief") { const day = /^\d{4}-\d{2}-\d{2}$/.test(q.d || "") ? q.d : kstDay(); const r = await brief(day, !!q.force && day === kstDay()); const [list] = await redis([["LRANGE", "stk:briefs", 0, 60]]); return res.json({ ...r, list: list || [] }); }
