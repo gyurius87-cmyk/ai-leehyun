@@ -126,6 +126,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .stc .t { font-weight: 700; } .stc .st { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; } .stc .st div { background: var(--soft); border-radius: 8px; padding: 6px 10px; font-size: 12px; } .stc .st b { display: block; font-size: 16px; }
 .stc .md { line-height: 1.65; font-size: 14px; } .stc .md h3, .stc .md h4 { margin: 10px 0 4px; } .stc .md table { border-collapse: collapse; } .stc .md td, .stc .md th { border: 1px solid var(--line); padding: 3px 6px; }
 .stc .qq { margin-top: 10px; padding: 6px 10px; border-radius: 8px; background: var(--soft); font-weight: 600; }
+.cpick { position: absolute; top: 100%; left: 0; z-index: 20; min-width: 280px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 4px; display: grid; } .cpick button { text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--ink); font: inherit; } .cpick button:hover { background: var(--soft); }
 .chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; }
 .chip.매수 { background: var(--up); color: #fff; } .chip.매도 { background: var(--down); color: #fff; }
 .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); cursor: pointer; background: var(--soft); display: block; }
@@ -350,7 +351,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 
   <!-- 차트 (트레이딩뷰처럼) -->
   <section class="box" id="chart" hidden>
-    <div class="row" style="gap:8px;align-items:center"><select id="cSym" aria-label="종목"></select><form id="cFind" class="row" style="gap:4px;margin:0"><input id="cQ" placeholder="종목코드·티커 (005930, AAPL)" style="width:190px"><button class="btn s">보기</button></form><span class="note" id="cMsg"></span></div>
+    <div class="row" style="gap:8px;align-items:center"><select id="cSym" aria-label="종목"></select><form id="cFind" class="row" style="gap:4px;margin:0;position:relative"><input id="cQ" placeholder="종목 이름·코드 (삼성전자, 엔비디아, AAPL)" style="width:240px" autocomplete="off"><button class="btn s">보기</button><div id="cPick" class="cpick" hidden></div></form><span class="note" id="cMsg"></span></div>
     <div class="row crow" id="cRange"></div>
     <div class="row crow" id="cOpt"></div>
     <div class="row crow" id="cTools"></div>

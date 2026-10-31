@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
-import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
+import { kwReady, kwSync, outIp, kwChart, kwChartable, kwStockList } from "./_kiwoom.js";
 import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
@@ -372,6 +372,40 @@ export async function resolveSym(raw) {
   const g = await chart(s, "5d"); return g ? { sym: s, name: g.name, cur: g.cur } : null;
 }
 
+// ── 이름으로 종목 찾기: 한국 종목은 상장 목록(키움 → 안 되면 한국거래소 KIND), 해외·영문은 야후 검색, 그래도 없으면 AI
+async function krList() {
+  const [c] = await redis([["GET", "stk:krlist"]]); const j = json(c); if (j && Date.now() - j.at < 7 * 864e5) return j.list;
+  let list = await kwStockList().catch(() => null);
+  if (!list) try {
+    const r = await fetch("https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13", { headers: UA });
+    const html = new TextDecoder("euc-kr").decode(await r.arrayBuffer()); list = [];
+    for (const tr of html.split(/<tr/i).slice(2)) { const td = [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1].replace(/<[^>]+>/g, "").trim()); const n = td[0], mk = td[1], code = (td.find((x) => /^\d{6}$/.test(x)) || ""); if (n && code) list.push({ s: code + (/코스닥/.test(mk) ? ".KQ" : ".KS"), n }); }
+    if (list.length < 500) list = null;
+  } catch { list = null; }
+  if (list) await redis([["SET", "stk:krlist", JSON.stringify({ at: Date.now(), list })]]);
+  return list || j?.list || [];
+}
+export async function findSym(q) {
+  q = String(q || "").trim(); if (!q) return [];
+  const out = [], seen = new Set(), add = (s, n, k) => { if (s && !seen.has(s)) { seen.add(s); out.push({ s, n, k }); } };
+  if (/^[A-Za-z0-9^.=\-]{1,12}$/.test(q)) { const r = await resolveSym(q).catch(() => null); if (r) add(r.sym, r.name, "코드"); }
+  if (/[가-힣]/.test(q)) {
+    const L = await krList(), nq = q.replace(/\s/g, "").toLowerCase();
+    const sc = (n) => { const m = n.replace(/\s/g, "").toLowerCase(); return m === nq ? 0 : m.startsWith(nq) ? 1 : m.includes(nq) ? 2 : 9; };
+    L.map((x) => [x, sc(x.n)]).filter(([, v]) => v < 9).sort((a, b) => a[1] - b[1] || a[0].n.length - b[0].n.length).slice(0, 8).forEach(([x]) => add(x.s, x.n, x.s.endsWith(".KQ") ? "코스닥" : "코스피"));
+  }
+  if (!out.length || (!/[가-힣]/.test(q) && out.length < 3)) { // 야후 검색 (영문 이름·해외 종목)
+    try { const r = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`, { headers: UA }); const j = await r.json(); (j.quotes || []).filter((x) => x.symbol && x.quoteType !== "OPTION").slice(0, 6).forEach((x) => add(x.symbol, x.shortname || x.longname || x.symbol, x.exchDisp || x.quoteType || "")); } catch {}
+  }
+  if (!out.length && process.env.ANTHROPIC_API_KEY) { // 한글로 쓴 해외 종목 (엔비디아 → NVDA)
+    const ck = "stk:symq:" + q.toLowerCase(), [c] = await redis([["GET", ck]]); let cand = json(c);
+    if (!cand) { try { const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `"${q}" 이 가리키는 주식·ETF·지수의 야후 파이낸스 심볼을 최대 4개 (가능성 높은 순). 한국 종목은 6자리코드.KS 또는 .KQ, 미국은 티커, 지수는 ^로 시작. JSON 배열만: [{"s":"NVDA","n":"엔비디아"}]` }] }); await recordUsage(msg.usage || {}, MODEL); const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); cand = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1)) || []; await redis([["SET", ck, JSON.stringify(cand)], ["EXPIRE", ck, 30 * 86400]]); } catch { cand = []; } }
+    const ok = await Promise.all(cand.slice(0, 4).map((x) => chart(String(x.s), "5d").then((g) => (g ? x : null)).catch(() => null)));
+    ok.filter(Boolean).forEach((x) => add(x.s, x.n, "AI 추천"));
+  }
+  return out.slice(0, 10);
+}
+
 // ── 대가와 대화 (대가별 채팅방, 최근 40개 저장)
 export async function masterChat(id, text) {
   const M = MASTERS.find((m) => m.id === id); if (!M) return null;
@@ -430,6 +464,7 @@ export async function stockHandler(req, res, isAdmin) {
         const g = (await chart(sy, rg, iv)) || (/\.KS$/.test(sy) ? await chart(sy.replace(/\.KS$/, ".KQ"), rg, iv) : null); return g ? res.json({ ...g, src: "yahoo" }) : res.status(404).json({ error: "none" });
       }
       if (op === "quote") { const syms = String(q.s || "").split(",").filter(Boolean).slice(0, 40); const [fx, ...gs] = await Promise.all([chart("KRW=X", "5d"), ...syms.map((s) => chart(s, "5d"))]); return res.json({ fx: fx?.price || null, q: Object.fromEntries(syms.map((s, i) => [s, gs[i] ? { p: gs[i].price, prev: gs[i].rows.at(-2)?.c ?? gs[i].prev, cur: gs[i].cur, name: gs[i].name } : null])) }); }
+      if (op === "find") return res.json({ list: await findSym(q.q) });
       if (op === "sym") { const r = await resolveSym(q.s); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
       if (op === "kw") return res.json(kwReady());
       if (op === "kwip") { try { return res.json({ ip: await outIp() }); } catch (e) { return res.status(502).json({ error: "proxy", msg: String(e?.message || e).slice(0, 200) }); } }

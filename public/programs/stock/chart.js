@@ -113,8 +113,19 @@
     if (b.dataset.ccol) { S.color = b.dataset.ccol; return ui(); }
     if (b.dataset.cclear) { if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "정말 모두 지울까요?"; return; } S.draws = []; save(); ui(); paint(); }
   });
+  // 이름·코드·티커로 찾기 (한글 종목명 가능)
+  async function find(enter) {
+    const v = $("cQ").value.trim(), box = $("cPick"); if (!v) { box.hidden = true; return; }
+    if (!enter && v.length < 2) return;
+    $("cMsg").textContent = "찾는 중…";
+    try { const { list } = await api("op=find&q=" + encodeURIComponent(v)); if ($("cQ").value.trim() !== v) return; $("cMsg").textContent = list.length ? "" : "못 찾았어요. 다른 이름이나 코드로 넣어 보세요.";
+      if (enter && list.length === 1) { box.hidden = true; $("cQ").value = ""; return go(list[0].s, list[0].n); }
+      box.innerHTML = list.map((x) => `<button type="button" data-cpick="${esc(x.s)}" data-cn="${esc(x.n)}"><b>${esc(x.n)}</b> <span class="note">${esc(x.s)}${x.k ? " · " + esc(x.k) : ""}</span></button>`).join(""); box.hidden = !list.length;
+    } catch { $("cMsg").textContent = "찾지 못했어요."; }
+  }
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-cpick]"); if (b) { $("cPick").hidden = true; $("cQ").value = ""; go(b.dataset.cpick, b.dataset.cn); } else if (!e.target.closest("#cFind")) { const p = $("cPick"); if (p) p.hidden = true; } });
   function go(sym, name) { S.sym = sym; S.name = name; ls.set("stk-cs", sym); ls.set("stk-cn", name); pend = null; ui(); load(); }
-  window.openChartTab = () => { if (typeof LightweightCharts === "undefined") { $("cMsg").textContent = "차트 도구를 불러오는 중…"; return setTimeout(window.openChartTab, 400); } if (!booted) { booted = true; ui(); $("cSym").onchange = () => go($("cSym").value, $("cSym").selectedOptions[0].textContent); $("cFind").onsubmit = async (e) => { e.preventDefault(); const v = $("cQ").value.trim(); if (!v) return; $("cMsg").textContent = "찾는 중…"; try { const r = await api("op=sym&s=" + encodeURIComponent(v)); $("cQ").value = ""; go(r.sym, r.name || r.sym); } catch { $("cMsg").textContent = "못 찾았어요. 종목코드(005930)나 영문 티커(AAPL)로 넣어 주세요."; } }; load(); setTool("cur"); } else requestAnimationFrame(paint); };
+  window.openChartTab = () => { if (typeof LightweightCharts === "undefined") { $("cMsg").textContent = "차트 도구를 불러오는 중…"; return setTimeout(window.openChartTab, 400); } if (!booted) { booted = true; ui(); $("cSym").onchange = () => go($("cSym").value, $("cSym").selectedOptions[0].textContent); $("cFind").onsubmit = (e) => { e.preventDefault(); find(true); }; $("cQ").oninput = () => { clearTimeout(find.t); find.t = setTimeout(() => find(false), 350); }; load(); setTool("cur"); } else requestAnimationFrame(paint); };
   // 다른 탭의 차트에서 "차트 탭에서 크게" 로 열 때
   window.chartOpen = (sym, name) => { S.sym = sym; S.name = name || sym; ls.set("stk-cs", sym); ls.set("stk-cn", S.name); if (booted) { ui(); load(); } };
 })();

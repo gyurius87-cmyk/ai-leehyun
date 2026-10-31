@@ -117,3 +117,14 @@ export async function kwChart(sym, iv = "1d", from = "2000-01-01") {
   await redis([["SET", ck, JSON.stringify(out)], ["EXPIRE", ck, 3600]]);
   return out;
 }
+
+// 국내 상장 종목 목록 (이름 → 코드 검색용). ka10099 종목정보 리스트: 0 코스피, 10 코스닥
+export async function kwStockList() {
+  const k = kwReady(); if (!k.key || !k.proxy) return null;
+  const out = [];
+  for (const [mk, suf] of [["0", ".KS"], ["10", ".KQ"]]) {
+    const { rows } = await tr("ka10099", { mrkt_tp: mk }, "list", "stkinfo");
+    rows.forEach((x) => { const c = String(x.code || x.stk_cd || "").slice(0, 6), n = String(x.name || x.stk_nm || "").trim(); if (/^\d{6}$/.test(c) && n) out.push({ s: c + suf, n }); });
+  }
+  return out.length > 500 ? out : null;
+}
