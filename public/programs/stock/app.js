@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "yt", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -57,7 +57,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "yt", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "macro", "masters", "famous", "yt", "soc", "acct", "review"].forEach((x) => ($(x).hidden = x !== t)); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -468,6 +468,29 @@ $("yAdd").onsubmit = async (e) => {
   try { const j = await api("", { op: "ytadd", url: u }); YT = j; $("yUrl").value = ""; $("yMsg").textContent = `${j.added.name} 더했어요.`; renderYt(); }
   catch { $("yMsg").textContent = "그 채널을 못 찾았어요. 채널 주소를 그대로 붙여 넣어 보세요."; }
 };
+
+
+// ── SNS 발언
+let SOC = null;
+async function loadSoc(force) {
+  if (SOC && !force) return renderSoc();
+  $("sRe").disabled = true; if (force) $("sAt").textContent = "받고 해석하는 중… (40초쯤)";
+  try { SOC = await api("op=soc" + (force ? "&force=1" : "")); renderSoc(); } catch { $("sPeople").innerHTML = `<p class="msg no">못 불러왔어요. '새로 받기'를 눌러 주세요.</p>`; }
+  $("sRe").disabled = false;
+}
+$("sRe").onclick = () => loadSoc(true);
+function renderSoc() {
+  $("sAt").textContent = new Date(SOC.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 기준";
+  const E = SOC.errs || {}, en = Object.keys(E); $("sErr").hidden = !en.length;
+  $("sErr").textContent = en.length ? "못 받은 곳: " + en.map((k) => ({ truth: "트루스소셜", reddit: "레딧", ai: "AI 해석" })[k] || k).join(", ") : "";
+  const when = (t) => (t ? ago(new Date(t).toISOString()) : "");
+  $("sPeople").innerHTML = SOC.people.map((p) => `<article class="sp"><h3 style="margin:0">${esc(p.who)}</h3>${p.mood ? `<p class="note" style="margin:0">${esc(p.mood)}</p>` : ""}
+    ${p.picks.map((x) => `<div class="it ${esc(x.impact)}"><div><span class="imp ${esc(x.impact)}">${esc(x.impact)}</span> <b>${esc(x.take)}</b></div><div class="note">${x.post ? "💬 본인 게시글 · " : ""}<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 140))}</a> · ${esc(x.src)} · ${when(x.at)}</div>${x.stocks.length ? `<div>${x.stocks.map((k) => `<span class="stk">${esc(k)}</span>`).join("")}</div>` : ""}</div>`).join("") || `<p class="note" style="margin:0">최근 시장에 의미 있는 발언이 없어요.</p>`}
+    ${p.raw.length ? `<details><summary>원문 헤드라인 ${p.raw.length}개</summary><ul style="margin:4px 0 0;padding-left:18px">${p.raw.map((x) => `<li class="note"><a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 160))}</a> · ${when(x.at)}</li>`).join("")}</ul></details>` : ""}</article>`).join("");
+  const R = SOC.reddit; if (!R) { $("sWsb").innerHTML = `<p class="note">레딧에서 못 받았어요.</p>`; return; }
+  const max = R.top[0]?.v || 1;
+  $("sWsb").innerHTML = `<div class="two"><div>${R.top.map((t) => `<div class="row" style="gap:8px;margin:3px 0"><b class="num" style="width:56px">${esc(t.s)}</b><div class="bar" style="width:${Math.max(4, (t.v / max) * 70)}%"></div><span class="note num">${t.v}</span></div>`).join("") || `<p class="note">없어요</p>`}</div><div><h3>인기 글</h3><ul style="margin:0;padding-left:18px">${R.posts.map((p) => `<li><a href="${esc(p.link)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.t)}</a> <span class="note">▲${p.score}</span></li>`).join("")}</ul></div></div>`;
+}
 
 // ── 내 계좌
 let KW = null;

@@ -142,6 +142,13 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .mnav { gap: 6px; } .mnav button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 3px 12px 3px 3px; font: inherit; font-size: 13px; cursor: pointer; }
 .mnav button svg { width: 28px; height: 28px; border-radius: 50%; } .mnav button.dash { padding: 7px 14px; font-weight: 700; }
 .mnav button[aria-pressed="true"] { background: var(--board); color: var(--on-board); border-color: var(--board); }
+.sg { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px; }
+.sp { background: var(--panel); border-radius: 14px; padding: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.06); display: grid; gap: 8px; align-content: start; min-width: 0; }
+.sp .it { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; display: grid; gap: 2px; }
+.sp .it.호재 { border-color: var(--up); } .sp .it.악재 { border-color: var(--down); }
+.imp { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 7px; background: var(--line); }
+.imp.호재 { background: var(--up); color: #fff; } .imp.악재 { background: var(--down); color: #fff; }
+.sp a { color: inherit; } .sp details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
@@ -163,6 +170,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <button type="button" data-tab="masters" aria-pressed="false">대가</button>
     <button type="button" data-tab="famous" aria-pressed="false">유명인 포폴</button>
     <button type="button" data-tab="yt" aria-pressed="false">유튜버</button>
+    <button type="button" data-tab="soc" aria-pressed="false">SNS 발언</button>
     <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
   </nav>
@@ -261,6 +269,17 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <p class="note" style="margin:6px 0 0">최근 10일 영상은 AI가 요약해 둬요. 자막을 받으면 자막으로, 못 받으면 제목·설명란으로 요약하고 어느 쪽인지 표시해요.</p>
     </section>
     <div class="ytl" id="yList"><p class="note">불러오는 중… (처음엔 30초쯤)</p></div>
+  </div>
+
+  <!-- SNS 발언 -->
+  <div id="soc" hidden class="grid" style="gap:14px">
+    <section class="box">
+      <h2>유명인 SNS·발언 <span id="sAt"></span><button type="button" class="btn g s" id="sRe" style="margin-left:auto">새로 받기</button></h2>
+      <p class="note" style="margin:0">트럼프는 트루스소셜 게시글을, 나머지는 발언을 다룬 해외 뉴스 헤드라인을 모아 AI가 의미를 풀어요. 3시간마다, 그리고 매일 아침 새로 받아요. X(트위터)는 유료 API라 직접 받지 않아요.</p>
+      <p class="msg no" id="sErr" hidden></p>
+    </section>
+    <div class="sg" id="sPeople"><p class="note">불러오는 중… (처음엔 40초쯤)</p></div>
+    <section class="box"><h2>레딧 월스트리트베츠에서 많이 말하는 종목 <span>인기 글 제목 기준</span></h2><div id="sWsb"></div></section>
   </div>
 
   <!-- 내 계좌 -->
