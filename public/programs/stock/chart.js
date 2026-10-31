@@ -6,7 +6,9 @@
   const IVS = [["1d", "일"], ["1wk", "주"], ["1mo", "월"]];
   const MAS = [[5, "#f2b632"], [20, "#e8590c"], [60, "#2f9e44"], [120, "#7048e8"]];
   const TOOLS = [["cur", "↖ 보기"], ["line", "╱ 추세선"], ["ray", "→ 연장선"], ["hline", "─ 수평선"], ["box", "▭ 박스"], ["text", "T 글자"], ["del", "⌫ 지우기"]];
-  const S = { sym: ls.get("stk-cs", "^IXIC"), name: ls.get("stk-cn", "나스닥"), r: ls.get("stk-cr", "1y"), iv: ls.get("stk-ci", "1d"), type: ls.get("stk-ct", "candle"), ma: ls.get("stk-cma", [20, 60]), ev: ls.get("stk-cev", true), tool: "cur", color: "#e03131", draws: [], rows: [] };
+  const CMPC = ["#1971c2", "#e8590c", "#2f9e44", "#7048e8", "#c2255c", "#0c8599"];
+  let cmpS = [];
+  const S = { cmp: ls.get("stk-ccmp", []), sym: ls.get("stk-cs", "^IXIC"), name: ls.get("stk-cn", "나스닥"), r: ls.get("stk-cr", "1y"), iv: ls.get("stk-ci", "1d"), type: ls.get("stk-ct", "candle"), ma: ls.get("stk-cma", [20, 60]), ev: ls.get("stk-cev", true), tool: "cur", color: "#e03131", draws: [], rows: [] };
   let chart = null, main = null, vol = null, maS = {}, cv = null, pend = null, hoverPt = null, booted = false;
 
   const ui = () => {
@@ -44,13 +46,19 @@
     make(); $("cMsg").textContent = "불러오는 중…";
     let g; try { g = await api(`op=chart&s=${encodeURIComponent(S.sym)}&r=${S.r}&i=${S.iv}`); } catch { $("cMsg").textContent = "차트를 못 불러왔어요."; return; }
     S.rows = (g.rows || []).filter((r) => r.c != null); S.name = S.name || g.name || S.sym; $("cMsg").textContent = g.src === "kiwoom" ? "키움 차트" : "";
-    [main, vol, ...Object.values(maS)].forEach((s) => s && chart.removeSeries(s)); maS = {};
+    [main, vol, ...Object.values(maS), ...cmpS].forEach((s) => s && chart.removeSeries(s)); maS = {}; cmpS = [];
     main = S.type === "candle" ? chart.addCandlestickSeries({ upColor: up(), downColor: dn(), borderUpColor: up(), borderDownColor: dn(), wickUpColor: up(), wickDownColor: dn() }) : chart.addLineSeries({ color: css("--ink") || "#333", lineWidth: 2 });
     main.setData(S.type === "candle" ? S.rows.map((r) => ({ time: r.d, open: r.o ?? r.c, high: r.h ?? r.c, low: r.l ?? r.c, close: r.c })) : S.rows.map((r) => ({ time: r.d, value: r.c })));
     if (S.rows.some((r) => r.v)) { vol = chart.addHistogramSeries({ priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false }); chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } }); vol.setData(S.rows.map((r, i) => ({ time: r.d, value: r.v || 0, color: (r.c >= (S.rows[i - 1]?.c ?? r.c) ? up() : dn()) + "66" }))); } else vol = null;
     main.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: vol ? 0.22 : 0.06 } });
-    MAS.forEach(([n, c]) => { if (!S.ma.includes(n)) return; const s = chart.addLineSeries({ color: c, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false }); const out = []; let sum = 0; S.rows.forEach((r, i) => { sum += r.c; if (i >= n) sum -= S.rows[i - n].c; if (i >= n - 1) out.push({ time: r.d, value: sum / n }); }); s.setData(out); maS[n] = s; });
+    MAS.forEach(([n, c]) => { if (!S.ma.includes(n) || S.cmp.some((x) => x.s !== S.sym)) return; const s = chart.addLineSeries({ color: c, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false }); const out = []; let sum = 0; S.rows.forEach((r, i) => { sum += r.c; if (i >= n) sum -= S.rows[i - n].c; if (i >= n - 1) out.push({ time: r.d, value: sum / n }); }); s.setData(out); maS[n] = s; });
     marks(); chart.timeScale().fitContent();
+    // 겹쳐 보기: 다른 종목을 같은 차트에. 있으면 오른쪽 축을 %로 (각자 화면 첫날 기준)
+    const cmps = S.cmp.filter((c) => c.s !== S.sym);
+    chart.priceScale("right").applyOptions({ mode: cmps.length ? 2 : 0 });
+    if (cmps.length) { const gs = await Promise.all(cmps.map((c) => api(`op=chart&s=${encodeURIComponent(c.s)}&r=${S.r}&i=${S.iv}`).catch(() => null))); const d0 = S.rows[0]?.d;
+      cmps.forEach((c, i) => { const rows = (gs[i]?.rows || []).filter((r) => r.c != null && (!d0 || r.d >= d0)); if (!rows.length) return; const se = chart.addLineSeries({ color: CMPC[i % CMPC.length], lineWidth: 2, priceLineVisible: false, title: c.n }); se.setData(rows.map((r) => ({ time: r.d, value: r.c }))); cmpS.push(se); }); }
+    renderCmp();
     try { S.draws = (await api("op=draw&s=" + encodeURIComponent(S.sym))).list || []; } catch { S.draws = []; }
     $("cInfo").innerHTML = info(null); paint();
   }
@@ -114,16 +122,27 @@
     if (b.dataset.cclear) { if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "정말 모두 지울까요?"; return; } S.draws = []; save(); ui(); paint(); }
   });
   // 이름·코드·티커로 찾기 (한글 종목명 가능)
-  async function find(enter) {
-    const v = $("cQ").value.trim(), box = $("cPick"); if (!v) { box.hidden = true; return; }
+  async function find(enter, cmp) {
+    const qi = $(cmp ? "cCmpQ" : "cQ"), box = $(cmp ? "cCmpPick" : "cPick"), v = qi.value.trim(); if (!v) { box.hidden = true; return; }
     if (!enter && v.length < 2) return;
     $("cMsg").textContent = "찾는 중…";
-    try { const { list } = await api("op=find&q=" + encodeURIComponent(v)); if ($("cQ").value.trim() !== v) return; $("cMsg").textContent = list.length ? "" : "못 찾았어요. 다른 이름이나 코드로 넣어 보세요.";
-      if (enter && list.length === 1) { box.hidden = true; $("cQ").value = ""; return go(list[0].s, list[0].n); }
-      box.innerHTML = list.map((x) => `<button type="button" data-cpick="${esc(x.s)}" data-cn="${esc(x.n)}"><b>${esc(x.n)}</b> <span class="note">${esc(x.s)}${x.k ? " · " + esc(x.k) : ""}</span></button>`).join(""); box.hidden = !list.length;
+    try { const { list } = await api("op=find&q=" + encodeURIComponent(v)); if (qi.value.trim() !== v) return; $("cMsg").textContent = list.length ? "" : "못 찾았어요. 다른 이름이나 코드로 넣어 보세요.";
+      if (enter && list.length === 1) { box.hidden = true; qi.value = ""; return cmp ? addCmp(list[0].s, list[0].n) : go(list[0].s, list[0].n); }
+      box.innerHTML = list.map((x) => `<button type="button" data-cpick="${esc(x.s)}" data-cn="${esc(x.n)}"${cmp ? ' data-cmp="1"' : ""}><b>${esc(x.n)}</b> <span class="note">${esc(x.s)}${x.k ? " · " + esc(x.k) : ""}</span></button>`).join(""); box.hidden = !list.length;
     } catch { $("cMsg").textContent = "찾지 못했어요."; }
   }
-  document.addEventListener("click", (e) => { const b = e.target.closest("[data-cpick]"); if (b) { $("cPick").hidden = true; $("cQ").value = ""; go(b.dataset.cpick, b.dataset.cn); } else if (!e.target.closest("#cFind")) { const p = $("cPick"); if (p) p.hidden = true; } });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-cpick]"); if (b) { const cmp = !!b.dataset.cmp; $(cmp ? "cCmpPick" : "cPick").hidden = true; $(cmp ? "cCmpQ" : "cQ").value = ""; return cmp ? addCmp(b.dataset.cpick, b.dataset.cn) : go(b.dataset.cpick, b.dataset.cn); }
+    if (!e.target.closest("#cFind")) { const p = $("cPick"); if (p) p.hidden = true; } if (!e.target.closest("#cCmpF")) { const p = $("cCmpPick"); if (p) p.hidden = true; }
+    const x = e.target.closest("[data-cmpdel]"); if (x) { S.cmp = S.cmp.filter((c) => c.s !== x.dataset.cmpdel); ls.set("stk-ccmp", S.cmp); load(); }
+    const q = e.target.closest("[data-cmpq]"); if (q) addCmp(q.dataset.cmpq, q.textContent); });
+  function addCmp(s, n) { if (s === S.sym || S.cmp.some((c) => c.s === s)) return; S.cmp = [...S.cmp, { s, n }].slice(0, 6); ls.set("stk-ccmp", S.cmp); load(); }
+  function renderCmp() {
+    const box = $("cCmp"); if (!box) return; const cm = S.cmp.filter((c) => c.s !== S.sym);
+    box.innerHTML = `<span class="note">겹쳐 보기</span>` + cm.map((c, i) => `<span class="leg"><i style="background:${CMPC[i % CMPC.length]}"></i>${esc(c.n)}<button type="button" data-cmpdel="${esc(c.s)}" aria-label="빼기">✕</button></span>`).join("") +
+      `<form id="cCmpF" class="row" style="gap:4px;margin:0;position:relative"><input id="cCmpQ" placeholder="+ 겹칠 종목 이름·코드" style="width:180px" autocomplete="off"><div id="cCmpPick" class="cpick" hidden></div></form>` +
+      (cm.length ? `<span class="note">축이 %로 바뀌었어요 (화면 첫날 0%)</span>` : QUICK.filter((q) => q[0] !== S.sym).slice(0, 5).map(([s, n]) => `<button type="button" class="pill" data-cmpq="${esc(s)}">${esc(n)}</button>`).join(""));
+    $("cCmpF").onsubmit = (e) => { e.preventDefault(); find(true, true); }; $("cCmpQ").oninput = () => { clearTimeout(find.c); find.c = setTimeout(() => find(false, true), 350); };
+  }
   function go(sym, name) { S.sym = sym; S.name = name; ls.set("stk-cs", sym); ls.set("stk-cn", name); pend = null; ui(); load(); }
   window.openChartTab = () => { if (typeof LightweightCharts === "undefined") { $("cMsg").textContent = "차트 도구를 불러오는 중…"; return setTimeout(window.openChartTab, 400); } if (!booted) { booted = true; ui(); $("cSym").onchange = () => go($("cSym").value, $("cSym").selectedOptions[0].textContent); $("cFind").onsubmit = (e) => { e.preventDefault(); find(true); }; $("cQ").oninput = () => { clearTimeout(find.t); find.t = setTimeout(() => find(false), 350); }; load(); setTool("cur"); } else requestAnimationFrame(paint); };
   // 다른 탭의 차트에서 "차트 탭에서 크게" 로 열 때
