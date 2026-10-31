@@ -7,7 +7,7 @@ import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
 import { famousAll, famousRefresh } from "./_famous.js";
-import { ytAll, ytSync, ytAdd, ytDel, ytOne } from "./_ytstock.js";
+import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
@@ -433,6 +433,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(8); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(4); return res.json({ added: c, ...(await ytAll()) }); }
+    if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
     if (b.op === "ytdel") { await ytDel(String(b.id || "")); return res.json(await ytAll()); }
     if (b.op === "ytsum") { const r = await ytOne(String(b.id || "")); return r ? res.json(r) : res.status(502).json({ error: "sum" }); }
     if (b.op === "kwsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env", ...k }); try { return res.json(await kwSync(Math.max(1, Math.min(120, +b.days || 7)))); } catch (e) { console.error(e); return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }

@@ -96,7 +96,10 @@ export async function ytSync(max = 8) {
 export async function ytOne(vid) { const [f] = await redis([["GET", "stk:yt:feed"]]); const v = (json(f) || []).find((x) => x.id === vid); return v ? summarize(v) : null; }
 
 export async function ytAll() {
-  const [c, f, at] = await redis([["GET", "stk:yt:ch"], ["GET", "stk:yt:feed"], ["GET", "stk:yt:at"]]);
+  const [c, f, at, seen] = await redis([["GET", "stk:yt:ch"], ["GET", "stk:yt:feed"], ["GET", "stk:yt:at"], ["SMEMBERS", "stk:yt:seen"]]);
   const feedL = (json(f) || []).slice(0, 80), sums = feedL.length ? await redis(feedL.map((v) => ["GET", "stk:yt:s:" + v.id])) : [];
-  return { at: +at || 0, ch: json(c) || [], feed: feedL.map((v, i) => { const sm = json(sums[i]); return { ...v, desc: v.desc.slice(0, 300), s: sm && sm.basis !== "설명란" ? sm : null }; }) };
+  return { at: +at || 0, seen: seen || [], ch: json(c) || [], feed: feedL.map((v, i) => { const sm = json(sums[i]); return { ...v, desc: v.desc.slice(0, 300), s: sm && sm.basis !== "설명란" ? sm : null }; }) };
 }
+
+// 내가 본 영상 표시 (사이트에서 열었거나 '봤어요'를 누른 것)
+export async function ytSeen(id, on) { await redis([[on ? "SADD" : "SREM", "stk:yt:seen", String(id)]]); }

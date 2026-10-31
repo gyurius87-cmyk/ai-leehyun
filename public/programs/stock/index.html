@@ -149,6 +149,12 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .imp { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 7px; background: var(--line); }
 .imp.호재 { background: var(--up); color: #fff; } .imp.악재 { background: var(--down); color: #fff; }
 .sp a { color: inherit; } .sp details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.ywk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.ywk .d { background: var(--soft); border-radius: 10px; padding: 6px; text-align: center; font-size: 12px; display: grid; gap: 3px; }
+.ywk .d.today { outline: 2px solid var(--amber); }
+.ywk .bars { height: 54px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+.ywk .bars i { width: 12px; border-radius: 3px 3px 0 0; background: var(--line); display: block; } .ywk .bars i.w { background: var(--amber); }
+.yv.seen { opacity: .72; } .seenb[aria-pressed="true"] { background: var(--amber); color: #1c2027; border-color: var(--amber); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
@@ -268,6 +274,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <form class="row" id="yAdd" style="margin-top:8px"><input id="yUrl" placeholder="채널 주소나 @핸들 (예: youtube.com/@syukaworld)" style="flex:1 1 260px"><button class="btn s">채널 더하기</button><span class="msg" id="yMsg" style="margin:0"></span></form>
       <p class="note" style="margin:6px 0 0">최근 10일 영상은 자막이나 영상 내용을 받을 수 있을 때만 AI가 요약해요. 설명란만으로는 요약하지 않아요.</p>
     </section>
+    <section class="box"><h2>요일별 올라온 영상 · 내가 본 영상 <span>최근 2주 · 사이트에서 열거나 '봤어요'를 누르면 본 걸로 쳐요</span></h2><div class="ywk" id="yWeek"></div></section>
     <div class="ytl" id="yList"><p class="note">불러오는 중… (처음엔 30초쯤)</p></div>
   </div>
 
