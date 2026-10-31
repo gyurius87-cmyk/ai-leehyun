@@ -727,33 +727,34 @@ $("hvPub").onclick = () => { if (PUB) return; $("hvForm").hidden = false; $("hvM
 $("hvForm").onsubmit = async (e) => { e.preventDefault();
   try { await api("", { op: "acctpin", pin: $("hvPin").value }); $("hvPin").value = ""; setPv(true); }
   catch (err) { $("hvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요. 처음이면 내 계좌 탭에서 비밀번호를 먼저 정해 주세요." : "확인하지 못했어요."; } };
-var HS = { meta: null, rows: [], mk: ls.get("stk-hmk", "kr"), y: "all", k: "전체", q: "", n: 300 };
+var HS = { meta: null, rows: [], mk: ls.get("stk-hmk", "all"), y: "all", k: "전체", q: "", n: 300 };
 async function loadHist() {
   if (!PUB) { $("hsRows").innerHTML = $("hsStk").innerHTML = $("hsSum").innerHTML = $("hsYears").innerHTML = $("hsKinds").innerHTML = ""; return; }
+  if (FX === 1400) api("op=quote&s=").then((j) => { if (j.fx) { FX = j.fx; renderHist(); } }).catch(() => {});
   try { const j = await api("op=hist"); HS.meta = j.meta; const ys = j.meta.years || []; const all = await Promise.all(ys.map((y) => api("op=hist&y=" + y).then((r) => r.rows).catch(() => []))); HS.rows = all.flat(); } catch { $("hsMsg").textContent = "못 불러왔어요."; return; }
   if (!HS.rows.length && !$("hsMsg").textContent) $("hsMsg").textContent = "아직 받은 이력이 없어요. '키움에서 모든 이력 받기'를 눌러 주세요.";
   renderHist();
 }
 function renderHist() {
   if (!PUB) return;
-  const ovs = (r) => (r.cur && r.cur !== "KRW") || (r.code && !/^\d{6}$/.test(r.code)), isUs = HS.mk === "us";
-  const mrows = HS.rows.filter((r) => ovs(r) === isUs), nUs = HS.rows.filter(ovs).length;
-  $("hsMkt").innerHTML = `<button type="button" class="pill" data-hsm="kr" aria-pressed="${!isUs}">🇰🇷 한국 <span class="note">${HS.rows.length - nUs}</span></button><button type="button" class="pill" data-hsm="us" aria-pressed="${isUs}">🇺🇸 미국·해외 <span class="note">${nUs}</span></button>`;
+  const ovs = (r) => (r.cur && r.cur !== "KRW") || (r.code && !/^\d{6}$/.test(r.code)), isUs = HS.mk === "us", isAll = HS.mk === "all";
+  const mrows = isAll ? HS.rows : HS.rows.filter((r) => ovs(r) === isUs), nUs = HS.rows.filter(ovs).length;
+  $("hsMkt").innerHTML = `<button type="button" class="pill" data-hsm="all" aria-pressed="${isAll}">전체 <span class="note">${HS.rows.length}</span></button><button type="button" class="pill" data-hsm="kr" aria-pressed="${HS.mk === "kr"}">🇰🇷 한국 <span class="note">${HS.rows.length - nUs}</span></button><button type="button" class="pill" data-hsm="us" aria-pressed="${isUs}">🇺🇸 미국·해외 <span class="note">${nUs}</span></button>${isAll && nUs ? `<span class="note" style="margin:0">해외는 지금 환율 ${fmt(FX, 1)}원으로 바꿔 더해요</span>` : ""}`;
   $("hsUs").hidden = !isUs;
-  const money = (v) => (isUs ? "$" + fmt(v, 2) : won(v) + "원");
+  const money = (v) => (isUs ? "$" + fmt(v, 2) : won(v) + "원"), cv = (r, v) => (isAll && r.cur && r.cur !== "KRW" ? v * FX : v);
   const years = [...new Set(mrows.map((r) => r.d.slice(0, 4)))].sort().reverse(), kinds = ["전체", "매수", "매도", "입출금", "배당", "이자", "기타"];
   $("hsYears").innerHTML = ["all", ...years].map((y) => `<button type="button" class="pill" data-hsy="${y}" aria-pressed="${HS.y === y}">${y === "all" ? "전체 기간" : y + "년"}</button>`).join("");
   const inY = mrows.filter((r) => HS.y === "all" || r.d.startsWith(HS.y));
   $("hsKinds").innerHTML = kinds.map((k) => { const n = k === "전체" ? inY.length : inY.filter((r) => r.k === k).length; return n || k === "전체" ? `<button type="button" class="pill" data-hsk="${k}" aria-pressed="${HS.k === k}">${k} <span class="note">${n}</span></button>` : ""; }).join("");
   const q = HS.q.trim().toLowerCase(), rows = inY.filter((r) => (HS.k === "전체" || r.k === HS.k) && (!q || `${r.name} ${r.code} ${r.t}`.toLowerCase().includes(q))).slice().reverse();
-  const sum = (k, f = "amt") => inY.filter((r) => r.k === k).reduce((t, r) => t + (+r[f] || 0), 0), fees = inY.reduce((t, r) => t + (+r.fee || 0) + (+r.tax || 0), 0);
+  const sum = (k, f = "amt") => inY.filter((r) => r.k === k).reduce((t, r) => t + cv(r, +r[f] || 0), 0), fees = inY.reduce((t, r) => t + cv(r, (+r.fee || 0) + (+r.tax || 0)), 0);
   const days = inY.length ? `${inY[0].d} ~ ${inY.at(-1).d}` : "";
   $("hsSum").innerHTML = [["거래 건수", fmt(inY.length, 0) + "건", days], ["매수 금액", money(sum("매수")), fmt(inY.filter((r) => r.k === "매수").length, 0) + "건"], ["매도 금액", money(sum("매도")), fmt(inY.filter((r) => r.k === "매도").length, 0) + "건"], ["수수료·세금", money(fees), ""], ["배당", money(sum("배당")), ""]]
     .map(([k, v, c]) => `<div class="card" style="flex:1 1 150px"><div class="k">${k}</div><div class="v" style="font-size:18px">${v}</div><div class="c note">${c}</div></div>`).join("");
-  const by = new Map(); inY.forEach((r) => { if (r.k !== "매수" && r.k !== "매도" || !(r.name || r.code)) return; const o = by.get(r.name || r.code) || { n: r.name || r.code, b: 0, ba: 0, s: 0, sa: 0, f: 0 }; if (r.k === "매수") { o.b++; o.ba += +r.amt || 0; } else { o.s++; o.sa += +r.amt || 0; } o.f += (+r.fee || 0) + (+r.tax || 0); by.set(o.n, o); });
+  const by = new Map(); inY.forEach((r) => { if (r.k !== "매수" && r.k !== "매도" || !(r.name || r.code)) return; const o = by.get(r.name || r.code) || { n: r.name || r.code, b: 0, ba: 0, s: 0, sa: 0, f: 0 }; if (r.k === "매수") { o.b++; o.ba += cv(r, +r.amt || 0); } else { o.s++; o.sa += cv(r, +r.amt || 0); } o.f += cv(r, (+r.fee || 0) + (+r.tax || 0)); by.set(o.n, o); });
   $("hsStk").innerHTML = [...by.values()].sort((a, b) => b.ba + b.sa - a.ba - a.sa).map((o) => `<tr><td><b>${esc(o.n)}</b></td><td class="r">${o.b}</td><td class="r">${money(o.ba)}</td><td class="r">${o.s}</td><td class="r">${money(o.sa)}</td><td class="r ${ud(o.sa - o.ba)}">${o.s ? money(o.sa - o.ba) : "-"}</td><td class="r">${money(o.f)}</td></tr>`).join("") || `<tr><td colspan="7" class="note">매매 기록이 없어요.</td></tr>`;
   const kc = { 매수: "up", 매도: "down" };
-  HS.view = rows; $("hsRows").innerHTML = rows.slice(0, HS.n).map((r, ix) => `<tr data-hsraw="${ix}" style="cursor:pointer"><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
+  HS.view = rows; $("hsRows").innerHTML = rows.slice(0, HS.n).map((r, ix) => `<tr data-hsraw="${ix}" style="cursor:pointer"><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? (r.cur !== "KRW" ? "$" : "") + fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
   $("hsMore").innerHTML = rows.length > HS.n ? `${fmt(rows.length, 0)}건 중 ${fmt(HS.n, 0)}건을 보여요. <button type="button" class="btn g s" id="hsMoreB">더 보기</button>` : "";
 }
 document.addEventListener("click", (e) => {
