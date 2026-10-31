@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
-import { kwReady, kwSync, outIp, kwChart, kwChartable, kwStockList } from "./_kiwoom.js";
+import { kwReady, kwSync, outIp, kwChart, kwChartable, kwStockList, kwHistSync } from "./_kiwoom.js";
 import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
@@ -501,7 +501,7 @@ const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -513,6 +513,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "db") return res.json(await dayDbList(+q.n || 90));
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
+      if (op === "hist") { const [m] = await redis([["GET", "stk:histmeta"]]); const meta = json(m) || { years: [] }; if (!q.y) return res.json({ meta }); const [c] = await redis([["GET", "stk:hist:" + String(q.y).slice(0, 4)]]); return res.json({ meta, rows: json(c) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
@@ -550,6 +551,7 @@ export async function stockHandler(req, res, isAdmin) {
     }
     if (b.op === "acct") { const a = { hold: (Array.isArray(b.acct?.hold) ? b.acct.hold : []).slice(0, 100).map((h) => ({ sym: clip(h.sym, 20), name: clip(h.name, 40), qty: +h.qty || 0, avg: +h.avg || 0, cur: h.cur === "USD" ? "USD" : "KRW", memo: clip(h.memo, 200), src: h.src === "kiwoom" ? "kiwoom" : undefined })).filter((h) => h.sym), cash: +b.acct?.cash || 0, cashUsd: +b.acct?.cashUsd || 0, kwAt: +b.acct?.kwAt || undefined, at: Date.now() }; await redis([["SET", "stk:acct", JSON.stringify(a)]]); return res.json({ ok: true, acct: a }); }
     if (b.op === "trades") { const list = (Array.isArray(b.trades) ? b.trades : []).slice(0, 3000).map((t) => ({ id: clip(t.id, 20), date: clip(t.date, 10), sym: clip(t.sym, 20), name: clip(t.name, 40), side: t.side === "매도" ? "매도" : "매수", price: +t.price || 0, qty: +t.qty || 0, memo: clip(t.memo, 1000), feel: clip(t.feel, 40), ord: clip(t.ord, 30) || undefined, src: t.src === "kiwoom" ? "kiwoom" : undefined, rv: t.rv && typeof t.rv === "object" ? t.rv : undefined })).filter((t) => t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.date)); const s = JSON.stringify(list); if (s.length > 2_500_000) return res.status(400).json({ error: "big" }); await redis([["SET", "stk:trades", s]]); return res.json({ ok: true, n: list.length }); }
+    if (b.op === "histsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env" }); const re = /^\d{4}-\d{2}-\d{2}$/; if (!re.test(b.from || "") || !re.test(b.to || "")) return res.status(400).json({ error: "date" }); try { return res.json(await kwHistSync(b.from, b.to)); } catch (e) { return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "advice") { const r = await acctAdvice(true); return r?.err ? res.status(r.err === "empty" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(); return res.json({ ...r, ...(await ytAll()) }); }

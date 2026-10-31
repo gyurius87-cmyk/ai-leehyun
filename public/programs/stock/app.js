@@ -14,9 +14,9 @@ let adminKey = (() => { try { return localStorage.getItem("ai-admin-key") || "";
 async function api(q, body) {
   const r = await fetch("/api/market" + (q ? "?" + q : ""), body ? { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify(body) } : { headers: { "x-admin-key": adminKey } });
   if (r.status === 401) { gate(); throw new Error("auth"); }
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "fail"); return j;
+  const j = await r.json().catch(() => ({})); if (!r.ok) { const er = new Error(j.error || "fail"); er.msg = j.msg; throw er; } return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -57,7 +57,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "review", "db", "study"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -710,7 +710,8 @@ boot();
 
 // 내 계좌 공개/비공개: 열 때마다 비공개로 시작, 비밀번호를 넣어야 공개 (이 탭을 닫으면 다시 비공개)
 var PUB = false; try { PUB = sessionStorage.getItem("stk-acct-pub") === "1"; } catch {}
-function setPv(on) { PUB = on; try { sessionStorage.setItem("stk-acct-pub", on ? "1" : "0"); } catch {} $("acct").classList.toggle("priv", !on); $("pvPriv").setAttribute("aria-pressed", !on); $("pvPub").setAttribute("aria-pressed", on); if (on) $("pvForm").hidden = true; renderAcct(); }
+function setPv(on) { PUB = on; try { sessionStorage.setItem("stk-acct-pub", on ? "1" : "0"); } catch {} $("acct").classList.toggle("priv", !on); $("pvPriv").setAttribute("aria-pressed", !on); $("pvPub").setAttribute("aria-pressed", on); if (on) $("pvForm").hidden = true;
+  $("hist").classList.toggle("priv", !on); $("hvPriv").setAttribute("aria-pressed", !on); $("hvPub").setAttribute("aria-pressed", on); if (on) $("hvForm").hidden = true; renderAcct(); if (!$("hist").hidden) loadHist(); }
 setPv(PUB);
 $("pvPriv").onclick = () => { setPv(false); $("pvForm").hidden = true; };
 $("pvPub").onclick = async () => { if (PUB) return; $("pvForm").hidden = false; $("pvNew").hidden = true; $("pvMsg").textContent = ""; $("pvPin").value = ""; $("pvPin").focus();
@@ -719,6 +720,61 @@ $("pvChg").onclick = () => { $("pvNew").hidden = !$("pvNew").hidden; $("pvGo").t
 $("pvForm").onsubmit = async (e) => { e.preventDefault(); const pin = $("pvPin").value, nw = $("pvNew").hidden ? "" : $("pvNew").value;
   try { const j = await api("", { op: "acctpin", pin, newPin: nw || undefined }); $("pvPin").value = $("pvNew").value = ""; $("pvNew").hidden = true; setPv(true); $("pvMsg").textContent = j.changed ? "비밀번호를 바꿨어요." : ""; }
   catch (err) { $("pvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요." : "확인하지 못했어요."; } };
+
+// ── 거래이력 탭 (키움 위탁종합거래내역 kt00015). 공개/비공개는 내 계좌와 같은 비밀번호·같은 상태
+$("hvPriv").onclick = () => { setPv(false); $("hvForm").hidden = true; };
+$("hvPub").onclick = () => { if (PUB) return; $("hvForm").hidden = false; $("hvMsg").textContent = ""; $("hvPin").value = ""; $("hvPin").focus(); };
+$("hvForm").onsubmit = async (e) => { e.preventDefault();
+  try { await api("", { op: "acctpin", pin: $("hvPin").value }); $("hvPin").value = ""; setPv(true); }
+  catch (err) { $("hvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요. 처음이면 내 계좌 탭에서 비밀번호를 먼저 정해 주세요." : "확인하지 못했어요."; } };
+var HS = { meta: null, rows: [], y: "all", k: "전체", q: "", n: 300 };
+async function loadHist() {
+  if (!PUB) { $("hsRows").innerHTML = $("hsStk").innerHTML = $("hsSum").innerHTML = $("hsYears").innerHTML = $("hsKinds").innerHTML = ""; return; }
+  try { const j = await api("op=hist"); HS.meta = j.meta; const ys = j.meta.years || []; const all = await Promise.all(ys.map((y) => api("op=hist&y=" + y).then((r) => r.rows).catch(() => []))); HS.rows = all.flat(); } catch { $("hsMsg").textContent = "못 불러왔어요."; return; }
+  if (!HS.rows.length && !$("hsMsg").textContent) $("hsMsg").textContent = "아직 받은 이력이 없어요. '키움에서 모든 이력 받기'를 눌러 주세요.";
+  renderHist();
+}
+function renderHist() {
+  if (!PUB) return;
+  const years = [...new Set(HS.rows.map((r) => r.d.slice(0, 4)))].sort().reverse(), kinds = ["전체", "매수", "매도", "입출금", "배당", "이자", "기타"];
+  $("hsYears").innerHTML = ["all", ...years].map((y) => `<button type="button" class="pill" data-hsy="${y}" aria-pressed="${HS.y === y}">${y === "all" ? "전체 기간" : y + "년"}</button>`).join("");
+  const inY = HS.rows.filter((r) => HS.y === "all" || r.d.startsWith(HS.y));
+  $("hsKinds").innerHTML = kinds.map((k) => { const n = k === "전체" ? inY.length : inY.filter((r) => r.k === k).length; return n || k === "전체" ? `<button type="button" class="pill" data-hsk="${k}" aria-pressed="${HS.k === k}">${k} <span class="note">${n}</span></button>` : ""; }).join("");
+  const q = HS.q.trim().toLowerCase(), rows = inY.filter((r) => (HS.k === "전체" || r.k === HS.k) && (!q || `${r.name} ${r.code} ${r.t}`.toLowerCase().includes(q))).slice().reverse();
+  const sum = (k, f = "amt") => inY.filter((r) => r.k === k).reduce((t, r) => t + (+r[f] || 0), 0), fees = inY.reduce((t, r) => t + (+r.fee || 0) + (+r.tax || 0), 0);
+  const days = inY.length ? `${inY[0].d} ~ ${inY.at(-1).d}` : "";
+  $("hsSum").innerHTML = [["거래 건수", fmt(inY.length, 0) + "건", days], ["매수 금액", won(sum("매수")) + "원", fmt(inY.filter((r) => r.k === "매수").length, 0) + "건"], ["매도 금액", won(sum("매도")) + "원", fmt(inY.filter((r) => r.k === "매도").length, 0) + "건"], ["수수료·세금", won(fees) + "원", ""], ["배당", won(sum("배당")) + "원", ""]]
+    .map(([k, v, c]) => `<div class="card" style="flex:1 1 150px"><div class="k">${k}</div><div class="v" style="font-size:18px">${v}</div><div class="c note">${c}</div></div>`).join("");
+  const by = new Map(); inY.forEach((r) => { if (r.k !== "매수" && r.k !== "매도" || !(r.name || r.code)) return; const o = by.get(r.name || r.code) || { n: r.name || r.code, b: 0, ba: 0, s: 0, sa: 0, f: 0 }; if (r.k === "매수") { o.b++; o.ba += +r.amt || 0; } else { o.s++; o.sa += +r.amt || 0; } o.f += (+r.fee || 0) + (+r.tax || 0); by.set(o.n, o); });
+  $("hsStk").innerHTML = [...by.values()].sort((a, b) => b.ba + b.sa - a.ba - a.sa).map((o) => `<tr><td><b>${esc(o.n)}</b></td><td class="r">${o.b}</td><td class="r">${won(o.ba)}</td><td class="r">${o.s}</td><td class="r">${won(o.sa)}</td><td class="r ${ud(o.sa - o.ba)}">${o.s ? won(o.sa - o.ba) : "-"}</td><td class="r">${won(o.f)}</td></tr>`).join("") || `<tr><td colspan="7" class="note">매매 기록이 없어요.</td></tr>`;
+  const kc = { 매수: "up", 매도: "down" };
+  $("hsRows").innerHTML = rows.slice(0, HS.n).map((r) => `<tr><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
+  $("hsMore").innerHTML = rows.length > HS.n ? `${fmt(rows.length, 0)}건 중 ${fmt(HS.n, 0)}건을 보여요. <button type="button" class="btn g s" id="hsMoreB">더 보기</button>` : "";
+}
+document.addEventListener("click", (e) => {
+  const y = e.target.closest("[data-hsy]"); if (y) { HS.y = y.dataset.hsy; HS.n = 300; return renderHist(); }
+  const k = e.target.closest("[data-hsk]"); if (k) { HS.k = k.dataset.hsk; HS.n = 300; return renderHist(); }
+  if (e.target.id === "hsMoreB") { HS.n += 500; renderHist(); }
+});
+$("hsQ").oninput = (e) => { HS.q = e.target.value; HS.n = 300; renderHist(); };
+const dstr = (d) => new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
+async function histPull(all) {
+  const m = $("hsMsg"), bA = $("hsAll"), bN = $("hsNew"); bA.disabled = bN.disabled = true;
+  // 오늘부터 3달씩 거꾸로. 기록이 나온 뒤 연속 8구간(2년) 비면, 처음부터 없으면 연속 12구간(3년) 비면 멈춤. 최대 25년
+  let end = new Date(), total = 0, added = 0, empty = 0, seen = false, steps = all ? 100 : 1, err = "";
+  for (let i = 0; i < steps; i++) {
+    const start = new Date(end.getTime() - (all ? 91 : 31) * 864e5), from = dstr(start), to = dstr(end);
+    m.textContent = `${from} ~ ${to} 받는 중… (지금까지 ${fmt(total, 0)}건)`;
+    try { const j = await api("", { op: "histsync", from, to }); total += j.got; added += j.added; if (j.got) { seen = true; empty = 0; } else empty++; }
+    catch (er) { err = er?.message === "kw_env" ? "키움 키나 프록시가 설정돼 있지 않아요." : `키움 오류: ${er?.msg || er?.message}`; break; }
+    if (all && (seen ? empty >= 8 : empty >= 12)) break;
+    end = new Date(start.getTime() - 864e5);
+  }
+  m.textContent = err ? `${err} (그 전까지 ${fmt(total, 0)}건 받았어요)` : `다 받았어요. ${fmt(total, 0)}건 중 새로 ${fmt(added, 0)}건을 넣었어요.`;
+  bA.disabled = bN.disabled = false; await loadHist();
+}
+$("hsAll").onclick = () => histPull(true);
+$("hsNew").onclick = () => histPull(false);
 
 // 일별 DB: 날짜 × 항목 엑셀 표
 let DB = null, DBFILL = false;

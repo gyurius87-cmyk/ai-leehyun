@@ -129,3 +129,41 @@ export async function kwStockList() {
   }
   return out.length > 500 ? out : null;
 }
+
+// ── 거래이력: 위탁종합거래내역 (kt00015). 기간으로 매수·매도·입출금·배당 등 모든 거래를 받아 연도별로 저장
+// 응답 칸 이름이 문서와 다를 수 있어서 후보를 여러 개 보고, 원본 칸도 같이 남김 (raw)
+const pick = (x, ks) => { for (const k of ks) if (x[k] != null && String(x[k]).trim() !== "") return x[k]; return ""; };
+const ymd = (v) => { const s = String(v || "").replace(/\D/g, ""); return s.length >= 8 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : ""; };
+export function histKind(t) { return /매수/.test(t) ? "매수" : /매도/.test(t) ? "매도" : /배당/.test(t) ? "배당" : /입금|출금|이체|대체|송금/.test(t) ? "입출금" : /이자/.test(t) ? "이자" : "기타"; }
+export async function kwHistRange(from, to) { // YYYY-MM-DD
+  const { rows } = await tr("kt00015", { strt_dt: from.replace(/-/g, ""), end_dt: to.replace(/-/g, ""), tp: "0", stk_cd: "", crnc_cd: "", gds_tp: "0", frgn_stex_code: "", dmst_stex_tp: "%" }, "trst_ovrl_trde_prps_array");
+  return rows.map((x) => {
+    const t = String(pick(x, ["rmrk_nm", "trde_kind_nm", "io_tp_nm", "trde_tp_nm", "sub_rmrk_nm"])).trim();
+    const raw = Object.fromEntries(Object.entries(x).map(([k, v]) => [k, String(v ?? "").trim()]).filter(([, v]) => v !== "" && !/^[+-]?0+$/.test(v)));
+    return {
+      d: ymd(pick(x, ["trde_dt", "dt", "ord_dt", "trde_date"])), no: String(pick(x, ["trde_no", "ord_no", "seq"])).trim(), t, k: histKind(t),
+      code: code(pick(x, ["stk_cd", "isin_cd"])), name: String(pick(x, ["stk_nm", "item_nm"])).trim(),
+      qty: num(pick(x, ["trde_qty_jwa_cnt", "trde_qty", "cntr_qty", "qty"])), price: num(pick(x, ["trde_unit", "cntr_uv", "uv", "trde_pric"])),
+      amt: num(pick(x, ["trde_amt", "exct_amt", "amt", "cntr_amt"])), fee: num(pick(x, ["cmsn", "trde_cmsn"])), tax: num(pick(x, ["tax", "trde_tax", "spcf_tax", "tax_amt"])),
+      cash: num(pick(x, ["entra_remn", "dpst_remn", "entr_remn", "ent_remn"])), cur: String(pick(x, ["crnc_cd"])).trim() || "KRW", raw,
+    };
+  }).filter((r) => r.d);
+}
+export async function kwHistSync(from, to) {
+  const rows = await kwHistRange(from, to), byY = {};
+  rows.forEach((r) => (byY[r.d.slice(0, 4)] ||= []).push(r));
+  const [m] = await redis([["GET", "stk:histmeta"]]); const meta = json(m) || { years: [], from: null, to: null };
+  let added = 0;
+  for (const [y, list] of Object.entries(byY)) {
+    const [c] = await redis([["GET", "stk:hist:" + y]]); const old = json(c) || [];
+    const key = (r) => [r.d, r.no, r.t, r.code, r.qty, r.amt].join("|"), seen = new Set(old.map(key));
+    for (const r of list) if (!seen.has(key(r))) { seen.add(key(r)); old.push(r); added++; }
+    old.sort((a, b) => (a.d === b.d ? String(a.no).localeCompare(String(b.no)) : a.d < b.d ? -1 : 1));
+    await redis([["SET", "stk:hist:" + y, JSON.stringify(old)]]);
+    if (!meta.years.includes(y)) meta.years.push(y);
+  }
+  meta.years.sort(); if (rows.length) { meta.from = !meta.from || from < meta.from ? from : meta.from; meta.to = !meta.to || to > meta.to ? to : meta.to; }
+  meta.at = Date.now(); meta.keys = rows[0] ? Object.keys(rows[0].raw).slice(0, 40) : meta.keys;
+  await redis([["SET", "stk:histmeta", JSON.stringify(meta)]]);
+  return { got: rows.length, added, meta };
+}
