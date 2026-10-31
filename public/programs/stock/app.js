@@ -474,6 +474,7 @@ document.addEventListener("click", async (e) => {
 });
 async function markSeen(id, on) { const S = new Set(YT.seen || []); on ? S.add(id) : S.delete(id); YT.seen = [...S]; renderYt(); api("", { op: "ytseen", id, on }).catch(() => {}); }
 document.addEventListener("click", (e) => { const o = e.target.closest("[data-yopen]"); if (o && !(YT.seen || []).includes(o.dataset.yopen)) markSeen(o.dataset.yopen, true); const b = e.target.closest("[data-yseen]"); if (b) markSeen(b.dataset.yseen, b.getAttribute("aria-pressed") !== "true"); });
+document.addEventListener("change", (e) => { const c = e.target.closest("[data-sseen]"); if (!c) return; const id = c.dataset.sseen, S = new Set(SOC.seen || []); c.checked ? S.add(id) : S.delete(id); SOC.seen = [...S]; c.closest(".it")?.classList.toggle("seen", c.checked); api("", { op: "socseen", id, on: c.checked }).catch(() => {}); });
 $("yAdd").onsubmit = async (e) => {
   e.preventDefault(); const u = $("yUrl").value.trim(); if (!u) return; $("yMsg").textContent = "채널 찾는 중…";
   try { const j = await api("", { op: "ytadd", url: u }); YT = j; $("yUrl").value = ""; $("yMsg").textContent = `${j.added.name} 더했어요.`; renderYt(); }
@@ -496,7 +497,7 @@ function renderSoc() {
   $("sErr").textContent = en.length ? "못 받은 곳: " + en.map((k) => ({ truth: "트루스소셜", reddit: "레딧", ai: "AI 해석" })[k] || k).join(", ") : "";
   const when = (t) => (t ? ago(new Date(t).toISOString()) : "");
   $("sPeople").innerHTML = SOC.people.map((p) => `<article class="sp"><h3 style="margin:0">${esc(p.who)}</h3>${p.mood ? `<p class="note" style="margin:0">${esc(p.mood)}</p>` : ""}
-    ${p.picks.map((x) => `<div class="it ${esc(x.impact)}"><div><span class="imp ${esc(x.impact)}">${esc(x.impact)}</span> <b>${esc(x.take)}</b></div><div class="note">${x.post ? "💬 본인 게시글 · " : ""}<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 140))}</a> · ${esc(x.src)} · ${when(x.at)}</div>${x.stocks.length ? `<div>${x.stocks.map((k) => `<span class="stk">${esc(k)}</span>`).join("")}</div>` : ""}</div>`).join("") || `<p class="note" style="margin:0">최근 시장에 의미 있는 발언이 없어요.</p>`}
+    ${p.picks.map((x) => `<div class="it ${esc(x.impact)}${(SOC.seen || []).includes(x.link) ? " seen" : ""}"><div><label class="sck" title="봤어요"><input type="checkbox" data-sseen="${esc(x.link)}"${(SOC.seen || []).includes(x.link) ? " checked" : ""}></label> <span class="imp ${esc(x.impact)}">${esc(x.impact)}</span> <b>${esc(x.take)}</b></div><div class="note">${x.post ? "💬 본인 게시글 · " : ""}<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 140))}</a> · ${esc(x.src)} · ${when(x.at)}</div>${x.stocks.length ? `<div>${x.stocks.map((k) => `<span class="stk">${esc(k)}</span>`).join("")}</div>` : ""}</div>`).join("") || `<p class="note" style="margin:0">최근 시장에 의미 있는 발언이 없어요.</p>`}
     ${p.raw.length ? `<details><summary>원문 헤드라인 ${p.raw.length}개</summary><ul style="margin:4px 0 0;padding-left:18px">${p.raw.map((x) => `<li class="note"><a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 160))}</a> · ${when(x.at)}</li>`).join("")}</ul></details>` : ""}</article>`).join("");
   const R = SOC.reddit; if (!R) { $("sWsb").innerHTML = `<p class="note">레딧에서 못 받았어요.</p>`; return; }
   const max = R.top[0]?.v || 1;

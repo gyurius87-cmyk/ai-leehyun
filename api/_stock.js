@@ -408,7 +408,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
-      if (op === "soc") return res.json(await socialGet(!!q.force));
+      if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(6); a = await ytAll(); } return res.json(a); }
       if (op === "fam") { let a = await famousAll(); if (q.refresh || !a.at) { await famousRefresh(!!q.force); a = await famousAll(); } return res.json(a); }
       if (op === "world") return res.json(await world(!!q.force, String(q.x || "").split(",").map((x) => x.trim()).filter(Boolean)));
@@ -444,6 +444,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(8); return res.json({ ...r, ...(await ytAll()) }); }
     if (b.op === "ytadd") { const c = await ytAdd(b.url); if (!c) return res.status(404).json({ error: "none" }); await ytSync(4); return res.json({ added: c, ...(await ytAll()) }); }
+    if (b.op === "socseen") { const id = String(b.id || "").slice(0, 300); if (id) await redis([[b.on ? "SADD" : "SREM", "stk:soc:seen", id]]); return res.json({ ok: true }); }
     if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
     if (b.op === "ytdel") { await ytDel(String(b.id || "")); return res.json(await ytAll()); }
     if (b.op === "ytsum") { const r = await ytOne(String(b.id || "")); return !r ? res.status(404).json({ error: "영상을 못 찾았어요" }) : r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
