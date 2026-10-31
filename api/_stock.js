@@ -5,7 +5,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
-import { kwReady, kwSync, outIp } from "./_kiwoom.js";
+import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
 import { famousAll, famousRefresh } from "./_famous.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
@@ -353,7 +353,12 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "news") return res.json(await news(!!q.force));
       if (op === "brief") { const day = /^\d{4}-\d{2}-\d{2}$/.test(q.d || "") ? q.d : kstDay(); const r = await brief(day, !!q.force && day === kstDay()); const [list] = await redis([["LRANGE", "stk:briefs", 0, 60]]); return res.json({ ...r, list: list || [] }); }
       if (op === "masters") return res.json({ info: MASTERS.map(({ id, name, style, rule }) => ({ id, name, style, rule })), ...(await backtest(!!q.force)) });
-      if (op === "chart") { const rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"].includes(q.r) ? q.r : "1y", iv = ["1d", "1wk", "1mo"].includes(q.i) ? q.i : "1d", sy = String(q.s || ""); const g = (await chart(sy, rg, iv)) || (/\.KS$/.test(sy) ? await chart(sy.replace(/\.KS$/, ".KQ"), rg, iv) : null); return g ? res.json(g) : res.status(404).json({ error: "none" }); }
+      if (op === "chart") {
+        const rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"].includes(q.r) ? q.r : "1y", iv = ["1d", "1wk", "1mo"].includes(q.i) ? q.i : "1d", sy = String(q.s || "");
+        // 국내 종목·지수는 키움이 연결돼 있으면 키움 차트, 안 되면 야후
+        if (kwChartable(sy)) { const days = { "1mo": 31, "3mo": 92, "6mo": 183, "1y": 366, "2y": 731, "5y": 1827, "10y": 3653, max: 365 * 40 }[rg]; const from = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); const k = await kwChart(sy, iv, from).catch((e) => (console.error("kwChart", e?.message), null)); if (k) return res.json({ sym: sy, cur: "KRW", src: "kiwoom", price: k.at(-1).c, rows: k }); }
+        const g = (await chart(sy, rg, iv)) || (/\.KS$/.test(sy) ? await chart(sy.replace(/\.KS$/, ".KQ"), rg, iv) : null); return g ? res.json({ ...g, src: "yahoo" }) : res.status(404).json({ error: "none" });
+      }
       if (op === "quote") { const syms = String(q.s || "").split(",").filter(Boolean).slice(0, 40); const [fx, ...gs] = await Promise.all([chart("KRW=X", "5d"), ...syms.map((s) => chart(s, "5d"))]); return res.json({ fx: fx?.price || null, q: Object.fromEntries(syms.map((s, i) => [s, gs[i] ? { p: gs[i].price, prev: gs[i].rows.at(-2)?.c ?? gs[i].prev, cur: gs[i].cur, name: gs[i].name } : null])) }); }
       if (op === "sym") { const r = await resolveSym(q.s); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
       if (op === "kw") return res.json(kwReady());

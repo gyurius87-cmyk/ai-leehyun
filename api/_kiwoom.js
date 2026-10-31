@@ -28,16 +28,19 @@ async function token(force) {
   return j.token;
 }
 // TR 하나 부르기 (연속 조회는 cont-yn / next-key 로 끝까지)
-async function tr(apiId, body, listKey) {
+async function tr(apiId, body, listKey, path = "acnt", more = () => true) {
   let tok = await token(), cont = "N", next = "", rows = [], first = null;
   for (let page = 0; page < 20; page++) {
-    const r = await out(`${BASE}/api/dostk/acnt`, { method: "POST", headers: { "Content-Type": "application/json;charset=UTF-8", "api-id": apiId, authorization: `Bearer ${tok}`, "cont-yn": cont, "next-key": next }, body: JSON.stringify(body) });
+    const r = await out(`${BASE}/api/dostk/${path}`, { method: "POST", headers: { "Content-Type": "application/json;charset=UTF-8", "api-id": apiId, authorization: `Bearer ${tok}`, "cont-yn": cont, "next-key": next }, body: JSON.stringify(body) });
     if (r.status === 401 && page === 0) { tok = await token(true); continue; }
     const j = await r.json().catch(() => ({}));
     if (j.return_code != null && Number(j.return_code) !== 0) throw new Error(`kw_${apiId}:${j.return_msg || j.return_code}`);
-    first ||= j; if (listKey && Array.isArray(j[listKey])) rows.push(...j[listKey]);
+    first ||= j;
+    // 목록 키 이름이 문서와 다를 수 있어서, 못 찾으면 응답 안의 첫 배열을 씀
+    const list = listKey && (Array.isArray(j[listKey]) ? j[listKey] : Object.values(j).find((v) => Array.isArray(v) && v.length && typeof v[0] === "object"));
+    if (list) rows.push(...list);
     cont = r.headers.get("cont-yn") || "N"; next = r.headers.get("next-key") || "";
-    if (cont !== "Y" || !listKey) break;
+    if (cont !== "Y" || !listKey || !more(rows)) break;
     await sleep(250);
   }
   return { first, rows };
@@ -90,4 +93,27 @@ export async function kwSync(days = 7) {
   }
   await redis([["SET", "stk:acct", JSON.stringify(acct)], ["SET", "stk:trades", JSON.stringify(trades)]]);
   return { ok: true, hold: H.hold.length, added, cash: H.cash, at: acct.kwAt };
+}
+
+// ── 국내 차트 (일·주·월봉). 종목은 ka10081~3, 업종 지수는 ka20006~8. 실패하면 null → 야후로.
+const IDX = { "^KS11": "001", "^KQ11": "101", "^KS200": "201" };
+const TRS = { stock: { "1d": ["ka10081", "stk_dt_pole_chart_qry"], "1wk": ["ka10082", "stk_stk_pole_chart_qry"], "1mo": ["ka10083", "stk_mth_pole_chart_qry"] }, idx: { "1d": ["ka20006", "inds_dt_pole_qry"], "1wk": ["ka20007", "inds_stk_pole_qry"], "1mo": ["ka20008", "inds_mth_pole_qry"] } };
+export const kwChartable = (sym) => !!IDX[sym] || /^\d{6}\.(KS|KQ)$/.test(sym);
+export function kwChartRows(rows, isIdx, f = "") {
+  let out = rows.map((x) => ({ d: String(x.dt || x.date || ""), c: num(x.cur_prc ?? x.close_pric ?? x.clpr), v: num(x.trde_qty) })).filter((p) => /^\d{8}$/.test(p.d) && p.c > 0 && p.d >= f)
+    .map((p) => ({ d: `${p.d.slice(0, 4)}-${p.d.slice(4, 6)}-${p.d.slice(6, 8)}`, c: p.c, v: p.v })).sort((a, b) => a.d.localeCompare(b.d));
+  if (isIdx && out.length && out.at(-1).c > 20000) out = out.map((p) => ({ ...p, c: p.c / 100 })); // 업종 지수는 100배로 오는 경우가 있음
+  return out;
+}
+export async function kwChart(sym, iv = "1d", from = "2000-01-01") {
+  const k = kwReady(); if (!k.key || !k.proxy || !kwChartable(sym)) return null;
+  const ck = `stk:kc:${sym}:${iv}:${from}`, [c] = await redis([["GET", ck]]); const hit = json(c); if (hit) return hit;
+  const isIdx = !!IDX[sym], [apiId, key] = TRS[isIdx ? "idx" : "stock"][iv] || TRS.stock["1d"];
+  const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, ""), f = from.replace(/-/g, "");
+  const body = isIdx ? { inds_cd: IDX[sym], base_dt: today } : { stk_cd: sym.slice(0, 6), base_dt: today, upd_stkpc_tp: "1" };
+  const { rows } = await tr(apiId, body, key, "chart", (rs) => { const last = rs.at(-1); return !last || String(last.dt || last.date || "") > f; });
+  const out = kwChartRows(rows, isIdx, f);
+  if (out.length < 2) return null;
+  await redis([["SET", ck, JSON.stringify(out)], ["EXPIRE", ck, 3600]]);
+  return out;
 }
