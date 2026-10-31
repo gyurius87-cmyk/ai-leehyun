@@ -11,11 +11,10 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "waiting",
-          "doing": "상세페이지 사진 교체 도구를 올렸어요. 실제 파일로 시험해 주시길 기다려요",
+          "status": "working",
+          "doing": "주식 프로그램에 매크로·유명인 포트폴리오 탭을 만드는 중이에요",
           "prop": "🛠️",
-          "acc": "glasses",
-          "since": "2026-10-25"
+          "acc": "glasses"
         },
         {
           "team": "콘텐츠팀",
@@ -165,10 +164,11 @@
         {
           "team": "전략팀",
           "name": "사이트 방향 담당",
-          "status": "done",
-          "doing": "매매 기록 대시보드 첫 시안을 올렸어요",
+          "status": "waiting",
+          "doing": "키움 계좌 연결을 마치고 첫 받기 시험을 기다려요",
           "prop": "🧭",
-          "acc": "beret"
+          "acc": "beret",
+          "since": "2026-10-31"
         },
         {
           "team": "인사팀",
