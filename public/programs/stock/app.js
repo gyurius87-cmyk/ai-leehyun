@@ -461,7 +461,7 @@ document.addEventListener("click", async (e) => {
   const t = e.target.closest("[data-ych],[data-ydel],[data-ysum]"); if (!t) return;
   if (t.dataset.ych != null && !t.dataset.ydel && !t.dataset.ysum) { yCh = t.dataset.ych; ls.set("stk-ych", yCh); renderYt(); return; }
   if (t.dataset.ydel) { if (t.dataset.sure !== "1") { t.dataset.sure = "1"; t.textContent = "빼기?"; return; } YT = await api("", { op: "ytdel", id: t.dataset.ydel }); if (yCh === t.dataset.ydel) yCh = ""; renderYt(); return; }
-  if (t.dataset.ysum) { t.disabled = true; t.textContent = "요약하는 중… (20초쯤)"; try { const s = await api("", { op: "ytsum", id: t.dataset.ysum }); const v = YT.feed.find((x) => x.id === t.dataset.ysum); if (v) v.s = s; renderYt(); } catch { t.textContent = "요약 실패 · 다시 누르기"; t.disabled = false; } }
+  if (t.dataset.ysum) { t.disabled = true; t.textContent = "요약하는 중… (20초쯤)"; try { const s = await api("", { op: "ytsum", id: t.dataset.ysum }); const v = YT.feed.find((x) => x.id === t.dataset.ysum); if (v) v.s = s; renderYt(); } catch { t.textContent = "영상 내용을 못 받아서 요약을 못 했어요"; } }
 });
 $("yAdd").onsubmit = async (e) => {
   e.preventDefault(); const u = $("yUrl").value.trim(); if (!u) return; $("yMsg").textContent = "채널 찾는 중…";

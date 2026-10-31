@@ -64,6 +64,7 @@ async function geminiNotes(vid) {
 async function summarize(v) {
   let tx = await transcript(v.id), basis = tx.length > 300 ? "자막" : "설명란";
   if (basis === "설명란" && !v.short) { const g = await geminiNotes(v.id); if (g.length > 200) { tx = g; basis = "영상"; } }
+  if (basis === "설명란") return null; // 이현님 요청(10/31): 설명란만 보고 하는 요약은 안 함
   const prompt = `주식 유튜브 영상을 한국어로 요약해 주세요. ${basis === "설명란" ? "자막을 못 받아서 제목과 설명란만 있어요. 거기 없는 내용은 지어내지 말고, 정보가 적으면 적다고 써 주세요." : ""}
 채널: ${v.chName}
 제목: ${v.title}
@@ -97,5 +98,5 @@ export async function ytOne(vid) { const [f] = await redis([["GET", "stk:yt:feed
 export async function ytAll() {
   const [c, f, at] = await redis([["GET", "stk:yt:ch"], ["GET", "stk:yt:feed"], ["GET", "stk:yt:at"]]);
   const feedL = (json(f) || []).slice(0, 80), sums = feedL.length ? await redis(feedL.map((v) => ["GET", "stk:yt:s:" + v.id])) : [];
-  return { at: +at || 0, ch: json(c) || [], feed: feedL.map((v, i) => ({ ...v, desc: v.desc.slice(0, 300), s: json(sums[i]) })) };
+  return { at: +at || 0, ch: json(c) || [], feed: feedL.map((v, i) => { const sm = json(sums[i]); return { ...v, desc: v.desc.slice(0, 300), s: sm && sm.basis !== "설명란" ? sm : null }; }) };
 }
