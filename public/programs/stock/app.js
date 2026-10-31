@@ -319,7 +319,9 @@ function renderCmpCtl() {
   const rest = Object.keys(REC).filter((s) => !CMPL.includes(s));
   $("cmpAdd").innerHTML = `<option value="">+ 추천 차트 더하기</option>` + rest.map((s) => `<option value="${esc(s)}">${esc(REC[s])}</option>`).join("");
 }
-let CMPD = null;
+let CMPD = null, EVT = null, EVTL = false;
+// 차트에 찍을 큰 사건 (AI 정리 + 일별 DB)
+async function loadEvents() { if (EVTL) return; EVTL = true; try { EVT = (await api("op=events")).list || []; if (CMPD) { CMPD = { ...CMPD, events: EVT }; paintCmp(); } } catch { EVTL = false; } }
 $("cmpAdd").onchange = (e) => { const s = e.target.value; if (!s) return; if (!CMPL.includes(s)) CMPL.push(s); if (!CMP.includes(s)) CMP = [...CMP, s].slice(-10); saveCmp(); renderCmpCtl(); drawCmp(); };
 async function drawCmp() {
   const want = [...CMP], r = cmpR, iv = IV;
@@ -331,7 +333,7 @@ async function drawCmp() {
     const vals = days.map((d) => { if (m.has(d)) last = m.get(d); if (last == null) return null; if (base == null) base = last; return (last / base - 1) * 100; });
     return { s: want[i], vals, color: colorOf(want[i]) };
   }).filter(Boolean);
-  CMPD = { days, series }; paintCmp();
+  CMPD = { days, series, events: EVT }; paintCmp(); if (!EVT) loadEvents();
   series.forEach((x) => { const el = document.querySelector(`[data-lv="${CSS.escape(x.s)}"]`); const v = x.vals.at(-1); if (el) { el.textContent = pct(v); el.className = "num " + ud(v); } });
 }
 // 큰 차트 그리기 (D = {days, series:[{s, vals, color}]}, opt.pct면 % 축)
@@ -380,8 +382,13 @@ function paintCore(cnv, tip, D, hover, opt = {}, hy = null) {
   D.series.forEach((s) => { x.strokeStyle = s.color; x.lineWidth = s.w || 2; if (s.dash) x.setLineDash(s.dash); x.beginPath(); let on = false; s.vals.forEach((v, i) => { if (v == null) return; on ? x.lineTo(X(i), Y(v)) : x.moveTo(X(i), Y(v)); on = true; }); x.stroke(); x.setLineDash([]); });
   // 매수▲·매도▼ 표시
   if (D.marks?.length) { const di = new Map(D.days.map((d, i) => [d, i])); D.marks.forEach((m) => { const se = D.series.find((z) => z.s === m.s), i = di.get(m.d); if (!se || i == null || se.vals[i] == null) return; const px_ = X(i), py = Y(se.vals[i]); x.fillStyle = m.side === "매수" ? css("--up") : css("--down"); x.strokeStyle = css("--panel"); x.lineWidth = 1.5; x.beginPath(); if (m.side === "매수") { x.moveTo(px_, py + 4); x.lineTo(px_ - 6, py + 14); x.lineTo(px_ + 6, py + 14); } else { x.moveTo(px_, py - 4); x.lineTo(px_ - 6, py - 14); x.lineTo(px_ + 6, py - 14); } x.closePath(); x.fill(); x.stroke(); }); }
+  // 큰 사건 동그라미: 좋음 빨강, 나쁨 파랑
+  const EV = [];
+  if (D.events?.length && n > 1) { const s0 = D.series.find((z) => z.vals.some((v) => v != null)); D.events.forEach((e) => { if (e.d < D.days[0] || e.d > D.days[n - 1]) return; let k = D.days.findIndex((d) => d >= e.d); if (k < 0) return; let v = s0?.vals[k]; for (let j = k; v == null && j >= 0; j--) v = s0?.vals[j]; const ex = X(k), ey = v != null ? Y(v) : T + 8; EV.push({ ...e, k, ex, ey }); });
+    EV.forEach((e) => { x.fillStyle = e.g === "좋음" ? css("--up") : css("--down"); x.strokeStyle = css("--panel"); x.lineWidth = 2; x.beginPath(); x.arc(e.ex, e.ey, 6, 0, 7); x.fill(); x.stroke(); }); }
   if (hover == null) { if (tip) tip.hidden = true; return; }
-  const i = Math.max(0, Math.min(n - 1, Math.round(((hover - L) / (W - L - R)) * (n - 1))));
+  let i = Math.max(0, Math.min(n - 1, Math.round(((hover - L) / (W - L - R)) * (n - 1))));
+  const near = EV.filter((e) => Math.abs(e.ex - hover) <= 7 && (hy == null || Math.abs(e.ey - hy) <= 14)); if (near.length) i = near[0].k;
   // 키움식 십자선: 세로는 그 날짜, 가로는 마우스 높이. 오른쪽에 그 값, 아래에 날짜
   const yy = hy != null && hy >= T && hy <= H - B ? hy : opt.cross && D.series[0].vals[i] != null ? Y(D.series[0].vals[i]) : null;
   x.strokeStyle = css("--muted"); x.lineWidth = 1; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(X(i), T); x.lineTo(X(i), H - B); x.stroke();
@@ -392,7 +399,8 @@ function paintCore(cnv, tip, D, hover, opt = {}, hy = null) {
   D.series.forEach((s) => { const v = s.vals[i]; if (v == null || s.noDot) return; x.fillStyle = s.color; x.beginPath(); x.arc(X(i), Y(v), 3.5, 0, 7); x.fill(); });
   if (!tip) return;
   const evs = (D.marks || []).filter((m) => m.d === D.days[i] && D.series.some((z) => z.s === m.s));
-  tip.innerHTML = `<div>${D.days[i]}</div>` + evs.map((m) => `<div><b class="${m.side === "매수" ? "up" : "down"}">${m.side === "매수" ? "▲" : "▼"} ${esc(m.label)} ${m.side}</b></div>`).join("") + D.series.filter((s) => !s.noTip).map((s) => [s, s.vals[i]]).sort((a, b) => (b[1] ?? -1e9) - (a[1] ?? -1e9)).map(([s, v]) => `<div><span style="color:${s.color}">●</span> ${esc(s.label || nameOf(s.s))} <span class="${opt.pct ? ud(v) : ""}">${opt.pct ? pct(v) : (opt.tipFmt || fy)(v)}</span></div>`).join("");
+  const evN = EV.filter((e) => e.k === i);
+  tip.innerHTML = `<div>${D.days[i]}</div>` + evN.map((e) => `<div class="evt ${e.g === "좋음" ? "up" : "down"}"><b>${e.g === "좋음" ? "●" : "●"} ${esc(e.d.slice(2).replace(/-/g, "."))} ${esc(e.t)}</b><br><span>${esc(e.w)}</span></div>`).join("") + evs.map((m) => `<div><b class="${m.side === "매수" ? "up" : "down"}">${m.side === "매수" ? "▲" : "▼"} ${esc(m.label)} ${m.side}</b></div>`).join("") + D.series.filter((s) => !s.noTip).map((s) => [s, s.vals[i]]).sort((a, b) => (b[1] ?? -1e9) - (a[1] ?? -1e9)).map(([s, v]) => `<div><span style="color:${s.color}">●</span> ${esc(s.label || nameOf(s.s))} <span class="${opt.pct ? ud(v) : ""}">${opt.pct ? pct(v) : (opt.tipFmt || fy)(v)}</span></div>`).join("");
   tip.hidden = false; const tw = tip.offsetWidth; tip.style.left = Math.max(0, X(i) + 12 + tw > W ? X(i) - tw - 12 : X(i) + 12) + "px";
 }
 const paintCmp = (hover) => paintChart($("cmp"), $("cmpTip"), CMPD, hover, { pct: true });

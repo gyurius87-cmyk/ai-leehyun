@@ -62,7 +62,7 @@ export async function dayDb(day, deps, force) {
 ${parts}
 
 JSON 하나만. 각 칸은 엑셀 칸에 들어갈 만큼 짧게(20~40자), g는 투자자 입장에서 좋음|나쁨|중립, 자료가 없으면 t를 빈 문자열로:
-{"line":"그날을 한 줄로 (무슨 일이 굵었나)","mood":"강세|약세|혼조|관망","keys":["키워드 3~5개"],"hot":["그날 많이 나온 종목·자산 최대 5개"],"cells":{"us":{"t":"미국 증시","g":""},"kr":{"t":"한국 증시","g":""},"macro":{"t":"금리·환율·유가·VIX","g":""},"semi":{"t":"반도체·AI","g":""},"news":{"t":"뉴스에서 많았던 이야기","g":""},"policy":{"t":"연준·정책·관세·정치","g":""},"talk":{"t":"유명인 발언","g":""},"yt":{"t":"유튜버들이 많이 다룬 것","g":""},"crowd":{"t":"개미·레딧 분위기","g":""},"masters":{"t":"대가 매매·유명인 포폴","g":""}}}` }] });
+{"line":"그날을 한 줄로 (무슨 일이 굵었나)","event":{"t":"그날 시장을 크게 흔든 사건이 있었다면 짧은 제목, 평범한 날이면 빈 문자열","w":"무슨 일이 있었고 시장이 어떻게 반응했나 한두 문장","g":"좋음|나쁨"},"mood":"강세|약세|혼조|관망","keys":["키워드 3~5개"],"hot":["그날 많이 나온 종목·자산 최대 5개"],"cells":{"us":{"t":"미국 증시","g":""},"kr":{"t":"한국 증시","g":""},"macro":{"t":"금리·환율·유가·VIX","g":""},"semi":{"t":"반도체·AI","g":""},"news":{"t":"뉴스에서 많았던 이야기","g":""},"policy":{"t":"연준·정책·관세·정치","g":""},"talk":{"t":"유명인 발언","g":""},"yt":{"t":"유튜버들이 많이 다룬 것","g":""},"crowd":{"t":"개미·레딧 분위기","g":""},"masters":{"t":"대가 매매·유명인 포폴","g":""}}}` }] });
     await recordUsage(msg.usage || {}, MODEL);
     const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     ai = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
@@ -85,4 +85,32 @@ export async function dayDbFill(n, deps, force) {
   const days = Array.from({ length: n }, (_, i) => kstDay(new Date(Date.now() - (i + 1) * 864e5)));
   const r = await Promise.all(days.map((d) => dayDb(d, deps, force).then((x) => (x.err ? "err" : "ok")).catch(() => "err")));
   return { days, r };
+}
+
+// 차트에 찍을 큰 사건: AI가 정리한 과거 주요 사건(한 달에 한 번 새로) + 일별 DB에서 '큰 사건'으로 남긴 날
+export async function marketEvents(force) {
+  const [c, days] = await redis([["GET", "stk:events"], ["LRANGE", "stk:dbdays", 0, 400]]);
+  let H = json(c);
+  if (force || !H || Date.now() - H.at > 30 * 864e5) {
+    try {
+      // 시간 제한(120초) 안에 끝나게 두 구간으로 나눠 동시에 요청
+      const ask = async (from, to, n) => {
+        const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 7000, output_config: { effort: "low" }, messages: [{ role: "user", content: `${from}년부터 ${to}까지 미국·한국 증시와 매크로(금리·환율·유가)에 크게 영향을 준 사건을 날짜순으로 ${n}개 정리해 주세요. 주식 투자자가 차트를 보며 "이때 무슨 일이 있었지?"를 알 수 있게요.
+- 날짜를 확실히 아는 것만 넣으세요. 날짜가 애매하면 빼세요. 지어내지 마세요.
+- 금융위기, 폭락·폭등, 연준 금리 결정의 큰 전환, 전쟁·팬데믹, 큰 정책(관세·부양책), 한국 시장의 큰 사건, AI·반도체의 큰 이정표 등.
+- g는 그 사건이 당시 주식시장에 좋았으면 "좋음", 나빴으면 "나쁨".
+JSON 배열 하나만: [{"d":"YYYY-MM-DD","t":"짧은 제목 (15자 안팎)","w":"무슨 일이 있었고 시장이 어떻게 반응했나 한 문장 (60자 안팎)","g":"좋음|나쁨"}]` }] });
+        await recordUsage(msg.usage || {}, MODEL);
+        const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), arr = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1));
+        return Array.isArray(arr) ? arr : [];
+      };
+      const arr = (await Promise.all([ask(1987, "2012년", "45~55"), ask(2013, "지금", "60~75")])).flat();
+      if (arr.length > 20) { H = { at: Date.now(), list: arr.filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.d) && e.t).map((e) => ({ d: e.d, t: String(e.t).slice(0, 40), w: String(e.w || "").slice(0, 300), g: e.g === "좋음" ? "좋음" : "나쁨", src: "ai" })) }; await redis([["SET", "stk:events", JSON.stringify(H)]]); }
+    } catch (e) { console.error("events", e?.message); }
+  }
+  const dl = Array.isArray(days) ? [...new Set(days)] : [];
+  const recs = dl.length ? (await redis(dl.map((d) => ["GET", "stk:db:" + d]))).map(json) : [];
+  const fromDb = recs.filter((r) => r?.event?.t).map((r) => ({ d: r.day, t: r.event.t, w: r.event.w || "", g: r.event.g === "좋음" ? "좋음" : "나쁨", src: "db" }));
+  const dbDays = new Set(fromDb.map((e) => e.d));
+  return { list: [...(H?.list || []).filter((e) => !dbDays.has(e.d)), ...fromDb].sort((a, b) => a.d.localeCompare(b.d)) };
 }

@@ -10,7 +10,7 @@ import { kwReady, kwSync, outIp, kwChart, kwChartable } from "./_kiwoom.js";
 import { famousAll, famousRefresh } from "./_famous.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
-import { dayDb, dayDbList, dayDbFill } from "./_daydb.js";
+import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
 
 const MODEL = process.env.STOCK_MODEL || "claude-sonnet-5-5";
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" };
@@ -407,6 +407,7 @@ export async function stockHandler(req, res, isAdmin) {
   const op = q.op || req.body?.op;
   try {
     if (req.method === "GET") {
+      if (op === "events") return res.json(await marketEvents(!!q.force));
       if (op === "db") return res.json(await dayDbList(+q.n || 90));
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
