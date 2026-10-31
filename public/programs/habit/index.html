@@ -92,6 +92,10 @@ label { font-size: 12px; color: var(--muted); }
 .dash .mrow > div { display: grid; justify-items: center; gap: 4px; flex: none; }
 .dash .mb { width: 34px; height: 60px; border-radius: 6px; background: var(--grid); display: flex; align-items: flex-end; overflow: hidden; }
 .dash .mb i { display: block; width: 100%; background: var(--acc); }
+.ipick { display: flex; flex-wrap: wrap; gap: 4px; }
+.ipick button { padding: 4px; line-height: 0; border-radius: 6px; }
+.ipick button.auto { line-height: 1.2; padding: 4px 8px; font-size: 12px; }
+.ipick button.on { outline: 2px solid var(--accent, #f5c518); background: var(--panel2, rgba(245,197,24,.15)); }
 .pot .potv { font-family: var(--mono); font-size: 28px; font-weight: 700; }
 .pot .potv small { font-size: 14px; margin-left: 2px; }
 .dash .st { display: block; margin-top: 16px; font-size: 14px; }
@@ -106,6 +110,8 @@ th.unpaid { background: var(--off); }
 .badge.ok { color: var(--acc); border-color: var(--acc); }
 .mini.pay { color: var(--sunInk); border-color: var(--sunInk); font-weight: 700; }
 .cb.lock { opacity: .35; }
+.c.slot { vertical-align: middle; }
+.slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 64px; margin: 0 auto; }
 .payinfo { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; z-index: 20; padding: 16px; }
 .payinfo .card { background: var(--panel); color: var(--ink); border-radius: 14px; padding: 18px; width: min(360px, 100%); }
 .payinfo .amt { font-family: var(--mono); font-size: 30px; font-weight: 700; margin-top: 8px; }
@@ -156,7 +162,7 @@ th.unpaid .pname { color: var(--muted); font-weight: 400; }
     <div id="dash" class="panel dash" hidden></div>
     <div id="empty" class="panel" hidden></div>
     <div class="tw" id="tw"><table id="tb"></table></div>
-    <p class="note">점선 칸은 쉬기로 한 날이에요. 그래도 했으면 체크하면 달성에 더해져요. 모두 같은 화면을 보고, 누구 칸이든 체크할 수 있어요.</p>
+    <p class="note">요일을 정한 습관은 날짜마다, "주 n회" 습관은 주마다 n칸이에요. 점선 칸은 쉬기로 한 날이에요. 그래도 했으면 체크하면 달성에 더해져요. 모두 같은 화면을 보고, 누구 칸이든 체크할 수 있어요.</p>
   </div>
 </div>
 <script>
@@ -222,11 +228,27 @@ const ICONS = {
   pencil: [/공부|글|일기|블로그|계획|기록|영어|강의|메모|단어|자격증|코딩|하루/, ["......PP", ".....YPP", "....YYY.", "...YYY..", "..YYY...", ".WYY....", ".KW.....", "........"]],
   heart: [/명상|기도|감사|마음|요가|스트레칭|가족|연락|칭찬|필라테스|호흡/, ["........", ".RR..RR.", "RRRRRRRR", "RWRRRRRR", "RRRRRRRR", ".RRRRRR.", "..RRRR..", "...RR..."]],
   no: [/금연|금주|술|담배|폰|유튜브|SNS|sns|게임|디지털|커피/, ["..RRRR..", ".R....R.", "R.R....R", "R..R...R", "R...R..R", "R....R.R", ".R....R.", "..RRRR.."]],
+  music: [/음악|악기|피아노|기타|노래|작곡/, ["....BBBB", "....B..B", "....B..B", "....B..B", "..BBB.BB", ".BBBBBBB", ".BBB.BBB", "........"]],
+  plant: [/식물|화분|정원|텃밭/, ["..L..L..", ".LLL.LL.", "..LLLL..", "...LL...", "...L....", ".OOOOOO.", "..OOOO..", "..OOOO.."]],
+  swim: [/수영|물놀이|서핑/, ["........", "........", ".B..B..B", "B.BB.BB.", "........", ".B..B..B", "B.BB.BB.", "........"]],
+  camera: [/사진|촬영|영상|릴스|유튜브 올/, ["........", "..GG....", "GGGGGGGG", "GGGWWGGG", "GGWBBWGG", "GGWBBWGG", "GGGWWGGG", "GGGGGGGG"]],
+  palette: [/그림|드로잉|미술|색칠|캘리/, ["..OOOO..", ".OOOOOO.", "OROOOBOO", "OOOOOOO.", "OYOOO...", "OOOLOO..", ".OOOOOO.", "..OOOO.."]],
+  broom: [/청소|정리|빨래|설거지|집안일|살림/, ["......G.", ".....G..", "....G...", "...G....", "..YYY...", ".YYYYY..", "YYYYYY..", "Y.Y.Y..."]],
+  globe: [/외국어|일본어|중국어|회화|여행/, ["..BBBB..", ".BLLBBB.", "BLLLBBBB", "BBLLBBLB", "BBBBBLLB", "BBBBLLLB", ".BBBLLB.", "..BBBB.."]],
+  clock: [/시간|타이머|뽀모도로|정시/, ["..GGGG..", ".GWWWWG.", "GWWKWWWG", "GWWKWWWG", "GWWKKKWG", "GWWWWWWG", ".GWWWWG.", "..GGGG.."]],
+  cup: [/티타임|차 한잔|녹차/, ["..W.W...", "...W.W..", ".BBBBB..", ".BBBBBBB", ".BBBBB.B", ".BBBBBBB", ".BBBBB..", "..BBB..."]],
+  golf: [/골프|퍼팅|스윙/, ["...RRR..", "...RRRR.", "...RRR..", "...G....", "...G....", "...G....", ".LLGLLL.", "LLLLLLLL"]],
+  house: [/집|귀가|가계/, ["...RR...", "..RRRR..", ".RRRRRR.", "RRRRRRRR", ".OOOOOO.", ".OOBBOO.", ".OOBBOO.", ".OOOOOO."]],
+  smile: [/웃|긍정|칭찬|표정/, ["..YYYY..", ".YYYYYY.", "YYKYYKYY", "YYYYYYYY", "YKYYYYKY", "YYKKKKYY", ".YYYYYY.", "..YYYY.."]],
+  fire: [/도전|열정|챌린지/, ["...R....", "...RR...", "..RRR.R.", ".RROORR.", ".ROOYOR.", "RROYYORR", ".ROYYOR.", "..RRRR.."]],
+  trophy: [/목표|대회|1등|성과/, ["YYYYYYYY", "YYYYYYYY", ".YYYYYY.", "..YYYY..", "...YY...", "...YY...", "..OOOO..", ".OOOOOO."]],
+  check: [/할 ?일|투두|todo|체크/i, ["........", ".......L", "......LL", "L....LL.", "LL..LL..", ".LLLL...", "..LL....", "........"]],
   star: [/./, ["...YY...", "...YY...", "YYYYYYYY", ".YYYYYY.", "..YYYY..", ".YYYYYY.", ".YY..YY.", "Y......Y"]],
 };
 const IPAL = { G: "#6b7a8f", R: "#e5484d", W: "#ffffff", B: "#3a7bd5", Y: "#f5c518", O: "#f08a1c", L: "#3fae49", P: "#f39ab0", K: "#333" };
-function hicon(name, u = 2) {
-  const [, rows] = Object.values(ICONS).find(([re]) => re.test(name || "")) || ICONS.star;
+const INAME = { dumbbell: "운동", shoe: "걷기·달리기", book: "책", drop: "물", sun: "아침", moon: "잠", apple: "식단", coin: "돈", pencil: "공부·기록", heart: "마음", no: "끊기", music: "음악", plant: "식물", swim: "수영", camera: "사진·영상", palette: "그림", broom: "청소", globe: "외국어", clock: "시간", cup: "차", golf: "골프", house: "집", smile: "웃기", fire: "도전", trophy: "목표", check: "할 일", star: "별" };
+function hicon(name, u = 2, icon) {
+  const [, rows] = (icon && ICONS[icon]) || Object.values(ICONS).find(([re]) => re.test(name || "")) || ICONS.star;
   return `<svg class="px" width="${8 * u}" height="${8 * u}" viewBox="0 0 ${8 * u} ${8 * u}" shape-rendering="crispEdges" aria-hidden="true">${rects(rows, IPAL, u)}</svg>`;
 }
 
@@ -291,12 +313,12 @@ let dashMode = "month", ALL = null;
 function monthStat(month, members, checks) {
   const days = monthDays(month), W = weeks(days), past = (d) => ymd(d) <= today;
   const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
-  const did = (h, list) => list.filter((d) => checks[`${h.id}|${ymd(d)}`]).length;
+  const did = (h, list) => didIn(h, list, checks);
   return members.filter((m) => m.habits.length).map((m) => {
     const hs = m.habits.map((h) => {
       let g = 0, dn = 0;
       W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk); g += h.days.length ? upto.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * upto.length) / wk.length)); dn += did(h, upto); });
-      let streak = 0; for (const d of days.filter(past).reverse()) { const on = !!checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
+      let streak = 0; if (h.days.length) for (const d of days.filter(past).reverse()) { const on = !!checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
       return { h, g, dn, streak, wk: thisWeek ? [did(h, thisWeek), goal(h, thisWeek)] : null };
     });
     const g = hs.reduce((a, x) => a + x.g, 0), dn = hs.reduce((a, x) => a + x.dn, 0);
@@ -331,7 +353,7 @@ function dash() {
     + podium(people.map((p) => ({ name: p.m.name, pct: p.pct, dn: p.dn })), "실시간 순위 · 습관 여러 개는 합쳐서")
     + `<div class="board">${people.map((p, i) => `<div class="pc"><div class="row" style="justify-content:space-between"><b class="row" style="gap:5px">${medal[i] && p.pct ? medal[i] + " " : ""}${avatar(p.m)}${esc(p.m.name)}</b><span class="pct">${p.pct}%</span></div>
       <div class="bar"><i style="width:${p.pct}%"></i></div>
-      ${p.hs.map((x) => `<div class="hl"><span>${hicon(x.h.name)} ${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
+      ${p.hs.map((x) => `<div class="hl"><span>${hicon(x.h.name, 2, x.h.icon)} ${esc(x.h.name)}</span><span class="wkline">${x.wk ? `이번 주 ${x.wk[0]}/${x.wk[1]} · ` : ""}${x.dn}/${x.g}${x.streak >= 2 ? ` · 🔥${x.streak}일` : ""}</span></div>`).join("")}</div>`).join("")}</div>`;
 }
 async function dashAll() {
   const D = $("#dash");
@@ -384,9 +406,18 @@ async function dashAll() {
 // 이 달의 날짜, 월요일 시작 주차
 function monthDays(m) { const [y, mo] = m.split("-").map(Number); const out = []; for (let d = new Date(y, mo - 1, 1); d.getMonth() === mo - 1; d.setDate(d.getDate() + 1)) out.push(new Date(d)); return out; }
 function weeks(days) { const w = []; days.forEach((d) => { if (!w.length || d.getDay() === 1) w.push([]); w[w.length - 1].push(d); }); return w; }
-// 목표: 요일을 정했으면 그 요일 수, 아니면 주마다 min(주 n회, 그 주 날 수)
-function goal(h, wk) { return h.days.length ? wk.filter((d) => h.days.includes(d.getDay())).length : Math.min(h.perWeek, wk.length); }
-const done = (h, list) => list.filter((d) => S.checks[`${h.id}|${ymd(d)}`]).length;
+// 목표: 요일을 정했으면 그 요일 수, 아니면 주마다 주 n회 (날이 적은 주도 n칸)
+function goal(h, wk) { return h.days.length ? wk.filter((d) => h.days.includes(d.getDay())).length : h.perWeek; }
+// '주 n회' 습관은 주마다 n칸: 칸 키는 "습관|그 주 첫날#칸번호". 예전에 날짜로 찍은 체크도 같이 셈
+function didIn(h, list, checks) { let n = 0; list.forEach((d) => { const k = `${h.id}|${ymd(d)}`; if (checks[k]) n++; if (!h.days.length) for (let j = 0; j < 7; j++) if (checks[`${k}#${j}`]) n++; }); return n; }
+const done = (h, list) => didIn(h, list, S.checks);
+// 이 주의 칸들: [{key, on}] (빈 칸은 칸 키, 예전 날짜 체크는 그 날짜 키로 보여서 끄면 지워짐)
+function slots(h, wk) {
+  const s0 = ymd(wk[0]), legacy = wk.map(ymd).filter((k) => S.checks[`${h.id}|${k}`]), out = [];
+  for (let j = 0; j < 7 && (j < h.perWeek || S.checks[`${h.id}|${s0}#${j}`]); j++) { const sk = `${s0}#${j}`; out.push(S.checks[`${h.id}|${sk}`] ? { key: sk, on: true } : legacy.length ? { key: legacy.shift(), on: true } : { key: sk, on: false }); }
+  legacy.forEach((k) => out.push({ key: k, on: true }));
+  return out;
+}
 
 function table() {
   const days = monthDays(S.month), W = weeks(days), cols = [];
@@ -394,7 +425,7 @@ function table() {
   const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
   let html = `<thead><tr class="who"><th class="date" rowspan="2">${+S.month.slice(5)}월</th><th rowspan="2"></th>${S.members.map((m) => `<th colspan="${m.habits.length || 1}" class="${m.paid === false ? "unpaid" : ""}"><button class="mini pname" data-edit="${m.id}" title="습관 고치기">${avatar(m)}${esc(m.name)} ✎</button>${m.paid === false
    ? `<div class="paybox"><span class="badge">미입금</span><button class="mini pay" data-pay="1">참가비 입금하러 가기</button>${S.admin ? `<button class="mini main" data-approve="${m.id}">입금 승인</button>` : ""}</div>`
-   : S.admin && m.paid ? `<div class="paybox"><span class="badge ok">입금 확인</span><button class="mini" data-unapprove="${m.id}">취소</button></div>` : ""}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${hicon(h.name)} ${esc(h.name)}<br><span class="wkline">${h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
+   : S.admin && m.paid ? `<div class="paybox"><span class="badge ok">입금 확인</span><button class="mini" data-unapprove="${m.id}">취소</button></div>` : ""}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${hicon(h.name, 2, h.icon)} ${esc(h.name)}<br><span class="wkline">${h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
   W.forEach((wk, i) => {
     html += `<tr class="wk"><td colspan="${2 + Math.max(1, cols.length) + S.members.filter((m) => !m.habits.length).length}">${i + 1}주차</td></tr>`;
     wk.forEach((d) => {
@@ -404,6 +435,7 @@ function table() {
         if (!m.habits.length) { html += "<td></td>"; return; }
         const lock = m.paid === false && !S.admin;
         m.habits.forEach((h) => {
+          if (!h.days.length) { if (d === wk[0]) html += `<td class="c slot" rowspan="${wk.length}"><div class="slots">${slots(h, wk).map((x, j) => `<button class="cb ${x.on ? "on" : ""} ${lock ? "ro lock" : ""}" data-h="${h.id}" data-d="${x.key}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${i + 1}주차 ${j + 1}번째"></button>`).join("")}</div></td>`; return; }
           const on = !!S.checks[`${h.id}|${k}`], plan = h.days.length ? h.days.includes(dw) : true;
           html += `<td class="c ${plan ? "" : "off"}"><button class="cb ${on ? "on" : ""} ${plan ? "" : "dot"} ${lock ? "ro lock" : ""}" data-h="${h.id}" data-d="${k}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${k}"></button></td>`;
         });
@@ -483,6 +515,7 @@ function openForm(m) {
     <div class="row"><label>캐릭터</label><span id="fAva">${avatar({ ...m, name: m.name }, 3)}</span><div class="chips">${[["m", "남"], ["f", "여"]].map(([k, t]) => `<button data-sex="${k}" class="${sexOf(m) === k ? "on" : ""}">${t}</button>`).join("")}</div><span class="note">이름으로 골라 뒀어요. 틀리면 바꿔 주세요</span></div>
     ${m.habits.map((h, i) => `<div class="h" data-i="${i}">
       <div class="row"><input type="text" data-k="name" value="${esc(h.name)}" placeholder="습관 (예: 하루계획, 필사)" maxlength="30" style="flex:1"><button class="mini" data-del="${i}">빼기</button></div>
+      <div class="row"><label>그림</label><div class="ipick">${Object.keys(ICONS).map((k) => `<button data-icon="${k}" class="${(h.icon || "") === k ? "on" : ""}" title="${INAME[k]}" aria-label="${INAME[k]}">${hicon("", 2, k)}</button>`).join("")}<button data-icon="" class="auto ${h.icon ? "" : "on"}" title="습관 이름 보고 자동">자동</button></div></div>
       <div class="row"><label>요일 (고르면 그 요일만)</label><div class="chips">${PICK.map((d) => `<button data-day="${d}" class="${h.days.includes(d) ? "on" : ""}">${DOW[d]}</button>`).join("")}</div></div>
       <div class="row"><label>요일 없이 주</label><select data-k="perWeek" ${h.days.length ? "disabled" : ""}>${[1, 2, 3, 4, 5, 6, 7].map((n) => `<option ${n === (h.days.length || h.perWeek) ? "selected" : ""}>${n}</option>`).join("")}</select><label>회</label></div>
     </div>`).join("")}
@@ -494,6 +527,7 @@ $("#form").addEventListener("click", async (e) => {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.day) { readForm(); const h = editing.habits[+t.closest(".h").dataset.i], d = +t.dataset.day; h.days = h.days.includes(d) ? h.days.filter((x) => x !== d) : [...h.days, d]; if (h.days.length) h.perWeek = h.days.length; return openForm(editing); }
   if (t.dataset.sex) { readForm(); editing.sex = t.dataset.sex; return openForm(editing); }
+  const ib = t.closest("[data-icon]"); if (ib) { readForm(); editing.habits[+ib.closest(".h").dataset.i].icon = ib.dataset.icon || undefined; return openForm(editing); }
   if (t.dataset.del) { readForm(); editing.habits.splice(+t.dataset.del, 1); return openForm(editing); }
   if (t.id === "fAdd") { readForm(); if (editing.habits.length >= 6) return toast("습관은 6개까지예요"); editing.habits.push({ name: "", perWeek: 3, days: [] }); return openForm(editing); }
   if (t.id === "fCancel") { $("#form").hidden = true; return; }

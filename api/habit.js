@@ -6,7 +6,7 @@ import { redis, hasRedis } from "./_redis.js";
 const clip = (s, n) => String(s ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
 const okId = (s) => /^[a-zA-Z0-9_-]{4,40}$/.test(String(s || ""));
 const okMonth = (s) => /^20\d\d-(0[1-9]|1[0-2])$/.test(String(s || ""));
-const okDate = (s) => /^20\d\d-\d\d-\d\d$/.test(String(s || ""));
+const okDate = (s) => /^20\d\d-\d\d-\d\d(#[0-6])?$/.test(String(s || ""));
 const newId = (n = 12) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join("");
 const pairs = (flat) => { const o = {}; for (let i = 0; flat && i < flat.length; i += 2) o[flat[i]] = flat[i + 1]; return o; };
 
@@ -14,7 +14,7 @@ function cleanMember(m) {
   const habits = (Array.isArray(m?.habits) ? m.habits : []).slice(0, 6).map((h) => {
     const days = [...new Set((Array.isArray(h?.days) ? h.days : []).map(Number).filter((d) => d >= 0 && d <= 6))].sort();
     const per = Math.max(1, Math.min(7, Number(h?.perWeek) || days.length || 3));
-    return { id: okId(h?.id) ? h.id : newId(8), name: clip(h?.name, 30) || "습관", perWeek: days.length ? days.length : per, days };
+    return { id: okId(h?.id) ? h.id : newId(8), name: clip(h?.name, 30) || "습관", ...(/^[a-z]{1,12}$/.test(h?.icon || "") ? { icon: h.icon } : {}), perWeek: days.length ? days.length : per, days };
   });
   const out = { id: okId(m?.id) ? m.id : newId(8), name: clip(m?.name, 20) || "이름", habits, order: Number(m?.order) || Date.now() };
   // 도트 캐릭터 남/여 (고르지 않으면 이름으로 추측)
