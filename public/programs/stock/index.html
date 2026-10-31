@@ -139,6 +139,9 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .cm3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
 .cm3 ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; } .cm3 li { background: var(--soft); border-radius: 10px; padding: 7px 10px; font-size: 14px; }
 .who { display: inline-flex; gap: 2px; vertical-align: middle; } .who svg { width: 22px; height: 22px; border-radius: 50%; background: var(--panel); }
+.mnav { gap: 6px; } .mnav button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 3px 12px 3px 3px; font: inherit; font-size: 13px; cursor: pointer; }
+.mnav button svg { width: 28px; height: 28px; border-radius: 50%; } .mnav button.dash { padding: 7px 14px; font-weight: 700; }
+.mnav button[aria-pressed="true"] { background: var(--board); color: var(--on-board); border-color: var(--board); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
 </style>
 </head>
@@ -216,6 +219,8 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 
   <!-- 대가 -->
   <div id="masters" hidden class="grid" style="gap:14px">
+    <nav class="row mnav" id="mNav"></nav>
+    <div id="mAll" class="grid" style="gap:14px">
     <section class="box">
       <h2>1억 모의 매매 순위 <span id="btInfo"></span></h2>
       <div class="ms" id="msRank"></div>
@@ -231,7 +236,10 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <h2>대가들의 공통점 <span>2명 이상이 같이 한 것만 모았어요</span></h2>
       <div id="common"></div>
     </section>
-    <section class="box" id="mDetail"></section>
+    </div>
+    <div id="mOne" class="grid" style="gap:14px" hidden>
+      <section class="box" id="mDetail"></section>
+    </div>
   </div>
 
   <!-- 유명인 포폴 -->
