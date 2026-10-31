@@ -727,7 +727,7 @@ $("hvPub").onclick = () => { if (PUB) return; $("hvForm").hidden = false; $("hvM
 $("hvForm").onsubmit = async (e) => { e.preventDefault();
   try { await api("", { op: "acctpin", pin: $("hvPin").value }); $("hvPin").value = ""; setPv(true); }
   catch (err) { $("hvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요. 처음이면 내 계좌 탭에서 비밀번호를 먼저 정해 주세요." : "확인하지 못했어요."; } };
-var HS = { meta: null, rows: [], y: "all", k: "전체", q: "", n: 300 };
+var HS = { meta: null, rows: [], mk: ls.get("stk-hmk", "kr"), y: "all", k: "전체", q: "", n: 300 };
 async function loadHist() {
   if (!PUB) { $("hsRows").innerHTML = $("hsStk").innerHTML = $("hsSum").innerHTML = $("hsYears").innerHTML = $("hsKinds").innerHTML = ""; return; }
   try { const j = await api("op=hist"); HS.meta = j.meta; const ys = j.meta.years || []; const all = await Promise.all(ys.map((y) => api("op=hist&y=" + y).then((r) => r.rows).catch(() => []))); HS.rows = all.flat(); } catch { $("hsMsg").textContent = "못 불러왔어요."; return; }
@@ -736,23 +736,29 @@ async function loadHist() {
 }
 function renderHist() {
   if (!PUB) return;
-  const years = [...new Set(HS.rows.map((r) => r.d.slice(0, 4)))].sort().reverse(), kinds = ["전체", "매수", "매도", "입출금", "배당", "이자", "기타"];
+  const ovs = (r) => (r.cur && r.cur !== "KRW") || (r.code && !/^\d{6}$/.test(r.code)), isUs = HS.mk === "us";
+  const mrows = HS.rows.filter((r) => ovs(r) === isUs), nUs = HS.rows.filter(ovs).length;
+  $("hsMkt").innerHTML = `<button type="button" class="pill" data-hsm="kr" aria-pressed="${!isUs}">🇰🇷 한국 <span class="note">${HS.rows.length - nUs}</span></button><button type="button" class="pill" data-hsm="us" aria-pressed="${isUs}">🇺🇸 미국·해외 <span class="note">${nUs}</span></button>`;
+  $("hsUs").hidden = !isUs;
+  const money = (v) => (isUs ? "$" + fmt(v, 2) : won(v) + "원");
+  const years = [...new Set(mrows.map((r) => r.d.slice(0, 4)))].sort().reverse(), kinds = ["전체", "매수", "매도", "입출금", "배당", "이자", "기타"];
   $("hsYears").innerHTML = ["all", ...years].map((y) => `<button type="button" class="pill" data-hsy="${y}" aria-pressed="${HS.y === y}">${y === "all" ? "전체 기간" : y + "년"}</button>`).join("");
-  const inY = HS.rows.filter((r) => HS.y === "all" || r.d.startsWith(HS.y));
+  const inY = mrows.filter((r) => HS.y === "all" || r.d.startsWith(HS.y));
   $("hsKinds").innerHTML = kinds.map((k) => { const n = k === "전체" ? inY.length : inY.filter((r) => r.k === k).length; return n || k === "전체" ? `<button type="button" class="pill" data-hsk="${k}" aria-pressed="${HS.k === k}">${k} <span class="note">${n}</span></button>` : ""; }).join("");
   const q = HS.q.trim().toLowerCase(), rows = inY.filter((r) => (HS.k === "전체" || r.k === HS.k) && (!q || `${r.name} ${r.code} ${r.t}`.toLowerCase().includes(q))).slice().reverse();
   const sum = (k, f = "amt") => inY.filter((r) => r.k === k).reduce((t, r) => t + (+r[f] || 0), 0), fees = inY.reduce((t, r) => t + (+r.fee || 0) + (+r.tax || 0), 0);
   const days = inY.length ? `${inY[0].d} ~ ${inY.at(-1).d}` : "";
-  $("hsSum").innerHTML = [["거래 건수", fmt(inY.length, 0) + "건", days], ["매수 금액", won(sum("매수")) + "원", fmt(inY.filter((r) => r.k === "매수").length, 0) + "건"], ["매도 금액", won(sum("매도")) + "원", fmt(inY.filter((r) => r.k === "매도").length, 0) + "건"], ["수수료·세금", won(fees) + "원", ""], ["배당", won(sum("배당")) + "원", ""]]
+  $("hsSum").innerHTML = [["거래 건수", fmt(inY.length, 0) + "건", days], ["매수 금액", money(sum("매수")), fmt(inY.filter((r) => r.k === "매수").length, 0) + "건"], ["매도 금액", money(sum("매도")), fmt(inY.filter((r) => r.k === "매도").length, 0) + "건"], ["수수료·세금", money(fees), ""], ["배당", money(sum("배당")), ""]]
     .map(([k, v, c]) => `<div class="card" style="flex:1 1 150px"><div class="k">${k}</div><div class="v" style="font-size:18px">${v}</div><div class="c note">${c}</div></div>`).join("");
   const by = new Map(); inY.forEach((r) => { if (r.k !== "매수" && r.k !== "매도" || !(r.name || r.code)) return; const o = by.get(r.name || r.code) || { n: r.name || r.code, b: 0, ba: 0, s: 0, sa: 0, f: 0 }; if (r.k === "매수") { o.b++; o.ba += +r.amt || 0; } else { o.s++; o.sa += +r.amt || 0; } o.f += (+r.fee || 0) + (+r.tax || 0); by.set(o.n, o); });
-  $("hsStk").innerHTML = [...by.values()].sort((a, b) => b.ba + b.sa - a.ba - a.sa).map((o) => `<tr><td><b>${esc(o.n)}</b></td><td class="r">${o.b}</td><td class="r">${won(o.ba)}</td><td class="r">${o.s}</td><td class="r">${won(o.sa)}</td><td class="r ${ud(o.sa - o.ba)}">${o.s ? won(o.sa - o.ba) : "-"}</td><td class="r">${won(o.f)}</td></tr>`).join("") || `<tr><td colspan="7" class="note">매매 기록이 없어요.</td></tr>`;
+  $("hsStk").innerHTML = [...by.values()].sort((a, b) => b.ba + b.sa - a.ba - a.sa).map((o) => `<tr><td><b>${esc(o.n)}</b></td><td class="r">${o.b}</td><td class="r">${money(o.ba)}</td><td class="r">${o.s}</td><td class="r">${money(o.sa)}</td><td class="r ${ud(o.sa - o.ba)}">${o.s ? money(o.sa - o.ba) : "-"}</td><td class="r">${money(o.f)}</td></tr>`).join("") || `<tr><td colspan="7" class="note">매매 기록이 없어요.</td></tr>`;
   const kc = { 매수: "up", 매도: "down" };
-  $("hsRows").innerHTML = rows.slice(0, HS.n).map((r) => `<tr><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
+  $("hsRows").innerHTML = rows.slice(0, HS.n).map((r) => `<tr><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
   $("hsMore").innerHTML = rows.length > HS.n ? `${fmt(rows.length, 0)}건 중 ${fmt(HS.n, 0)}건을 보여요. <button type="button" class="btn g s" id="hsMoreB">더 보기</button>` : "";
 }
 document.addEventListener("click", (e) => {
   const y = e.target.closest("[data-hsy]"); if (y) { HS.y = y.dataset.hsy; HS.n = 300; return renderHist(); }
+  const mk = e.target.closest("[data-hsm]"); if (mk) { HS.mk = mk.dataset.hsm; ls.set("stk-hmk", HS.mk); HS.y = "all"; HS.k = "전체"; HS.n = 300; return renderHist(); }
   const k = e.target.closest("[data-hsk]"); if (k) { HS.k = k.dataset.hsk; HS.n = 300; return renderHist(); }
   if (e.target.id === "hsMoreB") { HS.n += 500; renderHist(); }
 });
@@ -775,6 +781,19 @@ async function histPull(all) {
 }
 $("hsAll").onclick = () => histPull(true);
 $("hsNew").onclick = () => histPull(false);
+
+// 미국 보유 역산 → 내 계좌
+let HU = null;
+function renderHu() {
+  if (!HU) return; const r = (o) => `<tr><td><b>${esc(o.name || o.code)}</b><br><span class="note num">${esc(o.code || "")}</span></td><td class="num">${o.sym ? esc(o.sym) : `<span class="down">못 찾음</span>`}</td><td class="r">${fmt(o.qty, o.qty % 1 ? 4 : 0)}</td><td class="r">${o.qty > 0 ? "$" + fmt(o.avg, 2) : "-"}</td><td class="r">${o.buys}/${o.sells}</td><td class="num">${o.lastBuy || "-"}</td><td class="num">${o.lastSell || "-"}</td></tr>`;
+  const head = `<thead><tr><th>종목</th><th>야후 코드</th><th class="r">남은 수량</th><th class="r">평단</th><th class="r">매수/매도</th><th>마지막 매수</th><th>마지막 매도</th></tr></thead>`;
+  $("huBox").innerHTML = `<div class="tw" style="margin-top:8px"><table>${head}<tbody>${HU.hold.map(r).join("") || `<tr><td colspan="7" class="note">지금 남아 있는 해외 종목이 없어요.</td></tr>`}</tbody></table></div>`
+    + (HU.done?.length ? `<details style="margin-top:6px"><summary class="note">다 판 종목 ${HU.done.length}개</summary><div class="tw"><table>${head}<tbody>${HU.done.map(r).join("")}</tbody></table></div></details>` : "")
+    + `<p class="note" style="margin:6px 0 0">평단은 매수할 때마다 이동평균으로, 매도는 평단을 그대로 둔 채 수량만 빼요. 액면분할·주식 이전처럼 이력에 매수·매도로 안 남는 건 빠질 수 있으니 영웅문 글로벌 잔고와 한 번 비교해 주세요. '내 계좌에 넣기'를 하면 그 뒤로 매일 아침 이력이 들어올 때마다 자동으로 다시 계산해요.</p>`;
+  $("huApply").hidden = !HU.hold.some((o) => o.sym);
+}
+$("huCalc").onclick = async () => { const b = $("huCalc"); b.disabled = true; b.textContent = "계산 중…"; try { HU = await api("op=histhold"); renderHu(); } catch { $("huBox").innerHTML = `<p class="msg no">계산하지 못했어요.</p>`; } b.disabled = false; b.textContent = "다시 계산"; };
+$("huApply").onclick = async () => { const b = $("huApply"); b.disabled = true; try { const j = await api("", { op: "histhold" }); HU = j; ACCT = { cash: 0, cashUsd: 0, ...j.acct }; renderHu(); $("huBox").insertAdjacentHTML("afterbegin", `<p class="msg">내 계좌에 해외 ${j.applied}종목을 넣었어요.</p>`); } catch { $("huBox").insertAdjacentHTML("afterbegin", `<p class="msg no">넣지 못했어요.</p>`); } b.disabled = false; };
 
 // 일별 DB: 날짜 × 항목 엑셀 표
 let DB = null, DBFILL = false;

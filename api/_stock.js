@@ -441,6 +441,42 @@ ${ctx}
   return { reply, hist: hist.slice(-40) };
 }
 
+// ── 거래이력에서 해외 보유 역산: 해외 매수·매도(+입고·출고)를 날짜순으로 더해 남은 수량·이동평균 평단
+const isOverseas = (r) => (r.cur && r.cur !== "KRW") || (r.code && !/^\d{6}$/.test(r.code));
+export async function histHold(apply) {
+  const [m] = await redis([["GET", "stk:histmeta"]]); const meta = json(m) || { years: [] };
+  const ys = meta.years || [], blobs = ys.length ? await redis(ys.map((y) => ["GET", "stk:hist:" + y])) : [];
+  const rows = blobs.flatMap((b) => json(b) || []).filter(isOverseas).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+  const pos = new Map();
+  for (const r of rows) {
+    const sgn = r.k === "매수" || /입고/.test(r.t) ? 1 : r.k === "매도" || /출고/.test(r.t) ? -1 : 0; if (!sgn || !r.qty) continue;
+    const key = r.code || r.name, o = pos.get(key) || { code: r.code, name: r.name, cur: r.cur && r.cur !== "KRW" ? r.cur : "USD", qty: 0, cost: 0, buys: 0, sells: 0, first: r.d, last: r.d, lastBuy: null, lastSell: null };
+    const px = r.price || (r.amt && r.qty ? r.amt / r.qty : 0);
+    if (sgn > 0) { o.cost += px * r.qty; o.qty += r.qty; o.buys++; o.lastBuy = r.d; }
+    else { const avg = o.qty ? o.cost / o.qty : 0; o.qty = Math.max(0, o.qty - r.qty); o.cost = avg * o.qty; o.sells++; o.lastSell = r.d; }
+    o.last = r.d; if (!o.name && r.name) o.name = r.name; pos.set(key, o);
+  }
+  const list = [...pos.values()].map((o) => ({ ...o, qty: Math.round(o.qty * 1e4) / 1e4, avg: o.qty ? Math.round((o.cost / o.qty) * 1e4) / 1e4 : 0 }));
+  // 야후 심볼 찾기 (캐시)
+  await Promise.all(list.map(async (o) => {
+    const ck = "stk:histsym:" + (o.code || o.name), [c] = await redis([["GET", ck]]); if (c) { o.sym = c; return; }
+    let sym = null;
+    if (o.code && /^[A-Z][A-Z0-9.\-]{0,9}$/i.test(o.code)) sym = (await resolveSym(o.code).catch(() => null))?.sym || null;
+    if (!sym && o.name) sym = (await findSym(o.name).catch(() => [])).find((x) => !/\.(KS|KQ)$/.test(x.s))?.s || null;
+    o.sym = sym; if (sym) await redis([["SET", ck, sym]]);
+  }));
+  const hold = list.filter((o) => o.qty > 0), done = list.filter((o) => o.qty <= 0);
+  if (apply) {
+    const [a] = await redis([["GET", "stk:acct"]]); const acct = json(a) || { hold: [], cash: 0, cashUsd: 0 };
+    const add = hold.filter((o) => o.sym).map((o) => ({ sym: o.sym, name: o.name || o.sym, qty: o.qty, avg: o.avg, cur: o.cur === "KRW" ? "USD" : o.cur, src: "kwhist" }));
+    const syms = new Set(add.map((h) => h.sym));
+    acct.hold = [...acct.hold.filter((h) => h.src !== "kwhist" && !syms.has(h.sym)), ...add]; acct.histAt = Date.now(); acct.at = Date.now();
+    await redis([["SET", "stk:acct", JSON.stringify(acct)]]);
+    return { hold, done, applied: add.length, acct };
+  }
+  return { hold, done, n: rows.length };
+}
+
 // ── 스승님들의 훈수: 대가 8명이 이현의 계좌를 보고 한 사람씩 조언 (한 번의 호출, stk:advice에 저장)
 export async function acctAdvice(force) {
   const [c, a, t, b] = await redis([["GET", "stk:advice"], ["GET", "stk:acct"], ["GET", "stk:trades"], ["GET", `stk:brief:${kstDay()}`]]);
@@ -501,7 +537,7 @@ const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -514,6 +550,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "snap") return res.json(await snapshot(!!q.force));
       if (op === "fred") { const id = String(q.id || ""); if (!MACRO_F.some((m) => m.id === id)) return res.status(400).json({ error: "id" }); const from = /^\d{4}-\d{2}-\d{2}$/.test(q.from || "") ? q.from : "2023-01-01"; let rows = await fred(id, from); if (!rows) return res.status(502).json({ error: "fred" }); if (q.yoy) rows = rows.map((p, k) => (k >= 12 ? { d: p.d, c: ((p.c - rows[k - 12].c) / rows[k - 12].c) * 100 } : null)).filter(Boolean); return res.json({ rows }); }
       if (op === "hist") { const [m] = await redis([["GET", "stk:histmeta"]]); const meta = json(m) || { years: [] }; if (!q.y) return res.json({ meta }); const [c] = await redis([["GET", "stk:hist:" + String(q.y).slice(0, 4)]]); return res.json({ meta, rows: json(c) || [] }); }
+      if (op === "histhold") return res.json(await histHold(false));
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
@@ -552,6 +589,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "acct") { const a = { hold: (Array.isArray(b.acct?.hold) ? b.acct.hold : []).slice(0, 100).map((h) => ({ sym: clip(h.sym, 20), name: clip(h.name, 40), qty: +h.qty || 0, avg: +h.avg || 0, cur: h.cur === "USD" ? "USD" : "KRW", memo: clip(h.memo, 200), src: h.src === "kiwoom" ? "kiwoom" : undefined })).filter((h) => h.sym), cash: +b.acct?.cash || 0, cashUsd: +b.acct?.cashUsd || 0, kwAt: +b.acct?.kwAt || undefined, at: Date.now() }; await redis([["SET", "stk:acct", JSON.stringify(a)]]); return res.json({ ok: true, acct: a }); }
     if (b.op === "trades") { const list = (Array.isArray(b.trades) ? b.trades : []).slice(0, 3000).map((t) => ({ id: clip(t.id, 20), date: clip(t.date, 10), sym: clip(t.sym, 20), name: clip(t.name, 40), side: t.side === "매도" ? "매도" : "매수", price: +t.price || 0, qty: +t.qty || 0, memo: clip(t.memo, 1000), feel: clip(t.feel, 40), ord: clip(t.ord, 30) || undefined, src: t.src === "kiwoom" ? "kiwoom" : undefined, rv: t.rv && typeof t.rv === "object" ? t.rv : undefined })).filter((t) => t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.date)); const s = JSON.stringify(list); if (s.length > 2_500_000) return res.status(400).json({ error: "big" }); await redis([["SET", "stk:trades", s]]); return res.json({ ok: true, n: list.length }); }
     if (b.op === "histsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env" }); const re = /^\d{4}-\d{2}-\d{2}$/; if (!re.test(b.from || "") || !re.test(b.to || "")) return res.status(400).json({ error: "date" }); try { return res.json(await kwHistSync(b.from, b.to)); } catch (e) { return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
+    if (b.op === "histhold") return res.json(await histHold(true));
     if (b.op === "advice") { const r = await acctAdvice(true); return r?.err ? res.status(r.err === "empty" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(); return res.json({ ...r, ...(await ytAll()) }); }

@@ -373,7 +373,12 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     <form class="row pvform" id="hvForm" hidden><input id="hvPin" type="password" inputmode="numeric" autocomplete="off" placeholder="내 계좌와 같은 비밀번호" style="flex:0 1 200px"><button class="btn y s">공개로 전환</button><span class="msg" id="hvMsg" style="margin:0"></span></form>
     <p class="note pvnote">🔒 비공개 모드예요. 위의 공개 버튼을 누르고 내 계좌 비밀번호를 넣으면 보여요.</p>
     <div class="row" style="align-items:center;gap:8px"><button type="button" class="btn y s" id="hsAll">키움에서 모든 이력 받기</button><button type="button" class="btn g s" id="hsNew">최근 1달 받기</button><span class="note" id="hsMsg" style="margin:0"></span></div>
-    <div class="row" id="hsSum" style="margin-top:10px"></div>
+    <div class="row crow" id="hsMkt" style="margin-top:10px"></div>
+    <div class="row" id="hsSum" style="margin-top:6px"></div>
+    <div id="hsUs" hidden style="margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
+      <div class="row" style="align-items:center;gap:8px"><b>미국 보유 역산</b><span class="note" style="margin:0">해외 매수·매도를 날짜순으로 더해 지금 남은 수량과 평단을 계산해요.</span><button type="button" class="btn g s" id="huCalc" style="margin-left:auto">계산해 보기</button><button type="button" class="btn y s" id="huApply" hidden>내 계좌에 넣기</button></div>
+      <div id="huBox"></div>
+    </div>
     <div class="row crow" id="hsYears" style="margin-top:10px"></div>
     <div class="row crow" id="hsKinds"></div>
     <div class="row" style="margin-top:6px"><input id="hsQ" placeholder="종목·구분 검색" style="flex:0 1 220px"></div>
