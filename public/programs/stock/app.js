@@ -753,7 +753,7 @@ function renderHist() {
   const by = new Map(); inY.forEach((r) => { if (r.k !== "매수" && r.k !== "매도" || !(r.name || r.code)) return; const o = by.get(r.name || r.code) || { n: r.name || r.code, b: 0, ba: 0, s: 0, sa: 0, f: 0 }; if (r.k === "매수") { o.b++; o.ba += +r.amt || 0; } else { o.s++; o.sa += +r.amt || 0; } o.f += (+r.fee || 0) + (+r.tax || 0); by.set(o.n, o); });
   $("hsStk").innerHTML = [...by.values()].sort((a, b) => b.ba + b.sa - a.ba - a.sa).map((o) => `<tr><td><b>${esc(o.n)}</b></td><td class="r">${o.b}</td><td class="r">${money(o.ba)}</td><td class="r">${o.s}</td><td class="r">${money(o.sa)}</td><td class="r ${ud(o.sa - o.ba)}">${o.s ? money(o.sa - o.ba) : "-"}</td><td class="r">${money(o.f)}</td></tr>`).join("") || `<tr><td colspan="7" class="note">매매 기록이 없어요.</td></tr>`;
   const kc = { 매수: "up", 매도: "down" };
-  $("hsRows").innerHTML = rows.slice(0, HS.n).map((r) => `<tr><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
+  HS.view = rows; $("hsRows").innerHTML = rows.slice(0, HS.n).map((r, ix) => `<tr data-hsraw="${ix}" style="cursor:pointer"><td class="num">${r.d}</td><td><span class="${kc[r.k] || ""}">${esc(r.t || r.k)}</span></td><td>${esc(r.name || "")}${r.code ? `<br><span class="note num">${esc(r.code)}</span>` : ""}</td><td class="r">${r.qty ? fmt(r.qty, 0) : ""}</td><td class="r">${r.price ? fmt(r.price, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.amt ? fmt(r.amt, r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.fee || r.tax ? fmt((+r.fee || 0) + (+r.tax || 0), r.cur !== "KRW" ? 2 : 0) : ""}</td><td class="r">${r.cash ? fmt(r.cash, 0) : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="note">없어요.</td></tr>`;
   $("hsMore").innerHTML = rows.length > HS.n ? `${fmt(rows.length, 0)}건 중 ${fmt(HS.n, 0)}건을 보여요. <button type="button" class="btn g s" id="hsMoreB">더 보기</button>` : "";
 }
 document.addEventListener("click", (e) => {
@@ -761,22 +761,27 @@ document.addEventListener("click", (e) => {
   const mk = e.target.closest("[data-hsm]"); if (mk) { HS.mk = mk.dataset.hsm; ls.set("stk-hmk", HS.mk); HS.y = "all"; HS.k = "전체"; HS.n = 300; return renderHist(); }
   const k = e.target.closest("[data-hsk]"); if (k) { HS.k = k.dataset.hsk; HS.n = 300; return renderHist(); }
   if (e.target.id === "hsMoreB") { HS.n += 500; renderHist(); }
+  const rw = e.target.closest("[data-hsraw]"); if (rw) { const nx = rw.nextElementSibling; if (nx?.classList.contains("hsraw")) return nx.remove(); const r = HS.view[+rw.dataset.hsraw]; rw.insertAdjacentHTML("afterend", `<tr class="hsraw"><td colspan="8" class="note num" style="white-space:normal;word-break:break-all">키움 원본: ${esc(Object.entries(r.raw || {}).map(([k, v]) => `${k}=${v}`).join(" · ") || "없음")}</td></tr>`); }
 });
 $("hsQ").oninput = (e) => { HS.q = e.target.value; HS.n = 300; renderHist(); };
 const dstr = (d) => new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
 async function histPull(all) {
   const m = $("hsMsg"), bA = $("hsAll"), bN = $("hsNew"); bA.disabled = bN.disabled = true;
   // 오늘부터 3달씩 거꾸로. 기록이 나온 뒤 연속 8구간(2년) 비면, 처음부터 없으면 연속 12구간(3년) 비면 멈춤. 최대 25년
-  let end = new Date(), total = 0, added = 0, empty = 0, seen = false, steps = all ? 100 : 1, err = "";
+  let end = new Date(), total = 0, added = 0, empty = 0, seen = false, steps = all ? 100 : 1, err = "", cuts = 0;
+  // 한 구간이 너무 많아 끝까지 못 받으면(cut) 그 구간을 10일씩 다시 받아요
+  const pull = async (from, to) => { const j = await api("", { op: "histsync", from, to }); total += j.got; added += j.added; return j; };
   for (let i = 0; i < steps; i++) {
     const start = new Date(end.getTime() - (all ? 91 : 31) * 864e5), from = dstr(start), to = dstr(end);
     m.textContent = `${from} ~ ${to} 받는 중… (지금까지 ${fmt(total, 0)}건)`;
-    try { const j = await api("", { op: "histsync", from, to }); total += j.got; added += j.added; if (j.got) { seen = true; empty = 0; } else empty++; }
+    try { const j = await pull(from, to);
+      if (j.cut) for (let e2 = new Date(end); e2 >= start; e2 = new Date(e2.getTime() - 10 * 864e5)) { const s2 = new Date(Math.max(start.getTime(), e2.getTime() - 9 * 864e5)); m.textContent = `${dstr(s2)} ~ ${dstr(e2)} 나눠 받는 중… (지금까지 ${fmt(total, 0)}건)`; const k = await pull(dstr(s2), dstr(e2)); if (k.cut) cuts++; }
+      if (j.got) { seen = true; empty = 0; } else empty++; }
     catch (er) { err = er?.message === "kw_env" ? "키움 키나 프록시가 설정돼 있지 않아요." : `키움 오류: ${er?.msg || er?.message}`; break; }
     if (all && (seen ? empty >= 8 : empty >= 12)) break;
     end = new Date(start.getTime() - 864e5);
   }
-  m.textContent = err ? `${err} (그 전까지 ${fmt(total, 0)}건 받았어요)` : `다 받았어요. ${fmt(total, 0)}건 중 새로 ${fmt(added, 0)}건을 넣었어요.`;
+  m.textContent = err ? `${err} (그 전까지 ${fmt(total, 0)}건 받았어요)` : `다 받았어요. ${fmt(total, 0)}건 중 새로 ${fmt(added, 0)}건을 넣었어요.${cuts ? ` 거래가 아주 많은 ${cuts}구간은 일부가 빠졌을 수 있어요.` : ""}`;
   bA.disabled = bN.disabled = false; await loadHist();
 }
 $("hsAll").onclick = () => histPull(true);

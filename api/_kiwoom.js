@@ -28,9 +28,9 @@ async function token(force) {
   return j.token;
 }
 // TR 하나 부르기 (연속 조회는 cont-yn / next-key 로 끝까지)
-async function tr(apiId, body, listKey, path = "acnt", more = () => true) {
-  let tok = await token(), cont = "N", next = "", rows = [], first = null;
-  for (let page = 0; page < 20; page++) {
+async function tr(apiId, body, listKey, path = "acnt", more = () => true, maxPages = 20) {
+  let tok = await token(), cont = "N", next = "", rows = [], first = null, cut = false;
+  for (let page = 0; page < maxPages; page++) {
     const r = await out(`${BASE}/api/dostk/${path}`, { method: "POST", headers: { "Content-Type": "application/json;charset=UTF-8", "api-id": apiId, authorization: `Bearer ${tok}`, "cont-yn": cont, "next-key": next }, body: JSON.stringify(body) });
     if (r.status === 401 && page === 0) { tok = await token(true); continue; }
     const j = await r.json().catch(() => ({}));
@@ -43,7 +43,8 @@ async function tr(apiId, body, listKey, path = "acnt", more = () => true) {
     if (cont !== "Y" || !listKey || !more(rows)) break;
     await sleep(250);
   }
-  return { first, rows };
+  cut = cont === "Y"; // 다음 쪽이 남았는데 멈춤 (쪽 수·시간 한도)
+  return { first, rows, cut };
 }
 
 // 잔고 (kt00018) + 예수금 (kt00001)
@@ -136,18 +137,20 @@ const pick = (x, ks) => { for (const k of ks) if (x[k] != null && String(x[k]).t
 const ymd = (v) => { const s = String(v || "").replace(/\D/g, ""); return s.length >= 8 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : ""; };
 export function histKind(t) { return /매수/.test(t) ? "매수" : /매도/.test(t) ? "매도" : /배당/.test(t) ? "배당" : /입금|출금|이체|대체|송금/.test(t) ? "입출금" : /이자/.test(t) ? "이자" : "기타"; }
 export async function kwHistRange(from, to) { // YYYY-MM-DD
-  const { rows } = await tr("kt00015", { strt_dt: from.replace(/-/g, ""), end_dt: to.replace(/-/g, ""), tp: "0", stk_cd: "", crnc_cd: "", gds_tp: "0", frgn_stex_code: "", dmst_stex_tp: "%" }, "trst_ovrl_trde_prps_array");
-  return rows.map((x) => {
+  const { rows, cut } = await tr("kt00015", { strt_dt: from.replace(/-/g, ""), end_dt: to.replace(/-/g, ""), tp: "0", stk_cd: "", crnc_cd: "", gds_tp: "0", frgn_stex_code: "", dmst_stex_tp: "%" }, "trst_ovrl_trde_prps_array", "acnt", ((t0) => () => Date.now() - t0 < 80e3)(Date.now()), 200);
+  const out = rows.map((x) => {
     const t = String(pick(x, ["rmrk_nm", "trde_kind_nm", "io_tp_nm", "trde_tp_nm", "sub_rmrk_nm"])).trim();
+    const tAll = [t, ...Object.values(x).filter((v) => typeof v === "string" && /[가-힣]/.test(v))].join(" ");
     const raw = Object.fromEntries(Object.entries(x).map(([k, v]) => [k, String(v ?? "").trim()]).filter(([, v]) => v !== "" && !/^[+-]?0+$/.test(v)));
     return {
-      d: ymd(pick(x, ["trde_dt", "dt", "ord_dt", "trde_date"])), no: String(pick(x, ["trde_no", "ord_no", "seq"])).trim(), t, k: histKind(t),
-      code: code(pick(x, ["stk_cd", "isin_cd"])), name: String(pick(x, ["stk_nm", "item_nm"])).trim(),
+      d: ymd(pick(x, ["trde_dt", "dt", "ord_dt", "trde_date"])), no: String(pick(x, ["trde_no", "ord_no", "seq"])).trim(), t,
+      k: histKind(t) === "기타" ? histKind(tAll) : histKind(t), code: code(pick(x, ["stk_cd", "isin_cd"])), name: String(pick(x, ["stk_nm", "item_nm"])).trim(),
       qty: num(pick(x, ["trde_qty_jwa_cnt", "trde_qty", "cntr_qty", "qty"])), price: num(pick(x, ["trde_unit", "cntr_uv", "uv", "trde_pric"])),
       amt: num(pick(x, ["trde_amt", "exct_amt", "amt", "cntr_amt"])), fee: num(pick(x, ["cmsn", "trde_cmsn"])), tax: num(pick(x, ["tax", "trde_tax", "spcf_tax", "tax_amt"])),
       cash: num(pick(x, ["entra_remn", "dpst_remn", "entr_remn", "ent_remn"])), cur: String(pick(x, ["crnc_cd"])).trim() || "KRW", raw,
     };
   }).filter((r) => r.d);
+  out.cut = cut; return out;
 }
 export async function kwHistSync(from, to) {
   const rows = await kwHistRange(from, to), byY = {};
@@ -156,8 +159,8 @@ export async function kwHistSync(from, to) {
   let added = 0;
   for (const [y, list] of Object.entries(byY)) {
     const [c] = await redis([["GET", "stk:hist:" + y]]); const old = json(c) || [];
-    const key = (r) => [r.d, r.no, r.t, r.code, r.qty, r.amt].join("|"), seen = new Set(old.map(key));
-    for (const r of list) if (!seen.has(key(r))) { seen.add(key(r)); old.push(r); added++; }
+    const key = (r) => [r.d, r.no, r.t, r.code, r.qty, r.amt, r.price, r.cash].join("|"), at = new Map(old.map((r, i) => [key(r), i]));
+    for (const r of list) { const i = at.get(key(r)); if (i == null) { at.set(key(r), old.length); old.push(r); added++; } else old[i] = r; } // 이미 있으면 새로 받은 값으로 (분류 고친 것 반영)
     old.sort((a, b) => (a.d === b.d ? String(a.no).localeCompare(String(b.no)) : a.d < b.d ? -1 : 1));
     await redis([["SET", "stk:hist:" + y, JSON.stringify(old)]]);
     if (!meta.years.includes(y)) meta.years.push(y);
@@ -165,5 +168,5 @@ export async function kwHistSync(from, to) {
   meta.years.sort(); if (rows.length) { meta.from = !meta.from || from < meta.from ? from : meta.from; meta.to = !meta.to || to > meta.to ? to : meta.to; }
   meta.at = Date.now(); meta.keys = rows[0] ? Object.keys(rows[0].raw).slice(0, 40) : meta.keys;
   await redis([["SET", "stk:histmeta", JSON.stringify(meta)]]);
-  return { got: rows.length, added, meta };
+  return { got: rows.length, added, cut: !!rows.cut, meta };
 }
