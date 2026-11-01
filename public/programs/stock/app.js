@@ -119,23 +119,24 @@ document.addEventListener("click", (e) => { const b = e.target.closest("[data-go
 
 // ── 대가 모의 매매
 async function loadMasters(force) {
+  if (MV === "ask") { $("mAll").hidden = $("mOne").hidden = true; $("mAsk").hidden = false; loadAsk(); } // 회의실은 계산을 기다리지 않고 바로
   if (BT && !force) return renderMasters();
   $("msRank").innerHTML = `<p class="note">2025년 1월부터 매일 매매를 다시 계산하는 중… (처음엔 20초쯤)</p>`;
   try { const j = await api("op=masters" + (force ? "&force=1" : "")); BT = j; INFO = j.info; renderMasters(); } catch { $("msRank").innerHTML = `<p class="msg no">못 불러왔어요. 새로고침해 주세요.</p>`; }
 }
 let MV = ls.get("stk-mview", "all");
 function renderMNav() {
-  $("mNav").innerHTML = `<button type="button" class="dash" data-mv="all" aria-pressed="${MV === "all"}">대가 대시보드</button>` + INFO.map((m) => { const r = BT.masters[m.id]?.ret; return `<button type="button" data-mv="${m.id}" aria-pressed="${MV === m.id}">${face(m.id)}${esc(m.name)} <b class="num ${MV === m.id ? "" : ud(r)}">${pct(r)}</b></button>`; }).join("");
-  $("mAll").hidden = MV !== "all"; $("mOne").hidden = MV === "all";
+  $("mNav").innerHTML = `<button type="button" class="dash" data-mv="all" aria-pressed="${MV === "all"}">대가 대시보드</button><button type="button" class="dash" data-mv="ask" aria-pressed="${MV === "ask"}">🗣️ 다 같이 묻기</button>` + INFO.map((m) => { const r = BT.masters[m.id]?.ret; return `<button type="button" data-mv="${m.id}" aria-pressed="${MV === m.id}">${face(m.id)}${esc(m.name)} <b class="num ${MV === m.id ? "" : ud(r)}">${pct(r)}</b></button>`; }).join("");
+  $("mAll").hidden = MV !== "all"; $("mOne").hidden = MV === "all" || MV === "ask"; $("mAsk").hidden = MV !== "ask";
 }
-function setMV(v) { MV = v; ls.set("stk-mview", v); renderMNav(); if (v === "all") renderAll(); else { renderMaster(v); scrollTo({ top: $("masters").offsetTop - 10, behavior: "smooth" }); } }
+function setMV(v) { MV = v; ls.set("stk-mview", v); renderMNav(); if (v === "all") renderAll(); else if (v === "ask") loadAsk(); else { renderMaster(v); scrollTo({ top: $("masters").offsetTop - 10, behavior: "smooth" }); } }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mv]"); if (b) setMV(b.dataset.mv); });
 function renderMasters() {
   const sel = MV, list = INFO.map((m) => ({ ...m, ...BT.masters[m.id] })).sort((a, b) => b.ret - a.ret);
   $("btInfo").textContent = `${BT.start} ~ ${BT.upto} · 각자 1억 원 · 종가 체결 · 수수료·세금 0.2%`;
   $("msRank").innerHTML = list.map((m, k) => `<button type="button" class="mcard" data-mm="${m.id}" aria-pressed="${m.id === sel}">${face(m.id)}<span class="nm">${k + 1}위 ${esc(m.name)}</span><span class="rt"><b class="${ud(m.ret)}">${pct(m.ret)}</b> · ${eok(m.value)} · 최대낙폭 ${pct(m.mdd)}</span><span class="say note" style="margin:0">${esc(m.style)}</span></button>`).join("");
   $("bench").textContent = "같은 기간 그냥 들고 있었다면: " + Object.entries(BT.bench || {}).map(([k, v]) => `${k} ${pct(v)}`).join(" · ");
-  renderMNav(); if (MV === "all" || !BT.masters[MV]) { MV = "all"; renderMNav(); renderAll(); } else renderMaster(MV);
+  renderMNav(); if (MV === "ask") renderAll(); else if (MV === "all" || !BT.masters[MV]) { MV = "all"; renderMNav(); renderAll(); } else renderMaster(MV);
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mm]"); if (b) setMV(b.dataset.mm); });
 const hPl = (h) => (h.pl != null && h.pl > -100 ? Math.round(h.won - h.won / (1 + h.pl / 100)) : null);
@@ -720,6 +721,72 @@ $("pvChg").onclick = () => { $("pvNew").hidden = !$("pvNew").hidden; $("pvGo").t
 $("pvForm").onsubmit = async (e) => { e.preventDefault(); const pin = $("pvPin").value, nw = $("pvNew").hidden ? "" : $("pvNew").value;
   try { const j = await api("", { op: "acctpin", pin, newPin: nw || undefined }); $("pvPin").value = $("pvNew").value = ""; $("pvNew").hidden = true; setPv(true); $("pvMsg").textContent = j.changed ? "비밀번호를 바꿨어요." : ""; }
   catch (err) { $("pvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요." : "확인하지 못했어요."; } };
+
+// ── 대가 회의실: 다 같이 묻기
+const AK = { cur: null, list: [], off: new Set(), chart: null };
+const AKEX = ["지금 시장 상황을 어떻게 보세요? 다시 들어간다면 언제, 얼마쯤에서요?", "필라델피아 반도체가 고점에서 빠졌는데 지금 사도 될까요?", "코스피는 어디까지 보고 언제 비중을 늘릴까요?", "엔비디아를 지금 산다면 어디서 사고 어디서 손절할까요?"];
+async function loadAsk() {
+  $("akEx").innerHTML = AKEX.map((q, i) => `<button type="button" class="pill" data-akex="${i}">${esc(q)}</button>`).join("");
+  try { AK.list = (await api("op=council")).list || []; } catch {} renderAkList();
+  if (!AK.cur && AK.list[0]) openAsk(AK.list[0].id); else if (AK.cur) renderAsk();
+}
+function renderAkList() {
+  $("akList").innerHTML = AK.list.map((x) => `<div class="row" style="align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)"><span class="note num">${new Date(x.at).toLocaleDateString("ko-KR")}</span><a href="#" data-akopen="${x.id}" style="flex:1">${esc(x.q)}</a><span class="num ${ud(x.avg)}">${x.avg > 0 ? "+" : ""}${x.avg}</span><button type="button" class="btn g s" data-akdel="${x.id}" aria-label="지우기">✕</button></div>`).join("") || `<p class="note">아직 물어본 게 없어요.</p>`;
+}
+async function openAsk(id) { try { AK.cur = await api("op=council&id=" + id); AK.off = new Set(); renderAsk(); } catch {} }
+const akColor = (sc) => (sc >= 0 ? "var(--up)" : "var(--down)");
+function renderAsk() {
+  const c = AK.cur; if (!c) return; const M = (id) => mName(id), col = (id) => MCOL[id] || "#888";
+  const f0 = c.focus[0], cur = f0?.cur === "KRW" || /^\^/.test(f0?.s || "") ? "" : "$";
+  const board = c.ans.slice().sort((a, b) => b.score - a.score).map((x) => `<div class="akbar"><span class="nm">${face(x.id)}${esc(M(x.id))}</span><div class="tr"><div class="fl" style="${x.score >= 0 ? `left:50%;width:${x.score / 2}%` : `right:50%;width:${-x.score / 2}%`};background:${akColor(x.score)};opacity:${0.35 + (x.conf / 100) * 0.65}"></div></div><span class="num" style="font-size:13px"><b class="${ud(x.score)}">${esc(x.stance || "")}</b> · 확신 ${x.conf}</span></div>`).join("");
+  // 진입 시점 타임라인 (지금 ~ 24개월)
+  const rows = c.ans.slice().sort((a, b) => a.eta - b.eta), X = (m) => 2 + (m / 24) * 96;
+  const tlLab = `<div style="position:relative;height:18px;font-size:12px;margin-left:150px" class="note">${[["지금", 0], ["3달", 3], ["6달", 6], ["1년", 12], ["2년", 24]].map(([n, m]) => `<span style="position:absolute;left:${X(m)}%;transform:translateX(-50%)">${n}</span>`).join("")}</div>`;
+  const tl = rows.map((x) => `<div style="display:flex;align-items:center;gap:8px;height:28px"><span style="width:142px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(M(x.id))}</span><div style="position:relative;flex:1;height:100%">${[0, 3, 6, 12, 24].map((m) => `<i style="position:absolute;left:${X(m)}%;top:0;bottom:0;width:1px;background:var(--line)"></i>`).join("")}<i style="position:absolute;left:${X(0)}%;width:${X(x.eta) - X(0)}%;top:50%;border-top:2px dashed ${col(x.id)}"></i><b title="${esc(x.when || "")}" style="position:absolute;left:${X(x.eta)}%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:${col(x.id)}"></b><span class="note" style="position:absolute;left:calc(${X(x.eta)}% + 10px);top:50%;transform:translateY(-50%);font-size:12px;white-space:nowrap">${x.eta ? x.eta + "달 뒤" : "지금"}</span></div></div>`).join("");
+  const tlNames = "";
+  $("akOut").innerHTML = `<section class="box"><h2>“${esc(c.q)}” <span>${new Date(c.at).toLocaleString("ko-KR")} · 대가 ${c.ans.length}명 평균 <b class="${ud(c.avg)}">${c.avg > 0 ? "+" : ""}${c.avg}</b></span></h2>
+      ${c.sum?.consensus ? `<div class="advs"><b>공통된 생각</b> ${esc(c.sum.consensus)}${c.sum.split ? `<br><b>갈린 지점</b> ${esc(c.sum.split)}` : ""}${c.sum.tip ? `<br><b>오늘 기억할 것</b> ${esc(c.sum.tip)}` : ""}</div>` : ""}
+      <h3 style="margin:10px 0 4px;font-size:15px">입장 비교 <span class="note" style="font-weight:400">왼쪽 약세 · 오른쪽 강세, 진할수록 확신</span></h3>${board}</section>
+    <section class="box"><h2>${esc(f0.n)} 차트 위 대가들의 가격대 <span>진입·추가는 실선, 손절·목표는 점선. 이름을 눌러 켜고 끌 수 있어요.</span></h2>
+      ${c.focus.length > 1 ? `<div class="row crow">${c.focus.map((f, i) => `<button type="button" class="pill" data-akf="${i}" aria-pressed="${(AK.fi || 0) === i}">${esc(f.n)}</button>`).join("")}</div>` : ""}
+      <div class="akleg" id="akLeg" style="margin:6px 0"></div>
+      <div id="akCh" style="height:420px;position:relative"></div>
+      <p class="note" id="akTech" style="margin:6px 0 0"></p></section>
+    <section class="box"><h2>언제 다시 들어가나 <span>대가마다 예상한 진입 시점</span></h2>${tlLab}${tl}${tlNames}</section>
+    <div class="akcards">${c.ans.map((x) => `<div class="akc" style="border-top-color:${col(x.id)}"><div class="hd">${face(x.id)}<div><b>${esc(M(x.id))}</b> <span class="fqc" style="color:${akColor(x.score)}">${esc(x.stance || "")}</span><div style="font-weight:600">${esc(x.head || "")}</div></div></div><p>${esc(x.view || "")}</p><p><b>다시 들어간다면</b> ${esc(x.when || "")}</p>${x.levels.length ? `<div class="aklv">${x.levels.map((l) => `<span class="fqc">${esc(l.k)} ${cur}${fmt(l.p, l.p >= 1000 ? 0 : 2)}${c.focus.length > 1 ? ` <span class="note">${esc(l.s)}</span>` : ""}</span>`).join("")}</div>` : ""}${x.watch?.length ? `<div class="note">볼 신호: ${x.watch.map(esc).join(" · ")}</div>` : ""}<div><button type="button" class="btn g s" data-advchat="${x.id}">더 여쭤보기</button></div></div>`).join("")}</div>
+    <p class="note">AI가 각 대가의 원칙으로 쓴 답이에요. 실제 발언이 아니고, 가격대는 질문 시점 시세를 근거로 한 예시예요.</p>`;
+  drawAkChart();
+}
+async function drawAkChart() {
+  const c = AK.cur, f = c.focus[AK.fi || 0] || c.focus[0], el = $("akCh"); if (!el || !f) return;
+  if (typeof LightweightCharts === "undefined") return setTimeout(drawAkChart, 400);
+  const t = f.tech; $("akTech").textContent = `${f.n} ${t.d} 기준 ${fmt(t.last, t.last >= 1000 ? 0 : 2)} · 20일선 ${fmt(t.ma20, 0)} · 50일선 ${fmt(t.ma50, 0)} · 200일선 ${fmt(t.ma200, 0)} · 52주 고점 대비 ${t.fromHi}% · RSI ${t.rsi}`;
+  let g; try { g = await api(`op=chart&s=${encodeURIComponent(f.s)}&r=2y&i=1d`); } catch { el.innerHTML = `<p class="note">차트를 못 불러왔어요.</p>`; return; }
+  const rows = (g.rows || []).filter((r) => r.c != null); try { AK.chart?.remove(); } catch {} AK.chart = null; el.innerHTML = ""; if (!rows.length) return;
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: css("--muted") || "#666" }, grid: { vertLines: { color: css("--line") }, horzLines: { color: css("--line") } }, rightPriceScale: { borderVisible: false }, timeScale: { borderVisible: false }, crosshair: { mode: 0 } });
+  const up = css("--up") || "#e03131", dn = css("--down") || "#1971c2";
+  const cs = ch.addCandlestickSeries({ upColor: up, downColor: dn, borderUpColor: up, borderDownColor: dn, wickUpColor: up, wickDownColor: dn });
+  cs.setData(rows.map((r) => ({ time: r.d, open: r.o ?? r.c, high: r.h ?? r.c, low: r.l ?? r.c, close: r.c })));
+  [[50, "#2f9e44"], [200, "#7048e8"]].forEach(([n, color]) => { const s = ch.addLineSeries({ color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, title: n + "일선" }); const out = []; let sum = 0; rows.forEach((r, i) => { sum += r.c; if (i >= n) sum -= rows[i - n].c; if (i >= n - 1) out.push({ time: r.d, value: sum / n }); }); s.setData(out); });
+  const ids = c.ans.filter((x) => x.levels.some((l) => l.s === f.s)).map((x) => x.id);
+  $("akLeg").innerHTML = ids.map((id) => `<button type="button" class="pill" data-akm="${id}" aria-pressed="${!AK.off.has(id)}"><i style="background:${MCOL[id] || "#888"}"></i>${esc(mName(id))}</button>`).join("") || `<span class="note">이 종목에 가격대를 준 대가가 없어요.</span>`;
+  c.ans.forEach((x) => { if (AK.off.has(x.id)) return; x.levels.filter((l) => l.s === f.s).forEach((l) => cs.createPriceLine({ price: l.p, color: MCOL[x.id] || "#888", lineWidth: /진입|추가/.test(l.k) ? 2 : 1, lineStyle: /진입|추가/.test(l.k) ? 0 : 2, axisLabelVisible: true, title: `${mName(x.id).split(" ").pop()} ${l.k}` })); });
+  ch.timeScale().setVisibleRange({ from: rows[Math.max(0, rows.length - 260)].d, to: rows.at(-1).d });
+  AK.chart = ch;
+}
+$("akForm").onsubmit = async (e) => { e.preventDefault(); const t = $("akIn").value.trim(); if (!t) return; const b = e.target.querySelector("button"); b.disabled = true;
+  let s = 0; const tick = setInterval(() => ($("akMsg").textContent = `대가 8명이 차트와 시장을 보고 답을 쓰는 중… ${++s}초 (보통 40초쯤)`), 1000);
+  try { AK.cur = await api("", { op: "council", text: t }); AK.off = new Set(); AK.fi = 0; $("akIn").value = ""; $("akMsg").textContent = ""; AK.list.unshift({ id: AK.cur.id, at: AK.cur.at, q: AK.cur.q, avg: AK.cur.avg }); renderAkList(); renderAsk(); }
+  catch (er) { $("akMsg").textContent = `답을 못 받았어요 (${er?.message === "ai" ? "AI 응답 실패" : er?.message || "연결 오류"}). 다시 눌러 주세요.`; }
+  clearInterval(tick); b.disabled = false; };
+document.addEventListener("click", async (e) => {
+  const x = e.target.closest("[data-akex]"); if (x) { $("akIn").value = AKEX[+x.dataset.akex]; $("akIn").focus(); return; }
+  const o = e.target.closest("[data-akopen]"); if (o) { e.preventDefault(); AK.fi = 0; return openAsk(o.dataset.akopen); }
+  const m = e.target.closest("[data-akm]"); if (m) { const id = m.dataset.akm; AK.off.has(id) ? AK.off.delete(id) : AK.off.add(id); return drawAkChart(); }
+  const f = e.target.closest("[data-akf]"); if (f) { AK.fi = +f.dataset.akf; return renderAsk(); }
+  const d = e.target.closest("[data-akdel]"); if (d) { if (d.dataset.sure !== "1") { d.dataset.sure = "1"; d.textContent = "한 번 더"; return; } await api("", { op: "council", del: d.dataset.akdel }).catch(() => {}); AK.list = AK.list.filter((y) => y.id !== d.dataset.akdel); if (AK.cur?.id === d.dataset.akdel) { AK.cur = null; $("akOut").innerHTML = ""; } renderAkList(); }
+});
 
 // ── 13F 탭
 const F3 = { v: ls.get("stk-f13v", "rank"), r: ls.get("stk-f13r", "new"), agg: null, meta: null, fund: null, bt: null, busy: false };

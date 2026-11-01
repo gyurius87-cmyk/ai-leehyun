@@ -106,6 +106,20 @@ td.r, th.r { text-align: right; font-family: var(--mono); white-space: nowrap; }
 .fqc { font-size: 12px; padding: 1px 7px; border-radius: 99px; background: var(--soft); white-space: nowrap; }
 .fqc.N { color: var(--up); font-weight: 600; } .fqc.S, .fqc.dn { color: var(--down); } .fqc.upc { color: var(--up); }
 .fqcnt { font-family: var(--mono); font-weight: 700; }
+.akbar { display: grid; grid-template-columns: 170px 1fr 120px; gap: 8px; align-items: center; padding: 5px 0; }
+.akbar .nm { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
+.akbar .nm svg { width: 28px; height: 28px; border-radius: 50%; background: var(--soft); flex: none; }
+.akbar .tr { position: relative; height: 18px; background: var(--soft); border-radius: 9px; }
+.akbar .tr::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.akbar .fl { position: absolute; top: 2px; bottom: 2px; border-radius: 7px; }
+.akcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.akc { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 6px; align-content: start; border-top-width: 4px; }
+.akc p { margin: 0; line-height: 1.6; }
+.akc .hd { display: flex; gap: 8px; align-items: center; }
+.akc .hd svg { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); flex: none; }
+.aklv { font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; }
+.akleg { display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 640px) { .akbar { grid-template-columns: 110px 1fr 80px; } }
 .prof { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: start; }
 .prof svg { width: 96px; height: 96px; border-radius: 50%; background: var(--soft); }
 .big { font-family: var(--mono); font-size: 26px; font-weight: 600; }
@@ -312,6 +326,16 @@ canvas.eq { width: 100%; height: 220px; display: block; }
     </div>
     <div id="mOne" class="grid" style="gap:14px" hidden>
       <section class="box" id="mDetail"></section>
+    </div>
+    <div id="mAsk" class="grid" style="gap:14px" hidden>
+      <section class="box">
+        <h2>대가 회의실 <span>질문 하나에 대가 8명이 한꺼번에 답해요. 지금 상황, 다시 들어갈 때와 가격대를 차트로 비교해요.</span></h2>
+        <form id="akForm" class="row" style="gap:6px"><textarea id="akIn" rows="2" placeholder="예: 지금 나스닥 조정을 어떻게 보세요? 다시 들어간다면 언제, 얼마쯤에서요?" style="flex:1 1 360px"></textarea><button class="btn y">다 같이 묻기</button></form>
+        <div class="row crow" id="akEx" style="margin-top:6px"></div>
+        <p class="note" id="akMsg" style="margin:4px 0 0"></p>
+      </section>
+      <div id="akOut" class="grid" style="gap:14px"></div>
+      <section class="box"><h2>지난 질문</h2><div id="akList"></div></section>
     </div>
   </div>
 
