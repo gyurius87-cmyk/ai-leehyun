@@ -229,6 +229,16 @@
       "private": true,
       "href": "/programs/detail-swap/",
       "cat": "업무·운영"
+    },
+    {
+      "id": "memo-todo",
+      "name": "메모 할 일 정리",
+      "status": "using",
+      "summary": "메모 사진을 올리거나 글을 붙여 넣으면 할 일만 뽑아 날짜·급한 정도·걸릴 시간을 붙여 정리하고, 체크하며 지워 가요.",
+      "start": "2026-11-01",
+      "private": true,
+      "href": "https://claude.ai/artifact/1SUeXTQLtZbSkuU9vQXUTo",
+      "cat": "업무·운영"
     }
   ]
 }
