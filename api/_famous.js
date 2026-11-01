@@ -22,7 +22,7 @@ export const FAMOUS = [
 ];
 
 const pad = (n) => String(n).padStart(10, "0");
-async function secJson(url) { const r = await fetch(url, { headers: SEC_UA }); if (!r.ok) throw new Error(`sec ${r.status}`); return r.json(); }
+export async function secJson(url) { const r = await fetch(url, { headers: SEC_UA }); if (!r.ok) throw new Error(`sec ${r.status}`); return r.json(); }
 async function secText(url) { const r = await fetch(url, { headers: SEC_UA }); if (!r.ok) throw new Error(`sec ${r.status}`); return r.text(); }
 
 // 13F 정보표 XML → 종목 목록 (같은 종목이 여러 줄이면 합침)
@@ -37,7 +37,7 @@ export function parseInfoTable(xml) {
   return [...by.values()].sort((a, b) => b.val - a.val);
 }
 
-async function filing13F(cik, acc) {
+export async function filing13F(cik, acc) {
   const dir = `https://www.sec.gov/Archives/edgar/data/${cik}/${acc.replace(/-/g, "")}`;
   const idx = await secJson(`${dir}/index.json`); await sleep(150);
   const xmls = (idx?.directory?.item || []).map((x) => x.name).filter((n) => /\.xml$/i.test(n) && !/primary_doc/i.test(n));
@@ -46,7 +46,7 @@ async function filing13F(cik, acc) {
 }
 
 // 지난 분기와 비교해서 새로 산 것 / 늘린 것 / 줄인 것 / 다 판 것
-function diff(cur, prev) {
+export function diff(cur, prev) {
   if (!prev) return { rows: cur.map((r) => ({ ...r, ch: null })), sold: [] };
   const pm = new Map(prev.map((r) => [r.cusip + "|" + r.pc, r]));
   const rows = cur.map((r) => { const p = pm.get(r.cusip + "|" + r.pc); pm.delete(r.cusip + "|" + r.pc); return { ...r, ch: !p ? "new" : p.sh ? Math.round(((r.sh - p.sh) / p.sh) * 1000) / 10 : null }; });
@@ -117,7 +117,7 @@ export async function famQuarter(id, acc) {
 }
 
 // 종목 한글 이름: 한 번 번역한 건 stk:konames에 모아 둠
-async function koMap(names) {
+export async function koMap(names) {
   const [c] = await redis([["GET", "stk:konames"]]); const M = json(c) || {};
   const miss = [...new Set(names.filter((n) => n && !(n in M)))].slice(0, 300);
   if (miss.length && process.env.ANTHROPIC_API_KEY) {

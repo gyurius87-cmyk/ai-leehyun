@@ -8,6 +8,7 @@ import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp, kwChart, kwChartable, kwStockList, kwHistSync } from "./_kiwoom.js";
 import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
+import { f13Find, f13FundView, f13Refresh, f13Agg, f13Stock, f13Mine, f13Backtest } from "./_f13.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
@@ -537,7 +538,7 @@ const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), f13Refresh(40e3).catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -555,6 +556,12 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(); a = await ytAll(); } return res.json(a); }
+      if (op === "f13") return res.json(await f13Agg());
+      if (op === "f13find") return res.json({ list: await f13Find(q.q) });
+      if (op === "f13fund") { try { return res.json(await f13FundView(String(q.cik || ""), !!q.force)); } catch (e) { return res.status(502).json({ error: "sec", msg: String(e?.message || e).slice(0, 200) }); } }
+      if (op === "f13stock") return res.json(await f13Stock(q.q, findSym));
+      if (op === "f13mine") { const [a] = await redis([["GET", "stk:acct"]]); return res.json(await f13Mine(json(a))); }
+      if (op === "f13bt") { try { return res.json(await f13Backtest(String(q.cik || ""), chart)); } catch (e) { return res.status(502).json({ error: "bt", msg: String(e?.message || e).slice(0, 200) }); } }
       if (op === "famq") { const r = await famQuarter(String(q.id || ""), String(q.acc || "")); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
       if (op === "fam") { let a = await famousAll(); if (q.refresh || !a.at || a.list.some((f) => f.cik && f.data && !f.data.hist)) { await famousRefresh(!!q.force); a = await famousAll(); } return res.json(a); }
       if (op === "world") return res.json(await world(!!q.force, String(q.x || "").split(",").map((x) => x.trim()).filter(Boolean)));
@@ -590,6 +597,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "trades") { const list = (Array.isArray(b.trades) ? b.trades : []).slice(0, 3000).map((t) => ({ id: clip(t.id, 20), date: clip(t.date, 10), sym: clip(t.sym, 20), name: clip(t.name, 40), side: t.side === "매도" ? "매도" : "매수", price: +t.price || 0, qty: +t.qty || 0, memo: clip(t.memo, 1000), feel: clip(t.feel, 40), ord: clip(t.ord, 30) || undefined, src: t.src === "kiwoom" ? "kiwoom" : undefined, rv: t.rv && typeof t.rv === "object" ? t.rv : undefined })).filter((t) => t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.date)); const s = JSON.stringify(list); if (s.length > 2_500_000) return res.status(400).json({ error: "big" }); await redis([["SET", "stk:trades", s]]); return res.json({ ok: true, n: list.length }); }
     if (b.op === "histsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env" }); const re = /^\d{4}-\d{2}-\d{2}$/; if (!re.test(b.from || "") || !re.test(b.to || "")) return res.status(400).json({ error: "date" }); try { return res.json(await kwHistSync(b.from, b.to)); } catch (e) { return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "histhold") return res.json(await histHold(true));
+    if (b.op === "f13refresh") { try { return res.json(await f13Refresh(80e3, !!b.force)); } catch (e) { return res.status(502).json({ error: "sec", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "advice") { const r = await acctAdvice(true); return r?.err ? res.status(r.err === "empty" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }
     if (b.op === "ytsync") { const r = await ytSync(); return res.json({ ...r, ...(await ytAll()) }); }

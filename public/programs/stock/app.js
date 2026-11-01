@@ -16,7 +16,7 @@ async function api(q, body) {
   if (r.status === 401) { gate(); throw new Error("auth"); }
   const j = await r.json().catch(() => ({})); if (!r.ok) { const er = new Error(j.error || "fail"); er.msg = j.msg; throw er; } return j;
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -57,7 +57,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -720,6 +720,104 @@ $("pvChg").onclick = () => { $("pvNew").hidden = !$("pvNew").hidden; $("pvGo").t
 $("pvForm").onsubmit = async (e) => { e.preventDefault(); const pin = $("pvPin").value, nw = $("pvNew").hidden ? "" : $("pvNew").value;
   try { const j = await api("", { op: "acctpin", pin, newPin: nw || undefined }); $("pvPin").value = $("pvNew").value = ""; $("pvNew").hidden = true; setPv(true); $("pvMsg").textContent = j.changed ? "비밀번호를 바꿨어요." : ""; }
   catch (err) { $("pvMsg").textContent = err?.message === "wrong" ? "비밀번호가 달라요." : err?.message === "short" ? "4자 이상으로 넣어 주세요." : "확인하지 못했어요."; } };
+
+// ── 13F 탭
+const F3 = { v: ls.get("stk-f13v", "rank"), r: ls.get("stk-f13r", "new"), agg: null, meta: null, fund: null, bt: null, busy: false };
+const f3usd = (v) => (v == null ? "-" : v >= 1e9 ? "$" + (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v).toLocaleString("en-US"));
+const f3ch = (c) => (c === "N" || c === "new" ? `<span class="fqc N">새로 삼</span>` : c === "S" ? `<span class="fqc S">다 팖</span>` : typeof c === "number" && c !== 0 ? `<span class="fqc ${c > 0 ? "upc" : "dn"}">${c > 0 ? "+" : ""}${c}%</span>` : "");
+const f3fn = (i) => F3.agg?.funds?.[i]?.ko || "?";
+const f3sn = (o) => (o.ko ? `<b>${esc(o.ko)}</b> <span class="note">${esc(o.n)}</span>` : `<b>${esc(o.n)}</b>`) + (o.t ? ` <span class="note num">${esc(o.t)}</span>` : "");
+async function loadF13(force) {
+  try { const j = await api("op=f13"); F3.agg = j.agg; F3.meta = j.meta; } catch { $("fqInfo").textContent = "못 불러왔어요."; return; }
+  const a = F3.agg; $("fqInfo").textContent = a ? `기준 ${a.period} 분기 · 유명 펀드 ${a.funds.length}곳 · ${new Date(a.at).toLocaleString("ko-KR")} 정리` : "처음이라 유명 펀드 45곳의 13F를 받아야 해요. 몇 분 걸려요.";
+  renderF13();
+  if ((!a || force) && !F3.busy) f13Pull(!!force);
+}
+async function f13Pull(force) {
+  F3.busy = true; const b = $("fqRef"); b.disabled = true;
+  for (let i = 0; i < 12; i++) {
+    $("fqInfo").textContent = `SEC에서 13F 받는 중… (${i + 1}번째, 한 번에 1분 남짓)`;
+    let j; try { j = await api("", { op: "f13refresh", force: force && i === 0 }); } catch (e) { $("fqInfo").textContent = `받다가 멈췄어요: ${e?.msg || e?.message}`; break; }
+    if (!j.left) { const n = Object.keys(j.err || {}).length; await loadF13(); if (n) $("fqInfo").textContent += ` · ${n}곳은 못 받았어요`; break; }
+  }
+  F3.busy = false; b.disabled = false;
+}
+$("fqRef").onclick = () => f13Pull(true);
+function renderF13() {
+  const V = [["rank", "스마트머니 순위"], ["stock", "종목으로 찾기"], ["mine", "내 계좌와 겹치기"], ["fund", "기관 보기·따라 하기"]];
+  $("fqNav").innerHTML = V.map(([k, n]) => `<button type="button" class="pill" data-fqv="${k}" aria-pressed="${F3.v === k}">${n}</button>`).join("");
+  ["rank", "stock", "mine", "fund"].forEach((k) => ($("fq" + k[0].toUpperCase() + k.slice(1)).hidden = F3.v !== k));
+  if (F3.v === "rank") renderFqRank(); if (F3.v === "mine") loadFqMine(); if (F3.v === "fund") renderFqStars();
+}
+function renderFqRank() {
+  const a = F3.agg; if (!a) { $("fqRank").innerHTML = `<p class="note">아직 모은 13F가 없어요.</p>`; return; }
+  const R = [["new", "새로 산 종목"], ["add", "많이 늘린 종목"], ["cut", "줄이거나 판 종목"], ["own", "많이 들고 있는 종목"]];
+  const score = { new: (o) => o.h.filter((h) => h[2] === "N").length, add: (o) => o.h.filter((h) => typeof h[2] === "number" && h[2] >= 10).length, cut: (o) => o.h.filter((h) => h[2] === "S" || (typeof h[2] === "number" && h[2] <= -10)).length, own: (o) => o.h.filter((h) => h[1] > 0).length }[F3.r];
+  const keep = { new: (h) => h[2] === "N", add: (h) => typeof h[2] === "number" && h[2] >= 10, cut: (h) => h[2] === "S" || (typeof h[2] === "number" && h[2] <= -10), own: (h) => h[1] > 0 }[F3.r];
+  const list = a.list.map((o) => [o, score(o)]).filter(([, n]) => n > 0).sort((x, y) => y[1] - x[1] || y[0].val - x[0].val).slice(0, 30);
+  $("fqRank").innerHTML = `<div class="row crow" style="margin-top:8px">${R.map(([k, n]) => `<button type="button" class="pill" data-fqr="${k}" aria-pressed="${F3.r === k}">${n}</button>`).join("")}</div>
+    <p class="note" style="margin:4px 0">숫자는 펀드 수예요. 펀드 이름 옆은 그 펀드 안 비중과 지난 분기 대비 변화예요. 줄을 누르면 그 종목을 누가 들고 있는지 다 보여요.</p>`
+    + list.map(([o, n]) => `<div class="fqr" data-fqs="${esc(o.t || o.n)}"><div>${f3sn(o)}</div><div class="fqcnt">${n}곳</div><div class="ch">${o.h.filter(keep).sort((x, y) => y[1] - x[1]).map((h) => `<span class="fqc">${esc(f3fn(h[0]))}${h[1] ? ` ${h[1]}%` : ""}</span>${f3ch(h[2])}`).join(" ")}</div></div>`).join("") || `<p class="note">없어요.</p>`;
+}
+function fqHolders(o) {
+  return `<div style="margin-bottom:14px"><div>${f3sn(o)} <span class="note">· 유명 펀드 ${o.h.filter((h) => h[1] > 0).length}곳 보유</span></div><div class="tw"><table><thead><tr><th>기관</th><th class="r">비중</th><th>지난 분기 대비</th></tr></thead><tbody>${o.h.slice().sort((x, y) => y[1] - x[1]).map((h) => `<tr><td><a href="#" data-fqf="${F3.agg.funds[h[0]]?.cik}">${esc(f3fn(h[0]))}</a></td><td class="r">${h[1] ? h[1] + "%" : "-"}</td><td>${f3ch(h[2]) || (h[2] === 0 ? "그대로" : "")}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+async function fqStockSearch(q) {
+  F3.v = "stock"; ls.set("stk-f13v", "stock"); renderF13(); $("fqSQ").value = q; $("fqSOut").innerHTML = `<p class="note">찾는 중…</p>`;
+  try { const j = await api("op=f13stock&q=" + encodeURIComponent(q)); $("fqSOut").innerHTML = j.none ? `<p class="note">아직 모은 13F가 없어요.</p>` : j.list.map(fqHolders).join("") || `<p class="note">유명 펀드 45곳 중에는 들고 있는 곳이 없어요.</p>`; } catch { $("fqSOut").innerHTML = `<p class="msg no">못 찾았어요.</p>`; }
+}
+$("fqSForm").onsubmit = (e) => { e.preventDefault(); const q = $("fqSQ").value.trim(); if (q) fqStockSearch(q); };
+async function loadFqMine() {
+  $("fqMine").innerHTML = `<p class="note">내 계좌의 미국 종목을 찾는 중…</p>`;
+  try { const j = await api("op=f13mine"); if (j.none) { $("fqMine").innerHTML = `<p class="note">아직 모은 13F가 없어요.</p>`; return; }
+    if (!j.rows.length) { $("fqMine").innerHTML = `<p class="note">내 계좌에 미국 종목이 없어요. 거래이력 탭에서 미국 보유를 넣으면 여기서 볼 수 있어요.</p>`; return; }
+    $("fqMine").innerHTML = `<p class="note" style="margin:4px 0 10px">내가 가진 미국 종목을 유명 펀드 중 누가 같이 들고 있고, 이번 분기에 늘렸는지 줄였는지예요.</p>` + j.rows.map((r) => r.o ? fqHolders(r.o) : `<div style="margin-bottom:10px"><b>${esc(r.name || r.sym)}</b> <span class="note num">${esc(r.sym)}</span> <span class="note">· 유명 펀드 중엔 없어요</span></div>`).join("");
+  } catch { $("fqMine").innerHTML = `<p class="msg no">못 불러왔어요.</p>`; }
+}
+function renderFqStars() {
+  const fs = F3.agg?.funds || []; $("fqStars").innerHTML = fs.map((f) => `<button type="button" class="pill" data-fqf="${f.cik}" aria-pressed="${F3.fund?.cik === f.cik}">${esc(f.ko)}</button>`).join("") || `<span class="note">유명 펀드를 받는 중이에요.</span>`;
+  if (F3.fund) renderFqFund();
+}
+$("fqFForm").onsubmit = async (e) => { e.preventDefault(); const q = $("fqFQ").value.trim(); if (!q) return; $("fqFList").innerHTML = `<span class="note">찾는 중…</span>`;
+  try { const j = await api("op=f13find&q=" + encodeURIComponent(q)); $("fqFList").innerHTML = j.list.map((x) => `<button type="button" class="pill" data-fqf="${x.cik}">${esc(x.name)} <span class="note num">${x.cik}</span></button>`).join("") || `<span class="note">못 찾았어요. 영어 이름으로 찾아 주세요.</span>`; } catch { $("fqFList").innerHTML = `<span class="note">못 찾았어요.</span>`; } };
+async function openFqFund(cik) {
+  F3.v = "fund"; ls.set("stk-f13v", "fund"); F3.bt = null; renderF13(); $("fqFOut").innerHTML = `<p class="note">SEC에서 받는 중…</p>`;
+  try { F3.fund = await api("op=f13fund&cik=" + cik); F3.fund.cik = +F3.fund.cik; F3.fN = 60; renderFqStars(); } catch (e) { $("fqFOut").innerHTML = `<p class="msg no">못 받았어요: ${esc(e?.msg || e?.message)}</p>`; }
+}
+function renderFqFund() {
+  const d = F3.fund; if (!d) return; if (d.none) { $("fqFOut").innerHTML = `<p class="note">${esc(d.name)}은(는) 13F를 낸 적이 없어요.</p>`; return; }
+  const row = (r) => `<tr><td>${f3sn(r)}${r.pc ? ` <span class="fqc">${esc(r.pc)}</span>` : ""}</td><td class="r">${r.w != null ? r.w + "%" : ""}</td><td class="r">${f3usd(r.val)}</td><td>${f3ch(r.ch)}</td></tr>`;
+  $("fqFOut").innerHTML = `<div class="row" style="align-items:baseline;gap:8px"><h3 style="margin:0">${esc(d.star || d.name)}</h3><span class="note">${esc(d.name)} · ${d.period} 분기 (${d.filed} 공시) · 총 ${f3usd(d.total)} · ${d.count}종목</span></div>
+    <div class="row" style="margin:8px 0;gap:8px;align-items:center"><button type="button" class="btn y s" id="fqBtGo">따라 하기 백테스트</button><span class="note" style="margin:0">공시가 나온 날 상위 25종목을 비중대로 사서 다음 공시까지 들고 있었다면? (최근 8분기, S&P500과 비교)</span></div><div id="fqBt"></div>
+    <div class="tw"><table><thead><tr><th>종목</th><th class="r">비중</th><th class="r">평가액</th><th>${esc(d.prevPeriod || "지난")} 대비</th></tr></thead><tbody>${d.rows.slice(0, F3.fN).map(row).join("")}</tbody></table></div>
+    ${d.rows.length > F3.fN ? `<button type="button" class="btn g s" id="fqFMore" style="margin-top:6px">더 보기 (${d.rows.length - F3.fN}개)</button>` : ""}
+    ${d.sold?.length ? `<details style="margin-top:10px"><summary><b>다 판 종목 ${d.sold.length}개</b></summary><div class="tw"><table><tbody>${d.sold.map((r) => `<tr><td>${f3sn(r)}</td><td class="r">${f3usd(r.val)}</td><td><span class="fqc S">다 팖</span></td></tr>`).join("")}</tbody></table></div></details>` : ""}`;
+  if (F3.bt) renderFqBt();
+}
+async function runFqBt() {
+  $("fqBt").innerHTML = `<p class="note">계산 중… (처음엔 1분쯤)</p>`; $("fqBtGo").disabled = true;
+  try { F3.bt = await api("op=f13bt&cik=" + F3.fund.cik); if (F3.bt.err) throw new Error(F3.bt.err); renderFqBt(); } catch (e) { $("fqBt").innerHTML = `<p class="msg no">계산하지 못했어요 (${esc(e?.msg || e?.message)}).</p>`; }
+  $("fqBtGo").disabled = false;
+}
+function renderFqBt() {
+  const b = F3.bt; if (!b?.curve) return;
+  $("fqBt").innerHTML = `<div class="row" style="gap:8px;margin-bottom:6px"><div class="card" style="flex:1 1 160px"><div class="k">따라 했다면</div><div class="v ${ud(b.ret)}">${pct(b.ret)}</div><div class="c note">${b.from} ~ ${b.to}</div></div><div class="card" style="flex:1 1 160px"><div class="k">S&P500</div><div class="v ${ud(b.spy)}">${pct(b.spy)}</div></div><div class="card" style="flex:1 1 160px"><div class="k">차이</div><div class="v ${ud(b.ret - b.spy)}">${pct(b.ret - b.spy)}</div></div></div>
+    <div style="position:relative"><canvas id="fqCv" style="width:100%;height:260px;display:block;touch-action:none"></canvas><div class="tip" id="fqTip" hidden></div></div>
+    <div class="tw" style="margin:8px 0 14px"><table><thead><tr><th>공시일</th><th>분기</th><th class="r">그 다음 공시까지</th><th class="r">따라 산 비율</th><th>상위 종목</th></tr></thead><tbody>${b.per.map((p) => `<tr><td class="num">${p.filed}</td><td class="num">${p.period}</td><td class="r ${ud(p.ret)}">${pct(p.ret)}</td><td class="r">${p.cover}%</td><td class="note">${p.top.join(", ")}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note" style="margin:-8px 0 12px">'따라 산 비율'은 13F 금액 중 티커를 찾아 실제로 산 비중이에요. 옵션과 못 찾은 종목은 빠지고, 수수료·환율은 계산에 넣지 않았어요.</p>`;
+  F3.btD = { days: b.curve.map((x) => x[0]), series: [{ s: "f", label: "따라 하기", color: "#e8590c", vals: b.curve.map((x) => x[1]) }, { s: "spy", label: "S&P500", color: "#868e96", vals: b.curve.map((x) => x[2]) }] };
+  requestAnimationFrame(() => paintChart($("fqCv"), $("fqTip"), F3.btD, null, { pct: true, cross: true }));
+}
+document.addEventListener("pointermove", (e) => { if (e.target.id === "fqCv") paintChart(e.target, $("fqTip"), F3.btD, e.clientX - e.target.getBoundingClientRect().left, { pct: true, cross: true }); });
+document.addEventListener("pointerout", (e) => { if (e.target.id === "fqCv") paintChart(e.target, $("fqTip"), F3.btD, null, { pct: true, cross: true }); });
+document.addEventListener("click", (e) => {
+  const v = e.target.closest("[data-fqv]"); if (v) { F3.v = v.dataset.fqv; ls.set("stk-f13v", F3.v); return renderF13(); }
+  const r = e.target.closest("[data-fqr]"); if (r) { F3.r = r.dataset.fqr; ls.set("stk-f13r", F3.r); return renderFqRank(); }
+  const f = e.target.closest("[data-fqf]"); if (f) { e.preventDefault(); return openFqFund(f.dataset.fqf); }
+  const s = e.target.closest("[data-fqs]"); if (s) return fqStockSearch(s.dataset.fqs);
+  if (e.target.id === "fqBtGo") return runFqBt();
+  if (e.target.id === "fqFMore") { F3.fN += 100; renderFqFund(); }
+});
 
 // ── 거래이력 탭 (키움 위탁종합거래내역 kt00015). 공개/비공개는 내 계좌와 같은 비밀번호·같은 상태
 $("hvPriv").onclick = () => { setPv(false); $("hvForm").hidden = true; };
