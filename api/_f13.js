@@ -89,9 +89,11 @@ export async function f13Refresh(budget = 80e3, force) {
     } catch (e) { meta.err[f.cik] = String(e?.message || e).slice(0, 80); meta.done[cik] = Date.now() - 18 * 3600e3; } // 실패는 2시간 뒤 다시
   }
   meta.at = Date.now(); await redis([["SET", "stk:f13meta", JSON.stringify(meta)]]);
-  if (!left) await f13BuildAgg(meta);
-  return { left, err: meta.err };
+  const got = F13.filter((f) => meta.done[meta.fix[f.cik] || f.cik] && !meta.err[f.cik]).length;
+  return { left, got, total: F13.length, err: Object.fromEntries(Object.entries(meta.err).map(([k, v]) => [F13.find((f) => f.cik === +k)?.ko || k, v])) };
 }
+// 순위표 만들기는 따로 (받기와 같은 요청에서 하면 2분 제한에 걸림)
+export async function f13Build() { const [m] = await redis([["GET", "stk:f13meta"]]); const meta = json(m) || { fix: {}, err: {}, done: {} }; const a = await f13BuildAgg(meta); return { ok: true, n: a.list.length, funds: a.funds.length }; }
 
 // 순위표: 종목별로 누가 들고 있고, 이번 분기 누가 새로 샀고 늘렸고 줄였고 다 팔았는지
 async function f13BuildAgg(meta) {
@@ -104,7 +106,7 @@ async function f13BuildAgg(meta) {
     (d.sold || []).forEach((r) => { if (r.pc) return; const o = get(r.n); if (o) o.h.push([fi, 0, "S"]); });
   });
   const list = [...by.values()].filter((o) => o.h.length >= 1);
-  const M = await koMap(list.filter((o) => o.h.length >= 2).sort((a, b) => b.h.length - a.h.length).slice(0, 250).map((o) => o.n));
+  const M = await Promise.race([koMap(list.filter((o) => o.h.length >= 2).sort((a, b) => b.h.length - a.h.length).slice(0, 150).map((o) => o.n)), sleep(45e3).then(() => ({}))]).catch(() => ({})); // 한글 이름은 45초 안에 되는 만큼만
   list.forEach((o) => { o.ko = M[o.n] || ""; });
   const fl = funds.map((d) => ({ cik: d.cik, ko: F13.find((f) => (meta.fix[f.cik] || f.cik) === d.cik)?.ko || d.name, period: d.period, filed: d.filed, total: d.total }));
   const period = fl.map((f) => f.period).sort().at(-1);

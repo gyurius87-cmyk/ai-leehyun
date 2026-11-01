@@ -8,7 +8,7 @@ import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp, kwChart, kwChartable, kwStockList, kwHistSync } from "./_kiwoom.js";
 import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
-import { f13Find, f13FundView, f13Refresh, f13Agg, f13Stock, f13Mine, f13Backtest } from "./_f13.js";
+import { f13Find, f13FundView, f13Refresh, f13Build, f13Agg, f13Stock, f13Mine, f13Backtest } from "./_f13.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
@@ -605,7 +605,7 @@ const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), f13Refresh(40e3).catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), f13Refresh(40e3).then((r) => (r.left ? null : f13Build())).catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -665,7 +665,8 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "trades") { const list = (Array.isArray(b.trades) ? b.trades : []).slice(0, 3000).map((t) => ({ id: clip(t.id, 20), date: clip(t.date, 10), sym: clip(t.sym, 20), name: clip(t.name, 40), side: t.side === "매도" ? "매도" : "매수", price: +t.price || 0, qty: +t.qty || 0, memo: clip(t.memo, 1000), feel: clip(t.feel, 40), ord: clip(t.ord, 30) || undefined, src: t.src === "kiwoom" ? "kiwoom" : undefined, rv: t.rv && typeof t.rv === "object" ? t.rv : undefined })).filter((t) => t.id && /^\d{4}-\d{2}-\d{2}$/.test(t.date)); const s = JSON.stringify(list); if (s.length > 2_500_000) return res.status(400).json({ error: "big" }); await redis([["SET", "stk:trades", s]]); return res.json({ ok: true, n: list.length }); }
     if (b.op === "histsync") { const k = kwReady(); if (!k.key || !k.proxy) return res.status(503).json({ error: "kw_env" }); const re = /^\d{4}-\d{2}-\d{2}$/; if (!re.test(b.from || "") || !re.test(b.to || "")) return res.status(400).json({ error: "date" }); try { return res.json(await kwHistSync(b.from, b.to)); } catch (e) { return res.status(502).json({ error: "kw", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "histhold") return res.json(await histHold(true));
-    if (b.op === "f13refresh") { try { return res.json(await f13Refresh(80e3, !!b.force)); } catch (e) { return res.status(502).json({ error: "sec", msg: String(e?.message || e).slice(0, 200) }); } }
+    if (b.op === "f13build") { try { return res.json(await f13Build()); } catch (e) { return res.status(502).json({ error: "build", msg: String(e?.message || e).slice(0, 200) }); } }
+    if (b.op === "f13refresh") { try { return res.json(await f13Refresh(50e3, !!b.force)); } catch (e) { return res.status(502).json({ error: "sec", msg: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "council") { if (b.del) { const [l] = await redis([["GET", "stk:councils"]]); await redis([["SET", "stk:councils", JSON.stringify((json(l) || []).filter((x) => x.id !== b.del))], ["DEL", "stk:council:" + b.del]]); return res.json({ ok: true }); } const r = await councilAsk(b.text); return r.err ? res.status(r.err === "empty" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "advice") { const r = await acctAdvice(true); return r?.err ? res.status(r.err === "empty" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "mchat") { if (b.clear) { await redis([["DEL", "stk:mchat:" + String(b.id || "")]]); return res.json({ hist: [] }); } const r = await masterChat(String(b.id || ""), b.text || ""); return r ? res.json(r) : res.status(404).json({ error: "who" }); }

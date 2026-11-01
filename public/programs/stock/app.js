@@ -801,15 +801,20 @@ async function loadF13(force) {
   if ((!a || force) && !F3.busy) f13Pull(!!force);
 }
 async function f13Pull(force) {
-  F3.busy = true; const b = $("fqRef"); b.disabled = true;
-  for (let i = 0; i < 12; i++) {
-    $("fqInfo").textContent = `SEC에서 13F 받는 중… (${i + 1}번째, 한 번에 1분 남짓)`;
-    let j; try { j = await api("", { op: "f13refresh", force: force && i === 0 }); } catch (e) { $("fqInfo").textContent = `받다가 멈췄어요: ${e?.msg || e?.message}`; break; }
-    if (!j.left) { const n = Object.keys(j.err || {}).length; await loadF13(); if (n) $("fqInfo").textContent += ` · ${n}곳은 못 받았어요`; break; }
+  F3.busy = true; const b = $("fqRef"); b.disabled = true; let j = null;
+  for (let i = 0; i < 15; i++) {
+    $("fqInfo").textContent = `SEC에서 13F 받는 중… ${j ? `${j.got}/${j.total}곳` : ""} (${i + 1}번째 묶음, 1분쯤씩)`;
+    try { j = await api("", { op: "f13refresh", force: force && i === 0 }); } catch (e) { $("fqInfo").textContent = `받다가 멈췄어요 (${e?.msg || e?.message || "연결 오류"}). '새 공시 확인'을 다시 누르면 이어서 받아요.`; break; }
+    if (!j.left) break;
+  }
+  if (j && !j.left) {
+    $("fqInfo").textContent = `${j.got}/${j.total}곳 받았어요. 순위표 만드는 중… (1분쯤)`;
+    try { await api("", { op: "f13build" }); await loadF13(); } catch (e) { $("fqInfo").textContent = `순위표를 못 만들었어요 (${e?.msg || e?.message}). '새 공시 확인'을 다시 눌러 주세요.`; }
+    const errs = Object.entries(j.err || {}); if (errs.length) $("fqInfo").insertAdjacentHTML("beforeend", ` <details style="display:inline"><summary class="note">못 받은 곳 ${errs.length}곳</summary>${errs.map(([k, v]) => `<div class="note">${esc(k)}: ${esc(v)}</div>`).join("")}</details>`);
   }
   F3.busy = false; b.disabled = false;
 }
-$("fqRef").onclick = () => f13Pull(true);
+$("fqRef").onclick = () => f13Pull(false);
 function renderF13() {
   const V = [["rank", "스마트머니 순위"], ["stock", "종목으로 찾기"], ["mine", "내 계좌와 겹치기"], ["fund", "기관 보기·따라 하기"]];
   $("fqNav").innerHTML = V.map(([k, n]) => `<button type="button" class="pill" data-fqv="${k}" aria-pressed="${F3.v === k}">${n}</button>`).join("");
