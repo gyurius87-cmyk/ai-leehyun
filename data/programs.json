@@ -239,6 +239,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/1SUeXTQLtZbSkuU9vQXUTo",
       "cat": "업무·운영"
+    },
+    {
+      "id": "prog-recs",
+      "name": "프로그램 추천실",
+      "status": "using",
+      "summary": "나에 대해 쌓인 기록을 매일 밤 다시 읽고, 새로 만들면 시간을 아낄 프로그램을 점수와 근거로 추천해 줘요.",
+      "start": "2026-11-01",
+      "private": true,
+      "href": "https://claude.ai/artifact/QyUpzfpBpC89L5GovPbzxd",
+      "cat": "공부·생각"
     }
   ]
 }
