@@ -249,6 +249,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/QyUpzfpBpC89L5GovPbzxd",
       "cat": "공부·생각"
+    },
+    {
+      "id": "subs",
+      "name": "구독 관리실",
+      "status": "using",
+      "summary": "지금 내는 구독과 쓰는 크레딧을 모아 결제일, 달마다 나가는 돈, 시작일, 남은 크레딧을 한 화면에 보여 줘요.",
+      "start": "2026-11-01",
+      "private": true,
+      "href": "https://claude.ai/artifact/L9SDHF1RmKBkz9TpkrpFkC",
+      "cat": "돈·투자"
     }
   ]
 }
