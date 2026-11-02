@@ -224,6 +224,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
 .ywk .bars i { width: 12px; border-radius: 3px 3px 0 0; background: var(--line); display: block; } .ywk .bars i.w { background: var(--amber); }
 .yv.seen { opacity: .72; } .seenb[aria-pressed="true"] { background: var(--amber); color: #1c2027; border-color: var(--amber); }
 .tip { position: absolute; top: 6px; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 12px rgba(0,0,0,.12); white-space: nowrap; }
+.atf svg{width:22px;height:22px;vertical-align:middle;margin-right:4px;border-radius:50%}
 </style>
 </head>
 <body>
@@ -325,6 +326,11 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <div style="position:relative;margin-top:8px"><canvas id="allEq" style="width:100%;height:300px;display:block;touch-action:none"></canvas><div class="tip" id="allTip" hidden></div></div>
     </section>
     <section class="box">
+      <h2>대가들 최근 매매 <span>누가 언제 무엇을 사고 팔았는지 최신 순 · 줄을 누르면 그 대가 화면으로</span></h2>
+      <div class="row" id="atCtl" style="gap:6px"></div>
+      <div id="atList" style="margin-top:8px"></div>
+    </section>
+    <section class="box">
       <h2>대가들의 공통점 <span>2명 이상이 같이 한 것만 모았어요</span></h2>
       <div id="common"></div>
     </section>
@@ -375,7 +381,7 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <div class="row crow" id="sDays" style="margin-top:8px"></div>
       <div class="row crow" id="sWho"></div>
       <div class="row crow" id="sFil"></div>
-      <div class="row" style="align-items:center;gap:8px;margin-top:4px"><input id="sQ" placeholder="검색 (종목·내용)" style="flex:0 1 200px"><button type="button" class="btn y s" id="sAll">뉴스 확인</button><span class="note" id="sAllMsg" style="margin:0"></span></div>
+      <div class="row" style="align-items:center;gap:8px;margin-top:4px"><input id="sQ" placeholder="검색 (종목·내용)" style="flex:0 1 200px"></div>
       <div class="row" style="align-items:center;gap:8px;margin-top:8px"><span class="note" style="margin:0">카드 이미지</span><input type="date" id="sImgD" style="width:150px"><button type="button" class="btn g s" id="sImgDl">이미지 내보내기</button><button type="button" class="btn g s" id="sImgCp">이미지 복사</button><span class="note" id="sImgMsg" style="margin:0"></span></div>
       <div id="sImgBox" hidden style="margin-top:8px"><img id="sImgPv" alt="SNS 발언 카드 미리보기" style="max-width:360px;width:100%;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.25)"></div>
     </section>

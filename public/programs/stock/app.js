@@ -172,7 +172,22 @@ let ALLOFF = ls.get("stk-alloff", []), ALLD = null, allR = ls.get("stk-allr", "a
 const ALLR = [["1w", "1주", 7], ["1m", "1달", 31], ["3m", "3달", 92], ["6m", "6달", 183], ["1y", "1년", 366], ["all", "전체", 1e5]];
 const mName = (id) => INFO.find((m) => m.id === id)?.name || id;
 const whoFaces = (ids) => `<span class="who">${ids.map((id) => `<span title="${esc(mName(id))}">${face(id)}</span>`).join("")}</span>`;
+// 대가들 최근 매매 피드 (모의 계좌 전체 합쳐 최신 순)
+const AT = { who: "all", side: "all", n: 30 };
+function renderAllTrades() {
+  if (!BT || !$("atList")) return;
+  const nm = Object.fromEntries(INFO.map((m) => [m.id, m.name]));
+  const all = INFO.flatMap((m) => (BT.masters[m.id]?.trades || []).map((t) => ({ ...t, mid: m.id }))).sort((a, b) => b.d.localeCompare(a.d) || a.mid.localeCompare(b.mid));
+  const rows = all.filter((t) => (AT.who === "all" || t.mid === AT.who) && (AT.side === "all" || t.side === AT.side));
+  const last = all[0]?.d, todayN = all.filter((t) => t.d === last).length;
+  const pill = (k, v, label) => `<button type="button" class="pill" data-at="${k}:${v}" aria-pressed="${AT[k] === v}">${label}</button>`;
+  $("atCtl").innerHTML = pill("side", "all", "전체") + pill("side", "매수", "산 것") + pill("side", "매도", "판 것") + `<span class="note" style="margin:0 6px">|</span>` + pill("who", "all", "모든 대가") + INFO.map((m) => pill("who", m.id, `<span class="atf">${face(m.id)}</span>${esc(m.name)}`)).join("") + (last ? `<span class="note" style="margin-left:8px">가장 최근 ${last} · 그날 ${todayN}건</span>` : "");
+  let prev = "";
+  $("atList").innerHTML = rows.length ? `<div class="tw"><table><thead><tr><th>날짜</th><th>대가</th><th></th><th>종목</th><th class="r">가격</th><th class="r">금액(원)</th><th class="r">손익(원)</th><th>이유</th></tr></thead><tbody>${rows.slice(0, AT.n).map((t) => { const nd = t.d !== prev; prev = t.d; return `<tr data-mv="${t.mid}" style="cursor:pointer${nd ? ";border-top:2px solid var(--line)" : ""}"><td class="num">${nd ? t.d : ""}</td><td style="white-space:nowrap"><span class="atf">${face(t.mid)}</span>${esc(nm[t.mid] || t.mid)}</td><td><span class="chip ${t.side}">${t.side}</span></td><td>${esc(t.n)} <span class="note">${esc(t.s)}</span></td><td class="r">${fmt(t.p)}</td><td class="r">${won(t.won)}</td><td class="r ${ud(t.pl)}">${t.pl != null ? won(t.pl) : ""}</td><td class="note" style="min-width:200px">${esc(t.why || "")}</td></tr>`; }).join("")}</tbody></table></div>${rows.length > AT.n ? `<button type="button" class="btn g s" data-at="more:1" style="margin-top:8px">더 보기 (${rows.length - AT.n}건 남음)</button>` : ""}` : `<p class="note">조건에 맞는 매매가 없어요.</p>`;
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-at]"); if (!b) return; const [k, v] = b.dataset.at.split(":"); if (k === "more") AT.n += 50; else { AT[k] = v; AT.n = 30; } renderAllTrades(); });
 function renderAll() {
+  renderAllTrades();
   const ids = INFO.map((m) => m.id), days0 = BT.masters[ids[0]]?.curve.map((c) => c[0]) || [];
   const cut = new Date(Date.parse(days0.at(-1) || Date.now()) - (ALLR.find((r) => r[0] === allR)?.[2] || 1e5) * 864e5).toISOString().slice(0, 10);
   // 기간 자르기 → 단위(일·주·월)로 묶기 → 첫날 0%
@@ -568,18 +583,16 @@ document.addEventListener("click", (e) => {
   const i = e.target.closest("[data-sfi]"); if (i) { SF.imp = i.dataset.sfi; sfSave(); return renderSoc(); }
   const s2 = e.target.closest("[data-sfs]"); if (s2) { SF.seen = s2.dataset.sfs; sfSave(); return renderSoc(); }
   const t = e.target.closest("[data-sft]"); if (t) { SF[t.dataset.sft] = !SF[t.dataset.sft]; sfSave(); return renderSoc(); }
-  if (e.target.id === "sAllUndo") { const ids = SOC.lastAll || []; SOC.seen = (SOC.seen || []).filter((x) => !ids.includes(x)); SOC.lastAll = null; $("sAllMsg").textContent = "되돌렸어요."; renderSoc(); api("", { op: "socseen", ids, on: false }).catch(() => {}); }
 });
 $("sQ").oninput = (e) => { SF.q = e.target.value.trim(); renderSoc(); };
-// 뉴스 확인: 지금 화면에 떠 있는 것 모두 '봤어요'로
-$("sAll").onclick = () => {
-  if (!SOC) return; const ids = [];
-  SOC.people.filter((p) => SF.who === "all" || p.id === SF.who).forEach((p) => p.picks.filter((x) => socPass(p, x)).forEach((x) => { if (!(SOC.seen || []).includes(x.link)) ids.push(x.link); }));
-  if (!ids.length) { $("sAllMsg").textContent = "새로 체크할 게 없어요."; return; }
-  SOC.seen = [...new Set([...(SOC.seen || []), ...ids])]; SOC.lastAll = ids; renderSoc();
-  $("sAllMsg").innerHTML = `${ids.length}개를 봤어요로 바꿨어요. <button type="button" class="btn g s" id="sAllUndo">되돌리기</button>`;
-  api("", { op: "socseen", ids, on: true }).catch(() => ($("sAllMsg").textContent = "저장하지 못했어요. 다시 눌러 주세요."));
-};
+// 뉴스 확인: 사람 단위로 그 사람의 지금 보이는 발언을 모두 '봤어요'로 (다 봤으면 다시 누르면 풀어요)
+document.addEventListener("click", (e) => {
+  const bt = e.target.closest("[data-spck]"); if (!bt || !SOC) return;
+  const p = SOC.people.find((q) => q.id === bt.dataset.spck); if (!p) return;
+  const S = new Set(SOC.seen || []), links = p.picks.filter((x) => socPass(p, x)).map((x) => x.link), un = links.filter((l) => !S.has(l));
+  const on = un.length > 0, ids = on ? un : links; ids.forEach((l) => (on ? S.add(l) : S.delete(l))); SOC.seen = [...S]; renderSoc();
+  api("", { op: "socseen", ids, on }).catch(() => alert("저장하지 못했어요. 다시 눌러 주세요."));
+});
 // ── SNS 발언 카드 이미지 (1080×1350, 인스타 4:5): 그날 중요한 발언 6개(한국시간) + 제로의 정리(위 발언만), 출처 AI이현
 const kstD = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const kstT = (t) => new Date(t + 9 * 3600e3).toISOString().slice(11, 16);
@@ -746,9 +759,9 @@ function renderSoc() {
   const when = (t) => (t ? ago(new Date(t).toISOString()) : "");
   renderSocFil();
   const vis = SOC.people.filter((p) => SF.who === "all" || p.id === SF.who).map((p) => ({ ...p, picks: p.picks.filter((x) => socPass(p, x)) })).filter((p) => p.picks.length || (SF.who !== "all" && !SF.q));
-  const tot = vis.reduce((t, p) => t + p.picks.length, 0); $("sAll").textContent = `뉴스 확인 (${tot})`; $("sAll").disabled = !tot;
+  const ckBtn = (p) => { if (!p.picks.length) return ""; const n = p.picks.filter((x) => !(SOC.seen || []).includes(x.link)).length; return n ? `<button type="button" class="btn y s" data-spck="${esc(p.id)}">뉴스 확인 (${n})</button>` : `<button type="button" class="btn g s" data-spck="${esc(p.id)}" title="다시 누르면 확인을 풀어요">✓ 확인함</button>`; };
   if (!vis.length) { $("sPeople").innerHTML = `<p class="note">조건에 맞는 발언이 없어요.${SF.seen === "unseen" ? " 다 봤어요 👍" : ""}</p>`; }
-  else $("sPeople").innerHTML = vis.map((p) => `<article class="sp"><h3 style="margin:0">${esc(p.who)}</h3>${p.mood ? `<p class="note" style="margin:0">${esc(p.mood)}</p>` : ""}
+  else $("sPeople").innerHTML = vis.map((p) => `<article class="sp"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${esc(p.who)}</h3>${ckBtn(p)}</div>${p.mood ? `<p class="note" style="margin:0">${esc(p.mood)}</p>` : ""}
     ${p.picks.map((x) => `<div class="it ${esc(x.impact)}${(SOC.seen || []).includes(x.link) ? " seen" : ""}"><div><label class="sck" title="봤어요"><input type="checkbox" data-sseen="${esc(x.link)}"${(SOC.seen || []).includes(x.link) ? " checked" : ""}></label> <span class="imp ${esc(x.impact)}">${esc(x.impact)}</span> <b>${esc(x.take)}</b></div><div class="note">${x.post ? "💬 본인 게시글 · " : ""}<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 140))}</a> · ${esc(x.src)} · ${when(x.at)}</div>${x.stocks.length ? `<div>${x.stocks.map((k) => `<span class="stk">${esc(k)}</span>`).join("")}</div>` : ""}</div>`).join("") || `<p class="note" style="margin:0">최근 시장에 의미 있는 발언이 없어요.</p>`}
     ${p.raw.length ? `<details><summary>원문 헤드라인 ${p.raw.length}개</summary><ul style="margin:4px 0 0;padding-left:18px">${p.raw.map((x) => `<li class="note"><a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 160))}</a> · ${when(x.at)}</li>`).join("")}</ul></details>` : ""}</article>`).join("");
   ;const R = SOC.reddit; if (!R) { $("sWsb").innerHTML = `<p class="note">레딧에서 못 받았어요.</p>`; return; }

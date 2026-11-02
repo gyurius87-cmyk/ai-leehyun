@@ -5,7 +5,18 @@ import { redis } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 
 // SEC는 연락처가 담긴 User-Agent를 요구함 (Vercel env SEC_UA로 바꿀 수 있음)
-const SEC_UA = { "User-Agent": process.env.SEC_UA || "AI-leehyun personal research tool (ai-leehyun.vercel.app)", Accept: "application/json, text/xml, */*" };
+// SEC는 '이름 + 이메일' 꼴이 아니면 403으로 막아요. 그래서 연락처 꼴을 넣고, 그래도 막히면 고정 IP 프록시로 한 번 더 시도해요.
+const SEC_UA = { "User-Agent": process.env.SEC_UA || "AI-leehyun Research admin@ai-leehyun.vercel.app", Accept: "application/json, text/xml, */*", "Accept-Encoding": "gzip, deflate" };
+let secAgent;
+export async function secFetch(url) {
+  let r, e1;
+  try { r = await fetch(url, { headers: SEC_UA }); if (r.ok) return r; } catch (e) { e1 = e; }
+  if (process.env.OUTBOUND_PROXY_URL) {
+    const { ProxyAgent, fetch: uf } = await import("undici"); secAgent ||= new ProxyAgent(process.env.OUTBOUND_PROXY_URL);
+    try { const r2 = await uf(url, { headers: SEC_UA, dispatcher: secAgent }); if (r2.ok) return r2; throw new Error(`sec ${r?.status || "net"}/proxy ${r2.status}`); } catch (e) { throw new Error(String(e?.message || e).startsWith("sec ") ? e.message : `sec ${r?.status || e1?.message || "net"}/proxy ${e?.message || e}`); }
+  }
+  throw new Error(`sec ${r?.status || e1?.message || "net"}`);
+}
 const BROWSER = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36" };
 const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -22,8 +33,8 @@ export const FAMOUS = [
 ];
 
 const pad = (n) => String(n).padStart(10, "0");
-export async function secJson(url) { const r = await fetch(url, { headers: SEC_UA }); if (!r.ok) throw new Error(`sec ${r.status}`); return r.json(); }
-async function secText(url) { const r = await fetch(url, { headers: SEC_UA }); if (!r.ok) throw new Error(`sec ${r.status}`); return r.text(); }
+export async function secJson(url) { return (await secFetch(url)).json(); }
+async function secText(url) { return (await secFetch(url)).text(); }
 
 // 13F 정보표 XML → 종목 목록 (같은 종목이 여러 줄이면 합침)
 export function parseInfoTable(xml) {

@@ -1,12 +1,11 @@
 // 13F 탭: 유명 펀드 약 45곳의 13F를 모아 순위·종목 역조회·내 계좌 겹치기·따라 하기 백테스트, 그리고 아무 기관 검색
 // SEC는 초당 10회까지라 150ms씩 쉬고, 한 번 부를 때 시간 예산 안에서만 받고 나머지는 다음에 이어서 받음
 import { redis } from "./_redis.js";
-import { filing13F, diff, koMap, secJson } from "./_famous.js";
+import { filing13F, diff, koMap, secJson, secFetch } from "./_famous.js";
 
 const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pad = (n) => String(n).padStart(10, "0");
-const SEC_UA = { "User-Agent": process.env.SEC_UA || "AI-leehyun personal research tool (ai-leehyun.vercel.app)", Accept: "application/json, */*" };
 
 // [CIK, 한글 이름, SEC 이름에 들어 있어야 할 말]. CIK가 틀리면 그 말로 SEC에서 다시 찾음
 export const F13 = [
@@ -32,7 +31,7 @@ export const norm = (s) => String(s || "").toUpperCase().replace(/&AMP;/g, "&").
 async function secTickers() {
   const [c] = await redis([["GET", "stk:sectk"]]); const j = json(c); if (j && Date.now() - j.at < 7 * 864e5) return j;
   try {
-    const r = await fetch("https://www.sec.gov/files/company_tickers.json", { headers: SEC_UA }); const d = await r.json();
+    const r = await secFetch("https://www.sec.gov/files/company_tickers.json"); const d = await r.json();
     const t2n = {}; Object.values(d).forEach((x) => { if (x.ticker && x.title && !t2n[x.ticker]) t2n[x.ticker] = x.title; });
     const out = { at: Date.now(), t2n }; await redis([["SET", "stk:sectk", JSON.stringify(out)]]); return out;
   } catch (e) { console.error("sectk", e?.message); return j || { at: 0, t2n: {} }; }
@@ -46,7 +45,7 @@ export async function f13Find(q) {
   const ql = q.toLowerCase(), out = F13.filter((f) => f.ko.toLowerCase().includes(ql) || f.kw.toLowerCase().includes(ql)).map((f) => ({ cik: f.cik, name: f.ko, star: true }));
   if (/^\d{3,10}$/.test(q)) out.push({ cik: +q, name: "CIK " + q });
   if (/[a-z]/i.test(q)) try {
-    const r = await fetch(`https://efts.sec.gov/LATEST/search-index?keysTyped=${encodeURIComponent(q)}`, { headers: SEC_UA }); const j = await r.json();
+    const r = await secFetch(`https://efts.sec.gov/LATEST/search-index?keysTyped=${encodeURIComponent(q)}`); const j = await r.json();
     for (const h of j?.hits?.hits || []) { const s = h._source || {}, cik = +String(h._id || s.ciks?.[0] || "").replace(/\D/g, ""), name = s.entity || s.display_names?.[0] || s.entity_words || ""; if (cik && !out.some((o) => o.cik === cik)) out.push({ cik, name: String(name).slice(0, 80) }); }
   } catch (e) { console.error("efts", e?.message); }
   return out.slice(0, 15);
@@ -77,7 +76,7 @@ export async function f13Refresh(budget = 80e3, force) {
   let left = 0;
   for (const f of F13) {
     const cik = meta.fix[f.cik] || f.cik;
-    if (!force && meta.done[cik] && Date.now() - meta.done[cik] < 20 * 3600e3) continue;
+    if (!force && meta.done[cik] && !meta.err[f.cik] && Date.now() - meta.done[cik] < 20 * 3600e3) continue; // 실패했던 곳은 누를 때마다 다시
     if (Date.now() - t0 > budget) { left++; continue; }
     try {
       let d = await f13Fund(cik, force);
