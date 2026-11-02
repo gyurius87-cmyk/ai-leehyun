@@ -259,6 +259,26 @@
       "private": true,
       "href": "https://claude.ai/artifact/L9SDHF1RmKBkz9TpkrpFkC",
       "cat": "돈·투자"
+    },
+    {
+      "id": "github-finds",
+      "name": "깃허브 보물창고",
+      "status": "using",
+      "summary": "깃허브에서 뜨는 무료 도구를 매일 새벽 모아, 내 일에 맞는 순서로 보여 주고 써 볼 것을 골라 줘요.",
+      "start": "2026-11-02",
+      "private": true,
+      "href": "https://claude.ai/artifact/X2ir66EsL9meVHdqRsfFwx",
+      "cat": "공부·생각"
+    },
+    {
+      "id": "japanese",
+      "name": "일본어 여행 교실",
+      "status": "using",
+      "summary": "히라가나·가타카나 외우기와 따라 쓰기, 여행 회화, 일본 문화, AI 점원과 회화 연습까지 하루 10분 일본어 공부.",
+      "start": "2026-11-02",
+      "private": true,
+      "href": "https://claude.ai/artifact/7avewnuJu9k9Rq1BeFVoEy",
+      "cat": "공부·생각"
     }
   ]
 }
