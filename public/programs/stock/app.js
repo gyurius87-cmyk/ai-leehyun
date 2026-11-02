@@ -611,6 +611,25 @@ function wrapT(ctx, text, maxW, maxLines) {
   if (lines.length === maxLines && ctx.measureText(lines.join("")).width >= maxW * maxLines - 40) { let l = lines[maxLines - 1]; while (l && ctx.measureText(l + "…").width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + "…"; }
   return lines;
 }
+// 카드 아래 출처: 인스타 아이콘 + AI이현 @ai_leehyun + 인스타 QR (카메라로 찍으면 프로필로)
+let IGQR; async function igQr() { if (!IGQR) { IGQR = new Image(); IGQR.src = "/programs/stock/ig-qr.png"; await IGQR.decode().catch(() => {}); } return IGQR; }
+function igIcon(x, X, Y, z) {
+  const g = x.createLinearGradient(X, Y + z, X + z, Y); g.addColorStop(0, "#feda75"); g.addColorStop(0.35, "#fa7e1e"); g.addColorStop(0.65, "#d62976"); g.addColorStop(1, "#4f5bd5");
+  x.fillStyle = g; x.beginPath(); x.roundRect(X, Y, z, z, z * 0.28); x.fill();
+  x.strokeStyle = "#fff"; x.lineWidth = z * 0.08; x.beginPath(); x.roundRect(X + z * 0.2, Y + z * 0.2, z * 0.6, z * 0.6, z * 0.18); x.stroke();
+  x.beginPath(); x.arc(X + z / 2, Y + z / 2, z * 0.14, 0, 7); x.stroke(); x.fillStyle = "#fff"; x.beginPath(); x.arc(X + z * 0.67, Y + z * 0.33, z * 0.04, 0, 7); x.fill();
+}
+async function cardFoot(x, W, H, C, F, MONO, src) {
+  const q = await igQr(), T = 128;
+  x.fillStyle = C.line; x.fillRect(64, H - 156, W - 128, 2);
+  x.fillStyle = C.mute; x.font = F("500", 20); x.fillText(src, 64, H - 112);
+  igIcon(x, 64, H - 92, 50);
+  x.fillStyle = C.gold; x.font = F("800", 32); x.fillText("AI이현", 130, H - 54); const bw = x.measureText("AI이현").width;
+  x.fillStyle = C.ink; x.font = MONO("600", 24); x.fillText("@ai_leehyun", 146 + bw, H - 55);
+  x.fillStyle = C.mute; x.font = F("500", 18); const hint = "카메라로 찍으면 인스타로 →"; x.fillText(hint, W - 64 - T - 16 - x.measureText(hint).width, H - 55);
+  x.fillStyle = "#fff"; x.beginPath(); x.roundRect(W - 64 - T, H - 146, T, T, 14); x.fill();
+  if (q.naturalWidth) x.drawImage(q, W - 64 - T + 7, H - 146 + 7, T - 14, T - 14);
+}
 async function socCard(day) {
   if (!SOC) return null; const { out, all } = socDayPicks(day); if (!out.length) return { empty: true };
   await document.fonts?.ready;
@@ -628,7 +647,7 @@ async function socCard(day) {
   x.font = F("700", 30); x.fillStyle = C.mute; x.fillText(`그날 발언 ${all.length}개`, 64, 222); const lw = x.measureText(`그날 발언 ${all.length}개`).width; x.font = F("800", 30); x.fillStyle = C.up; x.fillText(`호재 ${good}`, 88 + lw, 222); const gw = x.measureText(`호재 ${good}`).width; x.fillStyle = C.dn; x.fillText(`악재 ${bad}`, 112 + lw + gw, 222);
   const bw = W - 128, tot = Math.max(1, good + bad); x.fillStyle = C.line; x.fillRect(64, 244, bw, 14); x.fillStyle = C.up; x.fillRect(64, 244, (bw * good) / tot, 14); x.fillStyle = C.dn; x.fillRect(64 + (bw * good) / tot, 244, (bw * bad) / tot, 14);
   // 발언 카드 6개
-  const top = 286, rowH = 124, gap = 10;
+  const top = 286, rowH = 112, gap = 8;
   out.forEach((a, i) => {
     const yy = top + i * (rowH + gap); x.fillStyle = C.panel; x.beginPath(); x.roundRect(48, yy, W - 96, rowH, 18); x.fill();
     const col = a.impact === "호재" ? C.up : a.impact === "악재" ? C.dn : C.neu; x.fillStyle = col; x.fillRect(48, yy + 18, 6, rowH - 36);
@@ -638,7 +657,7 @@ async function socCard(day) {
     x.fillStyle = col; x.beginPath(); x.roundRect(144 + ww, yy + 22, tw, 32, 16); x.fill(); x.fillStyle = C.bg; x.fillText(tag, 156 + ww, yy + 46);
     if (a.at) { x.fillStyle = C.mute; x.font = MONO("600", 22); x.fillText(kstT(a.at) + " KST", 160 + ww + tw, yy + 46); }
     if (a.stocks?.length) { x.font = MONO("600", 22); x.fillStyle = C.gold; const st = a.stocks.slice(0, 3).join(" · "); x.fillText(st, W - 76 - x.measureText(st).width, yy + 46); }
-    x.fillStyle = C.ink; x.font = F("500", 26); wrapT(x, a.take, W - 96 - 110, 2).forEach((l, k) => x.fillText(l, 130, yy + 84 + k * 32));
+    x.fillStyle = C.ink; x.font = F("500", 26); wrapT(x, a.take, W - 96 - 110, 2).forEach((l, k) => x.fillText(l, 130, yy + 80 + k * 30));
   });
   // 제로의 한마디
   const zy = top + 6 * (rowH + gap) + 4;
@@ -650,9 +669,7 @@ async function socCard(day) {
   const msg = [gG.length && `${gG.join("·")}의 발언은 호재 쪽`, gB.length && `${gB.join("·")}의 발언은 악재 쪽`, gN.length && `${gN.join("·")}은 중립`].filter(Boolean).join(", ") + `으로 읽혔어요. 위 ${out.length}개 중 호재 ${out.filter((a) => a.impact === "호재").length}, 악재 ${out.filter((a) => a.impact === "악재").length}개예요.`;
   x.fillStyle = C.ink; x.font = F("600", 25); wrapT(x, msg, W - 184 - 64, 3).forEach((l, k) => x.fillText(l, 184, zy + 70 + k * 32));
   // 출처
-  x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2);
-  x.fillStyle = C.mute; x.font = F("500", 22); x.fillText("출처 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 시각은 한국시간 · 투자 권유 아님", 64, H - 44);
-  x.fillStyle = C.gold; x.font = F("800", 28); const br = "AI이현"; x.fillText(br, W - 64 - x.measureText(br).width, H - 42);
+  await cardFoot(x, W, H, C, F, MONO, "자료 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 시각은 한국시간 · 투자 권유 아님");
   return { canvas: c, n: out.length };
 }
 async function socCardMake() {
@@ -714,29 +731,28 @@ async function macroCard(day) {
   x.fillStyle = C.ink; x.font = F("800", 54); x.fillText("오늘의 매크로 체크", 64, 146);
   x.font = F("700", 26); x.fillStyle = C.mute; const sl = `오늘 걸린 신호 ${sigs.length}개`; x.fillText(sl, W - 64 - x.measureText(sl).width, 146);
   // 지수 2×3
-  let yy = 178; const gw = (W - 128 - 20) / 2, gh = 146;
-  D.ix.forEach((r, i) => { const X = 64 + (i % 2) * (gw + 20), Y = yy + Math.floor(i / 2) * (gh + 14); x.fillStyle = C.panel; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.fill(); if (!r) return;
+  let yy = 172; const gw = (W - 128 - 20) / 2, gh = 136;
+  D.ix.forEach((r, i) => { const X = 64 + (i % 2) * (gw + 20), Y = yy + Math.floor(i / 2) * (gh + 10); x.fillStyle = C.panel; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.fill(); if (!r) return;
     if (r.sig.length) { x.strokeStyle = C.gold; x.lineWidth = 2; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.stroke(); }
-    x.fillStyle = C.mute; x.font = F("700", 23); x.fillText(r.n, X + 22, Y + 36); x.fillStyle = C.ink; x.font = MONO("700", 34); x.fillText(nf(r.v, r.v >= 1000 ? 0 : 2), X + 22, Y + 80); x.fillStyle = uc(r.d1); x.font = MONO("700", 22); x.fillText(pc(r.d1), X + 22, Y + 108);
-    sparkC(x, r.sp, X + gw - 200, Y + 22, 176, 76, uc(r.d1), r.ma20, r.sig.length);
-    let cx = X + 22; r.sig.slice(0, 2).forEach((g) => { if (cx < X + gw - 60) cx += chip(g.t, cx, Y + 114, gc(g.g), 17) + 6; }); });
-  yy += 3 * (gh + 14) + 6;
+    x.fillStyle = C.mute; x.font = F("700", 23); x.fillText(r.n, X + 22, Y + 36); x.fillStyle = C.ink; x.font = MONO("700", 34); x.fillText(nf(r.v, r.v >= 1000 ? 0 : 2), X + 22, Y + 80); x.fillStyle = uc(r.d1); x.font = MONO("700", 22); x.fillText(pc(r.d1), X + 22, Y + 98);
+    sparkC(x, r.sp, X + gw - 200, Y + 20, 176, 70, uc(r.d1), r.ma20, r.sig.length);
+    let cx = X + 22; r.sig.slice(0, 2).forEach((g) => { if (cx < X + gw - 60) cx += chip(g.t, cx, Y + 106, gc(g.g), 16) + 6; }); });
+  yy += 3 * (gh + 10) + 4;
   x.fillStyle = C.gold; x.font = F("800", 25); x.fillText("금리 · 환율 · 원자재 · 심리", 64, yy + 22); x.fillStyle = C.mute; x.font = F("500", 19); x.fillText("점선 = 20일선 · 골드 링 = 오늘 신호", W - 64 - x.measureText("점선 = 20일선 · 골드 링 = 오늘 신호").width, yy + 22); yy += 38;
-  const mh = 50; D.mc.forEach((r, i) => { const Y = yy + i * mh; if (i % 2 === 0) { x.fillStyle = C.panel; x.fillRect(48, Y - 4, W - 96, mh); } if (!r) return;
-    x.fillStyle = C.ink; x.font = F("700", 23); x.fillText(r.n, 68, Y + 29); x.font = MONO("700", 25); const val = (r.u === "$" ? "$" : "") + nf(r.v, r.v >= 1000 ? 0 : 2) + (r.u && r.u !== "$" ? r.u : ""); x.fillText(val, 380 - x.measureText(val).width + 90, Y + 29);
-    x.fillStyle = uc(r.d1); x.font = MONO("700", 22); const p = pc(r.d1); x.fillText(p, 610 - x.measureText(p).width, Y + 29);
-    if (r.sig[0]) chip(r.sig[0].t, 628, Y + 6, gc(r.sig[0].g), 16);
-    sparkC(x, r.sp.slice(-30), 866, Y + 6, 150, 32, uc(r.d1), r.ma20.slice(-30), r.sig.length); });
-  yy += 8 * mh + 18;
+  const mh = 45; D.mc.forEach((r, i) => { const Y = yy + i * mh; if (i % 2 === 0) { x.fillStyle = C.panel; x.fillRect(48, Y - 4, W - 96, mh); } if (!r) return;
+    x.fillStyle = C.ink; x.font = F("700", 23); x.fillText(r.n, 68, Y + 27); x.font = MONO("700", 24); const val = (r.u === "$" ? "$" : "") + nf(r.v, r.v >= 1000 ? 0 : 2) + (r.u && r.u !== "$" ? r.u : ""); x.fillText(val, 380 - x.measureText(val).width + 90, Y + 27);
+    x.fillStyle = uc(r.d1); x.font = MONO("700", 22); const p = pc(r.d1); x.fillText(p, 610 - x.measureText(p).width, Y + 27);
+    if (r.sig[0]) chip(r.sig[0].t, 628, Y + 4, gc(r.sig[0].g), 16);
+    sparkC(x, r.sp.slice(-30), 866, Y + 5, 150, 28, uc(r.d1), r.ma20.slice(-30), r.sig.length); });
+  yy += 8 * mh + 12;
   // 제로가 정리한 오늘의 신호
   const zi = await zeroImg(); x.save(); x.beginPath(); x.arc(108, yy + 50, 46, 0, Math.PI * 2); x.clip(); x.drawImage(zi, 62, yy + 4, 92, 92); x.restore();
   x.fillStyle = C.gold; x.font = F("800", 25); x.fillText("제로가 짚은 오늘의 신호", 176, yy + 28);
-  x.font = F("600", 22); let ly = yy + 62; const order = sigs.slice().sort((a, b) => (b.ma || 0) - (a.ma || 0));
+  x.font = F("600", 22); let ly = yy + 58; const order = sigs.slice().sort((a, b) => (b.ma || 0) - (a.ma || 0));
   if (!order.length) { x.fillStyle = C.ink; x.fillText("특별히 걸린 신호가 없는 조용한 날이에요. 추세 그대로예요.", 176, ly); }
   else { let col2 = 0; order.slice(0, 6).forEach((g, i) => { const X = 176 + (i % 2) * 420, Y = ly + Math.floor(i / 2) * 32; x.fillStyle = gc(g.g); x.fillText("●", X, Y); x.fillStyle = C.ink; const t = `${g.n} ${g.t}`; x.fillText(wrapT(x, t, 390, 1)[0], X + 26, Y); col2++; });
     if (order.length > 6) { x.font = F("600", 21); x.fillStyle = C.mute; const t = `외 ${order.length - 6}개는 위 칩에`; x.fillText(t, W - 64 - x.measureText(t).width, yy + 28); } }
-  x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2); x.fillStyle = C.mute; x.font = F("500", 21); x.fillText("출처 · 야후 파이낸스 종가로 계산 · 빨강은 주식에 우호, 파랑은 부담 · 투자 권유 아님", 64, H - 44);
-  x.fillStyle = C.gold; x.font = F("800", 28); x.fillText("AI이현", W - 64 - x.measureText("AI이현").width, H - 42);
+  await cardFoot(x, W, H, C, F, MONO, "자료 · 야후 파이낸스 종가로 계산 · 빨강은 주식에 우호, 파랑은 부담 · 투자 권유 아님");
   return c;
 }
 async function mxMake() { const day = $("mxD").value || kstD(Date.now()); $("mxMsg").textContent = "시세 모아 그리는 중… (10초쯤)"; const c = await macroCard(day).catch(() => null); if (!c) { $("mxMsg").textContent = "그날 시세를 못 받았어요."; return null; } $("mxMsg").textContent = ""; $("mxPv").src = c.toDataURL("image/png"); $("mxBox").hidden = false; return c; }
