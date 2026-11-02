@@ -281,6 +281,11 @@ canvas.eq { width: 100%; height: 220px; display: block; }
   <!-- 매크로 -->
   <div id="macro" hidden class="grid" style="gap:14px">
     <section class="box">
+      <h2>오늘의 매크로 카드 <span>그날 지수·금리·환율·유가와 오늘 정리를 한 장 이미지로</span></h2>
+      <div class="row" style="align-items:center;gap:8px"><input type="date" id="mxD" style="width:150px"><button type="button" class="btn g s" id="mxDl">이미지 내보내기</button><button type="button" class="btn g s" id="mxCp">이미지 복사</button><span class="note" id="mxMsg" style="margin:0"></span></div>
+      <div id="mxBox" hidden style="margin-top:8px"><img id="mxPv" alt="매크로 카드 미리보기" style="max-width:360px;width:100%;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.25)"></div>
+    </section>
+    <section class="box">
       <h2>겹쳐 보기 <span>시작일을 0%로 맞춰서 비교 · 이름을 눌러 켜고 끄기 · ✕는 목록에서 빼기</span></h2>
       <div class="row" id="cmpRange"></div>
       <div class="row" id="cmpPre" style="margin-top:8px"></div>
@@ -367,6 +372,12 @@ canvas.eq { width: 100%; height: 220px; display: block; }
       <h2>유명인 SNS·발언 <span id="sAt"></span><button type="button" class="btn g s" id="sRe" style="margin-left:auto">새로 받기</button></h2>
       <p class="note" style="margin:0">트럼프는 트루스소셜 게시글을, 나머지는 발언을 다룬 해외 뉴스 헤드라인을 모아 AI가 의미를 풀어요. 3시간마다, 그리고 매일 아침 새로 받아요. X(트위터)는 유료 API라 직접 받지 않아요.</p>
       <p class="msg no" id="sErr" hidden></p>
+      <div class="row crow" id="sDays" style="margin-top:8px"></div>
+      <div class="row crow" id="sWho"></div>
+      <div class="row crow" id="sFil"></div>
+      <div class="row" style="align-items:center;gap:8px;margin-top:4px"><input id="sQ" placeholder="검색 (종목·내용)" style="flex:0 1 200px"><button type="button" class="btn y s" id="sAll">뉴스 확인</button><span class="note" id="sAllMsg" style="margin:0"></span></div>
+      <div class="row" style="align-items:center;gap:8px;margin-top:8px"><span class="note" style="margin:0">카드 이미지</span><input type="date" id="sImgD" style="width:150px"><button type="button" class="btn g s" id="sImgDl">이미지 내보내기</button><button type="button" class="btn g s" id="sImgCp">이미지 복사</button><span class="note" id="sImgMsg" style="margin:0"></span></div>
+      <div id="sImgBox" hidden style="margin-top:8px"><img id="sImgPv" alt="SNS 발언 카드 미리보기" style="max-width:360px;width:100%;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.25)"></div>
     </section>
     <div class="sg" id="sPeople"><p class="note">불러오는 중… (처음엔 40초쯤)</p></div>
     <section class="box"><h2>레딧 월스트리트베츠에서 많이 말하는 종목 <span>인기 글 제목 기준</span></h2><div id="sWsb"></div></section>

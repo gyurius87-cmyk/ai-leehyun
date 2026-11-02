@@ -532,7 +532,7 @@ document.addEventListener("click", async (e) => {
 });
 async function markSeen(id, on) { const S = new Set(YT.seen || []); on ? S.add(id) : S.delete(id); YT.seen = [...S]; renderYt(); api("", { op: "ytseen", id, on }).catch(() => {}); }
 document.addEventListener("click", (e) => { const o = e.target.closest("[data-yopen]"); if (o && !(YT.seen || []).includes(o.dataset.yopen)) markSeen(o.dataset.yopen, true); const b = e.target.closest("[data-yseen]"); if (b) markSeen(b.dataset.yseen, b.getAttribute("aria-pressed") !== "true"); });
-document.addEventListener("change", (e) => { const c = e.target.closest("[data-sseen]"); if (!c) return; const id = c.dataset.sseen, S = new Set(SOC.seen || []); c.checked ? S.add(id) : S.delete(id); SOC.seen = [...S]; c.closest(".it")?.classList.toggle("seen", c.checked); api("", { op: "socseen", id, on: c.checked }).catch(() => {}); });
+document.addEventListener("change", (e) => { const c = e.target.closest("[data-sseen]"); if (!c) return; const id = c.dataset.sseen, S = new Set(SOC.seen || []); c.checked ? S.add(id) : S.delete(id); SOC.seen = [...S]; c.closest(".it")?.classList.toggle("seen", c.checked); api("", { op: "socseen", id, on: c.checked }).catch(() => {}); renderSocFil(); });
 $("yAdd").onsubmit = async (e) => {
   e.preventDefault(); const u = $("yUrl").value.trim(); if (!u) return; $("yMsg").textContent = "채널 찾는 중…";
   try { const j = await api("", { op: "ytadd", url: u }); YT = j; $("yUrl").value = ""; $("yMsg").textContent = `${j.added.name} 더했어요.`; renderYt(); }
@@ -542,22 +542,184 @@ $("yAdd").onsubmit = async (e) => {
 
 // ── SNS 발언
 let SOC = null;
+// 필터: 기간(일) · 사람 · 영향 · 봤는지 · 본인 게시글 · 내 보유 종목 관련 · 검색어
+const SF = { days: 3, who: "all", imp: "all", seen: "unseen", post: false, mine: false, q: "", ...ls.get("stk-sf", {}) }; SF.q = "";
+const sfSave = () => ls.set("stk-sf", { ...SF, q: "" });
+const myKeys = () => (ACCT.hold || []).flatMap((h) => [String(h.sym || "").replace(/\.(KS|KQ)$/, ""), h.name]).filter((x) => x && x.length >= 2).map((x) => x.toLowerCase());
+function socPass(p, x) {
+  const seen = (SOC.seen || []).includes(x.link);
+  if (SF.imp !== "all" && x.impact !== SF.imp) return false;
+  if (SF.seen === "unseen" && seen) return false; if (SF.seen === "seen" && !seen) return false;
+  if (SF.post && !x.post) return false;
+  if (SF.mine) { const K = myKeys(), st = (x.stocks || []).map((k) => k.toLowerCase()); if (!st.some((k) => K.some((m) => k.includes(m) || m.includes(k)))) return false; }
+  if (SF.q) { const q = SF.q.toLowerCase(); if (!`${x.take} ${x.t} ${(x.stocks || []).join(" ")} ${p.who}`.toLowerCase().includes(q)) return false; }
+  return true;
+}
+function renderSocFil() {
+  const pill = (attr, v, cur, label) => `<button type="button" class="pill" data-${attr}="${v}" aria-pressed="${cur === v}">${label}</button>`;
+  $("sDays").innerHTML = `<span class="note" style="margin:0">기간</span>` + [1, 3, 7, 14, 30].map((d) => pill("sfd", String(d), String(SF.days), d === 1 ? "하루" : d + "일")).join("");
+  const n = (id) => SOC ? SOC.people.filter((p) => id === "all" || p.id === id).reduce((t, p) => t + p.picks.filter((x) => socPass(p, x)).length, 0) : 0;
+  $("sWho").innerHTML = `<span class="note" style="margin:0">사람</span>` + [["all", "전체"], ...(SOC?.people || []).map((p) => [p.id, p.who.replace(/\s*\(.*\)/, "")])].map(([id, w]) => pill("sfw", id, SF.who, `${esc(w)} <span class="note">${n(id)}</span>`)).join("");
+  $("sFil").innerHTML = `<span class="note" style="margin:0">보기</span>` + [["all", "전체"], ["호재", "호재"], ["악재", "악재"], ["중립", "중립"]].map(([v, l]) => pill("sfi", v, SF.imp, l)).join("") + `<span class="sep"></span>` + [["unseen", "안 본 것만"], ["seen", "본 것만"], ["all", "다"]].map(([v, l]) => pill("sfs", v, SF.seen, l)).join("") + `<span class="sep"></span>` + `<button type="button" class="pill" data-sft="post" aria-pressed="${SF.post}">💬 본인 게시글만</button><button type="button" class="pill" data-sft="mine" aria-pressed="${SF.mine}">💼 내 보유 종목 관련만</button>`;
+}
+document.addEventListener("click", (e) => {
+  const d = e.target.closest("[data-sfd]"); if (d) { SF.days = +d.dataset.sfd; sfSave(); SOC = null; $("sPeople").innerHTML = `<p class="note">${SF.days}일치를 불러오는 중… (처음엔 40초~1분)</p>`; renderSocFil(); return loadSoc(); }
+  const w = e.target.closest("[data-sfw]"); if (w) { SF.who = w.dataset.sfw; sfSave(); return renderSoc(); }
+  const i = e.target.closest("[data-sfi]"); if (i) { SF.imp = i.dataset.sfi; sfSave(); return renderSoc(); }
+  const s2 = e.target.closest("[data-sfs]"); if (s2) { SF.seen = s2.dataset.sfs; sfSave(); return renderSoc(); }
+  const t = e.target.closest("[data-sft]"); if (t) { SF[t.dataset.sft] = !SF[t.dataset.sft]; sfSave(); return renderSoc(); }
+  if (e.target.id === "sAllUndo") { const ids = SOC.lastAll || []; SOC.seen = (SOC.seen || []).filter((x) => !ids.includes(x)); SOC.lastAll = null; $("sAllMsg").textContent = "되돌렸어요."; renderSoc(); api("", { op: "socseen", ids, on: false }).catch(() => {}); }
+});
+$("sQ").oninput = (e) => { SF.q = e.target.value.trim(); renderSoc(); };
+// 뉴스 확인: 지금 화면에 떠 있는 것 모두 '봤어요'로
+$("sAll").onclick = () => {
+  if (!SOC) return; const ids = [];
+  SOC.people.filter((p) => SF.who === "all" || p.id === SF.who).forEach((p) => p.picks.filter((x) => socPass(p, x)).forEach((x) => { if (!(SOC.seen || []).includes(x.link)) ids.push(x.link); }));
+  if (!ids.length) { $("sAllMsg").textContent = "새로 체크할 게 없어요."; return; }
+  SOC.seen = [...new Set([...(SOC.seen || []), ...ids])]; SOC.lastAll = ids; renderSoc();
+  $("sAllMsg").innerHTML = `${ids.length}개를 봤어요로 바꿨어요. <button type="button" class="btn g s" id="sAllUndo">되돌리기</button>`;
+  api("", { op: "socseen", ids, on: true }).catch(() => ($("sAllMsg").textContent = "저장하지 못했어요. 다시 눌러 주세요."));
+};
+// ── SNS 발언 카드 이미지 (1080×1350, 인스타 4:5): 그날 중요한 발언 6개 + 제로의 결론, 출처 AI이현
+const kstD = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+function socDayPicks(day) {
+  const all = []; SOC.people.forEach((p) => p.picks.forEach((x) => { if (x.at && kstD(x.at) === day) all.push({ ...x, who: p.who.replace(/\s*\(.*\)/, ""), pid: p.id }); }));
+  const rank = (x) => (x.impact === "중립" ? 0 : 10) + (x.post ? 2 : 0) + (x.stocks?.length ? 1 : 0);
+  all.sort((a, b) => rank(b) - rank(a) || b.at - a.at);
+  const out = [], used = new Set(); all.forEach((x) => { if (out.length < 6 && !used.has(x.pid)) { out.push(x); used.add(x.pid); } }); all.forEach((x) => { if (out.length < 6 && !out.includes(x)) out.push(x); });
+  return { out, all };
+}
+async function zeroImg() { const svg = face("zero").replace(/var\(--soft\)/g, "#232733").replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" '); const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode().catch(() => {}); return im; }
+function wrapT(ctx, text, maxW, maxLines) {
+  const lines = []; let cur = "";
+  for (const ch of String(text)) { if (ctx.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch.trim() ? ch : ""; if (lines.length === maxLines) break; } else cur += ch; }
+  if (lines.length < maxLines && cur) lines.push(cur);
+  if (lines.length === maxLines && ctx.measureText(lines.join("")).width >= maxW * maxLines - 40) { let l = lines[maxLines - 1]; while (l && ctx.measureText(l + "…").width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + "…"; }
+  return lines;
+}
+async function socCard(day) {
+  if (!SOC) return null; const { out, all } = socDayPicks(day); if (!out.length) return { empty: true };
+  await document.fonts?.ready;
+  const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  const F = (w, z) => `${w} ${z}px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`, MONO = (w, z) => `${w} ${z}px "IBM Plex Mono", monospace`;
+  const C = { bg: "#0d0f14", panel: "#161a22", line: "#262b36", ink: "#f1f3f5", mute: "#8b93a1", gold: "#f2b632", up: "#ff5a5f", dn: "#4dabf7", neu: "#adb5bd" };
+  x.fillStyle = C.bg; x.fillRect(0, 0, W, H);
+  x.fillStyle = C.gold; x.fillRect(0, 0, W, 10);
+  // 머리
+  const good = all.filter((a) => a.impact === "호재").length, bad = all.filter((a) => a.impact === "악재").length;
+  const [y, m, d] = day.split("-"), wd = "일월화수목금토"[new Date(day + "T00:00:00+09:00").getDay()];
+  x.fillStyle = C.gold; x.font = MONO("700", 28); x.fillText(`DAILY SNS BRIEF · ${y}.${m}.${d} (${wd})`, 64, 80);
+  x.fillStyle = C.ink; x.font = F("800", 64); x.fillText("오늘 시장을 흔든 발언", 64, 160);
+  // 결론 바 (호재 vs 악재)
+  const verdict = good === bad ? "팽팽" : good > bad ? "호재 우세" : "악재 우세";
+  x.font = F("700", 30); x.fillStyle = C.mute; x.fillText("결론", 64, 222); x.fillStyle = good > bad ? C.up : bad > good ? C.dn : C.neu; x.font = F("800", 30); x.fillText(`${verdict}  ${good} : ${bad}`, 140, 222);
+  const bw = W - 128, tot = Math.max(1, good + bad); x.fillStyle = C.line; x.fillRect(64, 244, bw, 14); x.fillStyle = C.up; x.fillRect(64, 244, (bw * good) / tot, 14); x.fillStyle = C.dn; x.fillRect(64 + (bw * good) / tot, 244, (bw * bad) / tot, 14);
+  // 발언 카드 6개
+  const top = 286, rowH = 124, gap = 10;
+  out.forEach((a, i) => {
+    const yy = top + i * (rowH + gap); x.fillStyle = C.panel; x.beginPath(); x.roundRect(48, yy, W - 96, rowH, 18); x.fill();
+    const col = a.impact === "호재" ? C.up : a.impact === "악재" ? C.dn : C.neu; x.fillStyle = col; x.fillRect(48, yy + 18, 6, rowH - 36);
+    x.fillStyle = C.mute; x.font = MONO("700", 26); x.fillText(String(i + 1).padStart(2, "0"), 76, yy + 46);
+    x.fillStyle = C.ink; x.font = F("800", 28); x.fillText(a.who + (a.post ? " 💬" : ""), 130, yy + 46);
+    const ww = x.measureText(a.who + (a.post ? " 💬" : "")).width; x.font = F("700", 22); const tag = a.impact; const tw = x.measureText(tag).width + 24;
+    x.fillStyle = col; x.beginPath(); x.roundRect(144 + ww, yy + 22, tw, 32, 16); x.fill(); x.fillStyle = C.bg; x.fillText(tag, 156 + ww, yy + 46);
+    if (a.stocks?.length) { x.font = MONO("600", 22); x.fillStyle = C.gold; const st = a.stocks.slice(0, 3).join(" · "); x.fillText(st, W - 76 - x.measureText(st).width, yy + 46); }
+    x.fillStyle = C.ink; x.font = F("500", 26); wrapT(x, a.take, W - 96 - 110, 2).forEach((l, k) => x.fillText(l, 130, yy + 84 + k * 32));
+  });
+  // 제로의 한마디
+  const zy = top + 6 * (rowH + gap) + 4; const st = {}; all.forEach((a) => (a.stocks || []).forEach((k) => (st[k] = (st[k] || 0) + 1))); const hot = Object.entries(st).sort((a, b) => b[1] - a[1]).slice(0, 3).map((e) => e[0]);
+  const zi = await zeroImg(); x.save(); x.beginPath(); x.arc(110, zy + 56, 52, 0, Math.PI * 2); x.clip(); x.drawImage(zi, 58, zy + 4, 104, 104); x.restore();
+  x.fillStyle = C.gold; x.font = F("800", 26); x.fillText("제로의 정리", 184, zy + 34);
+  const msg = `${all.length}개 발언 중 호재 ${good}, 악재 ${bad}. ${verdict === "팽팽" ? "방향은 아직 안 정해졌어요." : verdict === "호재 우세" ? "분위기는 위쪽이에요. 추격보단 눌림을 기다려요." : "분위기는 아래쪽이에요. 비중·손절선부터 점검해요."}${hot.length ? ` 오늘의 키워드: ${hot.join(", ")}.` : ""}`;
+  x.fillStyle = C.ink; x.font = F("600", 25); wrapT(x, msg, W - 184 - 64, 3).forEach((l, k) => x.fillText(l, 184, zy + 70 + k * 32));
+  // 출처
+  x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2);
+  x.fillStyle = C.mute; x.font = F("500", 22); x.fillText("출처 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 투자 권유 아님", 64, H - 44);
+  x.fillStyle = C.gold; x.font = F("800", 28); const br = "AI이현"; x.fillText(br, W - 64 - x.measureText(br).width, H - 42);
+  return { canvas: c, n: out.length };
+}
+async function socCardMake() {
+  const day = $("sImgD").value || kstD(Date.now()); $("sImgMsg").textContent = "그리는 중…";
+  let r = await socCard(day);
+  if (r?.empty) { const days = [...new Set(SOC.people.flatMap((p) => p.picks.map((x) => x.at && kstD(x.at))).filter(Boolean))].sort().reverse(); if (days[0] && days[0] !== day) { $("sImgD").value = days[0]; r = await socCard(days[0]); $("sImgMsg").textContent = `${day}엔 발언이 없어서 ${days[0]}로 만들었어요. `; } else { $("sImgMsg").textContent = "그날 발언이 없어요. 기간을 늘려 보세요."; return null; } } else $("sImgMsg").textContent = "";
+  if (!r?.canvas) return null; $("sImgPv").src = r.canvas.toDataURL("image/png"); $("sImgBox").hidden = false; return r.canvas;
+}
+$("sImgDl").onclick = async () => { const c = await socCardMake(); if (!c) return; const a = document.createElement("a"); a.href = c.toDataURL("image/png"); a.download = `AI이현_SNS발언_${$("sImgD").value}.png`; a.click(); $("sImgMsg").textContent += "내려받았어요."; };
+// 복사: 클릭 직후 바로 클립보드에 '그려질 이미지 약속'을 넘겨야 사파리·크롬 모두 허락해요
+function copyCanvas(make, msgEl) {
+  const blobP = make().then((c) => (c ? new Promise((r) => c.toBlob(r, "image/png")) : Promise.reject(new Error("none"))));
+  try { navigator.clipboard.write([new ClipboardItem({ "image/png": blobP })]).then(() => ($(msgEl).textContent += "복사했어요. 붙여넣기 하면 돼요."), (e) => { if (e?.message !== "none") $(msgEl).textContent += "이 브라우저는 이미지 복사를 막아요. 미리보기를 길게 눌러 저장해 주세요."; }); }
+  catch { blobP.catch(() => {}); $(msgEl).textContent += "이 브라우저는 이미지 복사를 막아요. 미리보기를 길게 눌러 저장해 주세요."; }
+}
+$("sImgCp").onclick = () => copyCanvas(socCardMake, "sImgMsg");
+// ── 매크로 카드 이미지 (1080×1350): 그날 종가 기준 지수 6 + 매크로 6 + 오늘 정리 결론 + 제로의 포인트
+const MXI = [["^IXIC", "나스닥"], ["^GSPC", "S&P 500"], ["^SOX", "필라델피아 반도체"], ["^DJI", "다우"], ["^KS11", "코스피"], ["^KQ11", "코스닥"]];
+const MXM = [["^TNX", "미 10년물", "%"], ["DX-Y.NYB", "달러 인덱스", ""], ["KRW=X", "원/달러", "원"], ["^VIX", "VIX 공포지수", ""], ["CL=F", "WTI 유가", "$"], ["GC=F", "금", "$"]];
+async function mxData(day) {
+  const one = async ([s, n, u]) => { try { const g = await api(`op=chart&s=${encodeURIComponent(s)}&r=6mo&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null && r.d <= day); if (rows.length < 2) return null; const a = rows.at(-1), b = rows.at(-2); return { s, n, u, d: a.d, v: a.c, d1: (a.c / b.c - 1) * 100, sp: rows.slice(-40).map((r) => r.c) }; } catch { return null; } };
+  const [ix, mc, br] = await Promise.all([Promise.all(MXI.map(one)), Promise.all(MXM.map(one)), api("op=brief&d=" + day).catch(() => null)]);
+  return { ix, mc, br: br?.headline ? br : null };
+}
+function sparkC(x, vals, X, Y, w, h, col) { if (!vals?.length) return; const lo = Math.min(...vals), hi = Math.max(...vals), r = hi - lo || 1; x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); vals.forEach((v, i) => { const px = X + (i / (vals.length - 1)) * w, py = Y + h - ((v - lo) / r) * h; i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); }
+async function macroCard(day) {
+  const D = await mxData(day); if (!D.ix.some(Boolean)) return null; await document.fonts?.ready;
+  const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  const F = (w, z) => `${w} ${z}px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`, MONO = (w, z) => `${w} ${z}px "IBM Plex Mono", monospace`;
+  const C = { bg: "#0d0f14", panel: "#161a22", line: "#262b36", ink: "#f1f3f5", mute: "#8b93a1", gold: "#f2b632", up: "#ff5a5f", dn: "#4dabf7" }, uc = (v) => (v > 0 ? C.up : v < 0 ? C.dn : C.mute);
+  const nf = (v, k = 2) => (+v).toLocaleString("ko-KR", { minimumFractionDigits: k, maximumFractionDigits: k }), pc = (v) => `${v > 0 ? "▲" : v < 0 ? "▼" : ""} ${Math.abs(v).toFixed(2)}%`;
+  x.fillStyle = C.bg; x.fillRect(0, 0, W, H); x.fillStyle = C.gold; x.fillRect(0, 0, W, 10);
+  const [y, m, d] = day.split("-"), wd = "일월화수목금토"[new Date(day + "T00:00:00+09:00").getDay()];
+  x.fillStyle = C.gold; x.font = MONO("700", 28); x.fillText(`DAILY MACRO BRIEF · ${y}.${m}.${d} (${wd})`, 64, 80);
+  x.fillStyle = C.ink; x.font = F("800", 50); const hl = D.br?.headline || "오늘의 매크로"; wrapT(x, hl, W - 128, 2).forEach((l, k) => x.fillText(l, 64, 150 + k * 62));
+  let yy = D.br?.headline && x.measureText(hl).width > W - 128 ? 250 : 200;
+  const st = D.br?.verdict?.stance; if (st) { const col = st === "공격" ? C.up : st === "방어" ? C.dn : C.gold; x.font = F("800", 26); const tw = x.measureText("결론 · " + st).width + 36; x.fillStyle = col; x.beginPath(); x.roundRect(64, yy - 6, tw, 46, 23); x.fill(); x.fillStyle = C.bg; x.fillText("결론 · " + st, 82, yy + 26); x.fillStyle = C.ink; x.font = F("500", 24); wrapT(x, D.br.verdict.summary || "", W - 128 - tw - 20, 2).forEach((l, k) => x.fillText(l, 64 + tw + 20, yy + 14 + k * 30)); yy += 74; }
+  // 지수 2×3
+  const gw = (W - 128 - 24) / 2, gh = 132;
+  D.ix.forEach((r, i) => { const X = 64 + (i % 2) * (gw + 24), Y = yy + Math.floor(i / 2) * (gh + 16); x.fillStyle = C.panel; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.fill(); if (!r) return;
+    x.fillStyle = C.mute; x.font = F("700", 24); x.fillText(r.n, X + 24, Y + 40); x.fillStyle = C.ink; x.font = MONO("700", 38); x.fillText(nf(r.v, r.v >= 1000 ? 0 : 2), X + 24, Y + 90); x.fillStyle = uc(r.d1); x.font = MONO("700", 26); x.fillText(pc(r.d1), X + 24, Y + 120);
+    sparkC(x, r.sp, X + gw - 190, Y + 40, 166, 66, uc(r.d1)); });
+  yy += 3 * (gh + 16) + 8;
+  // 매크로 6줄
+  x.fillStyle = C.gold; x.font = F("800", 26); x.fillText("금리 · 환율 · 원자재 · 심리", 64, yy + 24); yy += 44;
+  const mh = 52; D.mc.forEach((r, i) => { const Y = yy + i * mh; if (i % 2 === 0) { x.fillStyle = C.panel; x.fillRect(48, Y - 4, W - 96, mh); } if (!r) return;
+    x.fillStyle = C.ink; x.font = F("700", 26); x.fillText(r.n, 72, Y + 32); x.font = MONO("700", 28); const val = (r.u === "$" ? "$" : "") + nf(r.v, r.v >= 1000 ? 0 : 2) + (r.u && r.u !== "$" ? r.u : ""); x.fillText(val, 470 - x.measureText(val).width / 2 + 60, Y + 32);
+    x.fillStyle = uc(r.d1); const p = pc(r.d1); x.fillText(p, 760 - x.measureText(p).width + 40, Y + 32); sparkC(x, r.sp.slice(-20), 840, Y + 6, 170, 34, uc(r.d1)); });
+  yy += 6 * mh + 24;
+  // 제로의 포인트
+  const pts = (D.br?.macro || []).slice(0, 3), zi = await zeroImg();
+  x.save(); x.beginPath(); x.arc(110, yy + 52, 48, 0, Math.PI * 2); x.clip(); x.drawImage(zi, 62, yy + 4, 96, 96); x.restore();
+  x.fillStyle = C.gold; x.font = F("800", 26); x.fillText("제로가 짚은 포인트", 180, yy + 30);
+  x.fillStyle = C.ink; x.font = F("500", 23); let ly = yy + 66; (pts.length ? pts : ["이날 정리가 없어서 숫자만 담았어요."]).forEach((t) => { wrapT(x, "• " + t, W - 180 - 64, 2).forEach((l) => { if (ly < H - 100) x.fillText(l, 180, ly); ly += 30; }); ly += 4; });
+  x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2); x.fillStyle = C.mute; x.font = F("500", 22); x.fillText("출처 · 야후 파이낸스 종가, AI 시장 정리 · 투자 권유 아님", 64, H - 44);
+  x.fillStyle = C.gold; x.font = F("800", 28); x.fillText("AI이현", W - 64 - x.measureText("AI이현").width, H - 42);
+  return c;
+}
+async function mxMake() { const day = $("mxD").value || kstD(Date.now()); $("mxMsg").textContent = "시세 모아 그리는 중… (10초쯤)"; const c = await macroCard(day).catch(() => null); if (!c) { $("mxMsg").textContent = "그날 시세를 못 받았어요."; return null; } $("mxMsg").textContent = ""; $("mxPv").src = c.toDataURL("image/png"); $("mxBox").hidden = false; return c; }
+$("mxDl").onclick = async () => { const c = await mxMake(); if (!c) return; const a = document.createElement("a"); a.href = c.toDataURL("image/png"); a.download = `AI이현_매크로_${$("mxD").value}.png`; a.click(); $("mxMsg").textContent = "내려받았어요."; };
+$("mxCp").onclick = () => copyCanvas(mxMake, "mxMsg");
+if (!$("mxD").value) $("mxD").value = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 async function loadSoc(force) {
   if (SOC && !force) return renderSoc();
   $("sRe").disabled = true; if (force) $("sAt").textContent = "받고 해석하는 중… (40초쯤)";
-  try { SOC = await api("op=soc" + (force ? "&force=1" : "")); renderSoc(); } catch { $("sPeople").innerHTML = `<p class="msg no">못 불러왔어요. '새로 받기'를 눌러 주세요.</p>`; }
+  if (!force && !SOC) $("sAt").textContent = `${SF.days}일치 불러오는 중…`;
+  try { SOC = await api(`op=soc&days=${SF.days}` + (force ? "&force=1" : "")); renderSoc(); } catch { $("sPeople").innerHTML = `<p class="msg no">못 불러왔어요. '새로 받기'를 눌러 주세요.</p>`; }
   $("sRe").disabled = false;
 }
 $("sRe").onclick = () => loadSoc(true);
 function renderSoc() {
+  if (!$("sImgD").value) $("sImgD").value = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   $("sAt").textContent = new Date(SOC.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 기준";
   const E = SOC.errs || {}, en = Object.keys(E); $("sErr").hidden = !en.length;
   $("sErr").textContent = en.length ? "못 받은 곳: " + en.map((k) => ({ truth: "트루스소셜", reddit: "레딧", ai: "AI 해석" })[k] || k).join(", ") : "";
   const when = (t) => (t ? ago(new Date(t).toISOString()) : "");
-  $("sPeople").innerHTML = SOC.people.map((p) => `<article class="sp"><h3 style="margin:0">${esc(p.who)}</h3>${p.mood ? `<p class="note" style="margin:0">${esc(p.mood)}</p>` : ""}
+  renderSocFil();
+  const vis = SOC.people.filter((p) => SF.who === "all" || p.id === SF.who).map((p) => ({ ...p, picks: p.picks.filter((x) => socPass(p, x)) })).filter((p) => p.picks.length || (SF.who !== "all" && !SF.q));
+  const tot = vis.reduce((t, p) => t + p.picks.length, 0); $("sAll").textContent = `뉴스 확인 (${tot})`; $("sAll").disabled = !tot;
+  if (!vis.length) { $("sPeople").innerHTML = `<p class="note">조건에 맞는 발언이 없어요.${SF.seen === "unseen" ? " 다 봤어요 👍" : ""}</p>`; }
+  else $("sPeople").innerHTML = vis.map((p) => `<article class="sp"><h3 style="margin:0">${esc(p.who)}</h3>${p.mood ? `<p class="note" style="margin:0">${esc(p.mood)}</p>` : ""}
     ${p.picks.map((x) => `<div class="it ${esc(x.impact)}${(SOC.seen || []).includes(x.link) ? " seen" : ""}"><div><label class="sck" title="봤어요"><input type="checkbox" data-sseen="${esc(x.link)}"${(SOC.seen || []).includes(x.link) ? " checked" : ""}></label> <span class="imp ${esc(x.impact)}">${esc(x.impact)}</span> <b>${esc(x.take)}</b></div><div class="note">${x.post ? "💬 본인 게시글 · " : ""}<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 140))}</a> · ${esc(x.src)} · ${when(x.at)}</div>${x.stocks.length ? `<div>${x.stocks.map((k) => `<span class="stk">${esc(k)}</span>`).join("")}</div>` : ""}</div>`).join("") || `<p class="note" style="margin:0">최근 시장에 의미 있는 발언이 없어요.</p>`}
     ${p.raw.length ? `<details><summary>원문 헤드라인 ${p.raw.length}개</summary><ul style="margin:4px 0 0;padding-left:18px">${p.raw.map((x) => `<li class="note"><a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.t.slice(0, 160))}</a> · ${when(x.at)}</li>`).join("")}</ul></details>` : ""}</article>`).join("");
-  const R = SOC.reddit; if (!R) { $("sWsb").innerHTML = `<p class="note">레딧에서 못 받았어요.</p>`; return; }
+  ;const R = SOC.reddit; if (!R) { $("sWsb").innerHTML = `<p class="note">레딧에서 못 받았어요.</p>`; return; }
   const max = R.top[0]?.v || 1;
   $("sWsb").innerHTML = `<div class="two"><div>${R.top.map((t) => `<div class="row" style="gap:8px;margin:3px 0"><b class="num" style="width:56px">${esc(t.s)}</b><div class="bar" style="width:${Math.max(4, (t.v / max) * 70)}%"></div><span class="note num">${t.v}</span></div>`).join("") || `<p class="note">없어요</p>`}</div><div><h3>인기 글</h3><ul style="margin:0;padding-left:18px">${R.posts.map((p) => `<li><a href="${esc(p.link)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.t)}</a> <span class="note">▲${p.score}</span></li>`).join("")}</ul></div></div>`;
 }
