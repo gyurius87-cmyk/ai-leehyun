@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-02",
+  "updated": "2026-11-03",
   "depts": [
     {
       "id": "ai",
@@ -20,7 +20,7 @@
           "team": "콘텐츠팀",
           "name": "SNS 담당",
           "status": "done",
-          "doing": "인스타 에이전트 스킬 13개를 설치했어요",
+          "doing": "인스타 스킬로 SNS 관리를 고치고 깃허브 보물창고·일본어 여행 교실을 만들었어요",
           "prop": "📱",
           "acc": "heart"
         },
@@ -469,6 +469,22 @@
       "team": "개발팀",
       "state": "done",
       "start": "2026-11-01",
+      "href": "/programs"
+    },
+    {
+      "name": "깃허브 보물창고",
+      "dept": "ai",
+      "team": "콘텐츠팀",
+      "state": "done",
+      "start": "2026-11-02",
+      "href": "/programs"
+    },
+    {
+      "name": "일본어 여행 교실",
+      "dept": "ai",
+      "team": "콘텐츠팀",
+      "state": "done",
+      "start": "2026-11-02",
       "href": "/programs"
     }
   ]
