@@ -615,7 +615,11 @@ function wrapT(ctx, text, maxW, maxLines) {
 function cardFoot(x, W, H, C, F, src) {
   x.fillStyle = C.line; x.fillRect(64, H - 62, W - 128, 1);
   x.fillStyle = C.mute; x.font = F("500", 18); x.fillText(src, 64, H - 30);
-  const br = "출처 AI이현"; x.fillText(br, W - 64 - x.measureText(br).width, H - 30);
+  const br = "출처 AI이현 · ai_leehyun", bw = x.measureText(br).width, z = 18, ix = W - 64 - bw - z - 8, iy = H - 30 - 15;
+  x.fillText(br, W - 64 - bw, H - 30);
+  // 작은 인스타 모양 (회색 선, 글자와 같은 톤)
+  x.strokeStyle = C.mute; x.lineWidth = 1.6; x.beginPath(); x.roundRect(ix, iy, z, z, 5); x.stroke();
+  x.beginPath(); x.arc(ix + z / 2, iy + z / 2, 4.2, 0, 7); x.stroke(); x.fillStyle = C.mute; x.beginPath(); x.arc(ix + z * 0.76, iy + z * 0.24, 1.2, 0, 7); x.fill();
 }
 async function socCard(day) {
   if (!SOC) return null; const { out, all } = socDayPicks(day); if (!out.length) return { empty: true };
