@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-01",
+  "updated": "2026-11-02",
   "depts": [
     {
       "id": "ai",
@@ -173,8 +173,8 @@
         {
           "team": "개발팀",
           "name": "주식 프로그램 담당",
-          "status": "working",
-          "doing": "대가 회의실과 13F 받기를 새로 붙이고 손보는 중이에요",
+          "status": "done",
+          "doing": "SNS·매크로 하루 요약 카드와 대가 매매 피드를 붙였어요",
           "prop": "💻",
           "acc": "glasses"
         },
