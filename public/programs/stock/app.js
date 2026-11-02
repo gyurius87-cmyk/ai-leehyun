@@ -580,8 +580,9 @@ $("sAll").onclick = () => {
   $("sAllMsg").innerHTML = `${ids.length}개를 봤어요로 바꿨어요. <button type="button" class="btn g s" id="sAllUndo">되돌리기</button>`;
   api("", { op: "socseen", ids, on: true }).catch(() => ($("sAllMsg").textContent = "저장하지 못했어요. 다시 눌러 주세요."));
 };
-// ── SNS 발언 카드 이미지 (1080×1350, 인스타 4:5): 그날 중요한 발언 6개 + 제로의 결론, 출처 AI이현
+// ── SNS 발언 카드 이미지 (1080×1350, 인스타 4:5): 그날 중요한 발언 6개(한국시간) + 제로의 정리(위 발언만), 출처 AI이현
 const kstD = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+const kstT = (t) => new Date(t + 9 * 3600e3).toISOString().slice(11, 16);
 function socDayPicks(day) {
   const all = []; SOC.people.forEach((p) => p.picks.forEach((x) => { if (x.at && kstD(x.at) === day) all.push({ ...x, who: p.who.replace(/\s*\(.*\)/, ""), pid: p.id }); }));
   const rank = (x) => (x.impact === "중립" ? 0 : 10) + (x.post ? 2 : 0) + (x.stocks?.length ? 1 : 0);
@@ -610,9 +611,8 @@ async function socCard(day) {
   const [y, m, d] = day.split("-"), wd = "일월화수목금토"[new Date(day + "T00:00:00+09:00").getDay()];
   x.fillStyle = C.gold; x.font = MONO("700", 28); x.fillText(`DAILY SNS BRIEF · ${y}.${m}.${d} (${wd})`, 64, 80);
   x.fillStyle = C.ink; x.font = F("800", 64); x.fillText("오늘 시장을 흔든 발언", 64, 160);
-  // 결론 바 (호재 vs 악재)
-  const verdict = good === bad ? "팽팽" : good > bad ? "호재 우세" : "악재 우세";
-  x.font = F("700", 30); x.fillStyle = C.mute; x.fillText("결론", 64, 222); x.fillStyle = good > bad ? C.up : bad > good ? C.dn : C.neu; x.font = F("800", 30); x.fillText(`${verdict}  ${good} : ${bad}`, 140, 222);
+  // 호재·악재 개수 바
+  x.font = F("700", 30); x.fillStyle = C.mute; x.fillText(`그날 발언 ${all.length}개`, 64, 222); const lw = x.measureText(`그날 발언 ${all.length}개`).width; x.font = F("800", 30); x.fillStyle = C.up; x.fillText(`호재 ${good}`, 88 + lw, 222); const gw = x.measureText(`호재 ${good}`).width; x.fillStyle = C.dn; x.fillText(`악재 ${bad}`, 112 + lw + gw, 222);
   const bw = W - 128, tot = Math.max(1, good + bad); x.fillStyle = C.line; x.fillRect(64, 244, bw, 14); x.fillStyle = C.up; x.fillRect(64, 244, (bw * good) / tot, 14); x.fillStyle = C.dn; x.fillRect(64 + (bw * good) / tot, 244, (bw * bad) / tot, 14);
   // 발언 카드 6개
   const top = 286, rowH = 124, gap = 10;
@@ -623,18 +623,22 @@ async function socCard(day) {
     x.fillStyle = C.ink; x.font = F("800", 28); x.fillText(a.who + (a.post ? " 💬" : ""), 130, yy + 46);
     const ww = x.measureText(a.who + (a.post ? " 💬" : "")).width; x.font = F("700", 22); const tag = a.impact; const tw = x.measureText(tag).width + 24;
     x.fillStyle = col; x.beginPath(); x.roundRect(144 + ww, yy + 22, tw, 32, 16); x.fill(); x.fillStyle = C.bg; x.fillText(tag, 156 + ww, yy + 46);
+    if (a.at) { x.fillStyle = C.mute; x.font = MONO("600", 22); x.fillText(kstT(a.at) + " KST", 160 + ww + tw, yy + 46); }
     if (a.stocks?.length) { x.font = MONO("600", 22); x.fillStyle = C.gold; const st = a.stocks.slice(0, 3).join(" · "); x.fillText(st, W - 76 - x.measureText(st).width, yy + 46); }
     x.fillStyle = C.ink; x.font = F("500", 26); wrapT(x, a.take, W - 96 - 110, 2).forEach((l, k) => x.fillText(l, 130, yy + 84 + k * 32));
   });
   // 제로의 한마디
-  const zy = top + 6 * (rowH + gap) + 4; const st = {}; all.forEach((a) => (a.stocks || []).forEach((k) => (st[k] = (st[k] || 0) + 1))); const hot = Object.entries(st).sort((a, b) => b[1] - a[1]).slice(0, 3).map((e) => e[0]);
+  const zy = top + 6 * (rowH + gap) + 4;
   const zi = await zeroImg(); x.save(); x.beginPath(); x.arc(110, zy + 56, 52, 0, Math.PI * 2); x.clip(); x.drawImage(zi, 58, zy + 4, 104, 104); x.restore();
   x.fillStyle = C.gold; x.font = F("800", 26); x.fillText("제로의 정리", 184, zy + 34);
-  const msg = `${all.length}개 발언 중 호재 ${good}, 악재 ${bad}. ${verdict === "팽팽" ? "방향은 아직 안 정해졌어요." : verdict === "호재 우세" ? "분위기는 위쪽이에요. 추격보단 눌림을 기다려요." : "분위기는 아래쪽이에요. 비중·손절선부터 점검해요."}${hot.length ? ` 오늘의 키워드: ${hot.join(", ")}.` : ""}`;
+  // 위 카드에 있는 발언만 사실대로 묶어요 (행동 조언·키워드 없음)
+  const grp = (k) => [...new Set(out.filter((a) => a.impact === k).map((a) => a.who))];
+  const gG = grp("호재"), gB = grp("악재"), gN = grp("중립");
+  const msg = [gG.length && `${gG.join("·")}의 발언은 호재 쪽`, gB.length && `${gB.join("·")}의 발언은 악재 쪽`, gN.length && `${gN.join("·")}은 중립`].filter(Boolean).join(", ") + `으로 읽혔어요. 위 ${out.length}개 중 호재 ${out.filter((a) => a.impact === "호재").length}, 악재 ${out.filter((a) => a.impact === "악재").length}개예요.`;
   x.fillStyle = C.ink; x.font = F("600", 25); wrapT(x, msg, W - 184 - 64, 3).forEach((l, k) => x.fillText(l, 184, zy + 70 + k * 32));
   // 출처
   x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2);
-  x.fillStyle = C.mute; x.font = F("500", 22); x.fillText("출처 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 투자 권유 아님", 64, H - 44);
+  x.fillStyle = C.mute; x.font = F("500", 22); x.fillText("출처 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 시각은 한국시간 · 투자 권유 아님", 64, H - 44);
   x.fillStyle = C.gold; x.font = F("800", 28); const br = "AI이현"; x.fillText(br, W - 64 - x.measureText(br).width, H - 42);
   return { canvas: c, n: out.length };
 }
@@ -652,45 +656,73 @@ function copyCanvas(make, msgEl) {
   catch { blobP.catch(() => {}); $(msgEl).textContent += "이 브라우저는 이미지 복사를 막아요. 미리보기를 길게 눌러 저장해 주세요."; }
 }
 $("sImgCp").onclick = () => copyCanvas(socCardMake, "sImgMsg");
-// ── 매크로 카드 이미지 (1080×1350): 그날 종가 기준 지수 6 + 매크로 6 + 오늘 정리 결론 + 제로의 포인트
+// ── 매크로 카드 이미지 (1080×1350): 그날 종가 기준 지수 6 + 매크로 6 + 걸린 신호 + 제로가 짚은 신호
 const MXI = [["^IXIC", "나스닥"], ["^GSPC", "S&P 500"], ["^SOX", "필라델피아 반도체"], ["^DJI", "다우"], ["^KS11", "코스피"], ["^KQ11", "코스닥"]];
-const MXM = [["^TNX", "미 10년물", "%"], ["DX-Y.NYB", "달러 인덱스", ""], ["KRW=X", "원/달러", "원"], ["^VIX", "VIX 공포지수", ""], ["CL=F", "WTI 유가", "$"], ["GC=F", "금", "$"]];
-async function mxData(day) {
-  const one = async ([s, n, u]) => { try { const g = await api(`op=chart&s=${encodeURIComponent(s)}&r=6mo&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null && r.d <= day); if (rows.length < 2) return null; const a = rows.at(-1), b = rows.at(-2); return { s, n, u, d: a.d, v: a.c, d1: (a.c / b.c - 1) * 100, sp: rows.slice(-40).map((r) => r.c) }; } catch { return null; } };
-  const [ix, mc, br] = await Promise.all([Promise.all(MXI.map(one)), Promise.all(MXM.map(one)), api("op=brief&d=" + day).catch(() => null)]);
-  return { ix, mc, br: br?.headline ? br : null };
+const MXM = [["^TNX", "미 10년물 금리", "%"], ["DX-Y.NYB", "달러 인덱스", ""], ["KRW=X", "원/달러", "원"], ["^VIX", "VIX 공포지수", ""], ["CL=F", "WTI 유가", "$"], ["GC=F", "금", "$"], ["HG=F", "구리", "$"], ["BTC-USD", "비트코인", "$"]];
+// 그날 걸린 신호: 20·60·200일선 돌파/이탈, 52주 신고가/신저가, 연속 상승·하락, 큰 하루 변동, VIX 20·30 넘나들기
+function mxSignals(rows, s) {
+  const cl = rows.map((r) => r.c), n = cl.length, c = cl[n - 1], p = cl[n - 2], out = [];
+  const ma = (k, i = n) => (i >= k ? cl.slice(i - k, i).reduce((a, b) => a + b, 0) / k : null);
+  for (const k of [20, 60, 200]) { const m1 = ma(k), m0 = ma(k, n - 1); if (m1 && m0) { if (p < m0 && c >= m1) out.push({ t: `${k}일선 위로 돌파`, g: 1, ma: k }); else if (p > m0 && c <= m1) out.push({ t: `${k}일선 아래로 이탈`, g: -1, ma: k }); } }
+  const y1 = cl.slice(-252, -1); if (y1.length > 100) { if (c > Math.max(...y1)) out.push({ t: "52주 신고가", g: 1 }); else if (c < Math.min(...y1)) out.push({ t: "52주 신저가", g: -1 }); }
+  let k = 0; for (let i = n - 1; i > 0 && Math.sign(cl[i] - cl[i - 1]) === Math.sign(c - p) && c !== p; i--) k++; if (k >= 4) out.push({ t: `${k}일 연속 ${c > p ? "상승" : "하락"}`, g: c > p ? 1 : -1 });
+  const d1 = (c / p - 1) * 100, big = /\^(TNX)|KRW=X|DX-Y/.test(s) ? 1 : /VIX/.test(s) ? 10 : /BTC/.test(s) ? 5 : 2; if (Math.abs(d1) >= big) out.push({ t: `하루 ${d1 > 0 ? "+" : ""}${d1.toFixed(1)}% 급${d1 > 0 ? "등" : "락"}`, g: d1 > 0 ? 1 : -1 });
+  if (s === "^VIX") for (const lv of [20, 30]) { if (p < lv && c >= lv) out.push({ t: `VIX ${lv} 돌파 (불안 커짐)`, g: -1 }); else if (p >= lv && c < lv) out.push({ t: `VIX ${lv} 아래로 (진정)`, g: 1 }); }
+  if (/VIX|TNX|DX-Y|KRW=X/.test(s)) out.forEach((o) => { if (!/VIX \d/.test(o.t)) o.g = -o.g; }); // 오르면 주식에 부담인 것들은 색을 반대로
+  return out;
 }
-function sparkC(x, vals, X, Y, w, h, col) { if (!vals?.length) return; const lo = Math.min(...vals), hi = Math.max(...vals), r = hi - lo || 1; x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); vals.forEach((v, i) => { const px = X + (i / (vals.length - 1)) * w, py = Y + h - ((v - lo) / r) * h; i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); }
+async function mxData(day) {
+  const one = async ([s, n, u]) => { try { const g = await api(`op=chart&s=${encodeURIComponent(s)}&r=2y&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null && r.d <= day); if (rows.length < 30) return null; const a = rows.at(-1), b = rows.at(-2), cl = rows.map((r) => r.c);
+    const maS = (k) => cl.map((_, i) => (i >= k - 1 ? cl.slice(i - k + 1, i + 1).reduce((x, y) => x + y, 0) / k : null)).slice(-60);
+    return { s, n, u, d: a.d, v: a.c, d1: (a.c / b.c - 1) * 100, sp: cl.slice(-60), ma20: maS(20), sig: mxSignals(rows, s) }; } catch { return null; } };
+  const [ix, mc] = await Promise.all([Promise.all(MXI.map(one)), Promise.all(MXM.map(one))]);
+  return { ix, mc };
+}
+// 작은 차트: 종가 선 + 20일선(흐린 점선) + 마지막 점, 신호가 있으면 골드 링
+function sparkC(x, vals, X, Y, w, h, col, ma, hit) {
+  if (!vals?.length) return; const all = [...vals, ...(ma || []).filter((v) => v != null)], lo = Math.min(...all), hi = Math.max(...all), r = hi - lo || 1;
+  const px = (i, len) => X + (i / (len - 1)) * w, py = (v) => Y + h - ((v - lo) / r) * h;
+  if (ma) { x.save(); x.setLineDash([4, 4]); x.strokeStyle = "#8b93a1"; x.lineWidth = 1.5; x.beginPath(); let st = false; ma.forEach((v, i) => { if (v == null) return; st ? x.lineTo(px(i, ma.length), py(v)) : (x.moveTo(px(i, ma.length), py(v)), (st = true)); }); x.stroke(); x.restore(); }
+  x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); vals.forEach((v, i) => (i ? x.lineTo(px(i, vals.length), py(v)) : x.moveTo(px(i, vals.length), py(v)))); x.stroke();
+  const lx = px(vals.length - 1, vals.length), ly = py(vals.at(-1)); x.fillStyle = col; x.beginPath(); x.arc(lx, ly, 5, 0, 7); x.fill();
+  if (hit) { x.strokeStyle = "#f2b632"; x.lineWidth = 3; x.beginPath(); x.arc(lx, ly, 12, 0, 7); x.stroke(); }
+}
 async function macroCard(day) {
   const D = await mxData(day); if (!D.ix.some(Boolean)) return null; await document.fonts?.ready;
   const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
   const F = (w, z) => `${w} ${z}px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`, MONO = (w, z) => `${w} ${z}px "IBM Plex Mono", monospace`;
-  const C = { bg: "#0d0f14", panel: "#161a22", line: "#262b36", ink: "#f1f3f5", mute: "#8b93a1", gold: "#f2b632", up: "#ff5a5f", dn: "#4dabf7" }, uc = (v) => (v > 0 ? C.up : v < 0 ? C.dn : C.mute);
-  const nf = (v, k = 2) => (+v).toLocaleString("ko-KR", { minimumFractionDigits: k, maximumFractionDigits: k }), pc = (v) => `${v > 0 ? "▲" : v < 0 ? "▼" : ""} ${Math.abs(v).toFixed(2)}%`;
+  const C = { bg: "#0d0f14", panel: "#161a22", line: "#262b36", ink: "#f1f3f5", mute: "#8b93a1", gold: "#f2b632", up: "#ff5a5f", dn: "#4dabf7" }, uc = (v) => (v > 0 ? C.up : v < 0 ? C.dn : C.mute), gc = (g) => (g > 0 ? C.up : C.dn);
+  const nf = (v, k = 2) => (+v).toLocaleString("ko-KR", { minimumFractionDigits: k, maximumFractionDigits: k }), pc = (v) => `${v > 0 ? "▲" : v < 0 ? "▼" : ""}${Math.abs(v).toFixed(2)}%`;
+  const chip = (t, X, Y, col, z = 20) => { x.font = F("700", z); const w = x.measureText(t).width + 20; x.fillStyle = col + "33"; x.beginPath(); x.roundRect(X, Y, w, z + 12, (z + 12) / 2); x.fill(); x.fillStyle = col; x.fillText(t, X + 10, Y + z + 2); return w; };
   x.fillStyle = C.bg; x.fillRect(0, 0, W, H); x.fillStyle = C.gold; x.fillRect(0, 0, W, 10);
   const [y, m, d] = day.split("-"), wd = "일월화수목금토"[new Date(day + "T00:00:00+09:00").getDay()];
-  x.fillStyle = C.gold; x.font = MONO("700", 28); x.fillText(`DAILY MACRO BRIEF · ${y}.${m}.${d} (${wd})`, 64, 80);
-  x.fillStyle = C.ink; x.font = F("800", 50); const hl = D.br?.headline || "오늘의 매크로"; wrapT(x, hl, W - 128, 2).forEach((l, k) => x.fillText(l, 64, 150 + k * 62));
-  let yy = D.br?.headline && x.measureText(hl).width > W - 128 ? 250 : 200;
-  const st = D.br?.verdict?.stance; if (st) { const col = st === "공격" ? C.up : st === "방어" ? C.dn : C.gold; x.font = F("800", 26); const tw = x.measureText("결론 · " + st).width + 36; x.fillStyle = col; x.beginPath(); x.roundRect(64, yy - 6, tw, 46, 23); x.fill(); x.fillStyle = C.bg; x.fillText("결론 · " + st, 82, yy + 26); x.fillStyle = C.ink; x.font = F("500", 24); wrapT(x, D.br.verdict.summary || "", W - 128 - tw - 20, 2).forEach((l, k) => x.fillText(l, 64 + tw + 20, yy + 14 + k * 30)); yy += 74; }
+  const all = [...D.ix, ...D.mc].filter(Boolean), sigs = all.flatMap((r) => r.sig.map((g) => ({ ...g, n: r.n })));
+  x.fillStyle = C.gold; x.font = MONO("700", 28); x.fillText(`DAILY MACRO CHECK · ${y}.${m}.${d} (${wd})`, 64, 78);
+  x.fillStyle = C.ink; x.font = F("800", 54); x.fillText("오늘의 매크로 체크", 64, 146);
+  x.font = F("700", 26); x.fillStyle = C.mute; const sl = `오늘 걸린 신호 ${sigs.length}개`; x.fillText(sl, W - 64 - x.measureText(sl).width, 146);
   // 지수 2×3
-  const gw = (W - 128 - 24) / 2, gh = 132;
-  D.ix.forEach((r, i) => { const X = 64 + (i % 2) * (gw + 24), Y = yy + Math.floor(i / 2) * (gh + 16); x.fillStyle = C.panel; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.fill(); if (!r) return;
-    x.fillStyle = C.mute; x.font = F("700", 24); x.fillText(r.n, X + 24, Y + 40); x.fillStyle = C.ink; x.font = MONO("700", 38); x.fillText(nf(r.v, r.v >= 1000 ? 0 : 2), X + 24, Y + 90); x.fillStyle = uc(r.d1); x.font = MONO("700", 26); x.fillText(pc(r.d1), X + 24, Y + 120);
-    sparkC(x, r.sp, X + gw - 190, Y + 40, 166, 66, uc(r.d1)); });
-  yy += 3 * (gh + 16) + 8;
-  // 매크로 6줄
-  x.fillStyle = C.gold; x.font = F("800", 26); x.fillText("금리 · 환율 · 원자재 · 심리", 64, yy + 24); yy += 44;
-  const mh = 52; D.mc.forEach((r, i) => { const Y = yy + i * mh; if (i % 2 === 0) { x.fillStyle = C.panel; x.fillRect(48, Y - 4, W - 96, mh); } if (!r) return;
-    x.fillStyle = C.ink; x.font = F("700", 26); x.fillText(r.n, 72, Y + 32); x.font = MONO("700", 28); const val = (r.u === "$" ? "$" : "") + nf(r.v, r.v >= 1000 ? 0 : 2) + (r.u && r.u !== "$" ? r.u : ""); x.fillText(val, 470 - x.measureText(val).width / 2 + 60, Y + 32);
-    x.fillStyle = uc(r.d1); const p = pc(r.d1); x.fillText(p, 760 - x.measureText(p).width + 40, Y + 32); sparkC(x, r.sp.slice(-20), 840, Y + 6, 170, 34, uc(r.d1)); });
-  yy += 6 * mh + 24;
-  // 제로의 포인트
-  const pts = (D.br?.macro || []).slice(0, 3), zi = await zeroImg();
-  x.save(); x.beginPath(); x.arc(110, yy + 52, 48, 0, Math.PI * 2); x.clip(); x.drawImage(zi, 62, yy + 4, 96, 96); x.restore();
-  x.fillStyle = C.gold; x.font = F("800", 26); x.fillText("제로가 짚은 포인트", 180, yy + 30);
-  x.fillStyle = C.ink; x.font = F("500", 23); let ly = yy + 66; (pts.length ? pts : ["이날 정리가 없어서 숫자만 담았어요."]).forEach((t) => { wrapT(x, "• " + t, W - 180 - 64, 2).forEach((l) => { if (ly < H - 100) x.fillText(l, 180, ly); ly += 30; }); ly += 4; });
-  x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2); x.fillStyle = C.mute; x.font = F("500", 22); x.fillText("출처 · 야후 파이낸스 종가, AI 시장 정리 · 투자 권유 아님", 64, H - 44);
+  let yy = 178; const gw = (W - 128 - 20) / 2, gh = 146;
+  D.ix.forEach((r, i) => { const X = 64 + (i % 2) * (gw + 20), Y = yy + Math.floor(i / 2) * (gh + 14); x.fillStyle = C.panel; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.fill(); if (!r) return;
+    if (r.sig.length) { x.strokeStyle = C.gold; x.lineWidth = 2; x.beginPath(); x.roundRect(X, Y, gw, gh, 18); x.stroke(); }
+    x.fillStyle = C.mute; x.font = F("700", 23); x.fillText(r.n, X + 22, Y + 36); x.fillStyle = C.ink; x.font = MONO("700", 34); x.fillText(nf(r.v, r.v >= 1000 ? 0 : 2), X + 22, Y + 80); x.fillStyle = uc(r.d1); x.font = MONO("700", 22); x.fillText(pc(r.d1), X + 22, Y + 108);
+    sparkC(x, r.sp, X + gw - 200, Y + 22, 176, 76, uc(r.d1), r.ma20, r.sig.length);
+    let cx = X + 22; r.sig.slice(0, 2).forEach((g) => { if (cx < X + gw - 60) cx += chip(g.t, cx, Y + 114, gc(g.g), 17) + 6; }); });
+  yy += 3 * (gh + 14) + 6;
+  x.fillStyle = C.gold; x.font = F("800", 25); x.fillText("금리 · 환율 · 원자재 · 심리", 64, yy + 22); x.fillStyle = C.mute; x.font = F("500", 19); x.fillText("점선 = 20일선 · 골드 링 = 오늘 신호", W - 64 - x.measureText("점선 = 20일선 · 골드 링 = 오늘 신호").width, yy + 22); yy += 38;
+  const mh = 50; D.mc.forEach((r, i) => { const Y = yy + i * mh; if (i % 2 === 0) { x.fillStyle = C.panel; x.fillRect(48, Y - 4, W - 96, mh); } if (!r) return;
+    x.fillStyle = C.ink; x.font = F("700", 23); x.fillText(r.n, 68, Y + 29); x.font = MONO("700", 25); const val = (r.u === "$" ? "$" : "") + nf(r.v, r.v >= 1000 ? 0 : 2) + (r.u && r.u !== "$" ? r.u : ""); x.fillText(val, 380 - x.measureText(val).width + 90, Y + 29);
+    x.fillStyle = uc(r.d1); x.font = MONO("700", 22); const p = pc(r.d1); x.fillText(p, 610 - x.measureText(p).width, Y + 29);
+    if (r.sig[0]) chip(r.sig[0].t, 628, Y + 6, gc(r.sig[0].g), 16);
+    sparkC(x, r.sp.slice(-30), 866, Y + 6, 150, 32, uc(r.d1), r.ma20.slice(-30), r.sig.length); });
+  yy += 8 * mh + 18;
+  // 제로가 정리한 오늘의 신호
+  const zi = await zeroImg(); x.save(); x.beginPath(); x.arc(108, yy + 50, 46, 0, Math.PI * 2); x.clip(); x.drawImage(zi, 62, yy + 4, 92, 92); x.restore();
+  x.fillStyle = C.gold; x.font = F("800", 25); x.fillText("제로가 짚은 오늘의 신호", 176, yy + 28);
+  x.font = F("600", 22); let ly = yy + 62; const order = sigs.slice().sort((a, b) => (b.ma || 0) - (a.ma || 0));
+  if (!order.length) { x.fillStyle = C.ink; x.fillText("특별히 걸린 신호가 없는 조용한 날이에요. 추세 그대로예요.", 176, ly); }
+  else { let col2 = 0; order.slice(0, 6).forEach((g, i) => { const X = 176 + (i % 2) * 420, Y = ly + Math.floor(i / 2) * 32; x.fillStyle = gc(g.g); x.fillText("●", X, Y); x.fillStyle = C.ink; const t = `${g.n} ${g.t}`; x.fillText(wrapT(x, t, 390, 1)[0], X + 26, Y); col2++; });
+    if (order.length > 6) { x.font = F("600", 21); x.fillStyle = C.mute; const t = `외 ${order.length - 6}개는 위 칩에`; x.fillText(t, W - 64 - x.measureText(t).width, yy + 28); } }
+  x.fillStyle = C.line; x.fillRect(64, H - 82, W - 128, 2); x.fillStyle = C.mute; x.font = F("500", 21); x.fillText("출처 · 야후 파이낸스 종가로 계산 · 빨강은 주식에 우호, 파랑은 부담 · 투자 권유 아님", 64, H - 44);
   x.fillStyle = C.gold; x.font = F("800", 28); x.fillText("AI이현", W - 64 - x.measureText("AI이현").width, H - 42);
   return c;
 }
