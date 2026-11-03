@@ -279,6 +279,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/7avewnuJu9k9Rq1BeFVoEy",
       "cat": "공부·생각"
+    },
+    {
+      "id": "motivation",
+      "name": "동기부여 저장소",
+      "status": "using",
+      "summary": "마음에 든 동기부여 유튜브 영상을 주소로 모아 두고, 들어가자마자 랜덤으로 끊김 없이 이어 보며 몰입해요.",
+      "start": "2026-11-03",
+      "private": true,
+      "href": "/programs/motivation",
+      "cat": "공부·생각"
     }
   ]
 }
