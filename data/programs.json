@@ -289,6 +289,16 @@
       "private": true,
       "href": "/programs/motivation",
       "cat": "공부·생각"
+    },
+    {
+      "id": "zero-upgrade",
+      "name": "AI 제로 업그레이드",
+      "status": "using",
+      "summary": "등록한 AI 가이드·소식 주소를 Claude가 매일 다시 리서치해서 새 글을 모으고, 이현님께 맞는 걸 추천해요. 진행 요청하면 계획을 쓰고, 승인해야만 진행해요.",
+      "start": "2026-11-03",
+      "private": true,
+      "href": "https://claude.ai/artifact/SbK2C1a5vFZE1PLXmZQZV7",
+      "cat": "공부·생각"
     }
   ]
 }
