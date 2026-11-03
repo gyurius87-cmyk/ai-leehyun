@@ -47,6 +47,15 @@
           "doing": "부서 현황판 정리를 마쳤어요",
           "prop": "🗂️",
           "acc": "tie"
+        },
+        {
+          "team": "전략팀",
+          "name": "방향 담당",
+          "status": "waiting",
+          "doing": "방법 공유 공개 페이지 구성을 정할지 답을 기다려요",
+          "since": "2026-11-03",
+          "prop": "🧭",
+          "acc": "bowtie"
         }
       ],
       "kind": "zero"
