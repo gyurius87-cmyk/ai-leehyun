@@ -3,3 +3,8 @@ dist/
 .astro/
 .vercel/
 .DS_Store
+
+# 효과음 스킬: uisfx 소리는 tools/sfx/setup.sh 가 npm 으로 받음
+.claude/skills/real-sfx/library_index.json
+.claude/skills/real-sfx/config.json
+__pycache__/
