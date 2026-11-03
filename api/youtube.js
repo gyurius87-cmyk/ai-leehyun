@@ -1,6 +1,7 @@
 // 홈의 '유튜브 최신 영상' 한 줄. 이현님 채널 영상을 새것부터 돌려줌 (키 필요 없음, 10분 캐시)
 // 1순위 공개 RSS, RSS가 막히면(404 등) 채널 업로드 재생목록 페이지에서 읽음
 import { parseFeed } from "./_youtube.js";
+import motiv from "./_motiv.js";
 
 const CHANNEL_ID = "UCIYCw2XtVtNibEApbO8HeQA"; // 유튜브 @AI이현
 const UPLOADS = "UU" + CHANNEL_ID.slice(2); // 업로드 재생목록 = 새 영상이 맨 앞
@@ -48,6 +49,7 @@ async function fromPlaylist() {
 }
 
 export default async function handler(req, res) {
+  if (req.query.motiv) return motiv(req, res); // 동기부여 저장소 (/api/motiv)
   let items = null, from = "";
   try { items = await fromFeed(); from = "feed"; } catch (e) { console.error(e); }
   if (!items || !items.length) {
