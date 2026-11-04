@@ -612,8 +612,12 @@ function wrapT(ctx, text, maxW, maxLines) {
   return lines;
 }
 // 카드 맨 아래 한 줄: 자료 설명 + 출처 AI이현 (본문을 해치지 않게 작게)
-function cardFoot(x, W, H, C, F, src) {
-  x.fillStyle = C.line; x.fillRect(64, H - 62, W - 128, 1);
+// 기준 시각 글자 (한국시간): 11.04 14:43
+const kstHM = (t) => { const z = new Date(t + 9 * 3600e3).toISOString(); return `${+z.slice(5, 7)}.${z.slice(8, 10)} ${z.slice(11, 16)}`; };
+const kstMD = (d) => `${+d.slice(5, 7)}.${d.slice(8, 10)}`;
+function cardFoot(x, W, H, C, F, src, basis) {
+  x.fillStyle = C.line; x.fillRect(64, H - 88, W - 128, 1);
+  if (basis) { x.fillStyle = "#c4c9d2"; x.font = F("600", 19); x.fillText("🕒 " + basis, 64, H - 56); }
   x.fillStyle = C.mute; x.font = F("500", 18); x.fillText(src, 64, H - 30);
   const br = "출처 AI이현 · ai_leehyun", bw = x.measureText(br).width, z = 18, ix = W - 64 - bw - z - 8, iy = H - 30 - 15;
   x.fillText(br, W - 64 - bw, H - 30);
@@ -660,7 +664,9 @@ async function socCard(day) {
   const msg = [gG.length && `${gG.join("·")}의 발언은 호재 쪽`, gB.length && `${gB.join("·")}의 발언은 악재 쪽`, gN.length && `${gN.join("·")}은 중립`].filter(Boolean).join(", ") + `으로 읽혔어요. 위 ${out.length}개 중 호재 ${out.filter((a) => a.impact === "호재").length}, 악재 ${out.filter((a) => a.impact === "악재").length}개예요.`;
   x.fillStyle = C.ink; x.font = F("600", 25); wrapT(x, msg, W - 184 - 64, 3).forEach((l, k) => x.fillText(l, 184, zy + 70 + k * 32));
   // 출처
-  cardFoot(x, W, H, C, F, "자료 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 시각은 한국시간 · 투자 권유 아님");
+  const now = Date.now(), isToday = day === kstD(now);
+  cardFoot(x, W, H, C, F, "자료 · 트루스소셜, 해외 뉴스 헤드라인을 AI가 해석 · 시각은 한국시간 · 투자 권유 아님",
+    `기준 · ${kstMD(day)} 00:00~${isToday ? kstHM(Math.min(now, SOC.at || now)).slice(-5) : "24:00"}(한국시간)에 나온 발언 · 발언 수집 ${kstHM(SOC.at || now)} · 생성 ${kstHM(now)}`);
   return { canvas: c, n: out.length };
 }
 async function socCardMake() {
@@ -743,7 +749,14 @@ async function macroCard(day) {
   if (!order.length) { x.fillStyle = C.ink; x.fillText("특별히 걸린 신호가 없는 조용한 날이에요. 추세 그대로예요.", 176, ly); }
   else { let col2 = 0; order.slice(0, 6).forEach((g, i) => { const X = 176 + (i % 2) * 420, Y = ly + Math.floor(i / 2) * 32; x.fillStyle = gc(g.g); x.fillText("●", X, Y); x.fillStyle = C.ink; const t = `${g.n} ${g.t}`; x.fillText(wrapT(x, t, 390, 1)[0], X + 26, Y); col2++; });
     if (order.length > 6) { x.font = F("600", 21); x.fillStyle = C.mute; const t = `외 ${order.length - 6}개는 위 칩에`; x.fillText(t, W - 64 - x.measureText(t).width, yy + 28); } }
-  cardFoot(x, W, H, C, F, "자료 · 야후 파이낸스 종가로 계산 · 빨강은 주식에 우호, 파랑은 부담 · 투자 권유 아님");
+  // 시장마다 마지막 값이 언제 것인지: 장 마감 종가인지, 장중 값인지
+  const now = Date.now(), etNow = new Date(now).toLocaleString("en-CA", { timeZone: "America/New_York", hour12: false }), etD = etNow.slice(0, 10), etM = +etNow.slice(12, 14) * 60 + +etNow.slice(15, 17);
+  const kD = kstD(now), kM = (new Date(now + 9 * 3600e3).getUTCHours()) * 60 + new Date(now).getUTCMinutes(), last = (ids) => D.ix.filter((r, i) => r && ids.includes(i)).map((r) => r.d).sort().at(-1);
+  const usD = last([0, 1, 2, 3]), krD = last([4, 5]);
+  const usT = usD ? (usD === etD && etM >= 570 && etM < 960 ? `${kstMD(usD)} 장중(${kstHM(now).slice(-5)})` : `${kstMD(usD)} 종가`) : "-";
+  const krT = krD ? (krD === kD && kM >= 540 && kM < 930 ? `${kstMD(krD)} 장중(${kstHM(now).slice(-5)})` : `${kstMD(krD)} 종가`) : "-";
+  cardFoot(x, W, H, C, F, "자료 · 야후 파이낸스 시세로 계산 · 빨강은 주식에 우호, 파랑은 부담 · 투자 권유 아님",
+    `기준 · 미국 지수 ${usT} · 한국 지수 ${krT} · 금리·환율·원자재·코인은 ${day === kD ? "생성 시점 값" : kstMD(day) + " 마지막 값"} · 생성 ${kstHM(now)}`);
   return c;
 }
 async function mxMake() { const day = $("mxD").value || kstD(Date.now()); $("mxMsg").textContent = "시세 모아 그리는 중… (10초쯤)"; const c = await macroCard(day).catch(() => null); if (!c) { $("mxMsg").textContent = "그날 시세를 못 받았어요."; return null; } $("mxMsg").textContent = ""; $("mxPv").src = c.toDataURL("image/png"); $("mxBox").hidden = false; return c; }
