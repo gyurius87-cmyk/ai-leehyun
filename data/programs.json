@@ -299,6 +299,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/SbK2C1a5vFZE1PLXmZQZV7",
       "cat": "공부·생각"
+    },
+    {
+      "id": "conti",
+      "name": "웹툰 콘티 만들기",
+      "status": "using",
+      "summary": "장면을 말하듯 적으면 Claude가 실제 웹툰 작가 기준(여백·샷 크기·말풍선 순서·180도 규칙)으로 컷을 나누고 목각인형 콘티로 그려요. 고칠 점을 말하거나 컷마다 바로 바꾸고 PNG로 저장해요.",
+      "start": "2026-11-04",
+      "private": true,
+      "href": "https://claude.ai/artifact/WPKgd3dv6ZxsgPM5ARvQ75",
+      "cat": "SNS·콘텐츠"
     }
   ]
 }
