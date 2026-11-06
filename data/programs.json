@@ -309,6 +309,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/WPKgd3dv6ZxsgPM5ARvQ75",
       "cat": "SNS·콘텐츠"
+    },
+    {
+      "id": "threads-factory",
+      "name": "스레드 공장",
+      "status": "using",
+      "summary": "채널마다 성격을 적어 두고 프롬프트를 골라 스레드 글을 뽑아요. 버튼 하나로 고치고, 아이디어와 글을 DB로 쌓아 상태·조회수까지 관리해요.",
+      "start": "2026-11-06",
+      "private": true,
+      "href": "https://claude.ai/artifact/M16eWRS6Uo4tm3zJRs5HzH",
+      "cat": "SNS·콘텐츠"
     }
   ]
 }
