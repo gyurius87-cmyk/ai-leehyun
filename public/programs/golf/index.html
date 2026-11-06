@@ -109,7 +109,7 @@ button.reset.warn { color: var(--red); }
 .db-list summary::-webkit-details-marker { display: none; }
 .db-list .tm { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 .db-list .kd { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 8px; background: var(--greenSoft); color: var(--green); }
-.db-list .kd.tadang { background: var(--soft); color: var(--ink); } .db-list .kd.scan { background: var(--flag); color: #18211b; }
+.db-list .kd.team { background: var(--blue); color: #fff; } .db-list .kd.tadang { background: var(--soft); color: var(--ink); } .db-list .kd.scan { background: var(--flag); color: #18211b; }
 .db-list .sm { min-width: 0; overflow-wrap: anywhere; }
 .db-list .dt { padding: 0 12px 12px; font-size: 14px; display: grid; gap: 4px; }
 .db-list .dt .row { gap: 6px; }
@@ -135,6 +135,45 @@ button.reset.warn { color: var(--red); }
 .cap .m { color: var(--muted); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .empty { color: var(--muted); font-size: 14px; padding: 10px 0 2px; }
 .gate { max-width: 420px; }
+/* 편 가르기 */
+.tm-add { display: flex; gap: 6px; margin-top: 8px; }
+.tm-add input { width: 130px; }
+.chips button .x { margin-left: 4px; color: var(--muted); }
+.tier-rows { display: grid; gap: 6px; margin-top: 12px; }
+.tier-rows .tr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; background: var(--soft); border-radius: 10px; }
+.tier-rows .tr b { min-width: 60px; }
+.tier-rows .chips button.on.t1 { background: var(--flag); border-color: var(--flag); color: #18211b; }
+.tm-go { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tm-go .main { font-size: 16px; padding: 10px 18px; }
+.lad { margin-top: 14px; user-select: none; -webkit-user-select: none; }
+.lad-row { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.lad-row > * { margin: 0 2px; text-align: center; min-width: 0; }
+.lad-top button { width: 100%; padding: 7px 2px; font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lad-top button:disabled { opacity: 1; color: var(--muted); }
+.lad svg { display: block; width: 100%; height: 300px; }
+.lad .base { stroke: var(--line); stroke-width: 4; stroke-linecap: round; }
+.lad .trace { fill: none; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.6s ease-in-out; }
+.lad .dot { transition: opacity .2s; }
+.lad-bot span { display: block; padding: 8px 2px; border-radius: 10px; background: var(--soft); font-weight: 700; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lad-bot span.open { color: #fff; animation: pop .45s; }
+@keyframes pop { 0% { transform: scale(.5); } 70% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; margin-top: 14px; perspective: 900px; }
+.card { position: relative; aspect-ratio: 3 / 4; border: 0; padding: 0; background: none; border-radius: 14px; animation: deal .55s cubic-bezier(.2, 1.3, .5, 1) backwards; }
+.card.shake { animation: shake .55s; }
+.card .inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, 1.5, .5, 1); }
+.card.flip .inner { transform: rotateY(180deg); }
+.card .fc { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-content: center; gap: 2px; font-weight: 700; padding: 6px; text-align: center; overflow: hidden; }
+.card .back { background: repeating-linear-gradient(45deg, #1f6b45 0 9px, #2a7d53 9px 18px); color: #fff; border: 3px solid var(--flag); }
+.card .back .q { font-size: 30px; line-height: 1; }
+.card .back .nm2 { font-size: 14px; background: rgba(0, 0, 0, .35); border-radius: 6px; padding: 1px 6px; }
+.card .front { transform: rotateY(180deg); color: #fff; }
+.card .front .tn { font-size: 22px; }
+.card .front .nm2 { font-size: 15px; }
+@keyframes deal { from { transform: translate(var(--dx, 0), var(--dy, 0)) rotate(-25deg) scale(.3); opacity: 0; } }
+@keyframes shake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-9deg) scale(1.05); } 40% { transform: rotate(9deg) scale(1.05); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(6deg); } }
+.tm-res .team { border-left: 6px solid var(--tc); }
+.tm-res .team .mem { font-size: 18px; font-weight: 700; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .card, .card.shake, .lad-bot span.open { animation: none; } .lad .trace { transition-duration: .3s; } }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 14px; z-index: 9; max-width: 90vw; }
 </style>
 </head>
@@ -142,7 +181,7 @@ button.reset.warn { color: var(--red); }
 <div class="wrap">
   <header>
     <h1><span class="flag"></span>골프 중독자들</h1>
-    <div class="sub">게임비 나누기, 타당 정산, 우리 라운드 영상</div>
+    <div class="sub">편 가르기, 게임비 나누기, 타당 정산, 우리 라운드 영상</div>
   </header>
 
   <div id="gate" class="gate" hidden>
@@ -164,6 +203,23 @@ button.reset.warn { color: var(--red); }
       <div class="chips" id="adminTabs" style="flex-basis:100%"><button data-tab="main" class="on">계산기·영상</button><button data-tab="db">📒 DB (친구들이 쓴 기록)</button></div>
     </div>
     <section id="db" hidden></section>
+
+    <!-- 편 가르기 -->
+    <section id="teams">
+      <div class="row between"><h2>편 가르기</h2><button type="button" class="ghost reset" id="tmReset">↺ 리셋</button></div>
+      <div class="note" style="margin-top:6px">오늘 같이 치는 사람을 누르세요</div>
+      <div class="chips" id="tmPeople" style="margin-top:6px"></div>
+      <form class="tm-add" id="tmAdd"><input id="tmName" placeholder="다른 이름" maxlength="8"><button>＋ 넣기</button></form>
+      <div class="grid2">
+        <div class="f"><span class="note">나누는 법</span><div class="chips" id="tmMode"><button data-tm="random">🎲 전체 랜덤</button><button data-tm="tier">🏅 티어 넣고 나누기</button></div></div>
+        <label class="f">팀 수<span class="step"><button type="button" data-k="-1">−</button><b id="tmK">2</b><button type="button" data-k="1">＋</button></span></label>
+        <div class="f"><span class="note">보여 주는 법</span><div class="chips" id="tmShow"><button data-show="ladder">🪜 사다리 타기</button><button data-show="cards">🃏 카드 뒤집기</button></div></div>
+      </div>
+      <div id="tmTier"></div>
+      <div class="tm-go"><button class="main" type="button" id="tmGo">편 가르기 시작</button><span class="note" id="tmMsg"></span></div>
+      <div id="tmStage"></div>
+      <div id="tmOut"></div>
+    </section>
 
     <!-- 게임비 계산기 -->
     <section id="fee">
@@ -478,6 +534,168 @@ $('#photo').addEventListener('change', async (e) => {
   }
 });
 
+/* ───────── 편 가르기 ───────── */
+// 사다리·카드는 보여 주는 방식일 뿐, 팀은 먼저 공평하게 정해 둠 (인원 고르게, 티어 모드는 티어 합까지 고르게)
+const TEAMS = [{ n: '청팀', c: '#2457a6' }, { n: '홍팀', c: '#c23b32' }, { n: '황팀', c: '#c98a00' }, { n: '녹팀', c: '#1f7a4a' }];
+const TM0 = { sel: [], extra: [], tier: {}, k: 2, mode: 'random', show: 'ladder', res: null };
+const tm = Object.assign(structuredClone(TM0), loadLS('team', {}));
+const rnd = (n) => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const tierOf = (n) => tm.tier[n] || 2;
+const tmPeople = () => [...FRIENDS, ...tm.extra].filter((n) => tm.sel.includes(n));
+const maxK = () => Math.max(2, Math.min(4, Math.floor(tmPeople().length / 2)));
+function renderTm() {
+  tm.k = Math.min(tm.k, maxK());
+  const all = [...FRIENDS, ...tm.extra], P = tmPeople();
+  $('#tmPeople').innerHTML = all.map((n) => `<button type="button" data-pp="${esc(n)}" class="${tm.sel.includes(n) ? 'on' : ''}">${esc(n)}${tm.extra.includes(n) ? `<span class="x" data-px="${esc(n)}">✕</span>` : ''}</button>`).join('')
+    + `<span class="note" style="align-self:center">${P.length}명</span>`;
+  document.querySelectorAll('#tmMode button').forEach((b) => b.classList.toggle('on', b.dataset.tm === tm.mode));
+  document.querySelectorAll('#tmShow button').forEach((b) => b.classList.toggle('on', b.dataset.show === tm.show));
+  $('#tmK').textContent = tm.k;
+  $('#tmTier').innerHTML = tm.mode === 'tier' ? (P.length ? `<div class="tier-rows">${P.map((n) => `<div class="tr"><b>${esc(n)}</b><div class="chips">${[1, 2, 3].map((t) => `<button type="button" data-tier="${t}" data-tn="${esc(n)}" class="t${t}${tierOf(n) === t ? ' on' : ''}">${t}티어${t === 1 ? ' (잘 침)' : t === 3 ? ' (초보)' : ''}</button>`).join('')}</div></div>`).join('')}</div>
+    <div class="hint">같은 티어끼리는 다른 팀으로 갈라져요. 티어 합이 비슷하게 맞춰져요.</div>` : '<div class="hint">사람을 먼저 골라 주세요.</div>') : '';
+  $('#tmMsg').textContent = P.length < 2 ? '두 명 이상 골라 주세요' : `${P.length}명을 ${tm.k}팀으로`;
+  $('#tmGo').disabled = P.length < 2;
+  $('#tmGo').textContent = tm.res ? '🔀 다시 섞기' : '편 가르기 시작';
+  save('team', tm);
+}
+function assignTeams(P, k, byTier) {
+  const list = shuffle(P.slice());
+  if (byTier) list.sort((a, b) => tierOf(a) - tierOf(b)); // 섞은 뒤 티어순 → 같은 티어 안에서는 랜덤
+  const T = Array.from({ length: k }, () => ({ m: [], s: 0 })), cap = Math.ceil(P.length / k);
+  const pick = (c, f) => { const v = Math.min(...c.map(f)); return c.filter((t) => f(t) === v); };
+  for (const p of list) {
+    let c = T.filter((t) => t.m.length < cap); // 한 팀 최대 인원을 넘지 않게
+    if (byTier) c = pick(c, (t) => t.m.filter((x) => tierOf(x) === tierOf(p)).length); // 같은 티어는 갈라지게
+    c = pick(c, (t) => t.m.length);
+    if (byTier) c = pick(c, (t) => t.s); // 그래도 같으면 실력 합이 낮은 팀으로
+    const t = c[rnd(c.length)]; t.m.push(p); t.s += 4 - tierOf(p);
+  }
+  // 섞인 팀 색 순서도 랜덤
+  const order = shuffle([...Array(k).keys()]);
+  return P.map((p) => order[T.findIndex((t) => t.m.includes(p))]);
+}
+// 사다리: 줄마다 이웃 칸 사이에 가로줄을 무작위로 놓고, 끝에 도착하는 칸에 그 사람 팀을 적어 둠
+function makeLadder(n) {
+  const L = Math.max(8, n + 4), r = Array.from({ length: L }, () => Array(n - 1).fill(false));
+  for (let l = 0; l < L; l++) for (let i = 0; i < n - 1; i++) if (!(i && r[l][i - 1]) && rnd(100) < 45) r[l][i] = true;
+  for (let i = 0; i < n - 1; i++) if (!r.some((row) => row[i])) {
+    const free = r.map((row, l) => (!row[i - 1] && !row[i + 1] ? l : -1)).filter((l) => l >= 0);
+    if (free.length) r[free[rnd(free.length)]][i] = true;
+  }
+  return r;
+}
+function ladderPath(r, c) {
+  const pts = [[c, -1]];
+  for (let l = 0; l < r.length; l++) {
+    pts.push([c, l]);
+    if (r[l][c]) c++; else if (c && r[l][c - 1]) c--;
+    pts.push([c, l]);
+  }
+  pts.push([c, r.length]);
+  return { pts, end: c };
+}
+function startTm() {
+  const P = tmPeople(); if (P.length < 2) return;
+  const team = assignTeams(P, tm.k, tm.mode === 'tier');
+  const order = shuffle(P.slice()); // 사다리 위 순서도 섞음
+  tmBusy.clear();
+  tm.res = { people: order, team: order.map((p) => team[P.indexOf(p)]), k: tm.k, mode: tm.mode, show: tm.show, rungs: makeLadder(order.length), open: [], t: Date.now() };
+  renderTm(); renderStage(true);
+  logSoon('team', { mode: tm.mode, k: tm.k, show: tm.show, tiers: tm.mode === 'tier' ? Object.fromEntries(P.map((p) => [p, tierOf(p)])) : null, teams: [...Array(tm.k).keys()].map((t) => order.filter((p, i) => tm.res.team[i] === t)) });
+}
+function renderStage(fresh) {
+  const R = tm.res, st = $('#tmStage');
+  if (!R) { st.innerHTML = ''; $('#tmOut').innerHTML = ''; return; }
+  R.show === 'cards' ? renderCards(fresh) : renderLadder();
+  renderTmOut();
+}
+function renderLadder() {
+  const R = tm.res, n = R.people.length, st = $('#tmStage');
+  st.innerHTML = `<div class="lad" style="--n:${n}"><div class="note">이름을 누르면 사다리를 타요</div>
+    <div class="lad-row lad-top" style="margin-top:6px">${R.people.map((p, i) => `<button type="button" data-run="${i}"${R.open.includes(i) ? ' disabled' : ''}>${esc(p)}</button>`).join('')}</div>
+    <svg id="ladSvg" aria-hidden="true"></svg>
+    <div class="lad-row lad-bot">${R.people.map((_, c) => `<span data-end="${c}">?</span>`).join('')}</div>
+    <div class="row" style="margin-top:10px"><button type="button" data-runall>모두 타기</button></div></div>`;
+  drawLadder();
+  R.open.forEach((i) => runLadder(i, true));
+}
+function ladXY() {
+  const svg = $('#ladSvg'), W = svg.clientWidth || 320, H = 300, n = tm.res.people.length, L = tm.res.rungs.length;
+  return { svg, W, H, x: (c) => (c + 0.5) * (W / n), y: (l) => (l < 0 ? 0 : l >= L ? H : ((l + 1) * H) / (L + 1)) };
+}
+function drawLadder() {
+  const { svg, W, H, x, y } = ladXY(), R = tm.res;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  let g = R.people.map((_, c) => `<line class="base" x1="${x(c)}" y1="0" x2="${x(c)}" y2="${H}"/>`).join('');
+  R.rungs.forEach((row, l) => row.forEach((on, i) => { if (on) g += `<line class="base" x1="${x(i)}" y1="${y(l)}" x2="${x(i + 1)}" y2="${y(l)}"/>`; }));
+  svg.innerHTML = g;
+}
+const tmBusy = new Set(); // 지금 사다리 타는 중인 사람 (두 번 안 타게)
+function runLadder(i, instant) {
+  if (!instant && (tmBusy.has(i) || tm.res.open.includes(i))) return;
+  if (!instant) tmBusy.add(i);
+  const R = tm.res, { svg, x, y } = ladXY(), { pts, end } = ladderPath(R.rungs, i), col = TEAMS[R.team[i]].c;
+  const d = 'M' + pts.map(([c, l]) => `${x(c).toFixed(1)},${y(l).toFixed(1)}`).join('L');
+  svg.insertAdjacentHTML('beforeend', `<path class="trace" pathLength="1" d="${d}" stroke="${col}"/>`);
+  const path = svg.lastElementChild, slot = $(`#tmStage [data-end="${end}"]`), btn = $(`#tmStage [data-run="${i}"]`);
+  if (btn) { btn.disabled = true; btn.style.color = col; }
+  const open = () => { slot.textContent = `${TEAMS[R.team[i]].n}`; slot.title = R.people[i]; slot.style.background = col; slot.classList.add('open'); };
+  if (instant) { path.style.transition = 'none'; path.style.strokeDashoffset = 0; open(); return; }
+  path.getBoundingClientRect(); requestAnimationFrame(() => (path.style.strokeDashoffset = 0));
+  setTimeout(() => { if (tm.res !== R) return; tmBusy.delete(i); if (!R.open.includes(i)) R.open.push(i); if (!slot.isConnected) renderLadder(); else open(); save('team', tm); renderTmOut(); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 300 : 1600);
+}
+function renderCards(fresh) {
+  const R = tm.res, st = $('#tmStage');
+  st.innerHTML = `<div class="note" style="margin-top:14px">자기 카드를 눌러 뒤집으세요</div><div class="cards">${R.people.map((p, i) => {
+    const t = TEAMS[R.team[i]];
+    return `<button type="button" class="card${R.open.includes(i) ? ' flip' : ''}" data-card="${i}" style="${fresh ? `--dx:${(rnd(200) - 100)}px;--dy:-${120 + rnd(80)}px;animation-delay:${i * 90}ms` : 'animation:none'}">
+      <div class="inner"><div class="fc back"><span class="q">⛳</span><span class="nm2">${esc(p)}</span></div><div class="fc front" style="background:${t.c}"><span class="tn">${t.n}</span><span class="nm2">${esc(p)}</span></div></div></button>`;
+  }).join('')}</div><div class="row" style="margin-top:10px"><button type="button" data-flipall>모두 뒤집기</button></div>`;
+}
+function flipCard(i) {
+  const R = tm.res, el = $(`#tmStage [data-card="${i}"]`); if (!el || R.open.includes(i)) return;
+  R.open.push(i); save('team', tm);
+  el.style.cssText = ''; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  setTimeout(() => { el.classList.add('flip'); setTimeout(renderTmOut, 700); }, 550);
+}
+function renderTmOut() {
+  const R = tm.res, out = $('#tmOut');
+  if (!R || R.open.length < R.people.length) { out.innerHTML = ''; return; }
+  const teams = [...Array(R.k).keys()].map((t) => R.people.filter((_, i) => R.team[i] === t));
+  out.innerHTML = `<div class="result tm-res"><div class="teams">${teams.map((m, t) => `<div class="team" style="--tc:${TEAMS[t].c}"><b style="color:${TEAMS[t].c}">${TEAMS[t].n} ${m.length}명</b><div class="mem">${m.map(esc).join(' · ')}</div>${R.mode === 'tier' ? `<span class="note">티어 ${m.map(tierOf).join('+')} (합 ${m.reduce((a, p) => a + tierOf(p), 0)})</span>` : ''}</div>`).join('')}</div>
+    ${R.k === 2 ? `<div class="row" style="margin-top:10px"><button type="button" data-tofee>게임비 계산기를 ${R.people.length}명 팀전으로 맞추기</button></div>` : ''}</div>`;
+}
+$('#teams').addEventListener('click', (e) => {
+  const b = e.target.closest('button, [data-px]'); if (!b) return;
+  const d = b.dataset, x = e.target.closest('[data-px]');
+  if (x) { const n = x.dataset.px; tm.extra = tm.extra.filter((v) => v !== n); tm.sel = tm.sel.filter((v) => v !== n); delete tm.tier[n]; renderTm(); return; }
+  if (d.pp) tm.sel = tm.sel.includes(d.pp) ? tm.sel.filter((v) => v !== d.pp) : [...tm.sel, d.pp];
+  else if (d.tm) tm.mode = d.tm;
+  else if (d.show) { tm.show = d.show; if (tm.res) { tm.res.show = d.show; renderStage(true); } }
+  else if (d.k) tm.k = Math.min(maxK(), Math.max(2, tm.k + Number(d.k)));
+  else if (d.tier) tm.tier[d.tn] = Number(d.tier);
+  else if (d.run != null) { runLadder(Number(d.run)); return; }
+  else if ('runall' in d) { tm.res.people.forEach((_, i) => { if (!tm.res.open.includes(i)) setTimeout(() => runLadder(i), 0); }); return; }
+  else if (d.card != null) { flipCard(Number(d.card)); return; }
+  else if ('flipall' in d) { let k = 0; tm.res.people.forEach((_, i) => { if (!tm.res.open.includes(i)) setTimeout(() => flipCard(i), 380 * k++); }); return; }
+  else if ('tofee' in d) {
+    const R = tm.res; fee.n = R.people.length; fee.mode = 'team'; fee.w = R.people.filter((_, i) => R.team[i] === 0).length;
+    fee.names = []; renderFee(); $('#fee').scrollIntoView({ behavior: 'smooth' }); toast('게임비 계산기를 팀전으로 맞췄어요'); return;
+  }
+  else return;
+  renderTm();
+});
+$('#tmGo').addEventListener('click', startTm);
+$('#tmAdd').addEventListener('submit', (e) => {
+  e.preventDefault(); const n = $('#tmName').value.trim(); if (!n) return;
+  if (![...FRIENDS, ...tm.extra].includes(n)) tm.extra.push(n);
+  if (!tm.sel.includes(n)) tm.sel.push(n);
+  $('#tmName').value = ''; renderTm();
+});
+$('#tmReset').addEventListener('click', (e) => twoTap(e.currentTarget, () => { Object.assign(tm, structuredClone(TM0)); tmBusy.clear(); renderTm(); renderStage(); toast('편 가르기를 처음으로 돌렸어요'); }));
+let tmRz; addEventListener('resize', () => { clearTimeout(tmRz); tmRz = setTimeout(() => { if (tm.res && tm.res.show !== 'cards') renderLadder(); }, 200); });
+
 /* ───────── 유튜브 타임라인 ───────── */
 const vday = (i) => i.date || new Date(i.at + 9 * 3600e3).toISOString().slice(0, 10);
 const dlabel = (d) => { const [y, m, dd] = d.split('-').map(Number); return `${y}.${String(m).padStart(2, '0')}.${String(dd).padStart(2, '0')} (${DOW[new Date(y, m - 1, dd).getDay()]})`; };
@@ -562,11 +780,12 @@ function logTd() {
 }
 
 const db = { logs: null, kind: 'all', open: '' };
-const DB_KINDS = [['all', '전체'], ['fee', '게임비'], ['tadang', '타당'], ['scan', '사진 읽기']];
+const DB_KINDS = [['all', '전체'], ['team', '편 가르기'], ['fee', '게임비'], ['tadang', '타당'], ['scan', '사진 읽기']];
 const man = (v) => (v >= 10000 && v % 10000 === 0 ? `${v / 10000}만원` : won(v));
 function dbSummary(r) {
   const d = r.data || {};
   if (r.kind === 'fee') return `${d.n}명 · ${man(d.fee)} · ${d.mode === 'team' ? `팀전(이긴 팀 ${d.w}명)` : '개인전'}${d.ben ? ` · 1등 ${man(d.ben)} 할인` : ''}`;
+  if (r.kind === 'team') return (d.teams || []).map((m) => m.join('·')).join(' vs ');
   if (r.kind === 'tadang') return `${(d.players || []).filter((p) => p.total).map((p) => `${p.name} ${p.total}타`).join(', ') || '스코어 입력 전'} · 1타 ${man(d.unit)}`;
   return d.ok ? `${d.players}명 읽음${d.names ? ` (${d.names.join(', ')})` : ''}` : `실패 (${d.error || '?'})`;
 }
@@ -577,6 +796,7 @@ function dbDetail(r) {
     : d.pays.map((v, i) => `<div>${i + 1}등 ${esc(d.names?.[i] || '')} <b>${won(v)}</b></div>`).join('');
   if (r.kind === 'tadang') h = (d.pays?.length ? d.pays.map((p) => `<div>${esc(p.from)} → ${esc(p.to)} <b>${won(p.amt)}</b></div>`).join('') : '<div class="note">정산 전</div>')
     + `<div class="note">${d.holes}홀${d.x2?.length ? ` · 배판 ${d.x2.join(', ')}번` : ''}${d.cap ? ' · 양파 상한' : ''}</div>`;
+  if (r.kind === 'team') h = `<div class="note">${d.mode === 'tier' ? '티어 넣고' : '전체 랜덤'} · ${d.k}팀 · ${d.show === 'cards' ? '카드' : '사다리'}${d.tiers ? ` · ${Object.entries(d.tiers).map(([n, t]) => `${esc(n)} ${t}티어`).join(', ')}` : ''}</div>`;
   if (r.kind === 'scan' && d.note) h = `<div class="note">${esc(d.note)}</div>`;
   const t = (x) => new Date(x + 9 * 3600e3).toISOString().slice(11, 16);
   return h + `<div class="note">${r.dev} · ${t(r.first)}~${t(r.at)} 사용 · 접속 ${esc(r.sid)}</div><div><button class="ghost" data-dbdel="${esc(r.id)}">이 기록 지우기</button></div>`;
@@ -605,7 +825,7 @@ $('#adminTabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]'); if (!b) return;
   const isDb = b.dataset.tab === 'db';
   document.querySelectorAll('#adminTabs button').forEach((x) => x.classList.toggle('on', x === b));
-  ['fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
+  ['teams', 'fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
   $('#db').hidden = !isDb;
   if (isDb) renderDb(true);
 });
@@ -624,7 +844,7 @@ async function load() {
     const j = await api('GET', null, viewKey ? `?k=${encodeURIComponent(viewKey)}` : '');
     videos = j.videos; admin = j.admin; shareKey = j.key || '';
     $('#gate').hidden = true; $('#app').hidden = false; $('#adminbar').hidden = !admin;
-    renderFee(); setUnit(unit); renderTd(); renderVideos();
+    renderTm(); renderStage(); renderFee(); setUnit(unit); renderTd(); renderVideos();
     logReady = true; logLast.fee = null;
   } catch (e) {
     $('#app').hidden = true; $('#gate').hidden = false;

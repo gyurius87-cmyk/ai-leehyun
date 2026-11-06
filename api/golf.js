@@ -16,7 +16,7 @@ const okDate = (s) => /^20\d\d-\d\d-\d\d$/.test(String(s || ""));
 const newId = (n = 10) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join("");
 const pairs = (flat) => { const o = {}; for (let i = 0; flat && i < flat.length; i += 2) o[flat[i]] = flat[i + 1]; return o; };
 
-const LOG_KINDS = ["fee", "tadang", "scan"], LOG_MAX = 400, LOGS_PER_IP_PER_DAY = 300;
+const LOG_KINDS = ["fee", "tadang", "scan", "team"], LOG_MAX = 400, LOGS_PER_IP_PER_DAY = 300;
 const device = (ua = "") => (/iPhone|iPad/.test(ua) ? "아이폰" : /Android/.test(ua) ? "안드로이드" : /Mac/.test(ua) ? "맥" : /Windows/.test(ua) ? "PC" : "기타");
 const logHits = new Map();
 const hits = new Map();
