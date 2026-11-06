@@ -1,6 +1,16 @@
 {
   "programs": [
     {
+      "id": "fav",
+      "name": "프로그램 즐겨찾기",
+      "status": "using",
+      "summary": "내 프로그램을 한 화면에 모아 이름·초성으로 바로 찾고, ☆로 자주 쓰는 걸 맨 위에 모아 끌어서 순서를 바꿔요.",
+      "start": "2026-11-07",
+      "private": true,
+      "href": "/fav",
+      "cat": "업무·운영"
+    },
+    {
       "id": "detail-page",
       "name": "상세페이지 제작",
       "status": "using",

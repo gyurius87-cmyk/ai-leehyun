@@ -1,0 +1,284 @@
+---
+// 프로그램 즐겨찾기: data/programs.json 을 빌드 때 읽어서, 내 프로그램을 한 화면에서 찾고 여는 런처.
+// 즐겨찾기·순서·최근 연 것은 이 기기 브라우저(localStorage)에 저장. 다른 기기로는 '옮기기 코드'로 옮김.
+import { programs } from '../lib/data.js';
+
+const ICON = {
+  'detail-page': '🖼️', bottleneck: '🧩', mindmap: '🗺️', analytics: '📊', sns: '📱', daily: '🗞️', office: '🏢',
+  'biz-office': '🏬', stock: '📈', money: '💰', studio: '🎬', downloader: '⬇️', realestate: '🏠', monetize: '💡',
+  'idea-steal': '🕵️', habit: '✅', mom: '📔', golf: '⛳', 'video-lab': '🔬', 'motivation-visual': '🎨', wiki: '📚',
+  capture: '📸', 'detail-swap': '🧾', 'memo-todo': '📝', 'prog-recs': '🎁', subs: '💳', 'github-finds': '💎',
+  japanese: '🇯🇵', motivation: '🔥', 'zero-upgrade': '🚀', conti: '✏️', 'threads-factory': '🏭', fav: '⭐',
+};
+const CAT_ICON = { '업무·운영': '🗂️', 'SNS·콘텐츠': '🎥', '돈·투자': '💰', '공부·생각': '📖' };
+const CATS = ['업무·운영', 'SNS·콘텐츠', '돈·투자', '공부·생각'];
+const list = programs
+  .filter((p) => p.href && p.id !== 'fav')
+  .map((p) => ({
+    id: p.id, name: p.name, sum: p.summary || '', cat: p.cat || '기타', href: p.href,
+    icon: ICON[p.id] || CAT_ICON[p.cat] || '🔹', start: p.start || '', making: p.status === 'making' || p.status === 'resting',
+    where: /^https:\/\/claude\.ai\//.test(p.href) ? 'Claude' : '사이트',
+  }));
+const cats = [...CATS, ...new Set(list.map((p) => p.cat))].filter((c, i, a) => a.indexOf(c) === i && list.some((p) => p.cat === c));
+---
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>프로그램 즐겨찾기</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style is:global>
+    :root {
+      --bg: #eef0f2; --panel: #ffffff; --ink: #15171a; --muted: #5b616b; --line: #e4e6ea; --soft: #f5f6f8;
+      --yellow: #f2d53c; --yellow-ink: #3a3200; --shadow: 0 1px 2px rgba(20,22,26,.06), 0 4px 14px rgba(20,22,26,.05);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #15171a; --panel: #202328; --ink: #eef0f2; --muted: #a3a9b2; --line: #30343a; --soft: #262a30; --shadow: none; color-scheme: dark; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 'IBM Plex Sans KR', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 60px max(16px, env(safe-area-inset-left)); }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+    h1 span { background: var(--yellow); color: var(--yellow-ink); border-radius: 8px; padding: 0 6px; margin-right: 6px; }
+    header a.home { margin-left: auto; color: var(--muted); font-size: 13px; text-decoration: none; }
+    .search { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 0 10px; }
+    .search input { width: 100%; font: inherit; font-size: 17px; padding: 13px 16px 13px 44px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%235b616b' stroke-width='2'%3E%3Ccircle cx='9' cy='9' r='6'/%3E%3Cpath d='m14 14 4 4'/%3E%3C/svg%3E") no-repeat 15px center; color: var(--ink); outline: none; }
+    .search input:focus { border-color: var(--ink); }
+    .search .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel); }
+    h2 { font-size: 14px; margin: 22px 0 10px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; }
+    h2 small { font-weight: 400; }
+    h2 button { margin-left: auto; }
+    button { font: inherit; cursor: pointer; color: var(--ink); }
+    .ghost { border: none; background: none; color: var(--muted); font-size: 13px; padding: 4px 6px; }
+    .favs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .tile { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 14px 12px; border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); border: 1px solid var(--line); text-decoration: none; color: var(--ink); min-width: 0; user-select: none; -webkit-user-select: none; touch-action: pan-y; }
+    .tile:hover { border-color: var(--ink); }
+    .tile .ic { font-size: 30px; line-height: 1; }
+    .tile .nm { font-weight: 700; font-size: 14.5px; line-height: 1.3; word-break: keep-all; }
+    .tile .wh { font-size: 11.5px; color: var(--muted); }
+    .tile.drag { opacity: .9; transform: scale(1.04); box-shadow: 0 10px 30px rgba(0,0,0,.2); z-index: 3; }
+    .star { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border: none; background: none; font-size: 18px; line-height: 32px; padding: 0; border-radius: 50%; color: var(--muted); }
+    .star.on { color: #d6a800; }
+    .star:hover { background: var(--soft); }
+    .empty { border: 1.5px dashed var(--line); border-radius: 16px; padding: 18px; color: var(--muted); font-size: 14px; text-align: center; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: 13px; }
+    .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .chip small { color: var(--muted); margin-left: 3px; }
+    .chip.on small { color: inherit; opacity: .7; }
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+    .row { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 11px 44px 11px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--ink); min-width: 0; }
+    .row:hover, .row.sel { border-color: var(--ink); }
+    .row .ic { font-size: 22px; line-height: 1.2; flex: none; }
+    .row .t { min-width: 0; }
+    .row .nm { font-weight: 700; font-size: 14px; }
+    .row .sm { font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .row .star { top: 8px; right: 6px; }
+    .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 4px; font-weight: 400; }
+    .catsec h3 { font-size: 13px; margin: 18px 0 8px; color: var(--ink); }
+    .recent { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .recent a { flex: none; display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; color: var(--ink); font-size: 13.5px; }
+    .toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 13.5px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .toast.on { opacity: 1; }
+    .move { margin-top: 30px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); font-size: 13.5px; }
+    .move summary { cursor: pointer; font-weight: 700; }
+    .move textarea { width: 100%; font: 12px ui-monospace, monospace; margin-top: 8px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); min-height: 60px; }
+    .move .btns { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .move .btns button { border: 1px solid var(--line); background: var(--soft); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+    mark { background: var(--yellow); color: var(--yellow-ink); border-radius: 3px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 480px) { .favs { grid-template-columns: repeat(3, 1fr); gap: 8px; } .tile { padding: 12px 8px 10px; align-items: center; text-align: center; } .tile .wh { display: none; } .tile .nm { font-size: 12.5px; } .tile .star { width: 26px; height: 26px; line-height: 26px; font-size: 14px; top: 2px; right: 2px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1><span>⭐</span>프로그램 즐겨찾기</h1>
+      <a class="home" href="/programs">프로그램 목록 →</a>
+    </header>
+    <div class="search">
+      <input id="q" type="search" placeholder="찾기: 이름, 하는 일, 초성(ㅅㄹㄷ)" autocomplete="off" />
+      <div class="hint" id="qhint"><kbd>/</kbd> 찾기 · <kbd>↑</kbd><kbd>↓</kbd> 고르기 · <kbd>Enter</kbd> 열기</div>
+    </div>
+
+    <section id="secFav">
+      <h2>⭐ 즐겨찾기 <small id="favN"></small><button class="ghost" id="editBtn" hidden>순서 바꾸기</button></h2>
+      <div class="favs" id="favs"></div>
+    </section>
+    <section id="secRecent" hidden>
+      <h2>🕘 최근 연 것</h2>
+      <div class="recent" id="recent"></div>
+    </section>
+    <section>
+      <h2 id="allTitle">📦 전체 프로그램 <small>{list.length}개</small></h2>
+      <div class="chips" id="chips"></div>
+      <div id="all"></div>
+    </section>
+
+    <details class="move">
+      <summary>📲 다른 기기로 즐겨찾기 옮기기</summary>
+      <p style="margin:8px 0 0;color:var(--muted)">즐겨찾기는 이 기기 브라우저에 저장돼요. 아래 코드를 복사해서 다른 기기의 이 페이지 칸에 붙여 넣고 '불러오기'를 누르면 똑같아져요.</p>
+      <textarea id="code" spellcheck="false"></textarea>
+      <div class="btns"><button id="copyCode">코드 복사</button><button id="loadCode">붙여 넣은 코드 불러오기</button></div>
+    </details>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script is:inline define:vars={{ list, cats }}>
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const byId = Object.fromEntries(list.map((p) => [p.id, p]));
+    const store = {
+      get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (e) { return d; } },
+      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    };
+    let favs = store.get('fav-ids', []).filter((id) => byId[id]);
+    let recent = store.get('fav-recent', []).filter((id) => byId[id]);
+    let cat = store.get('fav-cat', '');
+    let sel = 0, editing = false;
+
+    // 초성 검색: '스레드' → 'ㅅㄹㄷ'
+    const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+    const cho = (s) => [...s].map((ch) => { const c = ch.charCodeAt(0) - 0xac00; return c >= 0 && c < 11172 ? CHO[Math.floor(c / 588)] : ch; }).join('');
+    const norm = (s) => String(s).toLowerCase().replace(/\s+/g, '');
+    const isCho = (q) => /^[ㄱ-ㅎ]+$/.test(q);
+    function match(p, q) {
+      if (!q) return 1;
+      const n = norm(p.name), qq = norm(q);
+      if (n.startsWith(qq)) return 100;
+      if (n.includes(qq)) return 80;
+      if (isCho(qq) && cho(n).includes(qq)) return 70;
+      if (norm(p.cat).includes(qq)) return 40;
+      if (norm(p.sum).includes(qq)) return 30;
+      return 0;
+    }
+    const hl = (name, q) => {
+      if (!q) return esc(name);
+      const i = name.toLowerCase().indexOf(q.toLowerCase());
+      return i < 0 ? esc(name) : esc(name.slice(0, i)) + '<mark>' + esc(name.slice(i, i + q.length)) + '</mark>' + esc(name.slice(i + q.length));
+    };
+    const target = (p) => (p.where === 'Claude' ? ' target="_blank" rel="noopener"' : '');
+    const starBtn = (p) => `<button class="star${favs.includes(p.id) ? ' on' : ''}" data-star="${esc(p.id)}" aria-label="즐겨찾기">${favs.includes(p.id) ? '★' : '☆'}</button>`;
+
+    function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1600); }
+    function save() { store.set('fav-ids', favs); updateCode(); }
+    function toggle(id) {
+      if (favs.includes(id)) { favs = favs.filter((x) => x !== id); toast('즐겨찾기에서 뺐어요'); }
+      else { favs.push(id); toast('⭐ 즐겨찾기에 넣었어요'); }
+      save(); render();
+    }
+    function opened(id) { recent = [id, ...recent.filter((x) => x !== id)].slice(0, 8); store.set('fav-recent', recent); }
+
+    function render() {
+      const q = $('#q').value.trim();
+      // 즐겨찾기
+      $('#favN').textContent = favs.length ? favs.length + '개' : '';
+      $('#editBtn').hidden = favs.length < 2;
+      $('#editBtn').textContent = editing ? '다 했어요' : '순서 바꾸기';
+      const fv = favs.map((id) => byId[id]).filter((p) => p && (!q || match(p, q)));
+      $('#favs').innerHTML = fv.length
+        ? fv.map((p) => `<a class="tile" draggable="false" href="${esc(p.href)}"${target(p)} data-open="${esc(p.id)}" data-fav="${esc(p.id)}"><span class="ic">${p.icon}</span><span class="nm">${hl(p.name, q)}</span><span class="wh">${esc(p.cat)} · ${p.where}</span>${starBtn(p)}</a>`).join('')
+        : `<div class="empty" style="grid-column:1/-1">${q ? '즐겨찾기 중에는 없어요.' : '아래 목록에서 ☆를 누르면 여기 맨 위에 모여요. 길게 누르거나 끌어서 순서도 바꿀 수 있어요.'}</div>`;
+      $('#favs').classList.toggle('editing', editing);
+      // 최근
+      const rc = recent.filter((id) => !q).map((id) => byId[id]).filter(Boolean).slice(0, 6);
+      $('#secRecent').hidden = !rc.length;
+      $('#recent').innerHTML = rc.map((p) => `<a href="${esc(p.href)}"${target(p)} data-open="${esc(p.id)}">${p.icon} ${esc(p.name)}</a>`).join('');
+      // 카테고리 칩
+      const counts = {}; list.forEach((p) => (counts[p.cat] = (counts[p.cat] || 0) + 1));
+      $('#chips').innerHTML = [['', '전체', list.length], ...cats.map((c) => [c, c, counts[c]])].map(([k, l, n]) => `<button class="chip${k === cat ? ' on' : ''}" data-cat="${esc(k)}">${esc(l)}<small>${n}</small></button>`).join('');
+      $('#chips').hidden = !!q;
+      // 전체 (찾기 중이면 점수 순 한 줄 목록, 아니면 분야별)
+      let html = '';
+      if (q) {
+        const hits = list.map((p) => [p, match(p, q)]).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]).map(([p]) => p);
+        sel = Math.min(sel, Math.max(0, hits.length - 1));
+        html = hits.length ? `<div class="list" style="margin-top:4px">${hits.map((p, i) => rowHTML(p, q, i === sel)).join('')}</div>` : `<div class="empty">'${esc(q)}'에 맞는 프로그램이 없어요.</div>`;
+        $('#allTitle').innerHTML = `🔎 찾은 것 <small>${hits.length}개</small>`;
+      } else {
+        const show = cats.filter((c) => !cat || c === cat);
+        html = show.map((c) => `<div class="catsec"><h3>${esc(c)}</h3><div class="list">${list.filter((p) => p.cat === c).sort((a, b) => (favs.includes(b.id) - favs.includes(a.id)) || b.start.localeCompare(a.start)).map((p) => rowHTML(p, '', false)).join('')}</div></div>`).join('');
+        $('#allTitle').innerHTML = `📦 전체 프로그램 <small>${list.length}개</small>`;
+      }
+      $('#all').innerHTML = html;
+    }
+    function rowHTML(p, q, on) {
+      return `<a class="row${on ? ' sel' : ''}" href="${esc(p.href)}"${target(p)} data-open="${esc(p.id)}"><span class="ic">${p.icon}</span><span class="t"><span class="nm">${hl(p.name, q)}</span>${p.making ? '<span class="tag">🚧 공사 중</span>' : ''}<span class="tag">${p.where}</span><span class="sm">${esc(p.sum)}</span></span>${starBtn(p)}</a>`;
+    }
+
+    // 클릭: 별은 즐겨찾기만, 나머지는 열기 + 최근에 남김
+    document.addEventListener('click', (e) => {
+      const st = e.target.closest('[data-star]');
+      if (st) { e.preventDefault(); e.stopPropagation(); return toggle(st.dataset.star); }
+      const c = e.target.closest('[data-cat]');
+      if (c) { cat = c.dataset.cat; store.set('fav-cat', cat); return render(); }
+      const a = e.target.closest('[data-open]');
+      if (a) { if (dragJust) { e.preventDefault(); return; } opened(a.dataset.open); }
+    });
+    $('#q').addEventListener('input', () => { sel = 0; render(); });
+    $('#q').addEventListener('keydown', (e) => {
+      const rows = [...document.querySelectorAll('#all .row')];
+      if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, rows.length - 1); render(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); render(); }
+      else if (e.key === 'Enter') { const r = document.querySelectorAll('#all .row')[sel] || document.querySelector('#favs .tile'); if (r) { opened(r.dataset.open); r.click(); } }
+      else if (e.key === 'Escape') { $('#q').value = ''; render(); }
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement !== $('#q') && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) { e.preventDefault(); $('#q').focus(); } });
+    $('#editBtn').onclick = () => { editing = !editing; render(); };
+
+    // 즐겨찾기 끌어서 순서 바꾸기: 마우스는 끌면 바로, 손가락은 꾹 눌렀다가
+    let dragJust = false;
+    (() => {
+      const box = $('#favs'); let st = null;
+      box.addEventListener('pointerdown', (e) => {
+        const t = e.target.closest('.tile'); if (!t || e.target.closest('[data-star]') || e.button > 0) return;
+        st = { t, x: e.clientX, y: e.clientY, id: e.pointerId, on: false, touch: e.pointerType !== 'mouse' };
+        if (st.touch) st.timer = setTimeout(start, 380);
+      });
+      function start() { if (!st || st.on) return; st.on = true; st.t.classList.add('drag'); try { st.t.setPointerCapture(st.id); } catch (e) {} if (navigator.vibrate) navigator.vibrate(15); }
+      box.addEventListener('pointermove', (e) => {
+        if (!st) return;
+        const d = Math.hypot(e.clientX - st.x, e.clientY - st.y);
+        if (!st.on) { if (st.touch) { if (d > 8) { clearTimeout(st.timer); st = null; } return; } if (d < 6) return; start(); }
+        e.preventDefault();
+        const over = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tile');
+        if (!over || over === st.t || over.parentNode !== box) return;
+        const tiles = [...box.querySelectorAll('.tile')], a = tiles.indexOf(st.t), b = tiles.indexOf(over);
+        box.insertBefore(st.t, a < b ? over.nextSibling : over);
+      });
+      const end = () => {
+        if (!st) return; clearTimeout(st.timer); const was = st.on, t = st.t; st = null; if (!was) return;
+        t.classList.remove('drag'); dragJust = true; setTimeout(() => (dragJust = false), 60);
+        const order = [...box.querySelectorAll('.tile')].map((x) => x.dataset.fav);
+        favs = [...order, ...favs.filter((id) => !order.includes(id))]; save(); toast('순서를 바꿨어요');
+      };
+      box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
+      box.addEventListener('dragstart', (e) => e.preventDefault());
+      box.addEventListener('contextmenu', (e) => { if (e.target.closest('.tile')) e.preventDefault(); });
+    })();
+
+    // 다른 기기로 옮기기: 즐겨찾기 id 목록을 짧은 코드로
+    function updateCode() { $('#code').value = favs.length ? 'FAV:' + favs.join(',') : ''; }
+    $('#copyCode').onclick = async () => { updateCode(); try { await navigator.clipboard.writeText($('#code').value); toast('코드를 복사했어요'); } catch (e) { $('#code').select(); toast('코드를 길게 눌러 복사해 주세요'); } };
+    $('#loadCode').onclick = () => {
+      const m = /FAV:([\w,-]+)/.exec($('#code').value.trim());
+      const ids = m ? m[1].split(',').filter((id) => byId[id]) : [];
+      if (!ids.length) return toast('코드를 못 읽었어요');
+      favs = [...new Set(ids)]; save(); render(); toast(`즐겨찾기 ${favs.length}개를 불러왔어요`);
+    };
+
+    updateCode(); render();
+    if (matchMedia('(pointer:fine)').matches) $('#q').focus(); else $('#qhint').hidden = true;
+  </script>
+</body>
+</html>
