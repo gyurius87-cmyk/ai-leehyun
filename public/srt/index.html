@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>자막 파일 받기</title>
+<style>
+:root { --bg: #f6f5f2; --ink: #1d1d1f; --muted: #6b6b70; --line: #ddd9d0; --panel: #fff; --acc: #1d1d1f; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141416; --ink: #ececee; --muted: #9a9aa2; --line: #2e2e33; --panel: #1c1c20; --acc: #ececee; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+main { max-width: 560px; margin: 0 auto; padding: 28px 16px; display: grid; gap: 14px; }
+h1 { font-size: 20px; margin: 0; }
+p { margin: 0; color: var(--muted); }
+button { font: inherit; border: 0; border-radius: 10px; padding: 10px 16px; background: var(--acc); color: var(--bg); cursor: pointer; justify-self: start; }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0; max-height: 50vh; overflow: auto; white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎬 자막 파일 받기</h1>
+  <p id="msg">SNS 통합 관리에서 만든 자막을 .srt 파일로 내려받아요. 캡컷에서 텍스트 → 자막 가져오기로 넣으면 돼요.</p>
+  <button type="button" id="dl" hidden>다시 받기</button>
+  <pre id="out" hidden></pre>
+</main>
+<script>
+// 주소 # 뒤에 담긴 자막을 받아 .srt로 저장 (서버로는 아무것도 보내지 않아요)
+(function () {
+  const h = new URLSearchParams(location.hash.slice(1));
+  const d = h.get("d"), msg = document.getElementById("msg");
+  if (!d) { msg.textContent = "받을 자막이 없어요. SNS 통합 관리의 카드 창에서 '🎬 자막 파일' 버튼으로 열어 주세요."; return; }
+  let text;
+  try {
+    const b = atob(d.replace(/ /g, "+").replace(/-/g, "+").replace(/_/g, "/"));
+    text = new TextDecoder().decode(Uint8Array.from(b, (c) => c.charCodeAt(0)));
+  } catch (e) { msg.textContent = "자막을 읽지 못했어요. 다시 만들어 주세요."; return; }
+  const name = (h.get("n") || "자막").replace(/[\\/:*?"<>|]/g, "").slice(0, 60) + ".srt";
+  const save = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + text], { type: "application/x-subrip" }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  };
+  document.getElementById("out").textContent = text; document.getElementById("out").hidden = false;
+  const btn = document.getElementById("dl"); btn.hidden = false; btn.onclick = save;
+  msg.textContent = `'${name}' 파일을 받았어요. 안 받아졌으면 아래 '다시 받기'를 눌러 주세요.`;
+  save();
+})();
+</script>
+</body>
+</html>
