@@ -19,11 +19,10 @@
         {
           "team": "콘텐츠팀",
           "name": "SNS 담당",
-          "status": "waiting",
-          "doing": "자막 파일(SRT) 받기를 붙이고 캡컷 연결 확인을 기다려요",
+          "status": "done",
+          "doing": "카드 기획 칸을 대본 칸 하나로 합쳤어요",
           "prop": "📱",
-          "acc": "heart",
-          "since": "2026-11-07"
+          "acc": "heart"
         },
         {
           "team": "콘텐츠팀",
