@@ -28,6 +28,7 @@
   .tl-form .btns .del{color:#c0392b;margin-left:auto}
   .tl-add{margin-top:8px}
   .tl-key{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .tl-newday{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;padding:12px;border:1.5px dashed var(--line);border-radius:12px}
   .tl-key input{font:15px var(--sans);padding:8px 10px;border:1px solid var(--line);border-radius:8px}`;
   document.head.appendChild(css);
 
@@ -46,6 +47,25 @@
   const read = (li) => ({ time: li.querySelector('time')?.textContent || '', cat: li.dataset.cat || '사이트', text: li.querySelector('.tx')?.textContent || '', link: li.dataset.link || '' });
   function sortDay(ul) { [...ul.children].sort((a, b) => (a.querySelector('time')?.textContent < b.querySelector('time')?.textContent ? 1 : -1)).forEach((li) => ul.appendChild(li)); }
 
+
+  // 기록이 아직 없는 날(오늘 미리, 빠진 지난날)도 그날 칸을 만들어서 넣을 수 있게
+  const DAY1 = Date.UTC(2026, 9, 10);
+  function dayNo(date) { const [y, m, d] = date.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - DAY1) / 864e5) + 1; }
+  function makeDay(date) {
+    const have = document.querySelector(`.day-block[data-date="${date}"]`); if (have) return have;
+    const blocks = [...document.querySelectorAll('.day-block')]; if (!blocks.length) return null;
+    const box = blocks[0].parentElement;
+    if (!document.getElementById('days') && date < blocks[0].dataset.date) return null; // 홈은 최근 날만
+    const art = document.createElement('article'); art.className = 'day-block'; art.dataset.date = date; art.dataset.min = '0';
+    const [y, m, d] = date.split('-').map(Number), wd = '일월화수목금토'[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+    const n = dayNo(date);
+    art.innerHTML = `<div class="day-label">${n >= 1 ? `<div class="d">D${n}</div>` : ''}<div class="date">${y}.${String(m).padStart(2, '0')}.${String(d).padStart(2, '0')} (${wd})</div><div class="studied" hidden></div></div><ul class="day-items"></ul>`;
+    const asc = blocks.length > 1 && blocks[0].dataset.date < blocks[blocks.length - 1].dataset.date;
+    const after = blocks.find((b) => (asc ? b.dataset.date > date : b.dataset.date < date));
+    after ? box.insertBefore(art, after) : box.appendChild(art);
+    return art;
+  }
+
   function apply() {
     document.querySelectorAll('.day-items li[data-k]').forEach((li) => {
       const e = edits[li.dataset.k]; if (!e) return;
@@ -55,7 +75,7 @@
     });
     Object.entries(edits).forEach(([k, e]) => {
       if (!k.startsWith('add|')) return;
-      const ul = document.querySelector(`.day-block[data-date="${e.date}"] .day-items`); if (!ul) return;
+      const ul = makeDay(e.date)?.querySelector('.day-items'); if (!ul) return;
       const li = document.createElement('li'); li.dataset.k = k; li.dataset.added = '1'; setLi(li, e); ul.appendChild(li); sortDay(ul);
     });
     Object.entries(edits).forEach(([k, e]) => {
@@ -103,7 +123,12 @@
         }));
       });
     });
-    document.querySelectorAll('#days .day-block').forEach((day) => {
+    document.querySelectorAll('#days .day-block').forEach(wireDay);
+    newDayBox();
+  }
+
+  function wireDay(day) {
+    {
       const date = day.dataset.date, lab = day.querySelector('.day-label');
       lab.insertAdjacentHTML('beforeend', `<div><button type="button" class="tl-mini" data-min style="margin:8px 0 0">⏱ 시간 ${day.dataset.min || 0}분</button></div>`);
       lab.querySelector('[data-min]').addEventListener('click', (ev) => {
@@ -120,6 +145,23 @@
         const now = new Date(); const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         li.append(form({ time: t, cat: '프로그램', text: '', link: '' }, { onSave: (v) => save({ op: 'add', date, ...v }) }));
       });
+      day._add = add;
+    }
+  }
+
+  function kstToday() { return new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); }
+  function newDayBox() {
+    const days = document.getElementById('days'); if (!days) return;
+    const box = document.createElement('div'); box.className = 'tl-key tl-newday';
+    box.innerHTML = `<b>📅 날짜 골라 기록 넣기</b> <input type="date" value="${kstToday()}"> <button type="button" class="tl-mini">이 날짜에 넣기</button><span class="tl-tag">기록이 없는 날도 칸이 생겨요</span>`;
+    days.before(box);
+    box.querySelector('button').addEventListener('click', () => {
+      const date = box.querySelector('input').value; if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      let day = document.querySelector(`#days .day-block[data-date="${date}"]`);
+      if (!day) { day = makeDay(date); wireDay(day); }
+      day.classList.remove('off');
+      day.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      day._add?.click();
     });
   }
 
