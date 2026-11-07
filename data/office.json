@@ -19,10 +19,11 @@
         {
           "team": "콘텐츠팀",
           "name": "SNS 담당",
-          "status": "done",
-          "doing": "SNS 캘린더에서 기획을 끌어 옮기고 올라온 글과 합치게 했어요",
+          "status": "waiting",
+          "doing": "자막 파일(SRT) 받기를 붙이고 캡컷 연결 확인을 기다려요",
           "prop": "📱",
-          "acc": "heart"
+          "acc": "heart",
+          "since": "2026-11-07"
         },
         {
           "team": "콘텐츠팀",
