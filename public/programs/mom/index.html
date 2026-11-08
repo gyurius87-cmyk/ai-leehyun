@@ -383,8 +383,8 @@ function loadFest() {
 }
 function festHtml() {
   loadFest();
-  if (fest.loading) return '';
-  if (fest.ready === false) return admin ? `<section><h2>여행지 추천</h2><div class="empty">관광공사 인증키(TOUR_API_KEY)를 Vercel에 넣으면 전국 축제 일정이 여기에 계속 새로 떠요.</div></section>` : '';
+  if (fest.loading) return `<section><h2>여행지 추천</h2><div class="empty">관광공사 축제 일정을 불러오는 중이에요…</div></section>`;
+  if (fest.ready === false) return admin ? `<section><h2>여행지 추천</h2><div class="empty">관광공사 인증키(TOUR_API_KEY)를 Vercel에 넣으면 전국 축제 일정이 여기에 계속 새로 떠요.</div></section>` : `<section><h2>여행지 추천</h2><div class="empty">축제 일정을 준비하고 있어요.</div></section>`;
   const t = today().replaceAll('-', ''), items = fest.items || [];
   const tab = open.ftab || 'flower', [, , re] = FTABS.find((x) => x[0] === tab);
   const n = (re2) => items.filter((f) => re2.test(f.title)).length;
