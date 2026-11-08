@@ -56,9 +56,12 @@ async function clean(b) {
 // 6시간마다 새로 받아 Redis(mom:fest)에 담아 둠. 진행 중이거나 90일 안에 시작하는 축제만.
 const FEST_TTL = 6 * 3600;
 const ymd = (d) => d.toISOString().slice(0, 10).replaceAll("-", "");
+// 관광공사가 안 받으면 30분은 다시 기다리지 않고 바로 실패를 보여 줌(매번 24초씩 기다리지 않게)
+async function failFest(out) { await redis([["SET", "mom:festfail", JSON.stringify(out), "EX", 1800]]); return out; }
 async function festivals() {
-  const [cached] = await redis([["GET", "mom:fest"]]);
+  const [cached, failed] = await redis([["GET", "mom:fest"], ["GET", "mom:festfail"]]);
   if (cached) return JSON.parse(cached);
+  if (failed) return JSON.parse(failed);
   const key = process.env.TOUR_API_KEY;
   if (!key) return { ready: false };
   const now = new Date(Date.now() + 9 * 3600e3), from = new Date(now - 45 * 864e5), to = ymd(new Date(+now + 90 * 864e5)), today = ymd(now);
@@ -75,7 +78,7 @@ async function festivals() {
       catch (e) { err = e; }
     }
     const where = ` (서버 위치 ${process.env.VERCEL_REGION || "?"})`;
-    if (err) return { ready: true, error: "api", why: (err.name === "TimeoutError" ? "관광공사 서버가 답하지 않음" : "연결 실패: " + clip(err.cause?.code || err.message, 60)) + where, items: [] };
+    if (err) return failFest({ ready: true, error: "api", why: (err.name === "TimeoutError" ? "관광공사 서버가 답하지 않음" : "연결 실패: " + clip(err.cause?.code || err.message, 60)) + where, items: [] });
     let j = null; try { j = JSON.parse(txt); } catch {}
     const head = j?.response?.header, body = j?.response?.body;
     if (!body || (head?.resultCode && head.resultCode !== "0000")) {
