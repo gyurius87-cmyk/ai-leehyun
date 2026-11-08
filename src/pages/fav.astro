@@ -3,12 +3,12 @@
 // 즐겨찾기·순서·최근 연 것은 이 기기 브라우저(localStorage)에 저장. 다른 기기로는 '옮기기 코드'로 옮김.
 import { programs } from '../lib/data.js';
 
-import { iconOf } from '../lib/progIcons.js';
-const CATS = ['업무·운영', 'SNS·콘텐츠', '돈·투자', '공부·생각'];
-const list = programs
-  .filter((p) => p.href && p.id !== 'fav')
+import { iconOf, SITES, SITE_CAT } from '../lib/progIcons.js';
+const CATS = [SITE_CAT, '업무·운영', 'SNS·콘텐츠', '돈·투자', '공부·생각'];
+// 사업 운영실은 내 사이트 칸에 같이 둠
+const list = [...SITES, ...programs.filter((p) => p.href && p.id !== 'fav')]
   .map((p) => ({
-    id: p.id, name: p.name, sum: p.summary || '', cat: p.cat || '기타', href: p.href,
+    id: p.id, name: p.name, sum: p.summary || '', cat: p.id === 'biz-office' ? SITE_CAT : p.cat || '기타', href: p.href,
     icon: iconOf(p), start: p.start || '', making: p.status === 'making' || p.status === 'resting',
     where: /^https:\/\/claude\.ai\//.test(p.href) ? 'Claude' : '사이트',
   }));
