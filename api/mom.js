@@ -67,9 +67,15 @@ async function festivals() {
     const u = new URL("https://apis.data.go.kr/B551011/KorService2/searchFestival2");
     // 공공데이터포털 키는 이미 인코딩된 채로 주는 경우가 많아 그대로 붙임
     u.search = `serviceKey=${key.includes("%") ? key : encodeURIComponent(key)}&MobileOS=ETC&MobileApp=AiLeehyun&_type=json&arrange=A&numOfRows=200&pageNo=${page}&eventStartDate=${ymd(from)}`;
-    let r, txt = "";
-    try { r = await fetch(u, { signal: AbortSignal.timeout(20000) }); txt = await r.text(); }
-    catch (e) { return { ready: true, error: "api", why: e.name === "TimeoutError" ? "관광공사 서버가 20초 안에 답하지 않음" : "연결 실패: " + clip(e.message, 80), items: [] }; }
+    let r, txt = "", err = null;
+    // https 가 막히면 http 로 한 번 더
+    for (const proto of ["https:", "http:"]) {
+      u.protocol = proto;
+      try { r = await fetch(u, { signal: AbortSignal.timeout(12000) }); txt = await r.text(); err = null; break; }
+      catch (e) { err = e; }
+    }
+    const where = ` (서버 위치 ${process.env.VERCEL_REGION || "?"})`;
+    if (err) return { ready: true, error: "api", why: (err.name === "TimeoutError" ? "관광공사 서버가 답하지 않음" : "연결 실패: " + clip(err.cause?.code || err.message, 60)) + where, items: [] };
     let j = null; try { j = JSON.parse(txt); } catch {}
     const head = j?.response?.header, body = j?.response?.body;
     if (!body || (head?.resultCode && head.resultCode !== "0000")) {
