@@ -379,7 +379,7 @@ let fest = null;
 function loadFest() {
   if (fest) return;
   fest = { loading: true };
-  api('GET', null, `?fest=1${viewKey ? `&k=${encodeURIComponent(viewKey)}` : ''}`).then((j) => { fest = j; render(); }).catch(() => { fest = { error: 'api', items: [] }; render(); });
+  api('GET', null, `?fest=1${viewKey ? `&k=${encodeURIComponent(viewKey)}` : ''}`).then((j) => { fest = j; render(); }).catch((e) => { fest = { error: 'api', why: e.status === 504 ? '사이트 서버 시간 초과(504)' : `사이트 서버 오류 ${e.status || ''} ${e.code || e.message || ''}`, items: [] }; render(); });
 }
 function festHtml() {
   loadFest();
@@ -398,7 +398,7 @@ function festHtml() {
     <div class="tx"><div class="t">${esc(f.title)}</div><div class="m">${d8(f.start)} ~ ${d8(f.end)}${f.addr ? ` · ${esc(f.addr.split(' ').slice(0, 2).join(' '))}` : ''}</div></div></a>`;
   return `<section><div class="row between"><h2>여행지 추천</h2><span class="sub">관광공사 축제 일정 · 자동으로 새로 받아요</span></div>
     <div class="ftabs">${FTABS.map(([k, label, r2]) => `<button type="button" class="${k === tab ? 'on' : ''}" data-ftab="${k}">${label}<small>${n(r2)}</small></button>`).join('')}</div>
-    ${fest.error ? '<div class="empty">축제 정보를 잠시 불러오지 못했어요.</div>' : list.length ? `<div class="fests">${list.slice(0, more).map(card).join('')}</div>${list.length > more ? `<button class="ghost past-toggle" data-fmore>${list.length - more}개 더 보기</button>` : ''}` : '<div class="empty">지금은 이 갈래 축제가 없어요.</div>'}
+    ${fest.error ? `<div class="empty">축제 정보를 잠시 불러오지 못했어요.${admin && fest.why ? `<br><small>이유: ${esc(fest.why)}</small>` : ''}</div>` : list.length ? `<div class="fests">${list.slice(0, more).map(card).join('')}</div>${list.length > more ? `<button class="ghost past-toggle" data-fmore>${list.length - more}개 더 보기</button>` : ''}` : '<div class="empty">지금은 이 갈래 축제가 없어요.</div>'}
   </section>`;
 }
 function mountMap() {

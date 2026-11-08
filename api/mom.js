@@ -67,10 +67,16 @@ async function festivals() {
     const u = new URL("https://apis.data.go.kr/B551011/KorService2/searchFestival2");
     // 공공데이터포털 키는 이미 인코딩된 채로 주는 경우가 많아 그대로 붙임
     u.search = `serviceKey=${key.includes("%") ? key : encodeURIComponent(key)}&MobileOS=ETC&MobileApp=AiLeehyun&_type=json&arrange=A&numOfRows=200&pageNo=${page}&eventStartDate=${ymd(from)}`;
-    const r = await fetch(u);
-    const j = await r.json().catch(() => null);
-    const body = j?.response?.body;
-    if (!body) return { ready: true, error: "api", items: [] };
+    let r, txt = "";
+    try { r = await fetch(u, { signal: AbortSignal.timeout(20000) }); txt = await r.text(); }
+    catch (e) { return { ready: true, error: "api", why: e.name === "TimeoutError" ? "관광공사 서버가 20초 안에 답하지 않음" : "연결 실패: " + clip(e.message, 80), items: [] }; }
+    let j = null; try { j = JSON.parse(txt); } catch {}
+    const head = j?.response?.header, body = j?.response?.body;
+    if (!body || (head?.resultCode && head.resultCode !== "0000")) {
+      // 키 문제는 JSON이 아니라 XML로 옴(returnAuthMsg)
+      const why = head?.resultMsg || (txt.match(/<returnAuthMsg>([^<]+)/) || [])[1] || (txt.match(/<resultMsg>([^<]+)/) || [])[1] || `HTTP ${r.status} ${clip(txt, 80)}`;
+      return { ready: true, error: "api", why: clip(why, 120), items: [] };
+    }
     let got = body.items?.item || [];
     if (!Array.isArray(got)) got = [got];
     got.forEach((x) => {
@@ -93,7 +99,7 @@ export default async function handler(req, res) {
     let [key, h] = await redis([["GET", "mom:key"], ["HGETALL", "mom:items"]]);
     if (!admin && (!key || req.query.k !== key)) return res.status(401).json({ error: "auth" });
     if (req.query.fest) {
-      try { return res.json(await festivals()); } catch (e) { console.error(e); return res.json({ ready: true, error: "api", items: [] }); }
+      try { return res.json(await festivals()); } catch (e) { console.error(e); return res.json({ ready: true, error: "api", why: clip(e.message, 120), items: [] }); }
     }
     if (admin && !key) { key = newId(16); await redis([["SET", "mom:key", key]]); }
     const items = Object.values(pairs(h)).map((v) => JSON.parse(v));

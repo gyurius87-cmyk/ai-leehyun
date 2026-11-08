@@ -5,6 +5,9 @@
       "memory": 2048,
       "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,fonts/**}"
     },
+    "api/mom.js": {
+      "maxDuration": 60
+    },
     "api/market.js": {
       "maxDuration": 120
     }
