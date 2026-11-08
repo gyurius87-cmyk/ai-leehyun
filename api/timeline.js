@@ -25,6 +25,20 @@ export default async function handler(req, res) {
   if (!admin) return res.status(401).json({ error: "auth" });
   let b = req.body || {};
   if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+  // 즐겨찾기 비공개 바로가기 주소(공개 저장소·사이트에 못 적는 주소): 관리자만 읽고 씀
+  if (b.op === "links") {
+    const L = "fav:links";
+    if (b.set && /^[a-z0-9-]{1,40}$/.test(b.set.id)) {
+      const href = clip(b.set.href, 300);
+      if (/^https:\/\//.test(href)) await redis([["HSET", L, b.set.id, href]]);
+      else if (!href) await redis([["HDEL", L, b.set.id]]);
+      else return res.status(400).json({ error: "href" });
+    }
+    const flat = (await redis([["HGETALL", L]]))[0] || [];
+    const links = {};
+    for (let i = 0; i < flat.length; i += 2) links[flat[i]] = flat[i + 1];
+    return res.json({ links });
+  }
   const k = clip(b.k, 120);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date) ? b.date : "";
   // op: edit(원래 항목 고치기) · del(원래 항목 숨기기) · add(새 항목) · undo(고친 것 되돌리기) · min(그날 공부 시간)

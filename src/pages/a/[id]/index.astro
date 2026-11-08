@@ -21,8 +21,10 @@ const base = `/a/${a.id}/`;
   <link rel="manifest" href={`${base}app.webmanifest`} />
   <link rel="icon" href={`${base}icon-192.png`} />
   <link rel="apple-touch-icon" href={`${base}icon-192.png`} />
-  <script is:inline define:vars={{ href: a.href }}>
-    if (/[?&]go=1/.test(location.search)) location.replace(href);
+  <script is:inline define:vars={{ href: a.href, id: a.id }}>
+    // 즐겨찾기에서 이현님이 넣어 둔 비공개 바로가기 주소가 있으면 그쪽으로 (이 기기에만 저장됨)
+    var L = {}; try { L = JSON.parse(localStorage.getItem('fav-links')) || {}; } catch (e) {}
+    if (/[?&]go=1/.test(location.search)) location.replace(L[id] || href);
   </script>
   <style is:global>
     :root { --ink: #15171a; --paper: #eef0f2; --panel: #fff; --muted: #5b616b; --line: #e4e6ea; color-scheme: light; }
