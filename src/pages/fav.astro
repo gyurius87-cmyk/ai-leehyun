@@ -3,20 +3,13 @@
 // 즐겨찾기·순서·최근 연 것은 이 기기 브라우저(localStorage)에 저장. 다른 기기로는 '옮기기 코드'로 옮김.
 import { programs } from '../lib/data.js';
 
-const ICON = {
-  'detail-page': '🖼️', bottleneck: '🧩', mindmap: '🗺️', analytics: '📊', sns: '📱', daily: '🗞️', office: '🏢',
-  'biz-office': '🏬', stock: '📈', money: '💰', studio: '🎬', downloader: '⬇️', realestate: '🏠', monetize: '💡',
-  'idea-steal': '🕵️', habit: '✅', mom: '📔', golf: '⛳', 'video-lab': '🔬', 'motivation-visual': '🎨', wiki: '📚',
-  capture: '📸', 'detail-swap': '🧾', 'memo-todo': '📝', 'prog-recs': '🎁', subs: '💳', 'github-finds': '💎',
-  japanese: '🇯🇵', motivation: '🔥', 'zero-upgrade': '🚀', conti: '✏️', 'threads-factory': '🏭', fav: '⭐',
-};
-const CAT_ICON = { '업무·운영': '🗂️', 'SNS·콘텐츠': '🎥', '돈·투자': '💰', '공부·생각': '📖' };
+import { iconOf } from '../lib/progIcons.js';
 const CATS = ['업무·운영', 'SNS·콘텐츠', '돈·투자', '공부·생각'];
 const list = programs
   .filter((p) => p.href && p.id !== 'fav')
   .map((p) => ({
     id: p.id, name: p.name, sum: p.summary || '', cat: p.cat || '기타', href: p.href,
-    icon: ICON[p.id] || CAT_ICON[p.cat] || '🔹', start: p.start || '', making: p.status === 'making' || p.status === 'resting',
+    icon: iconOf(p), start: p.start || '', making: p.status === 'making' || p.status === 'resting',
     where: /^https:\/\/claude\.ai\//.test(p.href) ? 'Claude' : '사이트',
   }));
 const cats = [...CATS, ...new Set(list.map((p) => p.cat))].filter((c, i, a) => a.indexOf(c) === i && list.some((p) => p.cat === c));
@@ -84,6 +77,11 @@ const cats = [...CATS, ...new Set(list.map((p) => p.cat))].filter((c, i, a) => a
     .row .nm { font-weight: 700; font-size: 14px; }
     .row .sm { font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .row .star { top: 8px; right: 6px; }
+    .homeb { display: none; position: absolute; top: 42px; right: 6px; width: 32px; height: 32px; border: none; background: none; font-size: 16px; padding: 0; border-radius: 50%; }
+    .touch .homeb { display: block; }
+    .homebar { display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin: 0 0 14px; border: 1px dashed var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); text-decoration: none; font-size: 13.5px; }
+    .touch .homebar { display: flex; }
+    .homebar b { white-space: nowrap; }
     .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 4px; font-weight: 400; }
     .catsec h3 { font-size: 13px; margin: 18px 0 8px; color: var(--ink); }
     .recent { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
@@ -112,6 +110,7 @@ const cats = [...CATS, ...new Set(list.map((p) => p.cat))].filter((c, i, a) => a
     </div>
 
     <section id="secFav">
+      <a class="homebar" href="/a/fav/"><span>📲 이 즐겨찾기를 폰 바탕화면 아이콘으로 · 프로그램마다 📲 를 누르면 그 프로그램 아이콘도 만들어요</span><b>만들기 →</b></a>
       <h2>⭐ 즐겨찾기 <small id="favN"></small><button class="ghost" id="editBtn" hidden>순서 바꾸기</button></h2>
       <div class="favs" id="favs"></div>
     </section>
@@ -213,13 +212,15 @@ const cats = [...CATS, ...new Set(list.map((p) => p.cat))].filter((c, i, a) => a
       $('#all').innerHTML = html;
     }
     function rowHTML(p, q, on) {
-      return `<a class="row${on ? ' sel' : ''}" href="${esc(p.href)}"${target(p)} data-open="${esc(p.id)}"><span class="ic">${p.icon}</span><span class="t"><span class="nm">${hl(p.name, q)}</span>${p.making ? '<span class="tag">🚧 공사 중</span>' : ''}<span class="tag">${p.where}</span><span class="sm">${esc(p.sum)}</span></span>${starBtn(p)}</a>`;
+      return `<a class="row${on ? ' sel' : ''}" href="${esc(p.href)}"${target(p)} data-open="${esc(p.id)}"><span class="ic">${p.icon}</span><span class="t"><span class="nm">${hl(p.name, q)}</span>${p.making ? '<span class="tag">🚧 공사 중</span>' : ''}<span class="tag">${p.where}</span><span class="sm">${esc(p.sum)}</span></span>${starBtn(p)}<button class="homeb" data-home="${esc(p.id)}" aria-label="폰 홈 화면에 아이콘 만들기" title="폰 홈 화면에 추가">📲</button></a>`;
     }
 
     // 클릭: 별은 즐겨찾기만, 나머지는 열기 + 최근에 남김
     document.addEventListener('click', (e) => {
       const st = e.target.closest('[data-star]');
       if (st) { e.preventDefault(); e.stopPropagation(); return toggle(st.dataset.star); }
+      const hb = e.target.closest('[data-home]');
+      if (hb) { e.preventDefault(); e.stopPropagation(); location.href = '/a/' + hb.dataset.home + '/'; return; }
       const c = e.target.closest('[data-cat]');
       if (c) { cat = c.dataset.cat; store.set('fav-cat', cat); return render(); }
       const a = e.target.closest('[data-open]');
@@ -277,6 +278,7 @@ const cats = [...CATS, ...new Set(list.map((p) => p.cat))].filter((c, i, a) => a
       favs = [...new Set(ids)]; save(); render(); toast(`즐겨찾기 ${favs.length}개를 불러왔어요`);
     };
 
+    if (matchMedia('(pointer:coarse)').matches || /[?&]touch\b/.test(location.search)) document.documentElement.classList.add('touch');
     updateCode(); render();
     if (matchMedia('(pointer:fine)').matches) $('#q').focus(); else $('#qhint').hidden = true;
   </script>
