@@ -54,7 +54,7 @@ const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); retu
           {sorted.map((p, idx) => {
             const Card = p.href ? 'a' : 'div';
             return (
-            <Card class={`note-card${p.href ? ' linked' : ''}${building(p) ? ' building' : ''}`} data-tag={catOf(p)} data-start={p.start || ''} data-i={idx} {...(p.href ? (p.href.startsWith('http') ? { href: p.href, target: '_blank', rel: 'noopener' } : { href: p.href }) : {})}>
+            <Card class={`note-card${p.href ? ' linked' : ''}${building(p) ? ' building' : ''}`} data-tag={catOf(p)} data-start={p.start || ''} data-i={idx} data-id={p.id} {...(p.href ? (p.href.startsWith('http') ? { href: p.href, target: '_blank', rel: 'noopener' } : { href: p.href }) : {})}>
               <div class="no"><span class="ptag cat">{catOf(p)}</span><span class={`ptag ${tagOf(p)}`}>{TAGS[tagOf(p)]}</span>{building(p) && <span class="ptag work"><img src="/assets/zero/zero-writing.svg" alt="" width="20" height="20" />🚧 제로 공사 중</span>}</div>
               <h3>{p.name}{p.href && <span class="go" aria-hidden="true"> ↗</span>}</h3>
               {p.summary && <p>{p.summary}</p>}
@@ -88,6 +88,16 @@ const madeOn = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); retu
     )}
   </div>
 </Base>
+
+<script is:inline>
+  // 즐겨찾기에서 이현님이 넣어 둔 비공개 바로가기 주소(이 기기에만 저장)가 있으면 그쪽으로 바로 열기
+  (function () {
+    var L = {}; try { L = JSON.parse(localStorage.getItem('fav-links')) || {}; } catch (e) {}
+    document.querySelectorAll('[data-id]').forEach(function (a) {
+      var h = L[a.dataset.id]; if (h && a.tagName === 'A') { a.href = h; a.target = '_blank'; a.rel = 'noopener'; }
+    });
+  })();
+</script>
 
 <script>
   // 정렬: 분야별(기본) / 만든 날짜 최신순 / 오래된 순. 고른 것은 이 브라우저에 기억
