@@ -1,8 +1,8 @@
 {
-  "updated": "2026-11-05",
+  "updated": "2026-11-10",
   "models": [
-    { "id": "claude", "company": "Anthropic", "family": "Claude", "latest": "Claude Opus 5.5", "released": "2026-09-22", "strength": "코딩·웹 만들기 1위권, 긴 작업을 맡기는 에이전트에 강함", "others": "Sonnet 5.5 · Haiku 5.5(10/07) · Fable 5.1", "mine": true, "kw": ["claude", "anthropic", "클로드", "앤트로픽"],
-      "log": [ { "date": "2026-10-07", "text": "가볍고 빠른 Haiku 5.5 공개" }, { "date": "2026-09-22", "text": "최상위 모델 Opus 5.5 공개" } ] },
+    { "id": "claude", "company": "Anthropic", "family": "Claude", "latest": "Claude Fable 5.2 · Mythos 5.2", "released": "2026-11-09", "strength": "가장 어려운 기술 작업용 Fable·Mythos 5.2, 코딩·긴 에이전트 작업에 강함", "others": "Opus 5.5(09/22) · Sonnet 5.5 · Haiku 5.5(10/07)", "mine": true, "kw": ["claude", "anthropic", "클로드", "앤트로픽"],
+      "log": [ { "date": "2026-11-09", "text": "어려운 기술 작업용 Fable 5.2·Mythos 5.2 공개 (5.1보다 빠르고 저렴)" }, { "date": "2026-10-07", "text": "가볍고 빠른 Haiku 5.5 공개" }, { "date": "2026-09-22", "text": "최상위 모델 Opus 5.5 공개" } ] },
     { "id": "gpt", "company": "OpenAI", "family": "GPT · ChatGPT", "latest": "GPT-6 Astra", "released": "2026-09-03", "strength": "추론(어려운 문제 풀기) 시험 1위권", "others": "GPT-6 Luna(10/06), GPT-6.1 Terra(10/26, 빠르고 값싼 실무용·컴퓨터 사용)", "kw": ["openai", "gpt", "chatgpt", "오픈ai", "오픈AI", "챗gpt", "챗GPT"],
       "log": [{"date": "2026-10-26", "text": "GPT-6.1 Terra 공개(빠른 실무용, API 값 절반)"},  { "date": "2026-10-06", "text": "GPT-6 Luna 계열 추가" }, { "date": "2026-09-03", "text": "GPT-6 Astra 공개" } ] },
     { "id": "gemini", "company": "Google", "family": "Gemini", "latest": "Gemini 4 Argon", "released": "2026-10-13", "strength": "긴 복잡한 작업용 추론 모델, 대화 순위표 1위권", "others": "이미지 Nano Banana 2.1(10/06)", "kw": ["gemini", "google", "제미나이", "구글"],
