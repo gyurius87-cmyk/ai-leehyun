@@ -103,8 +103,8 @@
     {
       "id": "money",
       "name": "AI 가계부",
-      "status": "making",
-      "summary": "사업, 주식, SNS로 실제로 얼마를 버는지 한 줄로 적어 모으고, 달마다 번 돈과 쓴 곳을 통계로 봅니다.",
+      "status": "using",
+      "summary": "한 달에 한 번 뱅크샐러드 엑셀을 올리면 대시보드와 월별 보기로 정리하고, 비서 제로가 먼저 문제를 찾아 묻고 대화로 고쳐 줍니다.",
       "start": "2026-10-16",
       "private": true,
       "href": "https://claude.ai/artifact/NbiaJUdZbPPDW5vRNRy4WD",
