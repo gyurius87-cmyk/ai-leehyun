@@ -3,7 +3,7 @@ export const ICON = {
   'detail-page': '🖼️', bottleneck: '🧩', mindmap: '🗺️', analytics: '📊', sns: '📱', daily: '🗞️', office: '🏢',
   'biz-office': '🏬', stock: '📈', money: '💰', studio: '🎬', downloader: '⬇️', realestate: '🏠', monetize: '💡',
   'idea-steal': '🕵️', habit: '✅', mom: '📔', golf: '⛳', 'video-lab': '🔬', 'motivation-visual': '🎨', wiki: '📚',
-  capture: '📸', 'detail-swap': '🧾', 'memo-todo': '📝', 'prog-recs': '🎁', subs: '💳', 'hf-image': '🎨', 'github-finds': '💎',
+  capture: '📸', 'detail-swap': '🧾', 'memo-todo': '📝', 'prog-recs': '🎁', subs: '💳', 'hf-image': '🎨', 'product-strengths': '🔎', 'github-finds': '💎',
   japanese: '🇯🇵', motivation: '🔥', 'zero-upgrade': '🚀', conti: '✏️', 'threads-factory': '🏭', fav: '⭐',
 };
 // 클로드로 만든 내 사이트들 (프로그램 목록엔 안 나오고 즐겨찾기·폰 아이콘에만)

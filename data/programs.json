@@ -261,6 +261,16 @@
       "cat": "공부·생각"
     },
     {
+      "id": "product-strengths",
+      "name": "제품 장점 찾기",
+      "status": "using",
+      "summary": "제품 사진과 정보를 넣으면 강조할 장점, 사진글 순서와 글 초안, 목각인형 콘티와 가이드 사진까지 짜 줘요.",
+      "start": "2026-11-10",
+      "private": true,
+      "href": "https://claude.ai/artifact/HFwydwomMm7Fx9ekrquMfv",
+      "cat": "업무·운영"
+    },
+    {
       "id": "hf-image",
       "name": "힉스필드 이미지 생성",
       "status": "using",
