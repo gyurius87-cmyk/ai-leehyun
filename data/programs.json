@@ -261,6 +261,16 @@
       "cat": "공부·생각"
     },
     {
+      "id": "hf-image",
+      "name": "힉스필드 이미지 생성",
+      "status": "using",
+      "summary": "글과 참고 사진을 넣으면 제로가 프롬프트를 다듬거나 되묻고, 힉스필드로 이미지를 만들어 기록까지 남겨요.",
+      "start": "2026-11-10",
+      "private": true,
+      "href": "https://claude.ai/artifact/N89FXgWfn59fpLyYTRxxEG",
+      "cat": "SNS·콘텐츠"
+    },
+    {
       "id": "subs",
       "name": "구독 관리실",
       "status": "using",
