@@ -22,8 +22,34 @@ async function who(req) {
   return null;
 }
 
+// 힉스필드 이미지 생성(Claude 아티팩트)용 사진 다리: 아티팩트 안 사진은 로그인해야 열려서 힉스필드가 못 가져감.
+// 이 사이트가 사진을 1시간만 맡아 두고, 추측 못 하는 주소로 힉스필드에 내줌. 열쇠 없이 쓰는 대신 크기·개수·횟수 제한.
+const HF_CODE = /^[a-z0-9]{24,40}$/, HF_MAX = 1_400_000;
+async function hfRelay(req, res) {
+  const q = req.query || {};
+  if (req.method === "GET") {
+    const i = Number(q.i);
+    if (!HF_CODE.test(String(q.hf)) || !(i >= 0 && i < 8)) return res.status(400).end();
+    const [v] = await redis([["GET", `hf:${q.hf}:${i}`]]);
+    if (!v) return res.status(404).end();
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.send(Buffer.from(v, "base64"));
+  }
+  let b = req.body || {};
+  if (typeof b === "string") b = json(b) || {};
+  const i = Number(b.i), data = String(b.data || "");
+  if (!HF_CODE.test(String(b.code)) || !(i >= 0 && i < 8) || !data || data.length > HF_MAX || !/^[A-Za-z0-9+/=]+$/.test(data)) return res.status(400).json({ error: "bad" });
+  const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "x";
+  const [n] = await redis([["INCR", `hf:rl:${ip}`], ["EXPIRE", `hf:rl:${ip}`, 3600]]);
+  if (n > 80) return res.status(429).json({ error: "too_many" });
+  await redis([["SET", `hf:${b.code}:${i}`, data, "EX", 3600]]);
+  return res.json({ ok: true });
+}
+
 export default async function handler(req, res) {
   if (!hasRedis()) return res.status(503).json({ error: "no_redis" });
+  if (req.query?.hf || (req.method === "POST" && /"op"\s*:\s*"hfput"/.test(typeof req.body === "string" ? req.body : JSON.stringify(req.body || {}).slice(0, 200)))) return hfRelay(req, res);
   const role = await who(req);
   if (!role) return res.status(401).json({ error: "auth" });
   const q = req.query || {};

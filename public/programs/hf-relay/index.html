@@ -1,0 +1,22 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>사진 넘기기</title>
+<style>body{margin:0;font:16px system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#f1efeb;color:#191714;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box}
+.c{background:#fff;border:1px solid #e6e1d8;border-radius:16px;padding:24px;max-width:420px;width:100%;text-align:center}h1{font-size:20px;margin:0 0 8px}p{color:#6a645b;line-height:1.6;margin:6px 0}.big{font-size:40px}.bad{color:#b42318}
+@media (prefers-color-scheme:dark){body{background:#141311;color:#f1eee8}.c{background:#1e1c19;border-color:#322e29}p{color:#a8a196}}</style></head>
+<body><div class="c"><div class="big" id="ic">📤</div><h1 id="t">사진을 넘기는 중…</h1><p id="s">잠깐만 기다려 주세요.</p></div>
+<script>
+(async () => {
+  const h = decodeURIComponent(location.hash.slice(1));
+  history.replaceState(null, '', location.pathname);
+  const [code, rest] = [h.slice(0, h.indexOf('.')), h.slice(h.indexOf('.') + 1)];
+  const parts = rest ? rest.split(',').filter(Boolean).slice(0, 8) : [];
+  const t = document.getElementById('t'), s = document.getElementById('s'), ic = document.getElementById('ic');
+  if (!/^[a-z0-9]{24,40}$/.test(code) || !parts.length) { ic.textContent = '🤔'; t.textContent = '넘길 사진이 없어요'; s.textContent = '힉스필드 이미지 생성 화면에서 다시 눌러 주세요.'; return; }
+  let ok = 0;
+  for (let i = 0; i < parts.length; i++) {
+    s.textContent = `${i + 1} / ${parts.length}장`;
+    try { const r = await fetch('/api/detail', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'hfput', code, i, data: parts[i] }) }); if (r.ok) ok++; } catch {}
+  }
+  if (ok === parts.length) { ic.textContent = '✅'; t.textContent = `${ok}장 넘겼어요`; s.textContent = '이 창을 닫고 원래 화면으로 돌아가세요. 알아서 이어서 만들어요.'; setTimeout(() => { try { window.close(); } catch {} }, 1200); }
+  else { ic.textContent = '⚠️'; t.textContent = `${ok} / ${parts.length}장만 넘겼어요`; s.className = 'bad'; s.textContent = '돌아가서 다시 눌러 주세요. 사진이 너무 크면 안 넘어가요.'; }
+})();
+</script></body></html>
