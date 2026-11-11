@@ -90,6 +90,18 @@
       const t = [...document.querySelectorAll('#days .day-block')].reduce((s, d) => s + Number(d.dataset.min || 0), 0);
       tot.innerHTML = `${Math.floor(t / 60)}<small>시간</small>${t % 60 ? `<span class="mm">${t % 60}</span><small>분</small>` : ''}`;
     }
+    // 손으로 넣은 날까지 포함해서 총 기록일·연속 기록일 다시 세기
+    if (page) {
+      const dates = [...new Set([...document.querySelectorAll('#days .day-block')]
+        .filter((d) => [...d.querySelectorAll('.day-items li')].some((li) => !li.classList.contains('tl-gone')))
+        .map((d) => d.dataset.date))].sort().reverse();
+      const num = (label) => [...document.querySelectorAll('.stat')].find((s) => s.querySelector('.label')?.textContent.trim() === label)?.querySelector('.num');
+      let st = dates.length ? 1 : 0;
+      for (let i = 1; i < dates.length; i++) { if (dayNo(dates[i - 1]) - dayNo(dates[i]) === 1) st++; else break; }
+      const rd = num('총 기록일'), sk = num('연속 기록일');
+      if (rd) rd.innerHTML = `${dates.length}<small>일</small>`;
+      if (sk) sk.innerHTML = `<span class="hl">${st}</span><small>일</small>`;
+    }
   }
 
   function form(o, { onSave, onDel, onUndo }) {
