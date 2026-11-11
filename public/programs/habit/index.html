@@ -329,7 +329,7 @@ function monthStat(month, members, checks) {
       let g = 0, dn = 0;
       // 목표는 어제까지 할 몫(오늘은 체크하면 그만큼 올라감), 한 주에 목표보다 많이 한 건 목표까지만 셈
       W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk), before = upto.filter((d) => ymd(d) < today);
-        const pro = h.days.length ? Math.min(full, before.filter((d) => planDays(h, wk).includes(d)).length) : Math.min(full, Math.round((full * before.length) / wk.length));
+        const pro = h.days.length ? before.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * before.length) / wk.length));
         const dw = Math.min(did(h, upto), full); g += Math.max(pro, dw); dn += dw; });
       let streak = 0; if (h.days.length) for (const d of days.filter(past).reverse()) { const on = !!checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
       return { h, g, dn, streak, wk: thisWeek ? [did(h, thisWeek), goal(h, thisWeek)] : null };
@@ -422,9 +422,7 @@ function weeks(days) { const w = []; days.forEach((d) => { if (!w.length || d.ge
 // 목표: 요일을 정했으면 그 요일 수, 아니면 주마다 주 n회 (날이 적은 주도 n칸)
 // 요일 없이 '주 7회'는 매일, '주 5회'는 월~금 칸으로 (화면에서만 바꿔 보여 줌)
 function norm(members) { (members || []).forEach((m) => (m.habits || []).forEach((h) => { if (!h.days) h.days = []; if (!h.days.length && (+h.perWeek === 7 || +h.perWeek === 5)) h.days = +h.perWeek === 7 ? [1, 2, 3, 4, 5, 6, 0] : [1, 2, 3, 4, 5]; })); }
-// 요일 습관인데 그 주에 정한 요일이 하나도 없으면(달 첫 주가 일요일 하루뿐 등) 그 주 날들에 칸을 주고 목표는 1번
-function planDays(h, wk) { const p = wk.filter((d) => h.days.includes(d.getDay())); return p.length ? p : wk; }
-function goal(h, wk) { return h.days.length ? (wk.some((d) => h.days.includes(d.getDay())) ? planDays(h, wk).length : 1) : Math.min(h.perWeek, wk.length); }
+function goal(h, wk) { return h.days.length ? wk.filter((d) => h.days.includes(d.getDay())).length : Math.min(h.perWeek, wk.length); }
 // '주 n회' 습관은 주마다 n칸: 칸 키는 "습관|그 주 첫날#칸번호". 예전에 날짜로 찍은 체크도 같이 셈
 function didIn(h, list, checks) { let n = 0; list.forEach((d) => { const k = `${h.id}|${ymd(d)}`; if (checks[k]) n++; for (let j = 0; j < 7; j++) if (checks[`${k}#${j}`]) n++; }); return n; }
 const done = (h, list) => didIn(h, list, S.checks);
@@ -454,7 +452,7 @@ function table() {
         const lock = m.paid === false && !S.admin;
         m.habits.forEach((h) => {
           if (!h.days.length) { if (d === wk[0]) html += `<td class="c slot" rowspan="${wk.length}"><div class="slots">${slots(h, wk).map((x, j) => `<button class="cb ${x.on ? "on" : ""} ${lock ? "ro lock" : ""}" data-h="${h.id}" data-d="${x.key}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${i + 1}주차 ${j + 1}번째"></button>`).join("")}</div></td>`; return; }
-          const on = !!S.checks[`${h.id}|${k}`], plan = h.days.length ? planDays(h, wk).includes(d) : true;
+          const on = !!S.checks[`${h.id}|${k}`], plan = h.days.length ? h.days.includes(dw) : true;
           if (!plan && !on) { html += `<td class="c off"></td>`; return; }
           html += `<td class="c ${plan ? "" : "off"}"><button class="cb ${on ? "on" : ""} ${plan ? "" : "dot"} ${lock ? "ro lock" : ""}" data-h="${h.id}" data-d="${k}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${k}"></button></td>`;
         });
