@@ -128,6 +128,13 @@ th.unpaid .pname { color: var(--muted); font-weight: 400; }
 .px { image-rendering: pixelated; vertical-align: middle; flex: none; }
 .pname { display: inline-flex; align-items: center; gap: 5px; }
 .adm-only[hidden] { display: none; }
+.quote { display: grid; gap: 6px; width: 100%; text-align: left; margin: 12px 0 14px; padding: 16px 18px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--acc); border-radius: 12px; color: var(--ink); font: inherit; cursor: pointer; position: relative; }
+.quote:hover { border-color: var(--acc); }
+.quote .qq { position: absolute; top: -6px; right: 14px; font-size: 54px; line-height: 1; color: var(--acc); opacity: .25; font-family: Georgia, serif; }
+.quote .qt { font-size: 16px; line-height: 1.65; font-weight: 600; text-wrap: pretty; transition: opacity .25s; }
+.quote .qb { font-size: 12.5px; color: var(--muted); }
+.quote .qn { font-size: 11.5px; color: var(--muted); justify-self: end; }
+.quote.fade .qt, .quote.fade .qb { opacity: 0; }
 </style>
 </head>
 <body>
@@ -135,6 +142,7 @@ th.unpaid .pname { color: var(--muted); font-weight: 400; }
   <a class="brand" href="/programs">← AI이현 프로그램</a>
   <h1 id="title">습관 챌린지</h1>
   <div class="sub" id="sub">각자 정한 습관을 매일 체크해요. 주소를 받은 사람만 들어올 수 있어요.</div>
+  <button type="button" class="quote" id="quote" title="누르면 다른 글이 나와요"><span class="qq">“</span><span class="qt" id="qText"></span><span class="qb" id="qBy"></span><span class="qn">눌러서 다음 글 ↻</span></button>
 
   <!-- 주소 없이 들어온 경우 -->
   <div id="home" hidden>
@@ -165,6 +173,7 @@ th.unpaid .pname { color: var(--muted); font-weight: 400; }
     <p class="note">요일을 정한 습관은 날짜마다, "주 n회" 습관은 주마다 n칸이에요. 점선 칸은 쉬기로 한 날이에요. 그래도 했으면 체크하면 달성에 더해져요. 모두 같은 화면을 보고, 누구 칸이든 체크할 수 있어요.</p>
   </div>
 </div>
+<script src="/programs/habit/quotes.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -311,6 +320,7 @@ $("#pot").addEventListener("click", async (e) => {
 // ── 전체 대시보드: 이 달 / 전체 기간. 이번 달은 오늘까지 목표 기준
 let dashMode = "month", ALL = null;
 function monthStat(month, members, checks) {
+  norm(members);
   const days = monthDays(month), W = weeks(days), past = (d) => ymd(d) <= today;
   const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
   const did = (h, list) => didIn(h, list, checks);
@@ -407,9 +417,11 @@ async function dashAll() {
 function monthDays(m) { const [y, mo] = m.split("-").map(Number); const out = []; for (let d = new Date(y, mo - 1, 1); d.getMonth() === mo - 1; d.setDate(d.getDate() + 1)) out.push(new Date(d)); return out; }
 function weeks(days) { const w = []; days.forEach((d) => { if (!w.length || d.getDay() === 1) w.push([]); w[w.length - 1].push(d); }); return w; }
 // 목표: 요일을 정했으면 그 요일 수, 아니면 주마다 주 n회 (날이 적은 주도 n칸)
+// 요일 없이 '주 7회'는 매일, '주 5회'는 월~금 칸으로 (화면에서만 바꿔 보여 줌)
+function norm(members) { (members || []).forEach((m) => (m.habits || []).forEach((h) => { if (!h.days) h.days = []; if (!h.days.length && (+h.perWeek === 7 || +h.perWeek === 5)) h.days = +h.perWeek === 7 ? [1, 2, 3, 4, 5, 6, 0] : [1, 2, 3, 4, 5]; })); }
 function goal(h, wk) { return h.days.length ? wk.filter((d) => h.days.includes(d.getDay())).length : h.perWeek; }
 // '주 n회' 습관은 주마다 n칸: 칸 키는 "습관|그 주 첫날#칸번호". 예전에 날짜로 찍은 체크도 같이 셈
-function didIn(h, list, checks) { let n = 0; list.forEach((d) => { const k = `${h.id}|${ymd(d)}`; if (checks[k]) n++; if (!h.days.length) for (let j = 0; j < 7; j++) if (checks[`${k}#${j}`]) n++; }); return n; }
+function didIn(h, list, checks) { let n = 0; list.forEach((d) => { const k = `${h.id}|${ymd(d)}`; if (checks[k]) n++; for (let j = 0; j < 7; j++) if (checks[`${k}#${j}`]) n++; }); return n; }
 const done = (h, list) => didIn(h, list, S.checks);
 // 이 주의 칸들: [{key, on}] (빈 칸은 칸 키, 예전 날짜 체크는 그 날짜 키로 보여서 끄면 지워짐)
 function slots(h, wk) {
@@ -420,12 +432,13 @@ function slots(h, wk) {
 }
 
 function table() {
+  norm(S.members);
   const days = monthDays(S.month), W = weeks(days), cols = [];
   S.members.forEach((m) => m.habits.forEach((h) => cols.push({ m, h })));
   const thisWeek = W.find((w) => w.some((d) => ymd(d) === today));
   let html = `<thead><tr class="who"><th class="date" rowspan="2">${+S.month.slice(5)}월</th><th rowspan="2"></th>${S.members.map((m) => `<th colspan="${m.habits.length || 1}" class="${m.paid === false ? "unpaid" : ""}"><button class="mini pname" data-edit="${m.id}" title="습관 고치기">${avatar(m)}${esc(m.name)} ✎</button>${m.paid === false
    ? `<div class="paybox"><span class="badge">미입금</span><button class="mini pay" data-pay="1">참가비 입금하러 가기</button>${S.admin ? `<button class="mini main" data-approve="${m.id}">입금 승인</button>` : ""}</div>`
-   : S.admin && m.paid ? `<div class="paybox"><span class="badge ok">입금 확인</span><button class="mini" data-unapprove="${m.id}">취소</button></div>` : ""}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${hicon(h.name, 2, h.icon)} ${esc(h.name)}<br><span class="wkline">${h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
+   : S.admin && m.paid ? `<div class="paybox"><span class="badge ok">입금 확인</span><button class="mini" data-unapprove="${m.id}">취소</button></div>` : ""}</th>`).join("")}</tr><tr>${S.members.map((m) => m.habits.length ? m.habits.map((h) => `<th>${hicon(h.name, 2, h.icon)} ${esc(h.name)}<br><span class="wkline">${h.days.length === 7 ? "매일" : h.days.length === 5 && [1, 2, 3, 4, 5].every((x) => h.days.includes(x)) ? "평일(월~금)" : h.days.length ? h.days.map((d) => DOW[d]).sort((a, b) => PICK.indexOf(DOW.indexOf(a)) - PICK.indexOf(DOW.indexOf(b))).join("") : "주 " + h.perWeek + "회"}${thisWeek ? ` · 이번 주 ${done(h, thisWeek)}/${goal(h, thisWeek)}` : ""}</span></th>`).join("") : "<th>-</th>").join("")}</tr></thead><tbody>`;
   W.forEach((wk, i) => {
     html += `<tr class="wk"><td colspan="${2 + Math.max(1, cols.length) + S.members.filter((m) => !m.habits.length).length}">${i + 1}주차</td></tr>`;
     wk.forEach((d) => {
@@ -437,6 +450,7 @@ function table() {
         m.habits.forEach((h) => {
           if (!h.days.length) { if (d === wk[0]) html += `<td class="c slot" rowspan="${wk.length}"><div class="slots">${slots(h, wk).map((x, j) => `<button class="cb ${x.on ? "on" : ""} ${lock ? "ro lock" : ""}" data-h="${h.id}" data-d="${x.key}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${i + 1}주차 ${j + 1}번째"></button>`).join("")}</div></td>`; return; }
           const on = !!S.checks[`${h.id}|${k}`], plan = h.days.length ? h.days.includes(dw) : true;
+          if (!plan && !on) { html += `<td class="c off"></td>`; return; }
           html += `<td class="c ${plan ? "" : "off"}"><button class="cb ${on ? "on" : ""} ${plan ? "" : "dot"} ${lock ? "ro lock" : ""}" data-h="${h.id}" data-d="${k}" data-m="${m.id}" aria-label="${esc(m.name)} ${esc(h.name)} ${k}"></button></td>`;
         });
       });
@@ -464,10 +478,50 @@ $("#tb").addEventListener("click", async (e) => {
   if (b.classList.contains("lock")) { toast("참가비 입금이 확인되면 체크할 수 있어요"); return payInfo(); }
   const f = `${b.dataset.h}|${b.dataset.d}`, on = !S.checks[f];
   if (on) S.checks[f] = "1"; else delete S.checks[f];
+  if (on) { const r = b.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2); ding(); }
   table(); ALL = null; dash();
   try { await api("POST", { g: G, month: S.month, op: "check", hid: b.dataset.h, date: b.dataset.d, on }); }
   catch (err) { if (on) delete S.checks[f]; else S.checks[f] = "1"; table(); dash(); toast(err.code === "unpaid" ? "참가비 입금이 확인되면 체크할 수 있어요" : "저장 못 했어요. 다시 눌러 주세요."); }
 });
+
+// ── 맨 위 명언 카드: 누를 때마다 다른 글 (최근 20개는 다시 안 나옴)
+(function () {
+  const Q = window.HQ || [], el = $("#quote"); if (!Q.length || !el) { if (el) el.hidden = true; return; }
+  const seen = [];
+  const show = () => { let i, n = 0; do { i = Math.random() * Q.length | 0; } while (seen.includes(i) && ++n < 50); seen.push(i); if (seen.length > 20) seen.shift(); $("#qText").textContent = Q[i][0]; $("#qBy").textContent = "— " + Q[i][1]; };
+  show();
+  el.onclick = () => { el.classList.add("fade"); setTimeout(() => { show(); el.classList.remove("fade"); }, 220); };
+})();
+
+// ── 체크했을 때 폭죽 + 띠링
+let AC = null;
+function ding() {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
+    const t0 = AC.currentTime, out = AC.createGain(); out.gain.value = 0.22; out.connect(AC.destination);
+    [[1318.5, 0], [1975.5, 0.09]].forEach(([fr, dt]) => {
+      [1, 2.01].forEach((mul, k) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = fr * mul; g.gain.setValueAtTime(0, t0 + dt); g.gain.linearRampToValueAtTime(k ? 0.25 : 1, t0 + dt + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + (k ? 0.25 : 0.55)); o.connect(g); g.connect(out); o.start(t0 + dt); o.stop(t0 + dt + 0.6); });
+    });
+  } catch {}
+}
+function burst(x, y) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = document.createElement("canvas"), dpr = devicePixelRatio || 1;
+  c.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999";
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr; document.body.appendChild(c);
+  const g = c.getContext("2d"); g.scale(dpr, dpr);
+  const COL = ["#ff4d6d", "#ffb703", "#06d6a0", "#4cc9f0", "#9b5de5", "#f15bb5"];
+  const ps = Array.from({ length: 46 }, () => { const a = Math.random() * Math.PI * 2, v = 3 + Math.random() * 6; return { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3, s: 4 + Math.random() * 5, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: COL[Math.random() * COL.length | 0], round: Math.random() < .35 }; });
+  const words = ["잘했어요!", "최고!", "오늘도 해냈다", "멋져요!", "한 칸 더!"]; const w = words[Math.random() * words.length | 0];
+  let t = 0;
+  (function f() {
+    t++; g.clearRect(0, 0, innerWidth, innerHeight);
+    ps.forEach((p) => { p.vy += .28; p.vx *= .98; p.x += p.vx; p.y += p.vy; p.r += p.vr; g.save(); g.globalAlpha = Math.max(0, 1 - t / 70); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; if (p.round) { g.beginPath(); g.arc(0, 0, p.s / 2, 0, 7); g.fill(); } else g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); g.restore(); });
+    g.save(); g.globalAlpha = Math.max(0, 1 - t / 55); g.font = "800 18px system-ui, sans-serif"; g.textAlign = "center"; g.lineWidth = 4; g.strokeStyle = "#fff"; g.fillStyle = "#ff4d6d"; g.strokeText(w, x, y - 18 - t * .6); g.fillText(w, x, y - 18 - t * .6); g.restore();
+    if (t < 72) requestAnimationFrame(f); else c.remove();
+  })();
+  try { navigator.vibrate && navigator.vibrate(18); } catch {}
+}
 
 // ── 참가비 안내
 function payInfo() {
