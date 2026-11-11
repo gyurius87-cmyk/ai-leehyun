@@ -327,7 +327,10 @@ function monthStat(month, members, checks) {
   return members.filter((m) => m.habits.length).map((m) => {
     const hs = m.habits.map((h) => {
       let g = 0, dn = 0;
-      W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk); g += h.days.length ? upto.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * upto.length) / wk.length)); dn += did(h, upto); });
+      // 목표는 어제까지 할 몫(오늘은 체크하면 그만큼 올라감), 한 주에 목표보다 많이 한 건 목표까지만 셈
+      W.forEach((wk) => { const upto = wk.filter(past); if (!upto.length) return; const full = goal(h, wk), before = upto.filter((d) => ymd(d) < today);
+        const pro = h.days.length ? before.filter((d) => h.days.includes(d.getDay())).length : Math.min(full, Math.round((full * before.length) / wk.length));
+        const dw = Math.min(did(h, upto), full); g += Math.max(pro, dw); dn += dw; });
       let streak = 0; if (h.days.length) for (const d of days.filter(past).reverse()) { const on = !!checks[`${h.id}|${ymd(d)}`], plan = h.days.length ? h.days.includes(d.getDay()) : true; if (on) streak++; else if (plan && ymd(d) !== today) break; }
       return { h, g, dn, streak, wk: thisWeek ? [did(h, thisWeek), goal(h, thisWeek)] : null };
     });
