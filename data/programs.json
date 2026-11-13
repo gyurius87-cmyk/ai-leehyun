@@ -369,6 +369,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/9M9iC7CgGVST7ce9KfCRLn",
       "cat": "업무·운영"
+    },
+    {
+      "id": "hook-maker",
+      "name": "SNS 후킹 제조기",
+      "status": "using",
+      "summary": "주제를 넣으면 후킹 여러 개와 어떻게 풀어 갈지 방향을 뽑아요. 찾은 후킹을 학습시키면 공식이 늘어나고 쓸 수 있는 후킹 수가 보여요.",
+      "start": "2026-11-13",
+      "private": true,
+      "href": "https://claude.ai/artifact/U8enQU1HNAUqXcfuVCRgq4",
+      "cat": "SNS·콘텐츠"
     }
   ]
 }
