@@ -39,6 +39,34 @@ export default async function handler(req, res) {
     for (let i = 0; i < flat.length; i += 2) links[flat[i]] = flat[i + 1];
     return res.json({ links });
   }
+  // 순일시간 체크: 켜져 있던 구간(세션) 저장. 관리자만.
+  if (b.op === "work") {
+    const W = "work:s", M = "work:meta";
+    const id = /^[a-z0-9]{4,40}$/.test(b.id) ? b.id : "";
+    const num = (v) => (Number.isFinite(+v) && +v > 0 ? Math.round(+v) : 0);
+    if (b.act === "save" && id && num(b.start) && num(b.last) >= num(b.start)) {
+      const o = { start: num(b.start), last: num(b.last), dev: clip(b.dev, 20) };
+      if (b.stopped) o.stopped = true;
+      await redis([["HSET", W, id, JSON.stringify(o)]]);
+      return res.json({ ok: true });
+    }
+    if (b.act === "del" && id) { await redis([["HDEL", W, id]]); return res.json({ ok: true }); }
+    if (b.act === "meta") {
+      if (b.set && typeof b.set === "object") await redis([["HSET", M, "aw", JSON.stringify({ last: num(b.set.last), snooze: num(b.set.snooze) })]]);
+      const v = (await redis([["HGET", M, "aw"]]))[0];
+      let aw = null; try { aw = v ? JSON.parse(v) : null; } catch {}
+      return res.json({ aw });
+    }
+    if (b.act === "list") {
+      const from = num(b.from), to = num(b.to) || Infinity;
+      const flat = (await redis([["HGETALL", W]]))[0] || [];
+      const sessions = [];
+      for (let i = 0; i < flat.length; i += 2) { try { const o = JSON.parse(flat[i + 1]); if (o.last >= from && o.start < to) sessions.push({ id: flat[i], ...o }); } catch {} }
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({ sessions });
+    }
+    return res.status(400).json({ error: "work" });
+  }
   const k = clip(b.k, 120);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date) ? b.date : "";
   // op: edit(원래 항목 고치기) · del(원래 항목 숨기기) · add(새 항목) · undo(고친 것 되돌리기) · min(그날 공부 시간)

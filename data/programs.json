@@ -357,7 +357,7 @@
       "summary": "화면을 열면 바로 업무 시간이 돌아가요. 1년 연력에 날마다 일한 시간이 쌓이고, PC마다 얼마나 오래 붙어 있었는지 비교해요.",
       "start": "2026-11-13",
       "private": true,
-      "href": "https://claude.ai/artifact/V5Toqsg9Zr9ohWGC9KdxZS",
+      "href": "/programs/worktime",
       "cat": "업무·운영"
     },
     {
