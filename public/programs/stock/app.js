@@ -1463,11 +1463,13 @@ function mdRich(t) {
   const parts = []; let buf = [];
   let ml = null;
   for (const l of String(t || "").split("\n")) {
-    if (ml) { if (l.trim() === "]]") { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: "analogs", a: ml.join("\n") }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); ml = null; } else ml.push(l); continue; }
-    if (/^\[\[analogs\s/i.test(l.trim()) && !/\]\]\s*$/.test(l.trim())) { ml = [l.trim().replace(/^\[\[analogs\s+/i, "")]; continue; }
+    if (ml) { if (l.trim() === "]]") { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; { const hd = ml[0].match(/^(analogs|vs)\s+(.*)$/i); BW.push({ k: hd[1].toLowerCase(), a: [hd[2], ...ml.slice(1)].join("\n") }); } parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); ml = null; } else ml.push(l); continue; }
+    if (/^\[\[(analogs|vs)\s/i.test(l.trim()) && !/\]\]\s*$/.test(l.trim())) { ml = [l.trim().replace(/^\[\[/, "")]; continue; }
     const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
+const KO_SYM = { NVDA: "엔비디아", MSFT: "마이크로소프트", META: "메타", GOOGL: "알파벳(구글)", GOOG: "알파벳(구글)", AMZN: "아마존", AAPL: "애플", TSLA: "테슬라", ORCL: "오라클", CRWV: "코어위브", PLTR: "팔란티어", AMD: "AMD", AVGO: "브로드컴", MU: "마이크론", TSM: "TSMC", INTC: "인텔", QCOM: "퀄컴", ARM: "ARM", SMCI: "슈퍼마이크로", "BRK-B": "버크셔 해서웨이", SPY: "S&P 500 (SPY)", RSP: "S&P 500 동일비중 (RSP)", QQQ: "나스닥100 (QQQ)", SOXX: "반도체 ETF (SOXX)", SMH: "반도체 ETF (SMH)", XLU: "유틸리티 ETF", XLP: "필수소비재 ETF", XLE: "에너지 ETF", XLF: "금융 ETF", GLD: "금 ETF", TLT: "미 장기채 ETF", UUP: "달러 ETF", ARKK: "ARK 혁신 ETF", SOXS: "반도체 3배 인버스", SQQQ: "나스닥 3배 인버스", SH: "S&P 500 인버스", "^IXIC": "나스닥", "^GSPC": "S&P 500", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥", "^VIX": "VIX", "^TNX": "미 10년물 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "069500.KS": "KODEX 200", "114800.KS": "KODEX 인버스", "035420.KS": "네이버", "035720.KS": "카카오", "005380.KS": "현대차", "373220.KS": "LG에너지솔루션" };
+const koN = (sym, fb) => KO_SYM[sym] || fb || sym;
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b"];
 const bwDark = () => getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
 // 차트 위 범례: 선마다 켜고 끄기 + 주요 지수 넣기 (opt.mode: "pct" 시작=0%, "won" 금액, 없으면 지수 추가 안 함)
@@ -1510,7 +1512,7 @@ async function bwFill(el, w) {
       const gs = await Promise.all(syms.map((x) => api(`op=chart&s=${encodeURIComponent(x)}&r=${rg}&i=${["5y", "10y", "max"].includes(rg) ? "1wk" : "1d"}`).catch(() => null)));
       const ok = syms.map((x, i) => ({ x, g: gs[i] })).filter((v) => v.g?.rows?.length);
       if (!ok.length) throw 0;
-      const many = ok.length > 1, ser = ok.map(({ x, g }) => { const rows = g.rows.filter((r) => r.c != null), b = rows[0].c; return { name: g.name || x, v: (rows.at(-1).c / b - 1) * 100, data: rows.map((r) => ({ time: r.d, value: many ? Math.round((r.c / b - 1) * 10000) / 100 : r.c })) }; });
+      const many = ok.length > 1, ser = ok.map(({ x, g }) => { const rows = g.rows.filter((r) => r.c != null), b = rows[0].c; return { name: koN(x, g.name), v: (rows.at(-1).c / b - 1) * 100, data: rows.map((r) => ({ time: r.d, value: many ? Math.round((r.c / b - 1) * 10000) / 100 : r.c })) }; });
       el.insertAdjacentHTML("beforeend", `<div class="bw-t">${many ? "수익률 비교 (시작 = 0%)" : esc(ser[0].name) + " 주가"} · ${esc(rg)}</div>`); bwChartT(el, ser, many, many ? { mode: "pct" } : {});
     } else if (k === "tv") {
       el.innerHTML = `<div class="bw-t">트레이딩뷰 · ${esc(a)}</div><iframe class="bw-tv" src="https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(a)}&interval=D&theme=${bwDark() ? "dark" : "light"}&style=1&locale=kr&hide_side_toolbar=1&withdateranges=1&allow_symbol_change=1" loading="lazy"></iframe>`;
@@ -1526,16 +1528,16 @@ async function bwFill(el, w) {
       <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(r.ko || r.n)} <span class="note">${esc(r.t || "")}</span></td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
     } else if (k === "analog") {
       // [[analog SYM | 기준일 | 과거일1, 과거일2 | 거래일 수]] 기준일부터 지금까지와, 과거 날짜부터 같은 길이를 0%로 맞춰 겹쳐요
-      const [sym, d0, past, nS] = a.split("|").map((x) => x.trim()), N = Math.min(400, +nS || 120), pd = (past || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
+      const [sym, d0, past, nS, labS, ttl] = a.split("|").map((x) => x.trim()), N = Math.min(400, +nS || 120), pd = (past || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5), labs = (labS || "").split(",").map((x) => x.trim());
       const g = await api(`op=chart&s=${encodeURIComponent(sym)}&r=max&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null); if (!rows.length) throw 0;
       const win = (from, n) => { const i0 = rows.findIndex((r) => r.d >= from); if (i0 < 0) return null; const w = rows.slice(i0, i0 + n), b = w[0].c; return w.map((r, i) => ({ i, d: r.d, v: (r.c / b - 1) * 100 })); };
       let D0 = d0; if (/^peak/i.test(d0)) { const yr = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10); D0 = rows.filter((r) => r.d >= yr).reduce((m, r) => (r.c > m.c ? r : m)).d; }
       const cur = win(D0, N); if (!cur) throw 0; const L = Math.max(cur.length, ...pd.map((x) => win(x, N)?.length || 0));
-      const ser = [{ name: `지금 (${D0}~)`, w: 3, data: cur }, ...pd.map((x) => ({ name: `${x}~`, data: win(x, N) || [] }))].filter((x) => x.data.length);
+      const ser = [{ name: `지금 (${D0} 고점부터)`, w: 3, data: cur }, ...pd.map((x, i) => ({ name: labs[i] ? `${labs[i]} (${x} 고점부터)` : `${x}~`, data: win(x, N) || [] }))].filter((x) => x.data.length);
       const corr = (A, B) => { const n = Math.min(A.length, B.length); if (n < 5) return null; const a1 = A.slice(0, n).map((x) => x.v), b1 = B.slice(0, n).map((x) => x.v), ma = a1.reduce((t, x) => t + x, 0) / n, mb = b1.reduce((t, x) => t + x, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (a1[i] - ma) * (b1[i] - mb); sxx += (a1[i] - ma) ** 2; syy += (b1[i] - mb) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; };
       const t0 = Date.UTC(2000, 0, 3); const toT = (i) => new Date(t0 + i * 864e5).toISOString().slice(0, 10);
       const S = ser.map((x, i) => ({ name: x.name, w: x.w, color: i ? undefined : "#e11d48", v: x.data.at(-1).v, data: x.data.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }));
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${esc(g.name || sym)} · 지금 vs 과거 (시작일 = 0%, 가로축 = 시작 후 거래일 수 ${L}일)</div>`); bwChartT(el, S, true);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${esc(ttl || koN(sym, g.name) + " · 지금 vs 과거")}</div><p class="note" style="margin:0 0 4px">각 하락이 시작된 고점을 0%로 맞춰 겹쳤어요 · 가로축 = 고점 뒤 거래일 수</p>`); bwChartT(el, S, true);
       el.querySelector("div[style*='height']")?.insertAdjacentHTML("afterend", "");
       const mdd = (d) => { let pk = -1e9, m = 0; d.forEach((p) => { const lv = 100 + p.v; pk = Math.max(pk, lv); m = Math.min(m, (lv / pk - 1) * 100); }); return m; };
       el.insertAdjacentHTML("beforeend", `<table style="margin-top:8px;font-size:13px"><tr><th>구간</th><th>지금과 닮은 정도</th><th>같은 기간 최대 하락</th><th>그 기간 끝 수익률</th><th>${N}일 전체 끝</th></tr>${ser.map((x, i) => { const c = i ? corr(cur, x.data) : 1, n = cur.length, part = x.data.slice(0, n); return `<tr><td>${esc(x.name)}</td><td class="num">${c == null ? "-" : i ? Math.round(c * 100) + "%" : "기준"}</td><td class="num down">${mdd(part).toFixed(1)}%</td><td class="num ${ud(part.at(-1)?.v)}">${pct(part.at(-1)?.v)}</td><td class="num ${ud(x.data.at(-1).v)}">${pct(x.data.at(-1).v)}</td></tr>`; }).join("")}</table><p class="note" style="margin:4px 0 0">닮은 정도 = 지금 구간 길이만큼 두 선의 모양이 얼마나 같이 움직였는지 (상관계수). 100%에 가까울수록 비슷해요.</p>`);
@@ -1545,12 +1547,19 @@ async function bwFill(el, w) {
       let start = startS;
       if (/^peak:/i.test(startS)) { const ps = startS.slice(5).trim(), g = await api(`op=chart&s=${encodeURIComponent(ps)}&r=1y&i=1d`); const rr = (g.rows || []).filter((r) => r.c != null); start = rr.reduce((m, r) => (r.c > m.c ? r : m)).d; }
       const gs = await Promise.all(syms.map((x) => (/^(현금|cash)$/i.test(x) ? null : api(`op=chart&s=${encodeURIComponent(x)}&r=2y&i=1d`).catch(() => null))));
-      const ser = syms.map((x, i) => { if (/^(현금|cash)$/i.test(x)) return { name: "현금 그대로", cash: true }; const rows = (gs[i]?.rows || []).filter((r) => r.c != null && r.d >= start); if (!rows.length) return null; const b = rows[0].c; return { name: gs[i].name ? `${gs[i].name} (${x})` : x, rows: rows.map((r) => ({ time: r.d, value: Math.round((amt * r.c) / b) })) }; }).filter(Boolean);
+      const ser = syms.map((x, i) => { if (/^(현금|cash)$/i.test(x)) return { name: "현금 그대로", cash: true }; const rows = (gs[i]?.rows || []).filter((r) => r.c != null && r.d >= start); if (!rows.length) return null; const b = rows[0].c; return { name: koN(x, gs[i].name ? `${gs[i].name} (${x})` : x), rows: rows.map((r) => ({ time: r.d, value: Math.round((amt * r.c) / b) })) }; }).filter(Boolean);
       const ref = ser.find((x) => x.rows)?.rows || []; ser.forEach((x) => { if (x.cash) x.rows = ref.map((r) => ({ time: r.time, value: amt })); });
       const won = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
       const S = ser.map((x, i) => ({ name: x.name, color: x.cash ? "#94a3b8" : undefined, dash: x.cash, v: (x.rows.at(-1).value / amt - 1) * 100, data: x.rows }));
       el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>`); bwChartT(el, S, true, { mode: "won", amt });
       el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...S].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, (Math.abs(x.v) / Math.max(...S.map((z) => Math.abs(z.v)), 1)) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>`);
+    } else if (k === "vs") {
+      // [[vs 주제 | 왼쪽 이름 | 오른쪽 이름 ⏎ L | 사람 | 말 ⏎ R | 사람 | 말 ... ]]
+      const L = a.split("\n").map((x) => x.trim()).filter(Boolean), [topic, ln, rn] = L[0].split("|").map((x) => x.trim());
+      const it = L.slice(1).map((x) => x.split("|").map((y) => y.trim())).filter((x) => /^[LR]$/i.test(x[0]));
+      const side = (k2) => it.filter((x) => x[0].toUpperCase() === k2).map((x) => `<div class="vs-p"><b>${esc(x[1] || "")}</b>${x[3] ? `<small>${esc(x[3])}</small>` : ""}<p>${esc(x[2] || "")}</p></div>`).join("");
+      el.classList.add("vs"); el.innerHTML = `${topic ? `<div class="vs-t">${esc(topic)}</div>` : ""}<div class="vs-g md"><div class="vs-l"><div class="vs-h">🔴 ${esc(ln || "거품이다")} <span>${it.filter((x) => x[0].toUpperCase() === "L").length}</span></div>${side("L")}</div><div class="vs-mid">VS</div><div class="vs-r"><div class="vs-h">🟢 ${esc(rn || "아니다")} <span>${it.filter((x) => x[0].toUpperCase() === "R").length}</span></div>${side("R")}</div></div>`;
+      bwLinkNames(el);
     } else if (k === "analogs") {
       // 여러 줄: 첫 줄 "심볼 | 지금 시작(peak) | 거래일 수", 다음 줄마다 "과거 시작일 | 제목 | 한 줄 설명 | 날짜 내용; 날짜 내용"
       const L = a.split("\n").map((x) => x.trim()).filter(Boolean), [sym0, d0, nS] = L[0].split("|").map((x) => x.trim()), N = Math.min(500, +nS || 250);
