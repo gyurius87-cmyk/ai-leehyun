@@ -12,6 +12,7 @@ import { f13Find, f13FundView, f13Refresh, f13Build, f13Agg, f13Stock, f13Mine, 
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { monthGet, monthMake } from "./_monthly.js";
+import { finMany } from "./_fin.js";
 import { blogList, blogGet, blogView, blogSave, blogDel, blogImgPut, blogImgGet, blogAi } from "./_blog.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
 import { studyAsk, studyFollow, studyList, studyDel } from "./_study.js";
@@ -631,6 +632,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force, +q.days || 3), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(); a = await ytAll(); } return res.json(a); }
       if (op === "f13") return res.json(await f13Agg());
+      if (op === "fin") return res.json(await finMany(q.s));
       if (op === "f13find") return res.json({ list: await f13Find(q.q) });
       if (op === "f13fund") { try { return res.json(await f13FundView(String(q.cik || ""), !!q.force)); } catch (e) { return res.status(502).json({ error: "sec", msg: String(e?.message || e).slice(0, 200) }); } }
       if (op === "f13stock") return res.json(await f13Stock(q.q, findSym));

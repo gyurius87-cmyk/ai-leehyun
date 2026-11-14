@@ -1463,12 +1463,12 @@ function mdRich(t) {
   const parts = []; let buf = [];
   let ml = null;
   for (const l of String(t || "").split("\n")) {
-    if (ml) { if (l.trim() === "]]") { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; { const hd = ml[0].match(/^(analogs|vs)\s+(.*)$/i); BW.push({ k: hd[1].toLowerCase(), a: [hd[2], ...ml.slice(1)].join("\n") }); } parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); ml = null; } else ml.push(l); continue; }
-    if (/^\[\[(analogs|vs)\s/i.test(l.trim()) && !/\]\]\s*$/.test(l.trim())) { ml = [l.trim().replace(/^\[\[/, "")]; continue; }
-    const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|f13top|f13move|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
+    if (ml) { if (l.trim() === "]]") { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; { const hd = ml[0].match(/^(analogs|vs|plans)\s+(.*)$/i); BW.push({ k: hd[1].toLowerCase(), a: [hd[2], ...ml.slice(1)].join("\n") }); } parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); ml = null; } else ml.push(l); continue; }
+    if (/^\[\[(analogs|vs|plans)\s/i.test(l.trim()) && !/\]\]\s*$/.test(l.trim())) { ml = [l.trim().replace(/^\[\[/, "")]; continue; }
+    const m = l.trim().match(/^\[\[(chart|tv|bars|pie|fin|f13|f13bt|f13rank|f13top|f13move|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
-const KO_SYM = { NVDA: "엔비디아", MSFT: "마이크로소프트", META: "메타", GOOGL: "알파벳(구글)", GOOG: "알파벳(구글)", AMZN: "아마존", AAPL: "애플", TSLA: "테슬라", ORCL: "오라클", CRWV: "코어위브", PLTR: "팔란티어", AMD: "AMD", AVGO: "브로드컴", MU: "마이크론", TSM: "TSMC", INTC: "인텔", QCOM: "퀄컴", ARM: "ARM", SMCI: "슈퍼마이크로", "BRK-B": "버크셔 해서웨이", SPY: "S&P 500 (SPY)", RSP: "S&P 500 동일비중 (RSP)", QQQ: "나스닥100 (QQQ)", SOXX: "반도체 ETF (SOXX)", SMH: "반도체 ETF (SMH)", XLU: "유틸리티 ETF", XLP: "필수소비재 ETF", XLE: "에너지 ETF", XLF: "금융 ETF", GLD: "금 ETF", TLT: "미 장기채 ETF", UUP: "달러 ETF", ARKK: "ARK 혁신 ETF", SOXS: "반도체 3배 인버스", SQQQ: "나스닥 3배 인버스", SH: "S&P 500 인버스", "^IXIC": "나스닥", "^GSPC": "S&P 500", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥", "^VIX": "VIX", "^TNX": "미 10년물 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "069500.KS": "KODEX 200", "114800.KS": "KODEX 인버스", "035420.KS": "네이버", "035720.KS": "카카오", "005380.KS": "현대차", "373220.KS": "LG에너지솔루션", V: "비자", MA: "마스터카드", AXP: "아메리칸 익스프레스", KO: "코카콜라", BAC: "뱅크오브아메리카", OXY: "옥시덴탈", CVX: "셰브런", KHC: "크래프트 하인즈", MCO: "무디스", CB: "처브", KR: "크로거", DVA: "다비타", VRSN: "베리사인", SIRI: "시리우스XM", UNH: "유나이티드헬스", JPM: "JP모건", GS: "골드만삭스", WFC: "웰스파고", C: "씨티그룹", UBER: "우버", NFLX: "넷플릭스", LLY: "일라이 릴리", NVO: "노보 노디스크", JNJ: "존슨앤드존슨", PG: "P&G", WMT: "월마트", COST: "코스트코", HD: "홈디포", MCD: "맥도날드", SBUX: "스타벅스", NKE: "나이키", DIS: "디즈니", CMG: "치폴레", HLT: "힐튼", BKNG: "부킹홀딩스", ADBE: "어도비", CRM: "세일즈포스", NOW: "서비스나우", SHOP: "쇼피파이", PYPL: "페이팔", COIN: "코인베이스", HOOD: "로빈후드", BABA: "알리바바", PDD: "핀둬둬", JD: "징둥", BIDU: "바이두", SE: "씨", CPNG: "쿠팡", MELI: "메르카도리브레", ASML: "ASML", LRCX: "램리서치", AMAT: "어플라이드 머티리얼즈", KLAC: "KLA", TXN: "텍사스 인스트루먼트", ADI: "아나로그 디바이스", MRVL: "마벨", ANET: "아리스타", DELL: "델", HPE: "HPE", IBM: "IBM", CSCO: "시스코", VST: "비스트라", CEG: "컨스텔레이션 에너지", GEV: "GE 버노바", GE: "GE 에어로스페이스", CAT: "캐터필러", DE: "디어", LMT: "록히드 마틴", RTX: "RTX", BA: "보잉", XOM: "엑슨모빌", SPGI: "S&P 글로벌", BX: "블랙스톤", KKR: "KKR", APO: "아폴로", BRKB: "버크셔 해서웨이", "BRK.B": "버크셔 해서웨이", IWM: "러셀2000 ETF", EEM: "신흥국 ETF", IVV: "S&P 500 (IVV)", VOO: "S&P 500 (VOO)", VTI: "미국 전체 ETF", IEMG: "신흥국 ETF", SLV: "은 ETF", IAU: "금 ETF" };
+const KO_SYM = { NVDA: "엔비디아", MSFT: "마이크로소프트", META: "메타", GOOGL: "알파벳(구글)", GOOG: "알파벳(구글)", AMZN: "아마존", AAPL: "애플", TSLA: "테슬라", ORCL: "오라클", CRWV: "코어위브", PLTR: "팔란티어", AMD: "AMD", AVGO: "브로드컴", MU: "마이크론", TSM: "TSMC", INTC: "인텔", QCOM: "퀄컴", ARM: "ARM", SMCI: "슈퍼마이크로", "BRK-B": "버크셔 해서웨이", SPY: "S&P 500 (SPY)", RSP: "S&P 500 동일비중 (RSP)", QQQ: "나스닥100 (QQQ)", SOXX: "반도체 ETF (SOXX)", SMH: "반도체 ETF (SMH)", XLU: "유틸리티 ETF", XLP: "필수소비재 ETF", XLE: "에너지 ETF", XLF: "금융 ETF", GLD: "금 ETF", TLT: "미 장기채 ETF", UUP: "달러 ETF", ARKK: "ARK 혁신 ETF", SOXS: "반도체 3배 인버스", SQQQ: "나스닥 3배 인버스", SH: "S&P 500 인버스", "^IXIC": "나스닥", "^GSPC": "S&P 500", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥", "^VIX": "VIX", "^TNX": "미 10년물 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "069500.KS": "KODEX 200", "114800.KS": "KODEX 인버스", "035420.KS": "네이버", "035720.KS": "카카오", "005380.KS": "현대차", "373220.KS": "LG에너지솔루션", V: "비자", MA: "마스터카드", AXP: "아메리칸 익스프레스", KO: "코카콜라", BAC: "뱅크오브아메리카", OXY: "옥시덴탈", CVX: "셰브런", KHC: "크래프트 하인즈", MCO: "무디스", CB: "처브", KR: "크로거", DVA: "다비타", VRSN: "베리사인", SIRI: "시리우스XM", UNH: "유나이티드헬스", JPM: "JP모건", GS: "골드만삭스", WFC: "웰스파고", C: "씨티그룹", UBER: "우버", NFLX: "넷플릭스", LLY: "일라이 릴리", NVO: "노보 노디스크", JNJ: "존슨앤드존슨", PG: "P&G", WMT: "월마트", COST: "코스트코", HD: "홈디포", MCD: "맥도날드", SBUX: "스타벅스", NKE: "나이키", DIS: "디즈니", CMG: "치폴레", HLT: "힐튼", BKNG: "부킹홀딩스", ADBE: "어도비", CRM: "세일즈포스", NOW: "서비스나우", SHOP: "쇼피파이", PYPL: "페이팔", COIN: "코인베이스", HOOD: "로빈후드", BABA: "알리바바", PDD: "핀둬둬", JD: "징둥", BIDU: "바이두", SE: "씨", CPNG: "쿠팡", MELI: "메르카도리브레", ASML: "ASML", LRCX: "램리서치", AMAT: "어플라이드 머티리얼즈", KLAC: "KLA", TXN: "텍사스 인스트루먼트", ADI: "아나로그 디바이스", MRVL: "마벨", ANET: "아리스타", DELL: "델", HPE: "HPE", IBM: "IBM", CSCO: "시스코", VST: "비스트라", CEG: "컨스텔레이션 에너지", GEV: "GE 버노바", GE: "GE 에어로스페이스", CAT: "캐터필러", DE: "디어", LMT: "록히드 마틴", RTX: "RTX", BA: "보잉", XOM: "엑슨모빌", SPGI: "S&P 글로벌", BX: "블랙스톤", KKR: "KKR", APO: "아폴로", BRKB: "버크셔 해서웨이", "BRK.B": "버크셔 해서웨이", IWM: "러셀2000 ETF", EEM: "신흥국 ETF", IVV: "S&P 500 (IVV)", VOO: "S&P 500 (VOO)", VTI: "미국 전체 ETF", IEMG: "신흥국 ETF", SLV: "은 ETF", IAU: "금 ETF", XLK: "기술 ETF", XLV: "헬스케어 ETF", XLI: "산업재 ETF", XLC: "커뮤니케이션 ETF", XLY: "경기소비재 ETF", XLB: "소재 ETF", XLRE: "리츠 ETF", MAGS: "매그니피센트7 ETF", "SPY/RSP": "대형주 쏠림 (SPY÷RSP)", "SOXX/RSP": "반도체 ÷ 동일비중 S&P", "SOXX/SPY": "반도체 ÷ S&P 500" };
 const koN = (sym, fb) => KO_SYM[sym] || fb || sym;
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b", "#0f766e", "#a16207", "#be185d", "#4338ca", "#15803d", "#9f1239"];
 const bwDark = () => getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
@@ -1493,6 +1493,7 @@ function bwChartT(el, series, pctMode, opt = {}) {
       } catch { b.disabled = false; b.textContent = "못 받음"; } };
   }
   items.forEach((x) => (x.amt = opt.amt));
+  return { ch: h.ch, items };
 }
 const bwDay = (t, xi) => { const ms = typeof t === "string" ? Date.parse(t) : typeof t === "object" ? Date.UTC(t.year, t.month - 1, t.day) : t * 1000; return Math.round((ms - xi) / 864e5) + "일"; };
 const won0 = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
@@ -1509,8 +1510,10 @@ async function bwFill(el, w) {
   const { k, a } = w; el.innerHTML = "";
   try {
     if (k === "chart") {
-      const [symsS, rg0] = a.split(/\s+/), syms = symsS.split(",").filter(Boolean).slice(0, 6), rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"].includes(rg0) ? rg0 : "1y";
-      const gs = await Promise.all(syms.map((x) => api(`op=chart&s=${encodeURIComponent(x)}&r=${rg}&i=${["5y", "10y", "max"].includes(rg) ? "1wk" : "1d"}`).catch(() => null)));
+      const [symsS, rg0] = a.split(/\s+/), syms = symsS.split(",").filter(Boolean).slice(0, 12), rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"].includes(rg0) ? rg0 : "1y";
+      const g1 = (x) => api(`op=chart&s=${encodeURIComponent(x)}&r=${rg}&i=${["5y", "10y", "max"].includes(rg) ? "1wk" : "1d"}`).catch(() => null);
+      // "SPY/RSP" = 두 종목 나누기 (올라가면 앞쪽이 더 강함)
+      const gs = await Promise.all(syms.map(async (x) => { if (!x.includes("/")) return g1(x); const [p1, p2] = x.split("/"), [A, Bq] = await Promise.all([g1(p1), g1(p2)]); if (!A?.rows || !Bq?.rows) return null; const M = new Map(Bq.rows.filter((r) => r.c).map((r) => [r.d, r.c])); return { name: `${koN(p1)} ÷ ${koN(p2)}`, rows: A.rows.filter((r) => r.c != null && M.has(r.d)).map((r) => ({ d: r.d, c: r.c / M.get(r.d) })) }; }));
       const ok = syms.map((x, i) => ({ x, g: gs[i] })).filter((v) => v.g?.rows?.length);
       if (!ok.length) throw 0;
       const many = ok.length > 1, ser = ok.map(({ x, g }) => { const rows = g.rows.filter((r) => r.c != null), b = rows[0].c; return { name: koN(x, g.name), v: (rows.at(-1).c / b - 1) * 100, data: rows.map((r) => ({ time: r.d, value: many ? Math.round((r.c / b - 1) * 10000) / 100 : r.c })) }; });
@@ -1564,6 +1567,35 @@ async function bwFill(el, w) {
       const side = (k2) => it.filter((x) => x[0].toUpperCase() === k2).map((x) => `<div class="vs-p"><b>${esc(x[1] || "")}</b>${x[3] ? `<small>${esc(x[3])}</small>` : ""}<p>${esc(x[2] || "")}</p></div>`).join("");
       el.classList.add("vs"); el.innerHTML = `${topic ? `<div class="vs-t">${esc(topic)}</div>` : ""}<div class="vs-g md"><div class="vs-l"><div class="vs-h">🔴 ${esc(ln || "거품이다")} <span>${it.filter((x) => x[0].toUpperCase() === "L").length}</span></div>${side("L")}</div><div class="vs-mid">VS</div><div class="vs-r"><div class="vs-h">🟢 ${esc(rn || "아니다")} <span>${it.filter((x) => x[0].toUpperCase() === "R").length}</span></div>${side("R")}</div></div>`;
       bwLinkNames(el);
+    } else if (k === "plans") {
+      // 여러 줄: 첫 줄 "금액 | peak:SYM 또는 시작일", 다음 줄마다 "이름 | 한 줄 설명 | 시작 SYM; 신호 SYM:50+GLD:50; ..."
+      // 신호: YYYY-MM-DD · dd:-10 (기준 지수 고점 대비 -10%) · ma50dn / ma50up (50일선 아래로·위로) · bounce:+10 (바닥 대비 +10%)
+      const Ls = a.split("\n").map((x) => x.trim()).filter(Boolean), [amtS, stS] = Ls[0].split("|").map((x) => x.trim()), amt = +String(amtS).replace(/[^\d]/g, "") || 1e8;
+      const refS = /^peak:/i.test(stS) ? stS.slice(5).trim() : "^SOX", rg = await api(`op=chart&s=${encodeURIComponent(refS)}&r=2y&i=1d`), ref = (rg.rows || []).filter((r) => r.c != null); if (!ref.length) throw 0;
+      const yr = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10), start = /^peak:/i.test(stS) ? ref.filter((r) => r.d >= yr).reduce((m, r) => (r.c > m.c ? r : m)).d : stS;
+      ref.forEach((r, i) => { if (i >= 49) r.ma = ref.slice(i - 49, i + 1).reduce((t, x) => t + x.c, 0) / 50; });
+      const R = ref.filter((r) => r.d >= start), cash = (x) => /^(현금|cash)$/i.test(x);
+      const parseW = (t) => t.split("+").map((x) => { const [sy, w] = x.trim().split(":"); return [sy.trim(), w ? +w / 100 : null]; }).map((x, i, A) => [x[0], x[1] ?? 1 / A.length]);
+      const SC = Ls.slice(1).map((l) => { const [n, desc, st] = l.split("|").map((x) => (x || "").trim()); return { n, desc, steps: (st || "").split(";").map((x) => x.trim()).filter(Boolean).map((x) => { const m = x.match(/^(\S+)\s+(.+)$/); return m ? { tr: m[1], w: parseW(m[2]) } : null; }).filter(Boolean) }; }).filter((x) => x.steps.length);
+      const syms = [...new Set(SC.flatMap((x) => x.steps.flatMap((st) => st.w.map((w) => w[0]))).filter((x) => !cash(x)))];
+      const gs = await Promise.all(syms.map((x) => api(`op=chart&s=${encodeURIComponent(x)}&r=2y&i=1d`).catch(() => null))), PX = {};
+      syms.forEach((x, i) => { const M = new Map(); (gs[i]?.rows || []).forEach((r) => r.c != null && M.set(r.d, r.c)); PX[x] = M; });
+      const px = (sy, d, last) => (cash(sy) ? 1 : PX[sy]?.get(d) ?? last[sy]);
+      const sigTxt = (tr) => /^\d{4}-/.test(tr) ? tr : tr.startsWith("dd:") ? `${koN(refS)} 고점 대비 ${tr.slice(3)}%` : tr === "ma50dn" ? `${koN(refS)} 50일선 아래로` : tr === "ma50up" ? `${koN(refS)} 50일선 위로 회복` : tr.startsWith("bounce:") ? `${koN(refS)} 바닥 대비 ${tr.slice(7)}% 반등` : tr;
+      const hit = (tr, i, from, pk, lo) => { const r = R[i]; if (/^\d{4}-/.test(tr)) return r.d >= tr; if (tr.startsWith("dd:")) return (r.c / pk - 1) * 100 <= +tr.slice(3); if (tr === "ma50dn") return r.ma && r.c < r.ma; if (tr === "ma50up") return r.ma && r.c > r.ma; if (tr.startsWith("bounce:")) return (r.c / lo - 1) * 100 >= +tr.slice(7); return false; };
+      const res = SC.map((sc) => { let units = {}, last = {}, si = 0, pk = R[0].c, lo = R[0].c; const done = [], curve = [];
+        R.forEach((r, i) => { syms.forEach((sy) => { const p = PX[sy].get(r.d); if (p != null) last[sy] = p; }); pk = Math.max(pk, r.c); lo = Math.min(lo, r.c);
+          let V = i === 0 ? amt : Object.entries(units).reduce((t, [sy, u]) => t + u * (px(sy, r.d, last) || 0), 0);
+          const st = sc.steps[si]; if (st && (si === 0 ? i === 0 : hit(st.tr, i, null, pk, lo))) { units = {}; st.w.forEach(([sy, w]) => { const p = px(sy, r.d, last); if (p) units[sy] = (units[sy] || 0) + (V * w) / p; }); done.push({ d: r.d, st, i }); si++; lo = r.c; }
+          curve.push({ time: r.d, value: Math.round(V) }); });
+        return { ...sc, curve, done, v: (curve.at(-1).value / amt - 1) * 100 }; });
+      const won = (v) => won0(v), wTxt = (w) => w.map(([sy, x]) => `${cash(sy) ? "현금" : koN(sy)}${w.length > 1 ? " " + Math.round(x * 100) + "%" : ""}`).join(" + ");
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">시나리오 ${res.length}개 · ${esc(start)} (${esc(koN(refS))} 고점)에 ${won(amt)} · 신호대로 갈아탔다면 지금 얼마</div>`);
+      const h = bwChartT(el, res.map((x) => ({ name: x.n, data: x.curve, v: x.v })), true, { mode: "won", amt });
+      h?.items.forEach((it, i) => res[i] && it.sr.setMarkers(res[i].done.slice(1).map((dn) => ({ time: dn.d, position: "aboveBar", color: BWC[i % BWC.length], shape: "circle", text: wTxt(dn.st.w).slice(0, 14) }))));
+      const mx = Math.max(...res.map((x) => Math.abs(x.v)), 1);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${res.map((x, i) => ({ ...x, oi: i })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n"><span style="color:${BWC[x.oi % BWC.length]}">●</span> ${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(x.n)}</span><span class="tr ng"><i style="width:${(Math.abs(x.v) / mx) * 50}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>
+        <div class="pl-cards">${res.map((x, i) => `<div class="pl-c" style="border-left-color:${BWC[i % BWC.length]}"><h4>${esc(x.n)} <span class="${ud(x.v)}">${pct(x.v)}</span></h4>${x.desc ? `<p class="mo-p">${esc(x.desc)}</p>` : ""}<ol class="mo-steps">${x.steps.map((st, k2) => { const dn = x.done[k2]; return `<li><span class="dt">${dn ? esc(dn.d) : "아직 안 옴"}</span> <b>${esc(wTxt(st.w))}</b>${k2 ? ` <span class="note">← ${esc(sigTxt(st.tr))}</span>` : ` <span class="note">← 고점에서 시작</span>`}</li>`; }).join("")}</ol></div>`).join("")}</div>`);
     } else if (k === "analogs") {
       // 여러 줄: 첫 줄 "심볼 | 지금 시작(peak) | 거래일 수", 다음 줄마다 "과거 시작일 | 제목 | 한 줄 설명 | 날짜 내용; 날짜 내용"
       const L = a.split("\n").map((x) => x.trim()).filter(Boolean), [sym0, d0, nS] = L[0].split("|").map((x) => x.trim()), N = Math.min(500, +nS || 250);
@@ -1604,6 +1636,32 @@ async function bwFill(el, w) {
         });
       };
       await run(sym0);
+    } else if (k === "fin") {
+      // [[fin MSFT,GOOGL | rev,ni,nim,capex,op | 제목 | sum]] SEC 공시 연간 실적 막대 (회계연도 + 최근 4분기 합)
+      const [symS, mS, ttl, mode] = a.split("|").map((x) => (x || "").trim()), syms = symS.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10), ms = (mS || "rev,ni").split(",").map((x) => x.trim()).filter(Boolean), sum = /sum|합/.test(mode || "");
+      const d = await api("op=fin&s=" + encodeURIComponent(syms.join(","))), L = (d.list || []).filter((x) => x && x.m); if (!L.length) throw 0;
+      const MN = { rev: "매출", ni: "순이익", op: "영업이익", capex: "설비투자 (데이터센터 등)", nim: "순이익률" };
+      const get = (x, mk) => { if (mk === "nim") { const r = get(x, "rev"), n = get(x, "ni"); return r.map((p) => { const q = n.find((z) => z.k === p.k); return q && p.v ? { k: p.k, v: (q.v / p.v) * 100 } : null; }).filter(Boolean); } const o = x.m[mk]; if (!o) return []; const out = o.y.slice(-4).map((p) => ({ k: "FY" + p.end.slice(0, 4), v: mk === "capex" ? Math.abs(p.v) : p.v })); if (o.ttm) out.push({ k: "최근 4분기", v: mk === "capex" ? Math.abs(o.ttm.v) : o.ttm.v, end: o.ttm.end }); return out; };
+      const B = (v) => (Math.abs(v) >= 1e9 ? (v / 1e9).toFixed(Math.abs(v) >= 1e11 ? 0 : 1) + "B" : (v / 1e6).toFixed(0) + "M");
+      const fmt = (mk, v) => (mk === "nim" ? v.toFixed(0) + "%" : (v < 0 ? "-$" : "$") + B(Math.abs(v)));
+      const on = L.map(() => true);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${esc(ttl || "실적 비교")} · SEC 공시 기준 (FY = 회계연도가 끝난 해, 달러)</div><div class="row bw-leg fn-leg"></div><div class="fn-box"></div>`);
+      const draw = () => {
+        el.querySelector(".fn-leg").innerHTML = L.map((x, i) => `<button type="button" class="pill" data-fnl="${i}" aria-pressed="${on[i]}" style="border-color:${BWC[i % BWC.length]}"><span style="color:${BWC[i % BWC.length]}">●</span> ${esc(koN(x.sym))}</button>`).join("");
+        el.querySelector(".fn-box").innerHTML = ms.map((mk) => {
+          const S = L.map((x, i) => ({ i, x, p: get(x, mk) })).filter((z) => on[z.i] && z.p.length), ks = [...new Set(S.flatMap((z) => z.p.map((p) => p.k)))].sort((a1, b1) => (a1 === "최근 4분기" ? 1 : b1 === "최근 4분기" ? -1 : a1 < b1 ? -1 : 1));
+          if (!S.length) return `<p class="note">${esc(MN[mk] || mk)} 자료 없음</p>`;
+          const val = (z, kk) => z.p.find((p) => p.k === kk)?.v;
+          const tot = (kk) => S.reduce((t, z) => t + (val(z, kk) || 0), 0);
+          const mx = Math.max(1e-9, ...ks.map((kk) => (sum ? Math.abs(tot(kk)) : Math.max(...S.map((z) => Math.abs(val(z, kk) || 0)))))), neg = !sum && S.some((z) => z.p.some((p) => p.v < 0));
+          const H = 170, hh = neg ? H / 2 : H, bar = (v, c, w) => { const ii = `<i title="${fmt(mk, v)}" style="width:${w};height:${(Math.abs(v) / mx) * hh}px;background:${v < 0 ? css("--down") : c};border-radius:${v < 0 ? "0 0 3px 3px" : "3px 3px 0 0"}"></i>`; return neg ? `<span style="display:flex;flex-direction:column;height:${H}px"><span style="height:${hh}px;display:flex;align-items:flex-end;border-bottom:1px solid var(--line)">${v >= 0 ? ii : ""}</span><span style="height:${hh}px">${v < 0 ? ii : ""}</span></span>` : ii; };
+          const cols = ks.map((kk) => `<div class="fn-g"><div class="fn-bars" style="height:${H}px">${sum ? `<div class="fn-stack">${S.map((z) => { const v = val(z, kk) || 0; return `<i title="${esc(koN(z.x.sym))} ${fmt(mk, v)}" style="height:${(Math.abs(v) / mx) * H}px;background:${BWC[z.i % BWC.length]}"></i>`; }).reverse().join("")}</div>` : S.map((z) => { const v = val(z, kk); return v == null ? `<i style="width:10px;height:0"></i>` : bar(v, BWC[z.i % BWC.length], "12px"); }).join("")}</div><b>${sum ? fmt(mk, tot(kk)) : ""}</b><small>${esc(kk)}</small></div>`).join("");
+          const gr = (z) => { const fy = z.p.filter((p) => p.k !== "최근 4분기"); if (mk === "nim" || fy.length < 2) return ""; const a1 = fy[0].v, b1 = fy.at(-1).v; return a1 > 0 && b1 > 0 ? `${(b1 / a1).toFixed(1)}배` : ""; };
+          return `<div class="fn-m"><h4>${esc(MN[mk] || mk)}${sum ? " · 합계" : ""}</h4><div class="fn-cols">${cols}</div><table class="fn-t"><tr><th></th>${ks.map((kk) => `<th>${esc(kk)}</th>`).join("")}<th>${ks.length > 2 ? "처음→마지막 FY" : ""}</th></tr>${S.map((z) => `<tr><td><span style="color:${BWC[z.i % BWC.length]}">●</span> ${esc(koN(z.x.sym))}</td>${ks.map((kk) => { const v = val(z, kk); return `<td class="num ${v < 0 ? "down" : ""}">${v == null ? "-" : fmt(mk, v)}</td>`; }).join("")}<td class="num"><b>${gr(z)}</b></td></tr>`).join("")}</table></div>`;
+        }).join("");
+      };
+      draw(); el.querySelector(".fn-leg").onclick = (e) => { const b = e.target.closest("[data-fnl]"); if (!b) return; on[+b.dataset.fnl] = !on[+b.dataset.fnl]; draw(); };
+      const miss = (d.list || []).filter((x) => !x?.m).map((x) => koN(x?.sym)); if (miss.length) el.insertAdjacentHTML("beforeend", `<p class="note">공시 자료 못 받음: ${esc(miss.join(", "))}</p>`);
     } else if (k === "f13top" || k === "f13move") {
       // [[f13top 20]] 여러 고수가 함께 담은 종목 순위 · [[f13move 20]] 그 종목들의 13F 기준일 이후 등락 순위 (몇 명·누가)
       const N = Math.min(40, +a.match(/\d+/)?.[0] || 20), d = (await api("op=f13"))?.agg; if (!d?.list?.length) throw 0;
