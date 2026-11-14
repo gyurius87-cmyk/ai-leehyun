@@ -27,6 +27,7 @@ export async function claude({ messages, system, max_tokens = 2000 }, label = ""
   c.miss++;
   throw new Queued(c.rid);
 }
+export const aiRid = () => ALS.getStore()?.rid || "";
 export const aiMissed = () => ALS.getStore()?.miss || 0;
 export const isQueued = (e) => e instanceof Queued || e?.message === "queued";
 

@@ -116,9 +116,9 @@ async function f13BuildAgg(meta) {
 export async function f13Agg() {
   const [c, m, k] = await redis([["GET", "stk:f13agg"], ["GET", "stk:f13meta"], ["GET", "stk:konames"]]); const agg = json(c), K = json(k) || {};
   if (agg?.list) { agg.list.forEach((o) => { if (!o.ko && K[o.n]) o.ko = K[o.n]; });
-    // 많이 담긴 종목인데 한글 이름이 없으면 하루 한 번만 이름 짓기 요청 (구독 접수함)
+    // 많이 담긴 종목인데 한글 이름이 없으면 이름 짓기 요청 (구독 접수함, 같은 묶음은 6시간에 한 번)
     const miss = agg.list.filter((o) => !o.ko && o.h.length >= 2).sort((a, b) => b.h.length - a.h.length).slice(0, 150).map((o) => o.n);
-    if (miss.length) { const [ok] = await redis([["SET", "stk:f13kopend", "1", "NX", "EX", "86400"]]); if (ok) await koMap(miss).catch(() => {}); } }
+    if (miss.length) { const M2 = await koMap(miss).catch(() => ({})); agg.list.forEach((o) => { if (!o.ko && M2[o.n]) o.ko = M2[o.n]; }); } }
   return { agg, meta: json(m) };
 }
 
