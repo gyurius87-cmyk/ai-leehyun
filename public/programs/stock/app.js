@@ -1394,11 +1394,13 @@ function renderMon(o) {
   <div class="mo-sec" id="moS1"><h3>지수·매크로 이달 성적표</h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
   <div class="mo-sec" id="moS2"><h3>한 달 흐름</h3>
     ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span></span>`).join("")}</div>` : ""}
-    <div class="row" id="moLegM" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:380px"></div>
+    <div class="row" id="moLegM" style="gap:4px;margin:6px 0"></div><div class="row mo-xrow" data-xrow="main"></div><div id="moChart" style="height:380px"></div>
+    <h4 class="mo-h4">매크로 한 달 <span class="note">실선 = 월초 대비 % (오른쪽) · 점선 = 월초 대비 포인트 변화 (왼쪽: 금리·스프레드·VIX·공포탐욕)</span></h4>
+    <div class="row mo-xrow" data-xrow="mac"></div><div id="moMacro" style="height:320px"></div><div class="mo-mx" id="moMx"><p class="note">매크로 불러오는 중…</p></div>
     <div class="mo-dl noprint">${MDAYS.map((d) => { const k2 = TL.findIndex((t) => t.d === d), dy = DY.find((x) => x.d === d); return `<button type="button" class="pill${k2 >= 0 ? " ev" : ""}" data-mod="${d}">${k2 >= 0 ? `<b>${k2 + 1}</b> ` : ""}${esc(mdw(d))}${dy?.title ? ` · ${esc(dy.title.slice(0, 14))}` : ""}</button>`; }).join("")}</div>
     <div id="moDay"></div></div>
   <div class="mo-sec" id="moS2b"><h3>이달 거론된 종목 겹쳐 보기</h3>
-    <div class="row" id="moOvLeg" style="gap:4px;margin:6px 0"></div><div id="moOv" style="height:420px"></div>
+    <div class="row" id="moOvLeg" style="gap:4px;margin:6px 0"></div><div class="row mo-xrow" data-xrow="ov"></div><div id="moOv" style="height:420px"></div>
     <div class="mo-evl">${TL.map((x, i) => `<span><b>${i + 1}</b> ${esc(mdw(x.d))} ${esc(x.title)}</span>`).join("")}</div></div>
   ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마</h3>
     ${TH.map((t, i) => { const P = pxOf(t.sym); return `<div class="mo-big"><div class="hd"><span class="no">테마 ${i + 1}</span><h4>${esc(t.name)}</h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700">${esc(nm(t.sym))} 이달 ${pct(P.chg)}</span>` : ""}</div>
@@ -1415,7 +1417,7 @@ function renderMon(o) {
   <div id="moS6">${o.numbers?.length ? `<div class="mo-sec"><h3>숫자로 본 이달</h3><div class="mo-tiles">${o.numbers.map((n) => `<div class="mo-tile"><span class="note">${esc(n.k)}</span><b>${esc(n.v)}</b></div>`).join("")}</div></div>` : ""}
   ${o.next?.length ? `<div class="mo-sec"><h3>다음 달에 확인할 것</h3><ul class="mo-p">${o.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}</div>
   <p class="note" style="margin-top:16px">자료: 그날그날의 오늘의 정리·일별 DB·야후 파이낸스 종가·구글 뉴스 기사 제목을 제로가 정리 · 공부용, 투자 권유 아님 · 출처 AI이현</p>`;
-  drawMonChart(o); monDay(TL[0]?.d || MDAYS.at(-1));
+  drawMonChart(o); monDay(TL[0]?.d || MDAYS.at(-1)); loadMonMac(o);
   const tlEv = TL.map((x) => ({ d: x.d, what: x.title }));
   TH.forEach((t, i) => { const P = pxOf(t.sym); if (P) monPx($("moTc" + i), P.rows, t.steps?.length ? t.steps : tlEv); });
   monOverlay(o);
@@ -1440,6 +1442,43 @@ function monPx(el, rows, evs) {
   ch.timeScale().fitContent();
 }
 // 이달 거론된 종목 겹쳐 보기 (달 시작 0%)
+// ── 월례회 매크로: 이달 매일 값 (op=monmac). 세 차트(지수·매크로·종목 겹쳐 보기)에 켜고 끄는 줄
+const MAC_COL = ["#0ea5e9", "#16a34a", "#9333ea", "#dc2626", "#ea580c", "#0d9488", "#db2777", "#ca8a04", "#a16207", "#f97316", "#4f46e5"];
+MON.xon = { main: new Set(), mac: new Set(["^TNX", "DX-Y.NYB", "^VIX", "BAMLH0A0HYM2", "FG"]), ov: new Set() };
+const macOk = () => (MON.mac?.list || []).filter((x) => !x.err);
+const macV = (x, c) => (x.lv ? Math.round((c - x.base) * 100) / 100 : Math.round((c / x.base - 1) * 10000) / 100);
+const macTxt = (x, v) => (v == null ? "-" : x.lv ? `${v > 0 ? "+" : ""}${fmt(v, 2)}${x.u === "%" || x.u === "%p" ? "%p" : "p"}` : pct(v));
+const macNum = (x, c) => (c == null ? "-" : x.u === "$B" ? "$" + fmt(c / 1000, 2) + "T" : fmt(c, c >= 1000 ? 0 : 2) + (x.u === "%" ? "%" : x.u === "%p" ? "%p" : x.u === "원" ? "원" : ""));
+async function loadMonMac(o) {
+  if (!MON.mac || MON.mac.m !== o.m) { MON.mac = null; try { MON.mac = await api("op=monmac&m=" + o.m); } catch { MON.mac = { list: [] }; } }
+  if (MON.data !== o) return; drawMacRows(); drawMacChart(); drawMacCards(); drawMonChart(o); if (MON.ovAll) drawOverlay(o); const cur = document.querySelector("[data-mod][aria-pressed=true]")?.dataset.mod; if (cur) monDay(cur);
+}
+function drawMacRows() { const L = macOk(); document.querySelectorAll("[data-xrow]").forEach((r) => { const w = r.dataset.xrow, on = MON.xon[w]; r.innerHTML = L.length ? `<span class="note" style="margin:0 4px 0 0">매크로</span>` + L.map((x, i) => `<button type="button" class="pill" data-xm="${w}|${esc(x.k)}" aria-pressed="${on.has(x.k)}" style="border-color:${MAC_COL[i % MAC_COL.length]}${x.lv ? ";border-style:dashed" : ""}"><span style="color:${MAC_COL[i % MAC_COL.length]}">●</span> ${esc(x.n)} <span class="${ud(x.lv ? x.dif : x.chg)}">${macTxt(x, x.lv ? x.dif : x.chg)}</span></button>`).join("") : ""; }); }
+function macLines(ch, w) {
+  const L = macOk(), on = MON.xon[w]; let left = false;
+  L.forEach((x, i) => { if (!on.has(x.k)) return; if (x.lv) left = true;
+    const sr = ch.addLineSeries({ color: MAC_COL[i % MAC_COL.length], lineWidth: 2, lineStyle: x.lv ? 2 : 0, priceScaleId: x.lv ? "left" : "right", priceLineVisible: false, title: x.n });
+    sr.setData([{ time: new Date(Date.parse(x.rows[0].d) - 864e5).toISOString().slice(0, 10), value: 0 }, ...x.rows.map((r) => ({ time: r.d, value: macV(x, r.c) }))].filter((v, k, a) => !k || v.time > a[k - 1].time)); });
+  ch.applyOptions({ leftPriceScale: { visible: left, borderVisible: false } });
+}
+function drawMacChart() {
+  const el = $("moMacro"); if (!el || !window.LightweightCharts) return; el.innerHTML = ""; MON.mch?.remove?.();
+  if (!macOk().length) { el.style.height = "auto"; el.innerHTML = `<p class="note">매크로 자료를 못 받았어요.</p>`; return; }
+  const dk = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
+  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dk ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dk ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false });
+  MON.mch = ch; ch.subscribeClick((p) => { const d = lwDay(p?.time); if (d) { monDay(d); $("moDay")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); } });
+  macLines(ch, "mac"); ch.timeScale().fitContent();
+}
+function drawMacCards() {
+  const box = $("moMx"); if (!box) return; const L = macOk(), miss = (MON.mac?.list || []).filter((x) => x.err);
+  box.innerHTML = L.map((x, i) => `<div class="mo-mc" data-xm="mac|${esc(x.k)}" aria-pressed="${MON.xon.mac.has(x.k)}"><div class="t"><span style="color:${MAC_COL[i % MAC_COL.length]}">●</span> ${esc(x.n)}</div><div class="v"><b>${macNum(x, x.end)}</b> <span class="${ud(x.lv ? x.dif : x.chg)}">${macTxt(x, x.lv ? x.dif : x.chg)}</span></div><div class="note" style="margin:0">월초 ${macNum(x, x.base)}${x.k === "FG" ? ` · ${x.end < 25 ? "극단적 공포" : x.end < 45 ? "공포" : x.end <= 55 ? "중립" : x.end <= 75 ? "탐욕" : "극단적 탐욕"}` : ""}</div><div class="sp" id="moMs${i}"></div></div>`).join("") + (miss.length ? `<p class="note" style="grid-column:1/-1">못 받은 자료: ${miss.map((x) => esc(x.n)).join(", ")}</p>` : "") + `<p class="note" style="grid-column:1/-1">글로벌 M2는 매일 나오는 무료 자료가 없어서 미국 M2(매주)로 대신 보여줘요.</p>`;
+  L.forEach((x, i) => { const el = $("moMs" + i); if (!el || !window.LightweightCharts) return;
+    const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: "#6b7280", fontSize: 10, attributionLogo: false }, grid: { vertLines: { visible: false }, horzLines: { visible: false } }, timeScale: { visible: false, borderVisible: false }, rightPriceScale: { visible: false }, handleScroll: false, handleScale: false, crosshair: { horzLine: { visible: false } } });
+    const sr = ch.addAreaSeries({ lineColor: MAC_COL[i % MAC_COL.length], topColor: MAC_COL[i % MAC_COL.length] + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    sr.setData(x.rows.map((r) => ({ time: r.d, value: r.c }))); ch.timeScale().fitContent(); });
+}
+function macDayHtml(d) { const L = macOk(); if (!L.length) return ""; const it = L.map((x) => { const k = x.rows.findIndex((r) => r.d === d); if (k < 0) return ""; const r = x.rows[k], pv = k ? x.rows[k - 1].c : x.base, ch1 = x.lv ? Math.round((r.c - pv) * 100) / 100 : Math.round((r.c / pv - 1) * 10000) / 100; return `<span class="chip">${esc(x.n)} <b>${macNum(x, r.c)}</b> <span class="${ud(ch1)}">${macTxt(x, ch1)}</span></span>`; }).filter(Boolean); return it.length ? `<div class="row mo-dmac" style="gap:4px;margin-top:8px"><span class="note" style="margin:0">그날 매크로 (전날 대비)</span>${it.join("")}</div>` : ""; }
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-xm]"); if (!b || !MON.data) return; const [w, k] = b.dataset.xm.split("|"), on = MON.xon[w]; on.has(k) ? on.delete(k) : on.add(k); drawMacRows(); if (w === "main") drawMonChart(MON.data); else if (w === "ov") drawOverlay(MON.data); else { drawMacChart(); document.querySelectorAll(".mo-mc").forEach((c) => c.setAttribute("aria-pressed", MON.xon.mac.has(c.dataset.xm.split("|")[1]))); } });
 MON.ov = null;
 async function monOverlay(o) {
   const el = $("moOv"); if (!el) return;
@@ -1464,12 +1503,13 @@ function drawOverlay(o) {
     sr.setData(data);
     if (first) { const days = data.map((d) => d.time); sr.setMarkers((o.timeline || []).map((t, k) => { const d = days.find((z) => z >= t.d); return d ? { time: d, position: "aboveBar", color: "#d97706", shape: "circle", text: String(k + 1) } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1))); first = false; }
   });
+  macLines(ch, "ov");
   ch.timeScale().fitContent();
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-moov]"); if (!b || !MON.data) return; const s0 = b.dataset.moov; if (s0 === "*") (MON.ovAll || []).forEach((x) => MON.ovOn.add(x.s)); else if (s0 === "-") MON.ovOn.clear(); else MON.ovOn.has(s0) ? MON.ovOn.delete(s0) : MON.ovOn.add(s0); drawOverlay(MON.data); });
 const MO_COL = { "^IXIC": "#2563eb", "^GSPC": "#7c3aed", "^SOX": "#f59e0b", "^KS11": "#e11d48", "^KQ11": "#10b981" };
 MON.on = new Set(["^IXIC", "^SOX", "^KS11", "^KQ11"]);
-function monDay(d) { if (!d || !MON.dayHtml) return; const box = $("moDay"); if (!box) return; box.innerHTML = MON.dayHtml(d); document.querySelectorAll("[data-mod]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mod === d)); }
+function monDay(d) { if (!d || !MON.dayHtml) return; const box = $("moDay"); if (!box) return; box.innerHTML = MON.dayHtml(d) + macDayHtml(d); document.querySelectorAll("[data-mod]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mod === d)); }
 const lwDay = (t) => (typeof t === "string" ? t : t && typeof t === "object" ? `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}` : t ? new Date(t * 1000).toISOString().slice(0, 10) : null);
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mod]"); if (b) monDay(b.dataset.mod); });
 function drawMonChart(o) {
@@ -1489,6 +1529,7 @@ function drawMonChart(o) {
       first = false;
     }
   });
+  macLines(ch, "main");
   ch.timeScale().fitContent();
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mol]"); if (!b || !MON.data) return; const s = b.dataset.mol; MON.on.has(s) ? MON.on.delete(s) : MON.on.add(s); drawMonChart(MON.data); });
