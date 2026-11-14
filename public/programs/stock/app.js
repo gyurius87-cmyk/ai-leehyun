@@ -509,22 +509,47 @@ const chgTag = (c) => (c === "new" ? `<span class="chg new">새로 삼</span>` :
 async function loadFam(refresh) {
   if (FAM && !refresh) return renderFam();
   $("fRe").disabled = true; if (refresh) $("fAt").textContent = "확인하는 중… (최대 1분, 못 받은 사람은 한 번 더 누르면 이어서 받아요)";
-  try { FAM = await api("op=fam" + (refresh ? "&refresh=1" : "")); renderFam(); } catch { $("fList").innerHTML = `<p class="msg no">못 불러왔어요. 잠시 뒤 '새 공시 확인'을 눌러 주세요.</p>`; }
+  try { FAM = await api("op=fam" + (refresh ? "&refresh=1" : "")); renderFam(); loadFamNow(refresh); } catch { $("fList").innerHTML = `<p class="msg no">못 불러왔어요. 잠시 뒤 '새 공시 확인'을 눌러 주세요.</p>`; }
   $("fRe").disabled = false;
 }
 $("fRe").onclick = () => loadFam(true);
 const FAM_G = { 가치형: [1067983, 1709323, 1061768, 1549575, 1112520, 1569205, 1096343, 1720792, 1358706, 732905, 1325447, 905567, 807985, 200217, 813917, 1631014, 1759760, 1056831, 1034524], 매크로: [1536411, 1350694, 1029160, 1656456, 1403528], "성장·기술": [1697748, 1541617, 1167483, 1135730, 1061165, 1088875, 1798849, "ark"], 행동주의: [1336528, 921669, 1345471, 1791786, 1517137, 1418814, 1647251, 1040273], "역발상·헤지": [1649339, 1079114, 1103804, 934639, 1138995], "연기금·재단": [1608046, 1166559] };
 let famG = ls.get("stk-famg") || "전체";
 const famIn = (f, g) => g === "전체" || (FAM_G[g] || []).some((c) => c === f.cik || c === f.id);
+// 오늘 기준: 마지막 13F 포트 그대로 들고 있었다면 몇 % (공개일부터 / 분기 말부터) + 랭킹
+let FNOW = null, fRk = ls.get("stk-frk", "ret"), fRkAll = false;
+async function loadFamNow(force) { if (FNOW && !force) return; FNOW = null; try { FNOW = await api("op=famnow" + (force ? "&force=1" : "")); } catch { FNOW = { err: 1 }; } if (FAM) renderFam(); }
+const fNow = (f) => FNOW?.list?.find((x) => x.id === f.id);
+const fPct = (v) => (v == null ? "-" : (v > 0 ? "+" : "") + v.toFixed(1) + "%");
+function famRankHtml() {
+  if (!FNOW) return `<p class="note">오늘 기준 성적 계산 중… (처음엔 30초쯤)</p>`;
+  if (!FNOW.list) return `<p class="note">오늘 기준 성적을 못 받았어요. '새 공시 확인'을 누르면 다시 계산해요.</p>`;
+  const k = fRk, ks = k === "ret" ? "spy" : "spyP";
+  const L = FAM.list.filter((f) => famIn(f, famG)).map((f) => ({ f, x: fNow(f) })).filter((o) => o.x && o.x[k] != null);
+  if (!L.length) return "";
+  const LP = L.map((o) => o.x.period).sort().at(-1), A = L.filter((o) => o.x.period === LP).sort((a, b) => b.x[k] - a.x[k]), old = L.filter((o) => o.x.period !== LP);
+  const qn = (p) => `${p.slice(0, 4)}년 ${Math.ceil(+p.slice(5, 7) / 3)}분기`, spyP = k === "retP" ? A[0]?.x.spyP : null;
+  const mx = Math.max(1, ...A.map((o) => Math.abs(o.x[k])), Math.abs(spyP || 0));
+  const bar = (v, c) => `<span class="tr ng"><i style="width:${(Math.min(Math.abs(v), mx) / mx) * 50}%;${v < 0 ? "right:50%" : "left:50%"};background:${c || (v < 0 ? css("--down") : css("--up"))}"></i></span>`;
+  const win = A.filter((o) => o.x[ks] != null && o.x[k] > o.x[ks]).length, show = fRkAll ? A : A.slice(0, 15);
+  return `<div class="bw-t" style="margin-bottom:4px">🏆 오늘(${esc(FNOW.to)}) 기준 성적 랭킹 · ${esc(qn(LP))} 포트 그대로 들고 있었다면</div>
+    <div class="row" style="gap:4px;margin:0 0 6px"><button type="button" class="pill" data-frk="ret" aria-pressed="${k === "ret"}">공개일부터 (각자 공시한 날)</button><button type="button" class="pill" data-frk="retP" aria-pressed="${k === "retP"}">분기 말 ${esc(LP.slice(5))}부터</button><span class="note" style="margin:0 0 0 6px">S&P 500보다 잘한 곳 <b>${win}/${A.length}</b></span></div>
+    <div class="bw-bars rk-b">${spyP != null ? `<div class="r spy" style="grid-template-columns:minmax(170px,48%) 1fr 64px"><span class="n">기준 · S&P 500</span>${bar(spyP, "#94a3b8")}<b class="${ud(spyP)}">${fPct(spyP)}</b></div>` : ""}${show.map((o, i) => `<div class="r${o.x[ks] != null && o.x[k] > o.x[ks] ? " win" : ""}" style="grid-template-columns:minmax(170px,48%) 1fr 64px"><span class="n"><a href="#" data-fam="${esc(o.f.id)}" style="color:inherit">${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(o.f.who)}</a>${k === "ret" ? ` <small class="note">${esc(o.x.filed.slice(5))}~ · S&P ${fPct(o.x.spy)}</small>` : ""}</span>${bar(o.x[k])}<b class="${ud(o.x[k])}">${fPct(o.x[k])}</b></div>`).join("")}</div>
+    ${A.length > 15 ? `<button type="button" class="btn g s" data-frkall="1">${fRkAll ? "접기" : `전체 ${A.length}곳 보기`}</button>` : ""}
+    ${(() => { const fresh = FAM.list.filter((f) => famIn(f, famG) && fNow(f) && fNow(f).ret == null && fNow(f).period === LP); return fresh.length ? `<p class="note" style="margin:6px 0 0">막 공시해서 아직 하루치 가격이 없는 곳(내일부터 랭킹에 들어가요): ${fresh.map((f) => esc(f.who)).join(", ")}</p>` : ""; })()}
+    ${old.length ? `<p class="note" style="margin:6px 0 0">최신 분기 공시가 아직 없어 랭킹에서 뺀 곳: ${old.map((o) => `${esc(o.f.who)} (${esc(o.x.period.slice(0, 7))})`).join(", ")}</p>` : ""}`;
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-frk],[data-frkall]"); if (!b) return; if (b.dataset.frk) { fRk = b.dataset.frk; ls.set("stk-frk", fRk); } else fRkAll = !fRkAll; $("fRank").innerHTML = famRankHtml(); });
 function renderFam() {
+  $("fRank").innerHTML = famRankHtml();
   $("fGrp").innerHTML = ["전체", ...Object.keys(FAM_G)].map((g) => `<button type="button" class="pill" data-famg="${g}" aria-pressed="${g === famG}">${g} <span class="note">${FAM.list.filter((f) => famIn(f, g)).length}</span></button>`).join("");
   $("fAt").textContent = FAM.at ? new Date(FAM.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 확인" : "";
   $("fList").innerHTML = FAM.list.filter((f) => famIn(f, famG)).map((f) => { const d = f.data, news = d ? d.rows.filter((r) => r.ch === "new").length : 0;
-    return `<button type="button" class="mcard" data-fam="${f.id}" aria-pressed="${f.id === fSel}">${LOOK[f.id] ? face(f.id) : `<span class="ini">${esc(f.who.slice(0, 1))}</span>`}<div class="nm">${esc(f.who)}${news ? `<span class="chg new">새로 ${news}</span>` : ""}</div><div class="note" style="margin:0">${esc(f.fund)} <b>(${f.cik ? esc(f13Kind(f.cik)) : "ETF"})</b></div><div class="say">${d ? `<span class="note">${d.kind === "ark" ? d.day + " 기준" : d.period + " 분기 · " + d.filed + " 공시"}</span><br>${d.rows.slice(0, 3).map((r) => esc(kn(r))).join(" · ")}` : `<span class="note">아직 못 받았어요</span>`}</div></button>`; }).join("");
+    return `<button type="button" class="mcard" data-fam="${f.id}" aria-pressed="${f.id === fSel}">${LOOK[f.id] ? face(f.id) : `<span class="ini">${esc(f.who.slice(0, 1))}</span>`}<div class="nm">${esc(f.who)}${news ? `<span class="chg new">새로 ${news}</span>` : ""}${fNow(f)?.ret != null && Date.now() - Date.parse(fNow(f).filed) < 200 * 864e5 ? ` <b class="${ud(fNow(f).ret)}" style="font-size:13px" title="마지막 공시일부터 오늘까지">${fPct(fNow(f).ret)}</b>` : ""}</div><div class="note" style="margin:0">${esc(f.fund)} <b>(${f.cik ? esc(f13Kind(f.cik)) : "ETF"})</b></div><div class="say">${d ? `<span class="note">${d.kind === "ark" ? d.day + " 기준" : d.period + " 분기 · " + d.filed + " 공시"}</span><br>${d.rows.slice(0, 3).map((r) => esc(kn(r))).join(" · ")}` : `<span class="note">아직 못 받았어요</span>`}</div></button>`; }).join("");
   renderFamDetail();
 }
 document.addEventListener("click", (e) => { const g = e.target.closest("[data-famg]"); if (g) { famG = g.dataset.famg; ls.set("stk-famg", famG); renderFam(); } });
-document.addEventListener("click", (e) => { const b = e.target.closest("[data-fam]"); if (!b) return; fSel = b.dataset.fam; ls.set("stk-fam", fSel); renderFam(); if (innerWidth < 860) $("fDetail").scrollIntoView({ behavior: "smooth" }); });
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-fam]"); if (!b) return; if (b.tagName === "A") e.preventDefault(); fSel = b.dataset.fam; ls.set("stk-fam", fSel); renderFam(); if (innerWidth < 860) $("fDetail").scrollIntoView({ behavior: "smooth" }); });
 const kn = (r) => r.ko || r.t || r.n; // 한글 이름 우선
 let FQ = {}; // 지난 분기 { id: data }
 async function famPick(id, acc) { const f = FAM.list.find((x) => x.id === id); if (!f) return; if (!acc || acc === f.data?.acc) { delete FQ[id]; return renderFamDetail(); } $("fDetail").querySelector(".qsel")?.setAttribute("aria-busy", "true"); try { FQ[id] = await api(`op=famq&id=${encodeURIComponent(id)}&acc=${encodeURIComponent(acc)}`); } catch { FQ[id] = null; } renderFamDetail(); }
@@ -533,14 +558,17 @@ function renderFamDetail() {
   const f = FAM.list.find((x) => x.id === fSel), box = $("fDetail"); if (!f) return; const d = FQ[f.id] || f?.data;
   if (!d) { box.innerHTML = `<h2>${esc(f.who)}</h2><p class="note">아직 데이터를 못 받았어요. '새 공시 확인'을 눌러 보세요.</p>`; return; }
   const ark = d.kind === "ark", max = d.rows[0]?.val || 1;
+  const nw0 = !d.past && !ark ? fNow(f) : null, nw = nw0 && nw0.ret != null ? nw0 : null, stR = new Map((nw?.st || []).map((x) => [x[0], x[3]]));
+  const rkL = nw ? FAM.list.map((g) => fNow(g)).filter((x) => x && x.ret != null && x.period === nw.period).sort((a, b) => b.ret - a.ret) : [], rkN = nw && rkL.length > 1 ? `${rkL.findIndex((x) => x.id === nw.id) + 1}위 / ${rkL.length}곳` : "";
   const adds = d.rows.filter((r) => r.ch === "new" || r.ch > 0).slice(0, 8), cuts = d.rows.filter((r) => typeof r.ch === "number" && r.ch < 0).slice(0, 8);
   box.innerHTML = `<div class="prof">${LOOK[f.id] ? face(f.id) : `<span class="ini" style="width:96px;height:96px;font-size:30px">${esc(f.who.slice(0, 1))}</span>`}<div><h2 style="margin:0">${esc(f.who)} <span>${esc(f.fund)}</span></h2><p class="note" style="margin:2px 0">${esc(f.note)}</p>
     ${f.data?.hist?.length ? `<div class="row qsel" style="gap:4px;margin:6px 0"><span class="note">분기 고르기</span>${f.data.hist.map((h, i) => `<button type="button" class="pill" data-famq="${esc(h.acc)}" aria-pressed="${h.acc === d.acc}">${esc(h.period.slice(2, 7).replace("-", "."))}${i === 0 ? " 최신" : ""}</button>`).join("")}</div>` : ""}
     ${d.past ? `<p class="msg" style="margin:4px 0">지난 분기를 보고 있어요: <b>${esc(d.period)} 분기말 기준</b> (${esc(d.filed)} 공시)</p>` : ""}
     <div class="big">${usd(d.total)}</div><p class="note" style="margin:0">${d.count}종목 · ${ark ? `${d.day} 기준${d.prevDay ? ` (비교: ${d.prevDay})` : ""}` : `${d.period} 분기말 기준 · ${d.filed} 공시${d.prevPeriod ? ` · 비교: ${d.prevPeriod} 분기` : ""}`}</p></div></div>
     ${d.prevPeriod || d.prevDay ? `<div class="two" style="margin-top:12px"><div><h3 class="up">산 것 · 늘린 것</h3>${adds.map((r) => `<div>${esc(kn(r))} ${chgTag(r.ch)}</div>`).join("") || `<p class="note">없어요</p>`}</div><div><h3 class="down">줄인 것 · 다 판 것</h3>${cuts.map((r) => `<div>${esc(kn(r))} ${chgTag(r.ch)}</div>`).join("")}${d.sold.slice(0, 8).map((r) => `<div>${esc(kn(r))} <span class="chg cut">다 팖</span></div>`).join("")}${!cuts.length && !d.sold.length ? `<p class="note">없어요</p>` : ""}</div></div>` : ""}
+    ${nw ? `<div class="mo-dcs fn-now" style="margin-top:12px"><div class="mo-dc"><small>${esc(nw.filed)} 공시일부터 오늘(${esc(FNOW.to)})까지</small><b class="${ud(nw.ret)}">${fPct(nw.ret)}</b><small>S&P 500 ${fPct(nw.spy)}</small></div><div class="mo-dc"><small>분기 말 ${esc(nw.period)}부터</small><b class="${ud(nw.retP)}">${fPct(nw.retP)}</b><small>S&P 500 ${fPct(nw.spyP)}</small></div>${rkN ? `<div class="mo-dc"><small>공개일부터 랭킹</small><b>${rkN}</b></div>` : ""}</div><p class="note" style="margin:4px 0 0">상위 ${nw.st.length}종목(포트의 ${nw.cover}%)을 그 비중대로 들고 있었다고 계산</p>` : ""}
     <h3 style="margin-top:14px">보유 종목 <span class="note">금액 순 · 상위 ${Math.min(d.rows.length, 60)}개</span></h3>
-    <div class="tw"><table><thead><tr><th>종목</th><th class="r">비중</th><th style="width:28%"></th><th class="r">금액</th><th class="r">주식 수</th><th>변화</th></tr></thead><tbody>${d.rows.slice(0, 60).map((r) => `<tr><td><b>${esc(kn(r))}</b>${r.pc ? ` <span class="note">${esc(r.pc)}</span>` : r.cls && !/^COM/i.test(r.cls) ? ` <span class="note">${esc(r.cls)}</span>` : ""}<br><span class="note">${esc([r.t, r.n].filter(Boolean).join(" · "))}</span></td><td class="r">${fmt(ark ? r.w : (r.val / d.total) * 100, 1)}%</td><td style="vertical-align:middle"><div class="bar" style="width:${Math.max(2, (r.val / max) * 100)}%"></div></td><td class="r">${usd(r.val)}</td><td class="r">${Math.round(r.sh).toLocaleString("en-US")}</td><td>${chgTag(r.ch)}</td></tr>`).join("")}</tbody></table></div>
+    <div class="tw"><table><thead><tr><th>종목</th><th class="r">비중</th><th style="width:28%"></th><th class="r">금액</th>${nw ? `<th class="r">공시일 후<br>오늘까지</th>` : ""}<th class="r">주식 수</th><th>변화</th></tr></thead><tbody>${d.rows.slice(0, 60).map((r) => `<tr><td><b>${esc(kn(r))}</b>${r.pc ? ` <span class="note">${esc(r.pc)}</span>` : r.cls && !/^COM/i.test(r.cls) ? ` <span class="note">${esc(r.cls)}</span>` : ""}<br><span class="note">${esc([r.t, r.n].filter(Boolean).join(" · "))}</span></td><td class="r">${fmt(ark ? r.w : (r.val / d.total) * 100, 1)}%</td><td style="vertical-align:middle"><div class="bar" style="width:${Math.max(2, (r.val / max) * 100)}%"></div></td><td class="r">${usd(r.val)}</td>${nw ? (() => { const v = stR.get(r.n); return `<td class="r ${v == null ? "" : ud(v)}"><b>${v == null ? "-" : fPct(v)}</b></td>`; })() : ""}<td class="r">${Math.round(r.sh).toLocaleString("en-US")}</td><td>${chgTag(r.ch)}</td></tr>`).join("")}</tbody></table></div>
     <p class="note" style="margin-top:8px">${ark ? "출처: ARK Invest 매일 공개 보유 내역" : "출처: 미국 SEC EDGAR 13F-HR. 미국 상장 주식·옵션만 신고돼서 현금·채권·해외 주식은 빠져요. 분기말 기준이라 지금은 이미 바뀌었을 수 있어요."}</p>`;
 }
 
