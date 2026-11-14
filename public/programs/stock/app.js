@@ -1461,7 +1461,11 @@ const BW_HELP = "[[analog ^SOX | 2026-10-29 | 2000-03-10, 2022-01-03 | 90]] 지�
 const BW = [];
 function mdRich(t) {
   const parts = []; let buf = [];
-  for (const l of String(t || "").split("\n")) { const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
+  let ml = null;
+  for (const l of String(t || "").split("\n")) {
+    if (ml) { if (l.trim() === "]]") { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: "analogs", a: ml.join("\n") }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); ml = null; } else ml.push(l); continue; }
+    if (/^\[\[analogs\s/i.test(l.trim()) && !/\]\]\s*$/.test(l.trim())) { ml = [l.trim().replace(/^\[\[analogs\s+/i, "")]; continue; }
+    const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b"];
@@ -1547,6 +1551,40 @@ async function bwFill(el, w) {
       const S = ser.map((x, i) => ({ name: x.name, color: x.cash ? "#94a3b8" : undefined, dash: x.cash, v: (x.rows.at(-1).value / amt - 1) * 100, data: x.rows }));
       el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>`); bwChartT(el, S, true, { mode: "won", amt });
       el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...S].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, (Math.abs(x.v) / Math.max(...S.map((z) => Math.abs(z.v)), 1)) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>`);
+    } else if (k === "analogs") {
+      // 여러 줄: 첫 줄 "심볼 | 지금 시작(peak) | 거래일 수", 다음 줄마다 "과거 시작일 | 제목 | 한 줄 설명 | 날짜 내용; 날짜 내용"
+      const L = a.split("\n").map((x) => x.trim()).filter(Boolean), [sym0, d0, nS] = L[0].split("|").map((x) => x.trim()), N = Math.min(500, +nS || 250);
+      const P = L.slice(1).map((x) => { const [d, t, desc, ev] = x.split("|").map((y) => (y || "").trim()); return { d, t, desc, ev: (ev || "").split(";").map((y) => y.trim()).filter(Boolean).map((y) => { const m = y.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/); return m ? { d: m[1], w: m[2] } : null; }).filter(Boolean) }; }).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.d));
+      const SY = [[sym0, ""], ["^IXIC", "나스닥"], ["^GSPC", "S&P 500"], ["^SOX", "반도체"], ["^KS11", "코스피"]].filter((x, i, A) => A.findIndex((y) => y[0] === x[0]) === i);
+      const run = async (sym) => {
+        el.innerHTML = `<p class="note">계산 중…</p>`;
+        const g = await api(`op=chart&s=${encodeURIComponent(sym)}&r=max&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null); if (!rows.length) throw 0;
+        let D0 = d0; if (/^peak/i.test(d0)) { const yr = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10); D0 = rows.filter((r) => r.d >= yr).reduce((m, r) => (r.c > m.c ? r : m)).d; }
+        const win = (from, n) => { const i0 = rows.findIndex((r) => r.d >= from); if (i0 < 0 || rows[i0].d.slice(0, 4) !== from.slice(0, 4) && Date.parse(rows[i0].d) - Date.parse(from) > 30 * 864e5) return null; const w = rows.slice(i0, i0 + n), b = w[0].c; return w.map((r, i) => ({ i, d: r.d, v: (r.c / b - 1) * 100 })); };
+        const cur = win(D0, N); if (!cur) throw 0;
+        const corr = (A, B) => { const n = Math.min(A.length, B.length); if (n < 5) return null; let ma = 0, mb = 0; for (let i = 0; i < n; i++) { ma += A[i].v; mb += B[i].v; } ma /= n; mb /= n; let xy = 0, xx = 0, yy = 0; for (let i = 0; i < n; i++) { xy += (A[i].v - ma) * (B[i].v - mb); xx += (A[i].v - ma) ** 2; yy += (B[i].v - mb) ** 2; } return xx && yy ? xy / Math.sqrt(xx * yy) : null; };
+        const mdd = (d) => { let pk = -1e9, m = 0; d.forEach((p) => { const lv = 100 + p.v; pk = Math.max(pk, lv); m = Math.min(m, (lv / pk - 1) * 100); }); return m; };
+        const C = P.map((p) => { const w = win(p.d, N); if (!w) return null; const n = cur.length; return { ...p, w, c: corr(cur, w), mddN: mdd(w.slice(0, n)), endN: w[Math.min(n, w.length) - 1].v, mddAll: mdd(w), endAll: w.at(-1).v }; }).filter(Boolean).sort((x, y) => (x.c ?? -2) - (y.c ?? -2));
+        const t0 = Date.UTC(2000, 0, 3), toT = (i) => new Date(t0 + i * 864e5).toISOString().slice(0, 10);
+        const curS = { name: `지금 (${D0}~)`, color: "#e11d48", w: 3, data: cur.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) };
+        el.innerHTML = `<div class="row" style="gap:4px;margin:0 0 6px"><span class="note" style="margin:0">기준 지수:</span>${SY.map(([s1, n1]) => `<button type="button" class="pill" data-ans="${esc(s1)}" aria-pressed="${s1 === sym}">${esc(n1 || g.name || s1)}</button>`).join("")}</div>
+          <div class="bw-t">${esc(g.name || sym)} · 지금 vs 과거 ${C.length}개 한눈에 (고점 = 0%, 가로축 = 고점 후 거래일)</div><div class="an-all"></div>
+          <table class="an-t"><tr><th>순서</th><th>과거</th><th>닮은 정도</th><th>지금과 같은 기간 최대 하락</th><th>${N}일 동안 최대 하락</th><th>${N}일 뒤</th></tr>${C.map((x, i) => `<tr><td>${i + 1}</td><td><a href="#an-${i}" data-anj="${i}">${esc(x.d.slice(0, 4))} ${esc(x.t)}</a></td><td class="num"><b>${x.c == null ? "-" : Math.round(x.c * 100) + "%"}</b></td><td class="num down">${x.mddN.toFixed(1)}%</td><td class="num down">${x.mddAll.toFixed(1)}%</td><td class="num ${ud(x.endAll)}">${pct(x.endAll)}</td></tr>`).join("")}<tr class="now"><td>-</td><td>지금</td><td class="num">기준</td><td class="num down">${mdd(cur).toFixed(1)}%</td><td colspan="2" class="note">진행 중 (${cur.length}거래일째)</td></tr></table>
+          <p class="note">닮은 정도가 낮은 것부터 → 높은 것 순서로 아래에서 하나씩 다뤄요.</p>
+          ${C.map((x, i) => `<div class="an-sec" id="an-${i}"><div class="an-h"><span class="yr">${esc(x.d.slice(0, 4))}</span><h4>${esc(x.t)}</h4><span class="chip" style="font-weight:800">닮은 정도 ${x.c == null ? "-" : Math.round(x.c * 100) + "%"}</span></div>${x.desc ? `<p class="mo-p">${esc(x.desc)}</p>` : ""}<div class="an-c"></div>${x.ev.length ? `<ol class="mo-steps an-ev">${x.ev.map((e) => { const p = x.w.find((q) => q.d >= e.d); return `<li><span class="dt">${esc(e.d)}</span> ${p ? `<span class="note">(고점 후 ${p.i}일, ${pct(p.v)})</span>` : ""}<div>${esc(e.w)}</div></li>`; }).join("")}</ol>` : ""}<div class="row" style="gap:10px;font-size:13px"><span>같은 기간 최대 하락 <b class="down">${x.mddN.toFixed(1)}%</b></span><span>${N}일 최대 하락 <b class="down">${x.mddAll.toFixed(1)}%</b></span><span>${N}일 뒤 <b class="${ud(x.endAll)}">${pct(x.endAll)}</b></span></div></div>`).join("")}`;
+        el.querySelector(".row").onclick = (e) => { const b = e.target.closest("[data-ans]"); if (b) run(b.dataset.ans).catch(() => (el.innerHTML = `<p class="note">그림 자료를 못 받았어요.</p>`)); };
+        el.querySelector(".an-t").onclick = (e) => { const b = e.target.closest("[data-anj]"); if (b) { e.preventDefault(); el.querySelector("#an-" + b.dataset.anj)?.scrollIntoView({ behavior: "smooth", block: "start" }); } };
+        // 한눈에 차트 (과거 전부 켜고 끄기)
+        const allBox = el.querySelector(".an-all"); bwChartT(allBox, [curS, ...C.map((x) => ({ name: `${x.d.slice(0, 4)} ${x.t}`, data: x.w.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }))], true);
+        // 하나씩: 지금 + 그 과거, 과거 선에 사건 표시
+        C.forEach((x, i) => { const box = el.querySelectorAll(".an-c")[i]; const ps = { name: `${x.d.slice(0, 4)} ${x.t}`, color: "#2563eb", data: x.w.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) };
+          const h = bwChart(box, [curS, ps], true); if (!h) return;
+          const lab = (w) => (w.length > 16 ? w.slice(0, 15) + "…" : w);
+          h.srs[1].setMarkers(x.ev.map((e, k) => { const p = x.w.find((q) => q.d >= e.d); return p ? { time: toT(p.i), position: /반등|급등|상승|인하|바닥/.test(e.w) ? "belowBar" : "aboveBar", color: /반등|급등|상승|인하|바닥/.test(e.w) ? "#16a34a" : "#dc2626", shape: /반등|급등|상승|인하|바닥/.test(e.w) ? "arrowUp" : "arrowDown", text: `${k + 1} ${lab(e.w)}` } : null; }).filter(Boolean).sort((p1, p2) => (p1.time < p2.time ? -1 : 1)));
+          box.insertAdjacentHTML("afterbegin", `<div class="row" style="gap:10px;font-size:13px;margin:4px 0"><span><span style="color:#e11d48">●</span> 지금</span><span><span style="color:#2563eb">●</span> ${esc(x.d.slice(0, 4))} ${esc(x.t)}</span><span class="note" style="margin:0">▼ 하락 사건 ▲ 반등 사건</span></div>`);
+        });
+      };
+      await run(sym0);
     } else if (k === "f13rank") {
       // [[f13rank 2026-11-03]] 등록된 펀드 전부 13F 따라 하기 성적 랭킹 (기준일 = 하락장 방어 구간 시작)
       const since = (a.match(/\d{4}-\d{2}-\d{2}/) || [])[0] || new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
