@@ -137,7 +137,7 @@ body.mini .btn{padding:6px 18px;font-size:13px}
 <script>
 const BEAT = 30000, GAP = 180000;
 const $ = (id) => document.getElementById(id);
-let db = null, cur = null, lastBeat = 0, sessions = [], viewY = new Date().getFullYear(), selDay = null, delAsk = null;
+let db = null, cur = null, lastBeat = 0, sessions = [], viewY = new Date().getFullYear(), selDay = null, delAsk = null, editId = null, listDay = '', shownEdit = null;
 
 const pad = (n) => String(n).padStart(2, '0');
 const dkey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -208,7 +208,7 @@ function render() {
       b.className = 'c' + (lv ? ' l' + lv : dt < new Date(now.getFullYear(), now.getMonth(), now.getDate()) ? ' past' : '') + (k === tk ? ' today' : '') + (k === selDay ? ' sel' : '');
       b.textContent = lv >= 2 ? Math.round(v / 3600000) : '';
       b.title = `${mo + 1}/${d} · ${v >= 60000 ? fmtHM(v) : '기록 없음'}`;
-      b.onclick = () => { selDay = k; delAsk = null; render(); $('list').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+      b.onclick = () => { selDay = k; delAsk = null; editId = null; render(); $('list').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
       g.appendChild(b);
     }
     el.appendChild(g); box.appendChild(el);
@@ -233,6 +233,8 @@ function renderDevs(Y) {
 }
 
 function renderList(pd) {
+  if (editId && $('efA') && shownEdit === editId && listDay === (selDay || dkey(new Date()))) return; // 고치는 중엔 매초 다시 그리지 않음
+  listDay = selDay || dkey(new Date()); shownEdit = editId;
   const k = selDay || dkey(new Date());
   const d0 = new Date(k + 'T00:00').getTime(), d1 = d0 + 86400000;
   const rows = sessions.filter((s) => s.start < d1 && ((cur && s.id === cur.id) ? Date.now() : s.last) > d0 && ((cur && s.id === cur.id) || s.last - s.start >= 60000)).sort((a, b) => a.start - b.start);
@@ -243,10 +245,42 @@ function renderList(pd) {
   for (const s of rows) {
     const live = cur && s.id === cur.id, end = live ? Date.now() : s.last;
     h += `<div class="row"><span class="mono">${hhmm(s.start)} ~ ${live ? '지금' : hhmm(end)}</span><span>${fmtHM(end - s.start)}${s.dev ? ` · ${s.dev}` : ''}</span>` +
-      (live ? '<span class="note">켜져 있음</span>' : `<button class="x${delAsk === s.id ? ' warn' : ''}" data-id="${s.id}">${delAsk === s.id ? '정말 지우기' : '지우기'}</button>`) + '</div>';
+      (live ? '<span class="note">켜져 있음</span>' : `<span style="display:inline-flex;gap:4px"><button class="x ed" data-id="${s.id}">고치기</button><button class="x dl${delAsk === s.id ? ' warn' : ''}" data-id="${s.id}">${delAsk === s.id ? '정말 지우기' : '지우기'}</button></span>`) + '</div>';
+    if (editId === s.id) h += editForm(s);
   }
+  if (editId === 'new') h += editForm(null);
+  else h += '<div style="margin-top:8px"><button class="x" id="addRow">＋ 기록 직접 넣기</button></div>';
   $('list').innerHTML = h;
-  $('list').querySelectorAll('.x').forEach((b) => b.onclick = () => del(b.dataset.id));
+  $('list').querySelectorAll('.x.dl').forEach((b) => b.onclick = () => del(b.dataset.id));
+  $('list').querySelectorAll('.x.ed').forEach((b) => b.onclick = () => { editId = editId === b.dataset.id ? null : b.dataset.id; delAsk = null; render(); });
+  const ad = $('addRow'); if (ad) ad.onclick = () => { editId = 'new'; delAsk = null; render(); };
+  const ok = $('efOk'); if (ok) ok.onclick = () => saveEdit(k);
+  const cc = $('efNo'); if (cc) cc.onclick = () => { editId = null; render(); };
+  const ef = $('efA'); if (ef) ef.focus();
+}
+// 기록 고치기·직접 넣기: 시작·끝 시각과 기기 이름. 끝이 시작보다 이르면 다음 날로 봐요.
+const inSt = 'padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);font:inherit';
+function editForm(s) {
+  const dv = (s ? (s.dev || '') : devName()).replace(/["<>&]/g, '');
+  return `<div class="row" style="flex-wrap:wrap;gap:6px;background:var(--bg);border-radius:8px;padding:8px">
+    <input type="time" id="efA" value="${s ? hhmm(s.start) : '09:00'}" style="${inSt}"> ~ <input type="time" id="efB" value="${s ? hhmm(s.last) : '18:00'}" style="${inSt}">
+    <input id="efD" value="${dv}" maxlength="12" placeholder="기기" style="${inSt};width:100px">
+    <button class="x" id="efOk" style="border-color:var(--fg);color:var(--fg)">저장</button><button class="x" id="efNo">취소</button><span class="note" id="efMsg"></span></div>`;
+}
+async function saveEdit(k) {
+  const [ah, am] = $('efA').value.split(':').map(Number), [bh, bm] = $('efB').value.split(':').map(Number);
+  if ([ah, am, bh, bm].some((x) => !Number.isFinite(x))) { $('efMsg').textContent = '시각을 넣어 주세요'; return; }
+  const old = editId === 'new' ? null : sessions.find((x) => x.id === editId);
+  const d = old ? new Date(old.start) : new Date(k + 'T00:00');
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate(), ah, am).getTime();
+  let b = new Date(d.getFullYear(), d.getMonth(), d.getDate(), bh, bm).getTime();
+  if (b <= a) b += 86400000;
+  const dev = $('efD').value.trim().slice(0, 12) || '기기 모름';
+  const id = old ? old.id : 'm' + Date.now().toString(36);
+  const o = { id, start: a, last: b, dev, stopped: true };
+  if (old) Object.assign(old, o); else sessions.push(o);
+  editId = null; render();
+  try { if (db) await db.collection('sessions').doc(id).set({ start: a, last: b, dev, stopped: true }); } catch (e) { $('offMsg').hidden = false; }
 }
 
 async function del(id) {
