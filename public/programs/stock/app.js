@@ -1534,6 +1534,7 @@ async function bwFill(el, w) {
       if (!ok.length) throw 0;
       const many = ok.length > 1, ser = ok.map(({ x, g }) => { const rows = g.rows.filter((r) => r.c != null), b = rows[0].c; return { name: koN(x, g.name), v: (rows.at(-1).c / b - 1) * 100, data: rows.map((r) => ({ time: r.d, value: many ? Math.round((r.c / b - 1) * 10000) / 100 : r.c })) }; });
       el.insertAdjacentHTML("beforeend", `<div class="bw-t">${many ? "수익률 비교 (시작 = 0%)" : esc(ser[0].name) + " 주가"} · ${esc(rg)}</div>`); bwChartT(el, ser, many, many ? { mode: "pct" } : {});
+      const rat = ok.filter((o) => o.x.includes("/")); if (rat.length) el.insertAdjacentHTML("beforeend", `<div class="fn-judge"><b>📌 데이터로 본 결론</b><ul>${rat.map((o) => { const rr = o.g.rows.filter((r) => r.c != null), v = (rr.at(-1).c / rr[0].c - 1) * 100, [p1, p2] = o.x.split("/"); return `<li>${esc(koN(p1))} ÷ ${esc(koN(p2))}: ${esc(rr[0].d)} → ${esc(rr.at(-1).d)} <b class="${ud(v)}">${pct(v)}</b> → ${v > 0 ? `<b>${esc(koN(p1))} 쪽으로 돈이 더 몰렸어요</b>` : `${esc(koN(p2))} 쪽이 더 강했어요`}</li>`; }).join("")}</ul></div>`);
     } else if (k === "tv") {
       el.innerHTML = `<div class="bw-t">트레이딩뷰 · ${esc(a)}</div><iframe class="bw-tv" src="https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(a)}&interval=D&theme=${bwDark() ? "dark" : "light"}&style=1&locale=kr&hide_side_toolbar=1&withdateranges=1&allow_symbol_change=1" loading="lazy"></iframe>`;
     } else if (k === "bars") {
@@ -1661,7 +1662,7 @@ async function bwFill(el, w) {
       await run(sym0);
     } else if (k === "fin") {
       // [[fin MSFT,GOOGL | rev,ni,nim,capex,op | 제목 | sum]] SEC 공시 연간 실적 막대 (회계연도 + 최근 4분기 합)
-      const [symS, mS, ttl, mode] = a.split("|").map((x) => (x || "").trim()), syms = symS.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10), ms = (mS || "rev,ni").split(",").map((x) => x.trim()).filter(Boolean), sum = /sum|합/.test(mode || "");
+      const [symS, mS, ttl, mode] = a.split("|").map((x) => (x || "").trim()), syms = symS.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10), ms = (mS || "rev,ni").split(",").map((x) => x.trim()).filter(Boolean), sum = /sum|합/.test(mode || ""), judge = /judge|결론/.test(mode || "");
       const d = await api("op=fin&s=" + encodeURIComponent(syms.join(","))), L = (d.list || []).filter((x) => x && x.m); if (!L.length) throw 0;
       const MN = { rev: "매출", ni: "순이익", op: "영업이익", capex: "설비투자 (데이터센터 등)", nim: "순이익률" };
       const get = (x, mk) => { if (mk === "nim") { const r = get(x, "rev"), n = get(x, "ni"); return r.map((p) => { const q = n.find((z) => z.k === p.k); return q && p.v ? { k: p.k, v: (q.v / p.v) * 100 } : null; }).filter(Boolean); } const o = x.m[mk]; if (!o) return []; const out = o.y.slice(-4).map((p) => ({ k: "FY" + p.end.slice(0, 4), v: mk === "capex" ? Math.abs(p.v) : p.v })); if (o.ttm) out.push({ k: "최근 4분기", v: mk === "capex" ? Math.abs(o.ttm.v) : o.ttm.v, end: o.ttm.end }); return out; };
@@ -1683,7 +1684,21 @@ async function bwFill(el, w) {
           return `<div class="fn-m"><h4>${esc(MN[mk] || mk)}${sum ? " · 합계" : ""}</h4><div class="fn-cols">${cols}</div><table class="fn-t"><tr><th></th>${ks.map((kk) => `<th>${esc(kk)}</th>`).join("")}<th>${ks.length > 2 ? "처음→마지막 FY" : ""}</th></tr>${S.map((z) => `<tr><td><span style="color:${BWC[z.i % BWC.length]}">●</span> ${esc(koN(z.x.sym))}</td>${ks.map((kk) => { const v = val(z, kk); return `<td class="num ${v < 0 ? "down" : ""}">${v == null ? "-" : fmt(mk, v)}</td>`; }).join("")}<td class="num"><b>${gr(z)}</b></td></tr>`).join("")}</table></div>`;
         }).join("");
       };
-      draw(); el.querySelector(".fn-leg").onclick = (e) => { const b = e.target.closest("[data-fnl]"); if (!b) return; on[+b.dataset.fnl] = !on[+b.dataset.fnl]; draw(); };
+      // 팩트 결론: 보이는 회사들의 가장 오래된 해 vs 최근(최근 4분기 있으면 그것) 합계 비교
+      const judgeHtml = () => { const A = L.filter((_, i) => on[i]); if (!A.length) return ""; const tot = (mk) => { let a0 = 0, a1 = 0, k0 = new Set(), k1 = new Set(), neg = []; A.forEach((x) => { const p0 = get(x, mk); if (!p0.length) return; a0 += p0[0].v; a1 += p0.at(-1).v; k0.add(p0[0].k); k1.add(p0.at(-1).k); if (mk === "ni" && p0.at(-1).v < 0) neg.push(koN(x.sym)); }); return { a0, a1, k0: [...k0].join("·"), k1: [...k1].join("·"), neg }; };
+        const out = [], fx = (v) => (v < 0 ? "-$" : "$") + B(Math.abs(v)), mult = (o) => (o.a0 > 0 && o.a1 > 0 ? `${(o.a1 / o.a0).toFixed(1)}배` : o.a1 > o.a0 ? "늘어남" : "줄어듦");
+        const r = ms.includes("rev") ? tot("rev") : null, n = ms.includes("ni") ? tot("ni") : null, c = ms.includes("capex") ? tot("capex") : null;
+        if (r) out.push(`매출 합계 ${fx(r.a0)} (${r.k0}) → ${fx(r.a1)} (${r.k1}) · <b>${mult(r)}</b>`);
+        if (n) out.push(`순이익 합계 ${fx(n.a0)} → ${fx(n.a1)} · <b>${mult(n)}</b>${n.neg.length ? ` · 지금 적자: ${esc(n.neg.join(", "))}` : " · 지금 적자인 곳 없음"}`);
+        if (r && n && r.a1) out.push(`합계 순이익률 ${((n.a0 / r.a0) * 100).toFixed(0)}% → <b>${((n.a1 / r.a1) * 100).toFixed(0)}%</b>`);
+        if (c) out.push(`설비투자 합계 ${fx(c.a0)} (${c.k0}) → ${fx(c.a1)} (${c.k1}) · <b>${mult(c)}</b>`);
+        let v = "";
+        if (n && !c) v = n.a1 > 0 && n.a1 > n.a0 ? `✅ 팩트: 순이익이 ${mult(n)}로 늘었고 흑자 → <b>실제로 돈을 벌고 있어요</b>` : n.a1 <= 0 ? "❌ 팩트: 합계가 적자 → 아직 돈을 못 벌어요" : "⚠️ 팩트: 흑자지만 순이익이 줄었어요";
+        if (c && n && n.a1) { const pr = (c.a1 / n.a1) * 100, p0 = n.a0 > 0 ? (c.a0 / n.a0) * 100 : null; out.push(`설비투자 ÷ 순이익 ${p0 != null ? p0.toFixed(0) + "% → " : ""}<b>${pr.toFixed(0)}%</b>`); v = pr >= 100 ? `⚠️ 팩트: 번 돈(순이익)보다 <b>더 많이</b> 데이터센터에 쓰고 있어요 (${pr.toFixed(0)}%) → 투자 회수가 늦으면 거품론 쪽 근거` : `✅ 팩트: 설비투자가 순이익의 ${pr.toFixed(0)}% → <b>번 돈 안에서</b> 투자하고 있어요${p0 != null && pr > p0 ? ` (다만 비율은 ${p0.toFixed(0)}%에서 커지는 중)` : ""}`; }
+        else if (c && !n) v = `📈 팩트: 설비투자가 ${mult(c)}로 늘었어요`;
+        return `<div class="fn-judge"><b>📌 데이터로 본 결론</b><ul>${out.map((x) => `<li>${x}</li>`).join("")}</ul>${v ? `<p>${v}</p>` : ""}<small class="note">SEC 공시 숫자로 자동 계산 · 회사를 끄면 다시 계산</small></div>`; };
+      const draw0 = draw, draw2 = () => { draw0(); el.querySelector(".fn-j")?.remove(); if (judge) el.querySelector(".fn-box").insertAdjacentHTML("afterend", `<div class="fn-j">${judgeHtml()}</div>`); };
+      draw2(); el.querySelector(".fn-leg").onclick = (e) => { const b = e.target.closest("[data-fnl]"); if (!b) return; on[+b.dataset.fnl] = !on[+b.dataset.fnl]; draw2(); };
       const miss = (d.list || []).filter((x) => !x?.m).map((x) => koN(x?.sym)); if (miss.length) el.insertAdjacentHTML("beforeend", `<p class="note">공시 자료 못 받음: ${esc(miss.join(", "))}</p>`);
     } else if (k === "f13top" || k === "f13move") {
       // [[f13top 20]] 여러 고수가 함께 담은 종목 순위 · [[f13move 20]] 그 종목들의 13F 기준일 이후 등락 순위 (몇 명·누가)
