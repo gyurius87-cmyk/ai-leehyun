@@ -1502,8 +1502,9 @@ async function bwFill(el, w) {
       const [sym, d0, past, nS] = a.split("|").map((x) => x.trim()), N = Math.min(400, +nS || 120), pd = (past || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
       const g = await api(`op=chart&s=${encodeURIComponent(sym)}&r=max&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null); if (!rows.length) throw 0;
       const win = (from, n) => { const i0 = rows.findIndex((r) => r.d >= from); if (i0 < 0) return null; const w = rows.slice(i0, i0 + n), b = w[0].c; return w.map((r, i) => ({ i, d: r.d, v: (r.c / b - 1) * 100 })); };
-      const cur = win(d0, N); if (!cur) throw 0; const L = Math.max(cur.length, ...pd.map((x) => win(x, N)?.length || 0));
-      const ser = [{ name: `지금 (${d0}~)`, w: 3, data: cur }, ...pd.map((x) => ({ name: `${x}~`, data: win(x, N) || [] }))].filter((x) => x.data.length);
+      let D0 = d0; if (/^peak/i.test(d0)) { const yr = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10); D0 = rows.filter((r) => r.d >= yr).reduce((m, r) => (r.c > m.c ? r : m)).d; }
+      const cur = win(D0, N); if (!cur) throw 0; const L = Math.max(cur.length, ...pd.map((x) => win(x, N)?.length || 0));
+      const ser = [{ name: `지금 (${D0}~)`, w: 3, data: cur }, ...pd.map((x) => ({ name: `${x}~`, data: win(x, N) || [] }))].filter((x) => x.data.length);
       const corr = (A, B) => { const n = Math.min(A.length, B.length); if (n < 5) return null; const a1 = A.slice(0, n).map((x) => x.v), b1 = B.slice(0, n).map((x) => x.v), ma = a1.reduce((t, x) => t + x, 0) / n, mb = b1.reduce((t, x) => t + x, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (a1[i] - ma) * (b1[i] - mb); sxx += (a1[i] - ma) ** 2; syy += (b1[i] - mb) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; };
       const t0 = Date.UTC(2000, 0, 3); const toT = (i) => new Date(t0 + i * 864e5).toISOString().slice(0, 10);
       const S = ser.map((x, i) => ({ name: x.name, w: x.w, color: i ? undefined : "#e11d48", v: x.data.at(-1).v, data: x.data.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }));
