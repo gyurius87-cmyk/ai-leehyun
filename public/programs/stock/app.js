@@ -508,17 +508,22 @@ const usd = (v) => (v == null ? "-" : v >= 1e9 ? "$" + (v / 1e9).toFixed(1) + "B
 const chgTag = (c) => (c === "new" ? `<span class="chg new">새로 삼</span>` : c == null || c === 0 ? "" : `<span class="chg ${c > 0 ? "add" : "cut"}">${c > 0 ? "+" : ""}${c}%</span>`);
 async function loadFam(refresh) {
   if (FAM && !refresh) return renderFam();
-  $("fRe").disabled = true; if (refresh) $("fAt").textContent = "확인하는 중… (30초쯤)";
+  $("fRe").disabled = true; if (refresh) $("fAt").textContent = "확인하는 중… (최대 1분, 못 받은 사람은 한 번 더 누르면 이어서 받아요)";
   try { FAM = await api("op=fam" + (refresh ? "&refresh=1" : "")); renderFam(); } catch { $("fList").innerHTML = `<p class="msg no">못 불러왔어요. 잠시 뒤 '새 공시 확인'을 눌러 주세요.</p>`; }
   $("fRe").disabled = false;
 }
 $("fRe").onclick = () => loadFam(true);
+const FAM_G = { 가치형: [1067983, 1709323, 1061768, 1549575, 1112520, 1569205, 1096343, 1720792, 1358706, 732905, 1325447, 905567, 807985, 200217, 813917, 1631014, 1759760, 1056831, 1034524], 매크로: [1536411, 1350694, 1029160, 1656456, 1403528], "성장·기술": [1697748, 1541617, 1167483, 1135730, 1061165, 1088875, 1798849, "ark"], 행동주의: [1336528, 921669, 1345471, 1791786, 1517137, 1418814, 1647251, 1040273], "역발상·헤지": [1649339, 1079114, 1103804, 934639, 1138995], "연기금·재단": [1608046, 1166559] };
+let famG = ls.get("stk-famg") || "전체";
+const famIn = (f, g) => g === "전체" || (FAM_G[g] || []).some((c) => c === f.cik || c === f.id);
 function renderFam() {
+  $("fGrp").innerHTML = ["전체", ...Object.keys(FAM_G)].map((g) => `<button type="button" class="pill" data-famg="${g}" aria-pressed="${g === famG}">${g} <span class="note">${FAM.list.filter((f) => famIn(f, g)).length}</span></button>`).join("");
   $("fAt").textContent = FAM.at ? new Date(FAM.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 확인" : "";
-  $("fList").innerHTML = FAM.list.map((f) => { const d = f.data, news = d ? d.rows.filter((r) => r.ch === "new").length : 0;
+  $("fList").innerHTML = FAM.list.filter((f) => famIn(f, famG)).map((f) => { const d = f.data, news = d ? d.rows.filter((r) => r.ch === "new").length : 0;
     return `<button type="button" class="mcard" data-fam="${f.id}" aria-pressed="${f.id === fSel}">${LOOK[f.id] ? face(f.id) : `<span class="ini">${esc(f.who.slice(0, 1))}</span>`}<div class="nm">${esc(f.who)}${news ? `<span class="chg new">새로 ${news}</span>` : ""}</div><div class="note" style="margin:0">${esc(f.fund)}</div><div class="say">${d ? `<span class="note">${d.kind === "ark" ? d.day + " 기준" : d.period + " 분기 · " + d.filed + " 공시"}</span><br>${d.rows.slice(0, 3).map((r) => esc(kn(r))).join(" · ")}` : `<span class="note">아직 못 받았어요</span>`}</div></button>`; }).join("");
   renderFamDetail();
 }
+document.addEventListener("click", (e) => { const g = e.target.closest("[data-famg]"); if (g) { famG = g.dataset.famg; ls.set("stk-famg", famG); renderFam(); } });
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-fam]"); if (!b) return; fSel = b.dataset.fam; ls.set("stk-fam", fSel); renderFam(); if (innerWidth < 860) $("fDetail").scrollIntoView({ behavior: "smooth" }); });
 const kn = (r) => r.ko || r.t || r.n; // 한글 이름 우선
 let FQ = {}; // 지난 분기 { id: data }
