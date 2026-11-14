@@ -1633,7 +1633,7 @@ async function bwFill(el, w) {
         const curR = rec(D0);
         // 과거도 '그 지수의 실제 고점'으로 맞춤: 적어 둔 날짜 앞뒤 25거래일 안에서 가장 높았던 날
         const pkNear = (d) => { const i = rows.findIndex((r) => r.d >= d); if (i < 0) return d; let m = i; for (let k2 = Math.max(0, i - 25); k2 < Math.min(rows.length, i + 26); k2++) if (rows[k2].c > rows[m].c) m = k2; return rows[m].d; };
-        const C = P.map((p0) => { const p = { ...p0, d0: p0.d, d: pkNear(p0.d) }, w = win(p.d, N); if (!w) return null; const n = cur.length; return { ...p, w, c: corr(cur, w), r: rec(p.d), mddN: mdd(w.slice(0, n)), endN: w[Math.min(n, w.length) - 1].v, mddAll: mdd(w), endAll: w.at(-1).v }; }).filter(Boolean).sort((x, y) => (x.c ?? -2) - (y.c ?? -2));
+        const C = P.map((p0) => { const p = { ...p0, d0: p0.d, d: pkNear(p0.d) }, w = win(p.d, N); if (!w) return null; const n = cur.length, r = rec(p.d), w2 = win(p.d, Math.min(1600, Math.max(N, (r?.rD ?? 1600) + 15))) || w; return { ...p, w, w2, c: corr(cur, w), r, mddN: mdd(w.slice(0, n)), endN: w[Math.min(n, w.length) - 1].v, mddAll: mdd(w), endAll: w.at(-1).v }; }).filter(Boolean).sort((x, y) => (x.c ?? -2) - (y.c ?? -2));
         const t0 = Date.UTC(2000, 0, 3), toT = (i) => new Date(t0 + i * 864e5).toISOString().slice(0, 10);
         const curS = { name: `지금 (${koN(sym, g.name)} 고점 ${D0}~)`, color: "#e11d48", w: 3, data: cur.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) };
         el.innerHTML = pkHtml(sym) + `<div class="row" style="gap:4px;margin:0 0 6px"><span class="note" style="margin:0">기준 지수:</span>${SY.map(([s1, n1]) => `<button type="button" class="pill" data-ans="${esc(s1)}" aria-pressed="${s1 === sym}">${esc(n1 || g.name || s1)}</button>`).join("")}</div>
@@ -1644,13 +1644,18 @@ async function bwFill(el, w) {
         el.querySelector(".row").onclick = (e) => { const b = e.target.closest("[data-ans]"); if (b) run(b.dataset.ans).catch(() => (el.innerHTML = `<p class="note">그림 자료를 못 받았어요.</p>`)); };
         el.querySelector(".an-t").onclick = (e) => { const b = e.target.closest("[data-anj]"); if (b) { e.preventDefault(); el.querySelector("#an-" + b.dataset.anj)?.scrollIntoView({ behavior: "smooth", block: "start" }); } };
         // 한눈에 차트 (과거 전부 켜고 끄기)
-        const allBox = el.querySelector(".an-all"); bwChartT(allBox, [curS, ...C.map((x) => ({ name: `${x.d.slice(0, 4)} ${x.t}`, data: x.w.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }))], true, { xi: t0 });
+        const allBox = el.querySelector(".an-all"); bwChartT(allBox, [curS, ...C.map((x) => ({ name: `${x.d.slice(0, 4)} ${x.t}`, data: x.w2.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }))], true, { xi: t0 });
         // 하나씩: 지금 + 그 과거, 과거 선에 사건 표시
-        C.forEach((x, i) => { const box = el.querySelectorAll(".an-c")[i]; const ps = { name: `${x.d.slice(0, 4)} ${x.t}`, color: "#2563eb", data: x.w.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) };
+        C.forEach((x, i) => { const box = el.querySelectorAll(".an-c")[i]; const ps = { name: `${x.d.slice(0, 4)} ${x.t}`, color: "#2563eb", data: x.w2.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) };
           const h = bwChart(box, [curS, ps], true, t0); if (!h) return;
           const lab = (w) => (w.length > 16 ? w.slice(0, 15) + "…" : w);
-          h.srs[1].setMarkers(x.ev.map((e, k) => { const p = x.w.find((q) => q.d >= e.d); return p ? { time: toT(p.i), position: /반등|급등|상승|인하|바닥/.test(e.w) ? "belowBar" : "aboveBar", color: /반등|급등|상승|인하|바닥/.test(e.w) ? "#16a34a" : "#dc2626", shape: /반등|급등|상승|인하|바닥/.test(e.w) ? "arrowUp" : "arrowDown", text: `${k + 1} ${lab(evH(e.w)[0])}` } : null; }).filter(Boolean).sort((p1, p2) => (p1.time < p2.time ? -1 : 1)));
-          box.insertAdjacentHTML("afterbegin", `<div class="row" style="gap:10px;font-size:13px;margin:4px 0"><span><span style="color:#e11d48">●</span> 지금</span><span><span style="color:#2563eb">●</span> ${esc(x.d.slice(0, 4))} ${esc(x.t)}</span><span class="note" style="margin:0">▼ 하락 사건 ▲ 반등 사건</span></div>`);
+          const W = x.w2, tr = x.r ? W[x.r.tD] : null, rc = x.r?.rD != null ? W[x.r.rD] : null;
+          h.srs[1].setMarkers([...(tr ? [{ time: toT(tr.i), position: "belowBar", color: "#1d4ed8", shape: "circle", text: `바닥 ${tr.d} ${pct(tr.v)}` }] : []), ...(rc ? [{ time: toT(rc.i), position: "aboveBar", color: "#16a34a", shape: "circle", text: `고점 회복 ${rc.d}` }] : []), ...x.ev.map((e, k) => { const p = W.find((q) => q.d >= e.d); return p ? { time: toT(p.i), position: /반등|급등|상승|인하|바닥/.test(e.w) ? "belowBar" : "aboveBar", color: /반등|급등|상승|인하|바닥/.test(e.w) ? "#16a34a" : "#dc2626", shape: /반등|급등|상승|인하|바닥/.test(e.w) ? "arrowUp" : "arrowDown", text: `${k + 1} ${lab(evH(e.w)[0])}` } : null; })].filter(Boolean).sort((p1, p2) => (p1.time < p2.time ? -1 : 1)));
+          // 마우스 올리면 그때 실제 날짜 (과거·지금)
+          const tip = document.createElement("div"); tip.className = "an-tip"; tip.hidden = true; box.style.position = "relative"; box.appendChild(tip);
+          h.ch.subscribeCrosshairMove((pr) => { const d = lwDay(pr?.time); if (!d || !pr.point) { tip.hidden = true; return; } const ii = Math.round((Date.parse(d) - t0) / 864e5), pw = W[ii], pc = cur[ii];
+            tip.innerHTML = `<b>고점 후 ${ii}거래일</b>${pw ? `<div><span style="color:#2563eb">●</span> ${esc(pw.d)} <b class="${ud(pw.v)}">${pct(pw.v)}</b></div>` : ""}${pc ? `<div><span style="color:#e11d48">●</span> ${esc(pc.d)} <b class="${ud(pc.v)}">${pct(pc.v)}</b></div>` : ""}`; tip.hidden = false; tip.style.left = Math.min(pr.point.x + 14, box.clientWidth - 190) + "px"; tip.style.top = Math.max(0, pr.point.y - 10) + "px"; });
+          box.insertAdjacentHTML("afterbegin", `<div class="row" style="gap:10px;font-size:13px;margin:4px 0"><span><span style="color:#e11d48">●</span> 지금</span><span><span style="color:#2563eb">●</span> ${esc(x.d.slice(0, 4))} ${esc(x.t)}</span><span class="note" style="margin:0">고점 → 바닥 → 고점 회복${x.r?.rD == null ? " (아직/6년 넘게 못 올라옴)" : ""}</span></div>`);
         });
       };
       await run(sym0);
@@ -1826,6 +1831,22 @@ async function bwPerson(cik) {
   BW.push({ k: "f13", a: String(cik) }); bwFill($("bwPopF"), BW.at(-1)); BW.push({ k: "f13bt", a: String(cik) }); bwFill($("bwPopB"), BW.at(-1));
 }
 document.addEventListener("click", (e) => { const t = e.target.closest("[data-bwp]"); if (!t) return; e.preventDefault(); e.stopPropagation(); bwPerson(+t.dataset.bwp); }, true);
+// 글 읽기: 오른쪽에 따라다니는 목차 (h2·h3, 지금 보는 곳 강조)
+let bgTocObs = null;
+function bgToc(box) {
+  document.getElementById("bgToc")?.remove(); bgTocObs?.disconnect();
+  const hs = [...box.querySelectorAll(".bg-post h2, .bg-post h3, .bg-post .an-h h4")].filter((h) => h.textContent.trim()); if (hs.length < 2) return;
+  hs.forEach((h, i) => (h.id ||= "bgh" + i));
+  const nav = document.createElement("nav"); nav.id = "bgToc"; nav.className = "bg-toc noprint";
+  nav.innerHTML = `<b>목차</b>` + hs.map((h) => `<a href="#${h.id}" class="${h.tagName === "H2" ? "l2" : "l3"}">${esc(h.textContent.trim().slice(0, 30))}</a>`).join("");
+  document.body.appendChild(nav);
+  nav.onclick = (e) => { const a1 = e.target.closest("a"); if (!a1) return; e.preventDefault(); document.getElementById(a1.getAttribute("href").slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  bgTocObs = new IntersectionObserver((es) => es.forEach((en) => { if (en.isIntersecting) nav.querySelectorAll("a").forEach((a1) => a1.classList.toggle("on", a1.getAttribute("href") === "#" + en.target.id)); }), { rootMargin: "0px 0px -70% 0px" });
+  hs.forEach((h) => bgTocObs.observe(h));
+  const hide = () => { nav.hidden = $("blog")?.hidden || !document.body.contains(box.querySelector(".bg-post")); }; hide();
+  new MutationObserver(() => { hide(); if (nav.hidden && !document.body.contains(box.querySelector(".bg-post"))) { nav.remove(); bgTocObs?.disconnect(); } }).observe(box, { childList: true });
+}
+document.addEventListener("click", (e) => { if (e.target.closest("[data-tab]")) setTimeout(() => { const n = document.getElementById("bgToc"); if (n) n.hidden = $("blog").hidden; }, 0); });
 function fillBw(root) { bwLinkNames(root); root.querySelectorAll("[data-bw]").forEach((el) => { const w = BW[+el.dataset.bw]; if (w && !el.dataset.done) { el.dataset.done = 1; bwFill(el, w); } }); }
 
 const ytId = (u) => (String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1];
@@ -1844,7 +1865,7 @@ function renderBlog() {
   if (BG.mode === "view") {
     box.innerHTML = `<div class="row noprint" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="edit">편집</button><button type="button" class="btn g s" id="bgPrint">인쇄 · PDF</button></div>
     <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdRich(b.md)}</div>` : b.t === "chart" ? `<div class="md">${mdRich((b.spec || "").split("\n").map((x) => (x.trim() && !x.trim().startsWith("[[") ? `[[${x.trim()}]]` : x)).join("\n"))}</div>${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : bgPend(p.blocks.indexOf(b)) ? zeroWait(`'${esc(b.ask.slice(0, 40))}' 칸을 ${b.out ? "다시 쓰는" : "쓰는"}`, bgPend(p.blocks.indexOf(b)).at, BG.post.seen) : b.out ? `<div class="md">${mdRich(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
-    fillImgs(box); fillBw(box); return;
+    fillImgs(box); fillBw(box); bgToc(box); return;
   }
   // 편집
   const add = (i) => `<div class="bg-add"><button type="button" class="pill" data-bga="text:${i}">+ 글</button><button type="button" class="pill" data-bga="img:${i}">+ 사진</button><button type="button" class="pill" data-bga="video:${i}">+ 영상</button><button type="button" class="pill" data-bga="chart:${i}">+ 차트</button><button type="button" class="pill" data-bga="ai:${i}">+ 제로에게 맡기기</button></div>`;
