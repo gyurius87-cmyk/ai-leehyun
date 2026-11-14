@@ -1336,25 +1336,24 @@ function renderMon(o) {
   const dayChips = (d) => st.map((x) => { const v = x.daily.find((y) => y.d === d); return v ? `<span class="mo-dc ${MO_REV.includes(x.s) ? ud(-v.p) : ud(v.p)}${Math.abs(v.p) >= 1.8 ? " big" : ""}"><small>${esc(x.n)}</small>${pct(v.p)}</span>` : ""; }).join("");
   const pxOf = (sym) => o.px?.[sym] || (() => { const x = st.find((y) => y.s === sym); return x ? { chg: x.chg, rows: x.daily } : null; })();
   $("moBody").innerHTML = `
-  <div class="mo-hero"><div class="k">MONTHLY MEETING · ${esc(moLabel(o.m))} · ${esc(o.from)} ~ ${esc(o.upto)}</div><h3>${esc(o.title || "")}</h3>${o.sub ? `<p style="color:#f2b632;margin-top:0">${esc(o.sub)}</p>` : ""}<p>${esc(o.summary || "")}</p></div>
+  <div class="mo-hero"><div class="k">MONTHLY MEETING · ${esc(moLabel(o.m))} · ${esc(o.from)} ~ ${esc(o.upto)}</div><h3>${esc(o.title || "")}</h3>${o.sub ? `<p style="color:#f2b632;margin-top:0">${esc(o.sub)}</p>` : ""}${o.summary ? `<p>${esc(String(o.summary).split(/(?<=[.다요])\s+/)[0])}</p>` : ""}</div>
   <nav class="mo-nav noprint"><a href="#moS1">성적표</a><a href="#moS2">한 달 흐름</a><a href="#moS2b">종목 겹쳐 보기</a>${DY.length ? `<a href="#moS3">하루하루</a>` : ""}${TH.length ? `<a href="#moS4">사건 테마</a>` : ""}${SK.length ? `<a href="#moS5">화제 종목</a>` : ""}<a href="#moS6">숫자·다음 달</a></nav>
-  ${o.lead ? `<div class="mo-sec"><h3>지난달 말부터 이어진 흐름</h3><p class="mo-p">${esc(o.lead)}</p></div>` : ""}
-  <div class="mo-sec" id="moS1"><h3>지수·매크로 이달 성적표 <span class="note">전달 마지막 종가 대비</span></h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
-  <div class="mo-sec" id="moS2"><h3>한 달 흐름 <span class="note">달 시작을 0%로 · 동그라미 번호 = 아래 사건</span></h3>
-    ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span><br>${esc(p.desc || "")}</span>`).join("")}</div>` : ""}
-    <div class="row" id="moLeg" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:380px"></div>
-    <div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(mdw(x.d))}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4><p class="mo-p" style="margin:0 0 4px">${esc(x.what || "")}</p>${x.why ? `<p class="mo-p" style="margin:0"><b>왜:</b> ${esc(x.why)}</p>` : ""}${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div></div>
-  <div class="mo-sec" id="moS2b"><h3>이달 거론된 종목 겹쳐 보기 <span class="note">달 시작 = 0% · 이름을 눌러 켜고 끄기 · 노란 번호 = 위 사건</span></h3>
+  <div class="mo-sec" id="moS1"><h3>지수·매크로 이달 성적표</h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
+  <div class="mo-sec" id="moS2"><h3>한 달 흐름</h3>
+    ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span></span>`).join("")}</div>` : ""}
+    <div class="row" id="moLegM" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:380px"></div>
+    <div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(mdw(x.d))}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4>${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).slice(0, 1).map(clip).join("")}</div>`).join("")}</div></div>
+  <div class="mo-sec" id="moS2b"><h3>이달 거론된 종목 겹쳐 보기</h3>
     <div class="row" id="moOvLeg" style="gap:4px;margin:6px 0"></div><div id="moOv" style="height:420px"></div>
     <div class="mo-evl">${TL.map((x, i) => `<span><b>${i + 1}</b> ${esc(mdw(x.d))} ${esc(x.title)}</span>`).join("")}</div></div>
-  ${DY.length ? `<div class="mo-sec" id="moS3"><h3>하루하루 짚어 보기 <span class="note">그날 종가 기준 지수 하나하나 · 1.8% 넘게 움직이면 굵게</span></h3>
+  ${DY.length ? `<div class="mo-sec" id="moS3"><h3>하루하루 짚어 보기</h3>
     ${DY.map((x) => `<div class="mo-day"><div class="hd"><span class="dt">${esc(mdw(x.d))}</span><h4>${esc(x.title || "")}</h4></div><div class="mo-dcs">${dayChips(x.d)}</div><p class="mo-p">${esc(x.story || "")}</p>${x.idx?.length ? `<ul class="mo-idx">${x.idx.map((v) => { const s0 = st.find((y) => y.s === v.s), dv = s0?.daily.find((y) => y.d === x.d); return `<li><b>${esc(nm(v.s))}${dv ? ` <span class="${MO_REV.includes(v.s) ? ud(-dv.p) : ud(dv.p)}">${pct(dv.p)}</span>` : ""}</b> ${esc(v.why || "")}</li>`; }).join("")}</ul>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div>` : ""}
-  ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마 <span class="note">테마별로 날짜(요일)마다 무슨 일이 있었고 주가가 어떻게 움직였는지</span></h3>
+  ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마</h3>
     ${TH.map((t, i) => { const P = pxOf(t.sym); return `<div class="mo-big"><div class="hd"><span class="no">테마 ${i + 1}</span><h4>${esc(t.name)}</h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700">${esc(nm(t.sym))} 이달 ${pct(P.chg)}</span>` : ""}</div>
       <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div><p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 표시 = ${t.steps?.length ? "아래 날짜" : "이달 사건"}</p>` : ""}
       ${t.steps?.length ? `<ol class="mo-steps">${t.steps.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${t.impact ? `<p class="mo-p"><b>시장에 준 영향</b><br>${esc(t.impact)}</p>` : ""}${t.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(t.watch)}</p>` : ""}${(t.quotes || []).map(clip).join("")}</div>`; }).join("")}</div>` : ""}
-  ${SK.length ? `<div class="mo-sec" id="moS5"><h3>이달 화제 종목 <span class="note">종목 하나하나 크게</span></h3>
+  ${SK.length ? `<div class="mo-sec" id="moS5"><h3>이달 화제 종목</h3>
     ${SK.map((x, i) => { const P = pxOf(x.s); return `<div class="mo-big"><div class="hd"><span class="no">종목 ${i + 1}</span><h4>${esc(x.n)} <span class="note">${esc(x.s)}</span></h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700;font-size:15px">이달 ${pct(P.chg)}</span>` : ""}</div>
       ${x.why ? `<p class="mo-p" style="font-weight:700">${esc(x.why)}</p>` : ""}${x.about ? `<p class="mo-p"><b>어떤 회사?</b> ${esc(x.about)}</p>` : ""}
       <div class="mo-pc" id="moSc${i}"></div>${x.events?.length ? "" : `<p class="note" style="margin:2px 0 8px">차트 번호 = 이달 사건: ${TL.map((v, k) => `${k + 1} ${esc(mdw(v.d))} ${esc(v.title)}`).join(" · ")}</p>`}
@@ -1420,9 +1419,9 @@ MON.on = new Set(["^IXIC", "^SOX", "^KS11", "^KQ11"]);
 function drawMonChart(o) {
   const el = $("moChart"); if (!el || !window.LightweightCharts) return; el.innerHTML = ""; MON.chart?.remove?.();
   const dark = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
-  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dark ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dark ? "#1f2937" : "#eef0f3" } }, rightPriceScale: { mode: 2 }, timeScale: { borderVisible: false }, handleScroll: false, handleScale: false });
+  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dark ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dark ? "#1f2937" : "#eef0f3" } }, rightPriceScale: { borderVisible: false }, timeScale: { borderVisible: false }, handleScroll: false, handleScale: false });
   MON.chart = ch; const st = (o.stats || []).filter((x) => !x.err && MO_COL[x.s]);
-  $("moLeg").innerHTML = st.map((x) => `<button type="button" class="pill" data-mol="${x.s}" aria-pressed="${MON.on.has(x.s)}" style="border-color:${MO_COL[x.s]}"><span style="color:${MO_COL[x.s]}">●</span> ${esc(x.n)} ${pct(x.chg)}</button>`).join("");
+  $("moLegM").innerHTML = st.map((x) => `<button type="button" class="pill" data-mol="${x.s}" aria-pressed="${MON.on.has(x.s)}" style="border-color:${MO_COL[x.s]}"><span style="color:${MO_COL[x.s]}">●</span> ${esc(x.n)} ${pct(x.chg)}</button>`).join("");
   let first = true;
   st.filter((x) => MON.on.has(x.s)).forEach((x) => {
     const s = ch.addLineSeries({ color: MO_COL[x.s], lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: x.n });
