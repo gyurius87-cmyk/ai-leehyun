@@ -1326,36 +1326,66 @@ $("moMake").onclick = async () => {
   b.disabled = false; b.textContent = "지금 다시 만들기";
 };
 $("moPrint").onclick = () => window.print();
+const MWD = ["일", "월", "화", "수", "목", "금", "토"], mdw = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)} (${MWD[new Date(d + "T00:00:00Z").getUTCDay()]})`;
+const MO_REV = ["^VIX", "^TNX", "KRW=X"];
 function renderMon(o) {
-  const st = (o.stats || []).filter((x) => !x.err), TL = o.timeline || [];
-  const tile = (x) => `<div class="mo-tile"><span class="note">${esc(x.n)}</span><b class="${["^VIX", "^TNX", "KRW=X"].includes(x.s) ? ud(-x.chg) : ud(x.chg)}">${pct(x.chg)}</b><span class="note">${fmt(x.end, x.end > 1000 ? 0 : 2)} · 최고 ${x.hi.d.slice(5)}</span></div>`;
+  const st = (o.stats || []).filter((x) => !x.err), TL = o.timeline || [], DY = o.daily || [], TH = o.themes || [], SK = o.stocks || [];
+  const nm = (sym) => st.find((x) => x.s === sym)?.n || SK.find((x) => x.s === sym)?.n || sym;
+  const tile = (x) => `<div class="mo-tile"><span class="note">${esc(x.n)}</span><b class="${MO_REV.includes(x.s) ? ud(-x.chg) : ud(x.chg)}">${pct(x.chg)}</b><span class="note">${fmt(x.end, x.end > 1000 ? 0 : 2)} · 최고 ${x.hi.d.slice(5)}</span></div>`;
   const clip = (q) => `<a class="mo-clip" href="${esc(q.link || "#")}" target="_blank" rel="noopener"><small>${esc(q.src || "기사")} · ${esc(q.d || "")}</small>“${esc(q.t)}”</a>`;
+  const dayChips = (d) => st.map((x) => { const v = x.daily.find((y) => y.d === d); return v ? `<span class="mo-dc ${MO_REV.includes(x.s) ? ud(-v.p) : ud(v.p)}${Math.abs(v.p) >= 1.8 ? " big" : ""}"><small>${esc(x.n)}</small>${pct(v.p)}</span>` : ""; }).join("");
+  const pxOf = (sym) => o.px?.[sym] || (() => { const x = st.find((y) => y.s === sym); return x ? { chg: x.chg, rows: x.daily } : null; })();
   $("moBody").innerHTML = `
   <div class="mo-hero"><div class="k">MONTHLY MEETING · ${esc(moLabel(o.m))} · ${esc(o.from)} ~ ${esc(o.upto)}</div><h3>${esc(o.title || "")}</h3>${o.sub ? `<p style="color:#f2b632;margin-top:0">${esc(o.sub)}</p>` : ""}<p>${esc(o.summary || "")}</p></div>
-  ${o.lead ? `<div class="mo-sec"><h3>지난달 말부터 이어진 흐름</h3><p>${esc(o.lead)}</p></div>` : ""}
-  <div class="mo-sec"><h3>지수·매크로 이달 성적표 <span class="note">전달 마지막 종가 대비</span></h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
-  <div class="mo-sec"><h3>한 달 흐름 <span class="note">달 시작을 0%로 · 동그라미 번호 = 아래 사건</span></h3>
+  <nav class="mo-nav noprint"><a href="#moS1">성적표</a><a href="#moS2">한 달 흐름</a>${DY.length ? `<a href="#moS3">하루하루</a>` : ""}${TH.length ? `<a href="#moS4">사건 테마</a>` : ""}${SK.length ? `<a href="#moS5">화제 종목</a>` : ""}<a href="#moS6">숫자·다음 달</a></nav>
+  ${o.lead ? `<div class="mo-sec"><h3>지난달 말부터 이어진 흐름</h3><p class="mo-p">${esc(o.lead)}</p></div>` : ""}
+  <div class="mo-sec" id="moS1"><h3>지수·매크로 이달 성적표 <span class="note">전달 마지막 종가 대비</span></h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
+  <div class="mo-sec" id="moS2"><h3>한 달 흐름 <span class="note">달 시작을 0%로 · 동그라미 번호 = 아래 사건</span></h3>
     ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span><br>${esc(p.desc || "")}</span>`).join("")}</div>` : ""}
-    <div class="row" id="moLeg" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:360px"></div></div>
-  <div class="mo-sec"><h3>무슨 일이 있었나</h3><div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(x.d)}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4><p style="margin:0 0 4px">${esc(x.what || "")}</p>${x.why ? `<p class="note" style="margin:0">왜: ${esc(x.why)}</p>` : ""}${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div></div>
-  ${o.themes?.length ? `<div class="mo-sec"><h3>이달의 테마</h3><div class="two">${o.themes.map((t) => `<div class="mo-tile"><b style="font-size:16px">${esc(t.name)}</b><p style="margin:4px 0">${esc(t.desc || "")}</p><span class="note">${(t.syms || []).map(esc).join(" · ")}</span></div>`).join("")}</div></div>` : ""}
-  ${o.stocks?.length ? `<div class="mo-sec"><h3>이달 화제 종목 <span class="note">이달 종가 흐름</span></h3><div class="mo-tiles" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${o.stocks.map((x, i) => `<div class="mo-tile"><b style="font-size:15px">${esc(x.n)} <span class="note">${esc(x.s)}</span></b><span class="num" id="moSc${i}"></span><canvas id="moSk${i}" style="width:100%;height:56px;display:block;margin:4px 0"></canvas><span class="note">${esc(x.why || "")}</span></div>`).join("")}</div></div>` : ""}
-  ${o.numbers?.length ? `<div class="mo-sec"><h3>숫자로 본 이달</h3><div class="mo-tiles">${o.numbers.map((n) => `<div class="mo-tile"><span class="note">${esc(n.k)}</span><b>${esc(n.v)}</b></div>`).join("")}</div></div>` : ""}
-  ${o.next?.length ? `<div class="mo-sec"><h3>다음 달에 확인할 것</h3><ul>${o.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}
+    <div class="row" id="moLeg" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:380px"></div>
+    <div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(mdw(x.d))}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4><p class="mo-p" style="margin:0 0 4px">${esc(x.what || "")}</p>${x.why ? `<p class="mo-p" style="margin:0"><b>왜:</b> ${esc(x.why)}</p>` : ""}${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div></div>
+  ${DY.length ? `<div class="mo-sec" id="moS3"><h3>하루하루 짚어 보기 <span class="note">그날 종가 기준 지수 하나하나 · 1.8% 넘게 움직이면 굵게</span></h3>
+    ${DY.map((x) => `<div class="mo-day"><div class="hd"><span class="dt">${esc(mdw(x.d))}</span><h4>${esc(x.title || "")}</h4></div><div class="mo-dcs">${dayChips(x.d)}</div><p class="mo-p">${esc(x.story || "")}</p>${x.idx?.length ? `<ul class="mo-idx">${x.idx.map((v) => { const s0 = st.find((y) => y.s === v.s), dv = s0?.daily.find((y) => y.d === x.d); return `<li><b>${esc(nm(v.s))}${dv ? ` <span class="${MO_REV.includes(v.s) ? ud(-dv.p) : ud(dv.p)}">${pct(dv.p)}</span>` : ""}</b> ${esc(v.why || "")}</li>`; }).join("")}</ul>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div>` : ""}
+  ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마 <span class="note">테마별로 날짜(요일)마다 무슨 일이 있었고 주가가 어떻게 움직였는지</span></h3>
+    ${TH.map((t, i) => { const P = pxOf(t.sym); return `<div class="mo-big"><div class="hd"><span class="no">테마 ${i + 1}</span><h4>${esc(t.name)}</h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700">${esc(nm(t.sym))} 이달 ${pct(P.chg)}</span>` : ""}</div>
+      <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div><p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 번호 = 아래 날짜</p>` : ""}
+      ${t.steps?.length ? `<ol class="mo-steps">${t.steps.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
+      ${t.impact ? `<p class="mo-p"><b>시장에 준 영향</b><br>${esc(t.impact)}</p>` : ""}${t.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(t.watch)}</p>` : ""}${(t.quotes || []).map(clip).join("")}</div>`; }).join("")}</div>` : ""}
+  ${SK.length ? `<div class="mo-sec" id="moS5"><h3>이달 화제 종목 <span class="note">종목 하나하나 크게</span></h3>
+    ${SK.map((x, i) => { const P = pxOf(x.s); return `<div class="mo-big"><div class="hd"><span class="no">종목 ${i + 1}</span><h4>${esc(x.n)} <span class="note">${esc(x.s)}</span></h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700;font-size:15px">이달 ${pct(P.chg)}</span>` : ""}</div>
+      ${x.why ? `<p class="mo-p" style="font-weight:700">${esc(x.why)}</p>` : ""}${x.about ? `<p class="mo-p"><b>어떤 회사?</b> ${esc(x.about)}</p>` : ""}
+      <div class="mo-pc" id="moSc${i}"></div>
+      ${x.story ? `<p class="mo-p">${esc(x.story)}</p>` : ""}
+      ${x.events?.length ? `<ol class="mo-steps">${x.events.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
+      ${x.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(x.watch)}</p>` : ""}</div>`; }).join("")}</div>` : ""}
+  <div id="moS6">${o.numbers?.length ? `<div class="mo-sec"><h3>숫자로 본 이달</h3><div class="mo-tiles">${o.numbers.map((n) => `<div class="mo-tile"><span class="note">${esc(n.k)}</span><b>${esc(n.v)}</b></div>`).join("")}</div></div>` : ""}
+  ${o.next?.length ? `<div class="mo-sec"><h3>다음 달에 확인할 것</h3><ul class="mo-p">${o.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}</div>
   <p class="note" style="margin-top:16px">자료: 그날그날의 오늘의 정리·일별 DB·야후 파이낸스 종가·구글 뉴스 기사 제목을 제로가 정리 · 공부용, 투자 권유 아님 · 출처 AI이현</p>`;
   drawMonChart(o);
-  (o.stocks || []).forEach(async (x, i) => {
-    try { const g = await api(`op=chart&s=${encodeURIComponent(x.s)}&r=3mo&i=1d`); const rows = (g.rows || []).filter((r) => r.d >= o.from && r.d <= o.upto && r.c != null); const pre = (g.rows || []).filter((r) => r.d < o.from).at(-1);
-      if (!rows.length) return; const base = pre?.c ?? rows[0].c, ch = (rows.at(-1).c / base - 1) * 100;
-      $("moSc" + i).innerHTML = `<span class="${ud(ch)}">${pct(ch)}</span>`; line($("moSk" + i), rows.map((r) => r.c), { color: ch >= 0 ? css("--up") : css("--down") });
-    } catch {}
+  TH.forEach((t, i) => { const P = pxOf(t.sym); if (P) monPx($("moTc" + i), P.rows, t.steps || []); });
+  SK.forEach(async (x, i) => {
+    let P = pxOf(x.s);
+    if (!P) { try { const g = await api(`op=chart&s=${encodeURIComponent(x.s)}&r=3mo&i=1d`); const rows = (g.rows || []).filter((r) => r.d >= o.from && r.d <= o.upto && r.c != null); if (rows.length) P = { rows }; } catch {} }
+    if (P) monPx($("moSc" + i), P.rows, x.events || []);
   });
+}
+// 종목·테마 차트: 이달 종가 선 + 사건 날짜에 번호
+function monPx(el, rows, evs) {
+  if (!el || !window.LightweightCharts || !rows?.length) return; el.innerHTML = "";
+  const dark = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
+  const up = rows.at(-1).c >= rows[0].c;
+  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dark ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dark ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false });
+  const s = ch.addAreaSeries({ lineColor: up ? css("--up") : css("--down"), topColor: (up ? css("--up") : css("--down")) + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false });
+  s.setData(rows.map((r) => ({ time: r.d, value: r.c })));
+  const days = rows.map((r) => r.d);
+  s.setMarkers(evs.map((v, i) => { const d = days.find((x) => x >= v.d); return d ? { time: d, position: "aboveBar", color: "#f2b632", shape: "circle", text: String(i + 1) } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1)));
+  ch.timeScale().fitContent();
 }
 const MO_COL = { "^IXIC": "#2563eb", "^GSPC": "#7c3aed", "^SOX": "#f59e0b", "^KS11": "#e11d48", "^KQ11": "#10b981" };
 MON.on = new Set(["^IXIC", "^SOX", "^KS11", "^KQ11"]);
 function drawMonChart(o) {
   const el = $("moChart"); if (!el || !window.LightweightCharts) return; el.innerHTML = ""; MON.chart?.remove?.();
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
   const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dark ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dark ? "#1f2937" : "#eef0f3" } }, rightPriceScale: { mode: 2 }, timeScale: { borderVisible: false }, handleScroll: false, handleScale: false });
   MON.chart = ch; const st = (o.stats || []).filter((x) => !x.err && MO_COL[x.s]);
   $("moLeg").innerHTML = st.map((x) => `<button type="button" class="pill" data-mol="${x.s}" aria-pressed="${MON.on.has(x.s)}" style="border-color:${MO_COL[x.s]}"><span style="color:${MO_COL[x.s]}">●</span> ${esc(x.n)} ${pct(x.chg)}</button>`).join("");
