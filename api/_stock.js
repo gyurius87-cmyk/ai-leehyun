@@ -8,7 +8,7 @@ import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { kwReady, kwSync, outIp, kwChart, kwChartable, kwStockList, kwHistSync } from "./_kiwoom.js";
 import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
-import { f13Find, f13FundView, f13Refresh, f13Build, f13Agg, f13Stock, f13Mine, f13Backtest } from "./_f13.js";
+import { f13Find, f13FundView, f13Refresh, f13Build, f13Agg, f13Stock, f13Mine, f13Backtest, famNow } from "./_f13.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { monthGet, monthMake } from "./_monthly.js";
@@ -638,6 +638,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "f13stock") return res.json(await f13Stock(q.q, findSym));
       if (op === "f13mine") { const [a] = await redis([["GET", "stk:acct"]]); return res.json(await f13Mine(json(a))); }
       if (op === "f13bt") { try { return res.json(await f13Backtest(String(q.cik || ""), chart)); } catch (e) { return res.status(502).json({ error: "bt", msg: String(e?.message || e).slice(0, 200) }); } }
+      if (op === "famnow") { try { return res.json(await famNow((await famousAll()).list, chart, !!q.force)); } catch (e) { return res.status(502).json({ error: "famnow", msg: String(e?.message || e).slice(0, 200) }); } }
       if (op === "famq") { const r = await famQuarter(String(q.id || ""), String(q.acc || "")); return r ? res.json(r) : res.status(404).json({ error: "none" }); }
       if (op === "fam") { let a = await famousAll(); if (q.refresh || !a.at || a.list.some((f) => f.cik && f.data && !f.data.hist)) { await famousRefresh(!!q.force); a = await famousAll(); } return res.json(a); }
       if (op === "world") return res.json(await world(!!q.force, String(q.x || "").split(",").map((x) => x.trim()).filter(Boolean)));

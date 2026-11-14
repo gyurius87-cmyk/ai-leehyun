@@ -178,3 +178,23 @@ export async function f13Backtest(cik, chart) {
   await redis([["SET", ck, JSON.stringify(out)]]);
   return out;
 }
+
+// 유명인 포폴: 마지막 13F 포트(상위 25종목 비중대로)를 그대로 들고 있었다면 오늘까지 몇 % (공개일부터 · 분기 말부터), S&P 500과 비교
+export async function famNow(list, chart, force) {
+  const F0 = list.filter((f) => f.cik && f.data && f.data.kind === "13f" && f.data.rows?.length);
+  const sig = F0.map((f) => f.id + ":" + f.data.acc).join(","), [c] = await redis([["GET", "stk:famnow"]]), hit = json(c);
+  if (hit && !force && hit.sig === sig && Date.now() - hit.at < 3 * 3600e3) return hit;
+  const T = await nameToTicker();
+  const F = F0.map((f) => { const d = f.data, w = []; d.rows.filter((r) => !r.pc).sort((a, b) => b.val - a.val).forEach((r) => { const t = T[norm(r.n)]; if (t && w.length < 25 && !w.some((x) => x[0] === t)) w.push([t.replace(/\./g, "-"), r.val, r.n]); });
+    const wt = w.reduce((t, x) => t + x[1], 0); return { id: f.id, cik: f.cik, filed: d.filed, period: d.period, cover: d.total ? Math.round((wt / d.total) * 100) : 0, w: w.map(([t, v, n]) => [t, wt ? v / wt : 0, n]) }; });
+  const old = F.some((f) => f.period < new Date(Date.now() - 330 * 864e5).toISOString().slice(0, 10)), rg = old ? "5y" : "1y";
+  const syms = [...new Set(F.flatMap((f) => f.w.map((x) => x[0]))), "SPY"], px = {};
+  for (let i = 0; i < syms.length; i += 12) await Promise.all(syms.slice(i, i + 12).map(async (s2) => { const g = await chart(s2, rg).catch(() => null); if (g?.rows?.length) px[s2] = g.rows; }));
+  if (!px.SPY) return { err: "price" };
+  const to = px.SPY.at(-1).d, r1 = (x) => Math.round(x * 10) / 10;
+  const ret = (s2, from) => { const R = px[s2]; if (!R) return null; const a = R.find((r) => r.d >= from); return a && a.d <= to ? (R.at(-1).c / a.c - 1) * 100 : null; };
+  const port = (f, from) => { let t = 0, ws = 0; f.w.forEach(([s2, w]) => { const v = ret(s2, from); if (v != null) { t += w * v; ws += w; } }); return ws >= 0.3 ? r1(t / ws) : null; };
+  const out = { sig, at: Date.now(), to, list: F.map((f) => ({ id: f.id, cik: f.cik, filed: f.filed, period: f.period, cover: f.cover, ret: port(f, f.filed), spy: ret("SPY", f.filed) == null ? null : r1(ret("SPY", f.filed)), retP: port(f, f.period), spyP: ret("SPY", f.period) == null ? null : r1(ret("SPY", f.period)), st: f.w.map(([s2, w, n]) => { const v = ret(s2, f.filed); return [n, s2, Math.round(w * 1000) / 10, v == null ? null : r1(v)]; }) })) };
+  await redis([["SET", "stk:famnow", JSON.stringify(out)]]);
+  return out;
+}
