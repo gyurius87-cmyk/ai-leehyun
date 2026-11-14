@@ -1972,16 +1972,19 @@ async function bgJpg(btn) {
   const art = document.querySelector("#blog .bg-post") || document.querySelector(".bg-post"); if (!art) return;
   const old = btn.textContent; btn.disabled = true; btn.textContent = "만드는 중…";
   try {
-    h2cP = h2cP || new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"; sc.onload = ok; sc.onerror = () => { h2cP = null; no(new Error("load")); }; document.head.appendChild(sc); });
+    h2cP = h2cP || new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/html2canvas-pro@2.5.2/dist/html2canvas-pro.min.js"; sc.onload = ok; sc.onerror = () => { h2cP = null; no(new Error("load")); }; document.head.appendChild(sc); });
     await h2cP;
     const bg = getComputedStyle(document.body).backgroundColor || "#fff";
-    const W = art.scrollWidth, H = art.scrollHeight, MAXH = window.BG_JPG_MAX || 12000;
-    const scale = Math.min(2, Math.max(1, Math.floor(30000000 / (W * Math.min(H, MAXH)) * 10) / 10 || 1));
+    // 브라우저(특히 아이폰·사파리)는 너무 큰 그림을 못 만들어 잘려 나와요 → 한 장 1,600만 픽셀·세로 16,000픽셀 이하로
+    const W = art.scrollWidth, H = art.scrollHeight, AREA = 16e6, TALL = 16000;
+    let scale = Math.min(2, Math.sqrt(AREA / (W * H)), TALL / H), MAXH = H;
+    if (scale < 1 || window.BG_JPG_MAX) { scale = Math.min(1.5, Math.sqrt(AREA / (W * 4000))); MAXH = Math.floor(Math.min(window.BG_JPG_MAX || 1e9, TALL / scale, AREA / (W * scale * scale))); }
+    scale = Math.floor(scale * 100) / 100;
     const title = (art.querySelector("h1")?.textContent || "스터디").trim().replace(/[\\/:*?"<>|]/g, "").slice(0, 60) || "스터디";
     const parts = Math.ceil(H / MAXH), sy = window.scrollY; window.scrollTo(0, 0); const top0 = art.getBoundingClientRect().top;
     for (let i = 0; i < parts; i++) {
       const y = i * MAXH, h = Math.min(MAXH, H - y);
-      const cv = await window.html2canvas(art, { backgroundColor: bg, scale, useCORS: true, logging: false, ...(parts > 1 ? { y: y, height: h } : {}), scrollX: 0, scrollY: 0, windowWidth: document.documentElement.clientWidth, ignoreElements: (el) => el.classList?.contains("noprint") || el.classList?.contains("bg-toc") || el.classList?.contains("an-tip") });
+      const h2c = window.html2canvas?.default || window.html2canvas; const cv = await h2c(art, { backgroundColor: bg, scale, useCORS: true, logging: false, ...(parts > 1 ? { y: y, height: h } : {}), scrollX: 0, scrollY: 0, width: W, windowWidth: Math.max(document.documentElement.clientWidth, Math.ceil(art.getBoundingClientRect().left) + W), ignoreElements: (el) => el.classList?.contains("noprint") || el.classList?.contains("bg-toc") || el.classList?.contains("an-tip") });
       const url = cv.toDataURL("image/jpeg", 0.9);
       const a = document.createElement("a"); a.href = url; a.download = `${title}${parts > 1 ? "_" + (i + 1) : ""}.jpg`; document.body.appendChild(a); a.click(); a.remove();
       await new Promise((r) => setTimeout(r, 300));
