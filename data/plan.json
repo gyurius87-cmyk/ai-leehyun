@@ -309,6 +309,15 @@
               "status": "doing",
               "makesProgram": true,
               "start": "2026-10-31"
+            },
+            {
+              "id": "macro-dict",
+              "title": "AI로 만든 매크로 공부 사전",
+              "what": "금리, 물가, 환율, 유가 같은 매크로가 서로 어떻게 엮여 주가에 영향을 주는지 연결 지도와 5년 차트로 공부합니다.",
+              "yt": "AI 매크로 공부",
+              "status": "doing",
+              "makesProgram": true,
+              "start": "2026-11-14"
             }
           ]
         },
@@ -320,7 +329,8 @@
               "title": "AI를 이용한 공시·실적·리포트 분석",
               "what": "공시, 실적 발표, 증권사 리포트에서 숫자 변화와 핵심만 뽑습니다.",
               "yt": "AI 기업 실적 분석",
-              "status": "wait"
+              "status": "doing",
+              "start": "2026-11-14"
             }
           ]
         },
