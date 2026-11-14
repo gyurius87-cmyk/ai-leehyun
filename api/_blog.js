@@ -7,7 +7,8 @@ const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const nid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const clip = (s, n) => String(s ?? "").slice(0, n);
 const cleanBlock = (b) => {
-  const t = ["text", "img", "video", "ai"].includes(b?.t) ? b.t : "text";
+  const t = ["text", "img", "video", "ai", "chart"].includes(b?.t) ? b.t : "text";
+  if (t === "chart") return { t, spec: clip(b.spec, 2000), cap: clip(b.cap, 300) };
   if (t === "img") return { t, img: clip(b.img, 40), cap: clip(b.cap, 300) };
   if (t === "video") return { t, url: clip(b.url, 500), cap: clip(b.cap, 300) };
   if (t === "ai") return { t, ask: clip(b.ask, 3000), out: clip(b.out, 30000), at: +b.at || 0 };
@@ -39,13 +40,22 @@ export async function blogImgGet(id) { const [d] = await redis([["GET", "stk:bim
 // 제로에게 맡기기: 글 전체를 맥락으로, 그 칸의 부탁을 채움 (구독 접수함)
 export async function blogAi(id, bi, deps) {
   const p = await blogGet(id); if (!p) return { err: "none" }; const b = p.blocks[+bi]; if (!b || b.t !== "ai" || !b.ask.trim()) return { err: "block" };
-  const ctx = p.blocks.map((x, i) => (i === +bi ? `[▶ 여기를 채워 주세요: ${x.ask}]` : x.t === "text" ? x.md : x.t === "img" ? `[사진${x.cap ? ": " + x.cap : ""}]` : x.t === "video" ? `[영상 ${x.url}${x.cap ? " " + x.cap : ""}]` : x.out ? `[제로가 쓴 칸: ${x.out.slice(0, 1500)}]` : "")).filter(Boolean).join("\n\n");
+  const ctx = p.blocks.map((x, i) => (i === +bi ? `[▶ 여기를 채워 주세요: ${x.ask}]` : x.t === "text" ? x.md : x.t === "img" ? `[사진${x.cap ? ": " + x.cap : ""}]` : x.t === "video" ? `[영상 ${x.url}${x.cap ? " " + x.cap : ""}]` : x.t === "chart" ? `[차트: ${x.spec}${x.cap ? " " + x.cap : ""}]` : x.out ? `[제로가 쓴 칸: ${x.out.slice(0, 1500)}]` : "")).filter(Boolean).join("\n\n");
   const [br] = await redis([["GET", "stk:brief:" + kstDay()]]); const B = json(br);
   const prompt = `이현이 주식 스터디 발표 글을 블로그처럼 쓰고 있어요. 글 중간의 한 칸을 당신(제로)에게 맡겼어요. 그 칸에 들어갈 내용만 써 주세요.
 - 이현의 부탁: ${b.ask}
 - 글 제목: ${p.title}
 - 쉬운 한국어, 마크다운 (소제목 ##, 목록, 표 가능). 앞뒤 글과 자연스럽게 이어지게. 인사말·설명 없이 칸에 들어갈 내용만.
 - 모르는 최신 사실·숫자는 지어내지 말고 "확인 필요"라고 적어요. 투자 권유가 아니라 공부용이에요.
+- 시각 자료를 넉넉히 넣어요. 아래 한 줄짜리 명령을 '그 줄에 그것만' 쓰면 화면에서 실제 데이터로 그림이 돼요 (숫자를 몰라도 그림이 실제 값을 보여 줘요):
+  [[chart NVDA,SPY 1y]] 주가 또는 여러 종목 수익률 비교 (야후 심볼, 기간 1mo 3mo 6mo 1y 2y 5y 10y)
+  [[tv NASDAQ:NVDA]] 트레이딩뷰 차트
+  [[bars 제목 | 이름 값, 이름 값]] 막대 (값을 아는 것만)
+  [[pie 제목 | 이름 값, 이름 값]] 원그래프 (값을 아는 것만)
+  [[f13 CIK]] 그 펀드의 최신 13F 상위 종목 원그래프·표
+  [[f13bt CIK,CIK]] 13F 공개일에 따라 산 성과 vs S&P500 곡선과 순위 (최대 5개)
+  13F 펀드 CIK: 버크셔 1067983, 퍼싱 스퀘어(애크먼) 1336528, 사이언(버리) 1649339, 브리지워터(달리오) 1350694, 듀케인(드러켄밀러) 1536411, 히말라야(리루) 1709323, 달랄 스트리트(파브라이) 1549575, 아팔루사(테퍼) 1656456, ARK(캐시 우드) 1697748, 소로스 1029160, 국민연금 1608046
+- 그림 바로 위나 아래에 그림을 어떻게 읽는지 설명을 붙여요.
 ${B?.headline ? `- 참고: 오늘(${kstDay()}) 시장 정리 한 줄: ${B.headline}` : ""}
 
 [지금까지의 글]

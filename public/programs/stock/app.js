@@ -1422,6 +1422,66 @@ const mdHtml = (t) => {
   }
   flush(); return out.join("");
 };
+// ── 스터디 글 안의 차트·그림 ([[chart NVDA,SPY 1y]] 같은 한 줄이 그림이 돼요)
+const BW_HELP = "[[chart NVDA,SPY 1y]] 주가·비교 · [[tv NASDAQ:NVDA]] 트레이딩뷰 · [[bars 제목 | 버크셔 12.5, S&P500 9.1]] 막대 · [[pie 제목 | 애플 40, 은행 20]] 원그래프 · [[f13 1067983]] 펀드 보유 종목 · [[f13bt 1067983,1649339]] 13F 따라 하기 성과";
+const BW = [];
+function mdRich(t) {
+  const parts = []; let buf = [];
+  for (const l of String(t || "").split("\n")) { const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
+  if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
+}
+const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b"];
+const bwDark = () => getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
+function bwChart(el, series, pctMode) {
+  if (!window.LightweightCharts) { el.innerHTML = `<p class="note">차트를 못 불러왔어요.</p>`; return; }
+  const box = document.createElement("div"); box.style.height = "320px"; el.appendChild(box); const dk = bwDark();
+  const ch = LightweightCharts.createChart(box, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dk ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dk ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false });
+  series.forEach((x, i) => { const sr = series.length === 1 && !pctMode ? ch.addAreaSeries({ lineColor: BWC[0], topColor: BWC[0] + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false }) : ch.addLineSeries({ color: x.color || BWC[i % BWC.length], lineWidth: x.w || 2, priceLineVisible: false, title: x.name, lineStyle: x.dash ? 2 : 0 }); sr.setData(x.data); });
+  ch.timeScale().fitContent();
+}
+const bwLeg = (items) => `<div class="row" style="gap:10px;margin:6px 0">${items.map((x, i) => `<span style="font-size:13px;font-weight:700"><span style="color:${x.color || BWC[i % BWC.length]}">●</span> ${esc(x.name)}${x.v != null ? ` <span class="${ud(x.v)}">${pct(x.v)}</span>` : ""}</span>`).join("")}</div>`;
+const bwKV = (a) => { const [ttl, body] = a.includes("|") ? a.split("|") : ["", a]; return { ttl: ttl.trim(), kv: body.split(",").map((x) => x.trim()).filter(Boolean).map((x) => { const m = x.match(/^(.*?)\s+(-?[\d.]+)%?$/); return m ? [m[1], +m[2]] : null; }).filter(Boolean) }; };
+async function bwFill(el, w) {
+  const { k, a } = w; el.innerHTML = "";
+  try {
+    if (k === "chart") {
+      const [symsS, rg0] = a.split(/\s+/), syms = symsS.split(",").filter(Boolean).slice(0, 6), rg = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"].includes(rg0) ? rg0 : "1y";
+      const gs = await Promise.all(syms.map((x) => api(`op=chart&s=${encodeURIComponent(x)}&r=${rg}&i=${["5y", "10y", "max"].includes(rg) ? "1wk" : "1d"}`).catch(() => null)));
+      const ok = syms.map((x, i) => ({ x, g: gs[i] })).filter((v) => v.g?.rows?.length);
+      if (!ok.length) throw 0;
+      const many = ok.length > 1, ser = ok.map(({ x, g }) => { const rows = g.rows.filter((r) => r.c != null), b = rows[0].c; return { name: g.name || x, v: (rows.at(-1).c / b - 1) * 100, data: rows.map((r) => ({ time: r.d, value: many ? Math.round((r.c / b - 1) * 10000) / 100 : r.c })) }; });
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${many ? "수익률 비교 (시작 = 0%)" : esc(ser[0].name) + " 주가"} · ${esc(rg)}</div>` + bwLeg(ser)); bwChart(el, ser, many);
+    } else if (k === "tv") {
+      el.innerHTML = `<div class="bw-t">트레이딩뷰 · ${esc(a)}</div><iframe class="bw-tv" src="https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(a)}&interval=D&theme=${bwDark() ? "dark" : "light"}&style=1&locale=kr&hide_side_toolbar=1&withdateranges=1&allow_symbol_change=1" loading="lazy"></iframe>`;
+    } else if (k === "bars") {
+      const { ttl, kv } = bwKV(a); const mx = Math.max(...kv.map((x) => Math.abs(x[1])), 1), neg = kv.some((x) => x[1] < 0);
+      el.innerHTML = `${ttl ? `<div class="bw-t">${esc(ttl)}</div>` : ""}<div class="bw-bars">${kv.map(([n, v], i) => `<div class="r"><span class="n">${esc(n)}</span><span class="tr${neg ? " ng" : ""}"><i style="width:${(Math.abs(v) / mx) * (neg ? 50 : 100)}%;${neg ? (v < 0 ? "right:50%" : "left:50%") : "left:0"};background:${v < 0 ? css("--down") : BWC[i % BWC.length]}"></i></span><b class="${neg ? ud(v) : ""}">${v}${/%/.test(a) || neg ? "%" : ""}</b></div>`).join("")}</div>`;
+    } else if (k === "pie") {
+      const { ttl, kv } = bwKV(a); el.innerHTML = (ttl ? `<div class="bw-t">${esc(ttl)}</div>` : "") + bwPie(kv);
+    } else if (k === "f13") {
+      const d = await api("op=f13fund&cik=" + encodeURIComponent(a.split(/[\s,]/)[0])); if (!d?.rows?.length) throw 0;
+      const top = d.rows.slice(0, 10), rest = Math.max(0, 100 - top.reduce((t, r) => t + r.w, 0));
+      el.innerHTML = `<div class="bw-t">${esc(d.star || d.name)} · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [r.ko || r.t || r.n, r.w]), ["그 외", Math.round(rest * 10) / 10]])}
+      <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(r.ko || r.n)} <span class="note">${esc(r.t || "")}</span></td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
+    } else if (k === "f13bt") {
+      const ciks = a.split(/[\s,]+/).filter(Boolean).slice(0, 5); const rs = await Promise.all(ciks.map((c) => api("op=f13bt&cik=" + encodeURIComponent(c)).catch(() => null)));
+      const ok = rs.filter((r) => r?.curve?.length); if (!ok.length) throw 0;
+      const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || r.name) + " 따라 하기", v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
+      ser.push({ name: "S&P 500 (SPY)", v: ok[0].spy, color: "#94a3b8", dash: true, data: ok[0].curve.map((c) => ({ time: c[0], value: c[2] })) });
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 공개일에 사서 다음 13F까지 들고 가기 (상위 25종목 비중대로) · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>` + bwLeg(ser)); bwChart(el, ser, true);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...ser].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
+    }
+  } catch { el.innerHTML = `<p class="note">그림 자료를 못 받았어요 (${esc(k)} ${esc(a)}).</p>`; }
+}
+const F13N = { 1067983: "버크셔", 1336528: "퍼싱 스퀘어", 1649339: "사이언", 1350694: "브리지워터", 1536411: "듀케인", 1709323: "히말라야", 1549575: "파브라이", 1697748: "ARK", 1608046: "국민연금", 1656456: "아팔루사", 1029160: "소로스" };
+function bwPie(kv) {
+  const tot = kv.reduce((t, x) => t + Math.max(0, x[1]), 0) || 1; let a0 = -Math.PI / 2; const R = 70, r = 42, cx = 80, cy = 80;
+  const arcs = kv.map(([n, v], i) => { const a1 = a0 + (Math.max(0, v) / tot) * Math.PI * 2, lg = a1 - a0 > Math.PI ? 1 : 0, P = (rr, a) => `${cx + rr * Math.cos(a)} ${cy + rr * Math.sin(a)}`;
+    const d = `M${P(R, a0)}A${R} ${R} 0 ${lg} 1 ${P(R, a1 - 1e-4)}L${P(r, a1 - 1e-4)}A${r} ${r} 0 ${lg} 0 ${P(r, a0)}Z`; a0 = a1; return `<path d="${d}" fill="${n === "그 외" ? "#94a3b8" : BWC[i % BWC.length]}"/>`; });
+  return `<div class="bw-pie"><svg viewBox="0 0 160 160" width="160" height="160">${arcs.join("")}</svg><div>${kv.map(([n, v], i) => `<div style="font-size:13px"><span style="color:${n === "그 외" ? "#94a3b8" : BWC[i % BWC.length]}">■</span> ${esc(n)} <b>${v}%</b></div>`).join("")}</div></div>`;
+}
+function fillBw(root) { root.querySelectorAll("[data-bw]").forEach((el) => { const w = BW[+el.dataset.bw]; if (w && !el.dataset.done) { el.dataset.done = 1; bwFill(el, w); } }); }
+
 const ytId = (u) => (String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1];
 const vidHtml = (u) => { const y = ytId(u); if (y) return `<div class="bg-vid"><iframe src="https://www.youtube.com/embed/${y}" allowfullscreen loading="lazy"></iframe></div>`; if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return `<div class="bg-vid"><video src="${esc(u)}" controls></video></div>`; return u ? `<p><a href="${esc(u)}" target="_blank" rel="noopener">▶ 영상 열기</a></p>` : ""; };
 async function bgImg(id) { if (!id) return ""; if (!BG.img[id]) BG.img[id] = api("op=bimg&id=" + id).then((j) => j.data).catch(() => ""); return BG.img[id]; }
@@ -1431,28 +1491,29 @@ const bgPend = (i) => (BG.post?.pend || []).find((x) => x.bi === i);
 function renderBlog() {
   const box = $("bgBody");
   if (BG.mode === "list") {
-    box.innerHTML = `<div class="row" style="margin-bottom:10px"><button type="button" class="btn y s" id="bgNew">✍️ 새 글 쓰기</button><span class="note" style="margin:0">${BG.list.length}개</span></div>` + (BG.list.length ? `<div class="bg-cards">${BG.list.map((p) => `<button type="button" class="bg-card" data-bgo="${p.id}"><div class="cv" ${p.cover ? `data-bimg="${p.cover}"` : ""}></div><div class="tx"><h4>${esc(p.title)}</h4><span class="note">${new Date(p.upd).toLocaleDateString("ko-KR")}${p.pend ? ` · <b style="color:#b7791f">🕒 제로가 ${p.pend}칸 쓰는 중</b>` : ""}</span><p class="note" style="margin:4px 0 0">${esc(p.lead)}</p></div></button>`).join("")}</div>` : `<p class="note">아직 글이 없어요. '새 글 쓰기'로 첫 스터디 발표 글을 써 보세요.</p>`);
+    box.innerHTML = `<div class="row" style="margin-bottom:10px"><button type="button" class="btn y s" id="bgNew">✍️ 새 글 쓰기</button><span class="note" style="margin:0">${BG.list.length}개</span></div>` + (BG.list.length ? `<div class="bg-cards">${BG.list.map((p) => `<button type="button" class="bg-card" data-bgo="${p.id}">${p.cover ? `<div class="cv" data-bimg="${p.cover}"></div>` : ""}<div class="tx"><h4>${esc(p.title)}</h4><span class="note">${new Date(p.upd).toLocaleDateString("ko-KR")}${p.pend ? ` · <b style="color:#b7791f">🕒 제로가 ${p.pend}칸 쓰는 중</b>` : ""}</span><p class="note" style="margin:4px 0 0">${esc(String(p.lead || "").replace(/[#*>|`]+|\[\[[^\]]*\]\]/g, " ").replace(/\s+/g, " ").trim())}</p></div></button>`).join("")}</div>` : `<p class="note">아직 글이 없어요. '새 글 쓰기'로 첫 스터디 발표 글을 써 보세요.</p>`);
     fillImgs(box); return;
   }
   const p = BG.post;
   if (BG.mode === "view") {
     box.innerHTML = `<div class="row noprint" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="edit">편집</button><button type="button" class="btn g s" id="bgPrint">인쇄 · PDF</button></div>
-    <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdHtml(b.md)}</div>` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : bgPend(p.blocks.indexOf(b)) ? zeroWait(`'${esc(b.ask.slice(0, 40))}' 칸을 ${b.out ? "다시 쓰는" : "쓰는"}`, bgPend(p.blocks.indexOf(b)).at, BG.post.seen) : b.out ? `<div class="md">${mdHtml(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
-    fillImgs(box); return;
+    <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdRich(b.md)}</div>` : b.t === "chart" ? `<div class="md">${mdRich((b.spec || "").split("\n").map((x) => (x.trim() && !x.trim().startsWith("[[") ? `[[${x.trim()}]]` : x)).join("\n"))}</div>${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : bgPend(p.blocks.indexOf(b)) ? zeroWait(`'${esc(b.ask.slice(0, 40))}' 칸을 ${b.out ? "다시 쓰는" : "쓰는"}`, bgPend(p.blocks.indexOf(b)).at, BG.post.seen) : b.out ? `<div class="md">${mdRich(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
+    fillImgs(box); fillBw(box); return;
   }
   // 편집
-  const add = (i) => `<div class="bg-add"><button type="button" class="pill" data-bga="text:${i}">+ 글</button><button type="button" class="pill" data-bga="img:${i}">+ 사진</button><button type="button" class="pill" data-bga="video:${i}">+ 영상</button><button type="button" class="pill" data-bga="ai:${i}">+ 제로에게 맡기기</button></div>`;
-  const tools = (i) => `<div class="tools"><span class="note" style="margin:0 auto 0 0">${["글", "사진", "영상", "제로에게 맡기기"][["text", "img", "video", "ai"].indexOf(p.blocks[i].t)]}</span><button type="button" class="pill" data-bgu="${i}">↑</button><button type="button" class="pill" data-bgd="${i}">↓</button><button type="button" class="pill" data-bgx="${i}">✕</button></div>`;
+  const add = (i) => `<div class="bg-add"><button type="button" class="pill" data-bga="text:${i}">+ 글</button><button type="button" class="pill" data-bga="img:${i}">+ 사진</button><button type="button" class="pill" data-bga="video:${i}">+ 영상</button><button type="button" class="pill" data-bga="chart:${i}">+ 차트</button><button type="button" class="pill" data-bga="ai:${i}">+ 제로에게 맡기기</button></div>`;
+  const tools = (i) => `<div class="tools"><span class="note" style="margin:0 auto 0 0">${["글", "사진", "영상", "제로에게 맡기기", "차트"][["text", "img", "video", "ai", "chart"].indexOf(p.blocks[i].t)]}</span><button type="button" class="pill" data-bgu="${i}">↑</button><button type="button" class="pill" data-bgd="${i}">↓</button><button type="button" class="pill" data-bgx="${i}">✕</button></div>`;
   box.innerHTML = `<div class="row" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="view">미리보기</button><button type="button" class="btn g s" id="bgDel" style="margin-left:auto">글 지우기</button><span class="note" id="bgSv" style="margin:0"></span></div>
   <div class="bg-post"><input id="bgTitle" value="${esc(p.title)}" placeholder="제목" style="font-size:22px;font-weight:800;width:100%;box-sizing:border-box;margin-bottom:6px">
   <p class="note">사진은 아무 곳에서나 Ctrl+V로 붙여넣거나 끌어다 놓으면 들어가요. 글 칸은 마크다운(## 소제목, - 목록, **굵게**)을 써도 돼요.</p>
   ${add(0)}${p.blocks.map((b, i) => `<div class="bg-blk" data-bi="${i}">${tools(i)}${
     b.t === "text" ? `<textarea data-bgf="md" rows="${Math.max(3, Math.min(30, (b.md.match(/\n/g) || []).length + 2))}" placeholder="내용을 써요">${esc(b.md)}</textarea>` :
     b.t === "img" ? `${b.img ? `<img class="ph" data-bimg="${b.img}" style="max-width:100%;border-radius:8px">` : `<p class="note">여기에 사진을 붙여넣거나 <label class="btn g s" style="display:inline-block">파일 고르기<input type="file" accept="image/*" data-bgfile="${i}" hidden></label></p>`}<input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="사진 설명 (선택)">` :
+    b.t === "chart" ? `<textarea data-bgf="spec" rows="2" placeholder="chart NVDA,SPY 1y">${esc(b.spec || "")}</textarea><p class="note" style="margin:4px 0">한 줄에 하나씩: ${esc(BW_HELP)}</p><div class="row" style="gap:4px;margin:4px 0"><button type="button" class="pill" data-bgcv="${i}">그림 보기</button></div><div class="md" id="bgCv${i}"></div><input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="차트 설명 (선택)">` :
     b.t === "video" ? `<input data-bgf="url" value="${esc(b.url || "")}" placeholder="유튜브 주소 (쇼츠도 돼요) 또는 mp4 주소">${b.url ? vidHtml(b.url) : ""}<input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="영상 설명 (선택)">` :
-    `<div class="bg-zero"><textarea data-bgf="ask" rows="2" placeholder="예) 위 차트를 보고 반도체 업황을 표로 정리해 줘 / 이번 달 금리 이야기를 쉽게 3문단으로 써 줘">${esc(b.ask || "")}</textarea><div class="row" style="gap:6px;margin:6px 0"><button type="button" class="btn y s" data-bgai="${i}" ${bgPend(i) ? "disabled" : ""}>${bgPend(i) ? "쓰는 중…" : b.out ? "다시 맡기기" : "제로에게 맡기기"}</button>${b.out ? `<button type="button" class="btn g s" data-bgtx="${i}">글 칸으로 옮겨서 고치기</button>` : ""}<span class="note" id="bgAm${i}" style="margin:0"></span></div>${bgPend(i) ? zeroWait(b.out ? "이 칸을 다시 쓰는" : "이 칸을 쓰는", bgPend(i).at, BG.post.seen) : ""}${b.out ? `<div class="md">${mdHtml(b.out)}</div>` : ""}</div>`
+    `<div class="bg-zero"><textarea data-bgf="ask" rows="2" placeholder="예) 위 차트를 보고 반도체 업황을 표로 정리해 줘 / 이번 달 금리 이야기를 쉽게 3문단으로 써 줘">${esc(b.ask || "")}</textarea><div class="row" style="gap:6px;margin:6px 0"><button type="button" class="btn y s" data-bgai="${i}" ${bgPend(i) ? "disabled" : ""}>${bgPend(i) ? "쓰는 중…" : b.out ? "다시 맡기기" : "제로에게 맡기기"}</button>${b.out ? `<button type="button" class="btn g s" data-bgtx="${i}">글 칸으로 옮겨서 고치기</button>` : ""}<span class="note" id="bgAm${i}" style="margin:0"></span></div>${bgPend(i) ? zeroWait(b.out ? "이 칸을 다시 쓰는" : "이 칸을 쓰는", bgPend(i).at, BG.post.seen) : ""}${b.out ? `<div class="md">${mdRich(b.out)}</div>` : ""}</div>`
   }</div>${add(i + 1)}`).join("")}</div>`;
-  fillImgs(box);
+  fillImgs(box); fillBw(box);
 }
 function bgDirty() { $("bgSv") && ($("bgSv").textContent = "저장 중…"); clearTimeout(BG.saveT); BG.saveT = setTimeout(bgSave, 1200); }
 async function bgSave() { clearTimeout(BG.saveT); if (!BG.post) return; try { const r = await api("", { op: "blog", post: BG.post }); BG.post.id = r.id; BG.post.at = r.at; $("bgSv") && ($("bgSv").textContent = "저장됨 " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })); } catch { $("bgSv") && ($("bgSv").textContent = "저장 실패 (다시 고치면 다시 저장해요)"); } }
@@ -1481,15 +1542,16 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => { if (e.target.dataset?.bgf === "url") renderBlog(); const fi = e.target.dataset?.bgfile; if (fi != null && e.target.files[0]) bgInsertImg(e.target.files[0], +fi + 1); });
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-bgo],[data-bgm],[data-bga],[data-bgu],[data-bgd],[data-bgx],[data-bgai],[data-bgtx],#bgNew,#bgDel,#bgPrint"); if (!t) return;
+  const t = e.target.closest("[data-bgo],[data-bgm],[data-bga],[data-bgu],[data-bgd],[data-bgx],[data-bgai],[data-bgtx],[data-bgcv],#bgNew,#bgDel,#bgPrint"); if (!t) return;
   const p = BG.post, d = t.dataset;
   if (t.id === "bgNew") { BG.post = { id: "", title: "", blocks: [{ t: "text", md: "" }], at: Date.now() }; BG.mode = "edit"; return renderBlog(); }
   if (t.id === "bgPrint") return window.print();
   if (t.id === "bgDel") { if (d.sure !== "1") { d.sure = "1"; t.textContent = "한 번 더 누르면 지워요"; return; } if (p.id) await api("", { op: "blog", del: p.id }).catch(() => {}); BG.mode = "list"; return loadBlog(); }
   if (d.bgo) { try { BG.post = await api("op=blog&id=" + d.bgo); BG.mode = "view"; renderBlog(); } catch {} return; }
   if (d.bgm) { if (BG.mode === "edit") await bgSave(); BG.mode = d.bgm; return d.bgm === "list" ? loadBlog() : renderBlog(); }
-  if (d.bga) { const [k, i] = d.bga.split(":"); p.blocks.splice(+i, 0, k === "text" ? { t: "text", md: "" } : k === "img" ? { t: "img", img: "", cap: "" } : k === "video" ? { t: "video", url: "", cap: "" } : { t: "ai", ask: "", out: "" }); renderBlog(); bgDirty(); return; }
+  if (d.bga) { const [k, i] = d.bga.split(":"); p.blocks.splice(+i, 0, k === "text" ? { t: "text", md: "" } : k === "img" ? { t: "img", img: "", cap: "" } : k === "video" ? { t: "video", url: "", cap: "" } : k === "chart" ? { t: "chart", spec: "chart NVDA,SPY 1y", cap: "" } : { t: "ai", ask: "", out: "" }); renderBlog(); bgDirty(); return; }
   if (d.bgu || d.bgd) { const i = +(d.bgu ?? d.bgd), j = d.bgu != null ? i - 1 : i + 1; if (j < 0 || j >= p.blocks.length) return; [p.blocks[i], p.blocks[j]] = [p.blocks[j], p.blocks[i]]; renderBlog(); bgDirty(); return; }
+  if (d.bgcv) { const i = +d.bgcv, el = $("bgCv" + i); el.innerHTML = mdRich((p.blocks[i].spec || "").split("\n").map((x) => (x.trim() && !x.trim().startsWith("[[") ? `[[${x.trim()}]]` : x)).join("\n")); fillBw(el); return; }
   if (d.bgx) { p.blocks.splice(+d.bgx, 1); renderBlog(); bgDirty(); return; }
   if (d.bgtx) { const i = +d.bgtx; p.blocks.splice(i, 1, { t: "text", md: p.blocks[i].out }); renderBlog(); bgDirty(); return; }
   if (d.bgai) {
