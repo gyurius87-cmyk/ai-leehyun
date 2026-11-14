@@ -1,6 +1,6 @@
 // 일별 DB: 그날 모든 탭(오늘의 정리·지수·뉴스·유튜버·SNS 발언·레딧·유명인 포폴·대가 매매)을 모아 Claude가 한 줄씩 남김.
 // 매일 아침 cron이 '어제' 것을 만들고, 화면에서 오늘 것을 미리 만들거나 다시 만들 수 있음. stk:db:<날짜>, 목록 stk:dbdays.
-import Anthropic from "@anthropic-ai/sdk";
+import { claude, isQueued } from "./_ai.js";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 import { famousAll } from "./_famous.js";
@@ -56,7 +56,7 @@ export async function dayDb(day, deps, force) {
 
   let ai = null;
   try {
-    const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 3000, output_config: { effort: "low" }, messages: [{ role: "user", content: `아래는 ${day}(한국 시간) 하루 동안 주식 프로그램에 모인 자료예요. 나중에 날짜별로 흐름을 훑어볼 수 있게 '그날의 DB'를 한국어로 짧게 남겨 주세요.
+    const msg = await claude({ model: MODEL, max_tokens: 3000, output_config: { effort: "low" }, messages: [{ role: "user", content: `아래는 ${day}(한국 시간) 하루 동안 주식 프로그램에 모인 자료예요. 나중에 날짜별로 흐름을 훑어볼 수 있게 '그날의 DB'를 한국어로 짧게 남겨 주세요.
 자료에 없는 사건이나 숫자는 지어내지 마세요. 자료가 없는 칸은 빈 문자열로 두세요.
 
 ${parts}
@@ -66,7 +66,7 @@ JSON 하나만. 각 칸은 엑셀 칸에 들어갈 만큼 짧게(20~40자), g는
     await recordUsage(msg.usage || {}, MODEL);
     const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     ai = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
-  } catch (e) { return { day, err: String(e?.message || e).slice(0, 100) }; }
+  } catch (e) { if (isQueued(e)) throw e; return { day, err: String(e?.message || e).slice(0, 100) }; }
   if (!ai?.line || !ai.cells) return { day, err: "shape" };
   const out = { day, ...ai, counts, partial: day === today, at: Date.now() };
   await redis([["SET", key, JSON.stringify(out)], ["EXPIRE", key, 60 * 60 * 24 * 800], ["LREM", "stk:dbdays", 0, day], ["LPUSH", "stk:dbdays", day], ["LTRIM", "stk:dbdays", 0, 799]]);
@@ -90,7 +90,7 @@ export async function dayDbFill(n, deps, force) {
 // 차트에 찍을 큰 사건: AI가 기간별로 나눠 정리(구간마다 따로 저장, 실패한 구간만 다음에 다시) + 일별 DB에서 '큰 사건'으로 남긴 날
 const EVP = [["1987", "1996"], ["1997", "2002"], ["2003", "2007"], ["2008", "2009"], ["2010", "2013"], ["2014", "2017"], ["2018", "2019"], ["2020", "2020"], ["2021", "2021"], ["2022", "2022"], ["2023", "2023"], ["2024", "2024"], ["2025", "2026"]];
 async function evChunk(from, to) {
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 5000, output_config: { effort: "low" }, messages: [{ role: "user", content: `${from}년 1월부터 ${to}년 말(또는 지금)까지 미국·한국 증시와 매크로(금리·환율·유가)를 움직인 사건을 날짜순으로 25~40개 정리해 주세요. 주식 투자자가 차트를 보며 "이때 무슨 일이 있었지?"를 알 수 있게요.
+  const msg = await claude({ model: MODEL, max_tokens: 5000, output_config: { effort: "low" }, messages: [{ role: "user", content: `${from}년 1월부터 ${to}년 말(또는 지금)까지 미국·한국 증시와 매크로(금리·환율·유가)를 움직인 사건을 날짜순으로 25~40개 정리해 주세요. 주식 투자자가 차트를 보며 "이때 무슨 일이 있었지?"를 알 수 있게요.
 - 날짜(YYYY-MM-DD)를 확실히 아는 것만. 애매하면 빼세요. 지어내지 마세요.
 - 폭락·폭등한 날, 연준 금리 결정·의장 발언, 물가(CPI)·고용 쇼크, 전쟁·지정학, 팬데믹, 큰 정책(관세·부양책·규제), 큰 기업 이벤트(실적 쇼크, 파산, 대형 상장), 한국 시장 사건, 반도체·AI 이정표 등.
 - g는 그날 주식시장에 좋았으면 "좋음", 나빴으면 "나쁨".
@@ -105,7 +105,7 @@ export async function marketEvents(force) {
   const C = cs.map(json), now = Date.now();
   // 비어 있거나(실패) 최근 구간인데 오래된 것만 다시 만듦. 한 번에 최대 7구간 동시에 (시간 제한 안에)
   const todo = EVP.map((p, i) => i).filter((i) => force || !C[i]?.list?.length || (i >= EVP.length - 2 && now - C[i].at > 7 * 864e5)).slice(0, 7);
-  if (todo.length && process.env.ANTHROPIC_API_KEY) {
+  if (todo.length && true) {
     const got = await Promise.all(todo.map((i) => Promise.race([evChunk(...EVP[i]), new Promise((r) => setTimeout(() => r(null), 100e3))]).catch(() => null)));
     const w = []; todo.forEach((i, k) => { if (got[k]?.length) { C[i] = { at: now, list: got[k] }; w.push(["SET", keys[i], JSON.stringify(C[i])]); } });
     if (w.length) await redis(w);

@@ -1,6 +1,6 @@
 // SNS 발언: 트럼프 트루스소셜(아카이브 RSS) + 유명인 발언 뉴스(구글 뉴스 RSS) + 레딧 월스트리트베츠 언급 종목
 // → Claude가 사람별로 한 줄 해석·관련 종목·호재/악재를 붙임. 3시간 캐시, 매일 아침 cron.
-import Anthropic from "@anthropic-ai/sdk";
+import { claude, isQueued } from "./_ai.js";
 import { redis } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 
@@ -47,32 +47,36 @@ async function wsb() {
 export const SOC_DAYS = [1, 3, 7, 14, 30];
 export async function socialSync(days = 3) {
   days = SOC_DAYS.includes(+days) ? +days : 3; const n = days <= 3 ? 8 : days <= 7 ? 12 : 16, since = Date.now() - days * 864e5;
-  const errs = {};
-  const lists = await Promise.all(PEOPLE.map(async (p) => {
+  // AI 답을 기다리던 중이면, 그때 모은 헤드라인 그대로 다시 써요 (답의 번호가 그 목록 기준이라서)
+  const [pd] = await redis([["GET", "stk:soc:pend:" + days]]); const pend = json(pd);
+  const errs = pend?.errs || {};
+  const lists = pend?.lists || await Promise.all(PEOPLE.map(async (p) => {
     const parts = await Promise.all([p.truth ? truth().catch((e) => ((errs.truth = String(e.message)), [])) : [], gnews(p.q, days, n).catch((e) => ((errs[p.id] = String(e.message)), []))]);
     const seen = new Set(); return parts.flat().filter((v) => { const k = v.t.slice(0, 50); if (seen.has(k) || (v.at && v.at < since)) return false; seen.add(k); return true; }).sort((a, b) => b.at - a.at).slice(0, n);
   }));
-  const reddit = await wsb().catch((e) => ((errs.reddit = String(e.message)), null));
+  const reddit = pend ? pend.reddit : await wsb().catch((e) => ((errs.reddit = String(e.message)), null));
   // AI 해석: 사람별 최근 항목 → 한 줄 해석·관련 종목·호재/악재
   const inp = PEOPLE.map((p, i) => `## ${p.id} ${p.who}\n` + lists[i].map((v, k) => `${k}. [${v.post ? "본인 게시글" : v.src}] ${v.t}`).join("\n")).join("\n\n");
   let ai = {};
   try {
-    const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: days <= 3 ? 6000 : 10000, output_config: { effort: "low" }, messages: [{ role: "user", content: `아래는 유명인별 최근 발언 관련 헤드라인과 게시글이에요. 주식 투자자에게 의미 있는 것만 골라 한국어로 해석해 주세요. 헤드라인에 없는 내용은 지어내지 마세요.
+    const msg = await claude({ model: MODEL, max_tokens: days <= 3 ? 6000 : 10000, output_config: { effort: "low" }, messages: [{ role: "user", content: `아래는 유명인별 최근 발언 관련 헤드라인과 게시글이에요. 주식 투자자에게 의미 있는 것만 골라 한국어로 해석해 주세요. 헤드라인에 없는 내용은 지어내지 마세요.
 ${inp}
 
 JSON 하나만: {"<id>":{"mood":"이 사람의 최근 톤 한 줄","items":[{"k":항목번호,"take":"무슨 말을 했고 시장에 어떤 의미인지 한 줄","stocks":["관련 종목·자산"],"impact":"호재|악재|중립"}]}} — 사람마다 의미 있는 것 최대 ${days <= 3 ? 4 : days <= 7 ? 6 : 8}개, 없으면 items 빈 배열.` }] });
     await recordUsage(msg.usage || {}, MODEL);
     const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); ai = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {};
-  } catch (e) { errs.ai = String(e?.message || e).slice(0, 80); }
+  } catch (e) { if (isQueued(e)) { await redis([["SET", "stk:soc:pend:" + days, JSON.stringify({ lists, reddit, errs }), "EX", 86400]]); throw e; } errs.ai = String(e?.message || e).slice(0, 80); }
   const out = {
     at: Date.now(), days, errs, reddit,
     people: PEOPLE.map((p, i) => { const a = ai[p.id] || {}; return { id: p.id, who: p.who, mood: a.mood || "", picks: (a.items || []).filter((x) => lists[i][x.k]).map((x) => ({ ...lists[i][x.k], take: x.take, stocks: (x.stocks || []).slice(0, 5), impact: x.impact || "중립" })), raw: lists[i] }; }),
   };
-  await redis([["SET", days === 3 ? "stk:soc" : "stk:soc:d" + days, JSON.stringify(out)]]);
+  await redis([["SET", days === 3 ? "stk:soc" : "stk:soc:d" + days, JSON.stringify(out)], ["DEL", "stk:soc:pend:" + days]]);
   return out;
 }
 export async function socialGet(force, days = 3) {
   days = SOC_DAYS.includes(+days) ? +days : 3; const key = days === 3 ? "stk:soc" : "stk:soc:d" + days;
-  if (!force) { const [c] = await redis([["GET", key]]); const j = json(c); if (j && Date.now() - j.at < (days <= 3 ? 3 : 12) * 3600e3) return j; }
-  return socialSync(days);
+  const [c] = await redis([["GET", key]]); const j = json(c);
+  if (!force && j && Date.now() - j.at < (days <= 3 ? 3 : 12) * 3600e3) return j;
+  try { return await socialSync(days); }
+  catch (e) { if (isQueued(e) && j) return { ...j, pending: true }; throw e; } // 새 해석은 구독 Claude가 처리하는 동안 지난 것을 보여 줘요
 }

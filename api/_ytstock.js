@@ -1,5 +1,5 @@
 // 주식 유튜버: 등록한 채널의 새 영상(RSS, 키 없음) + 자막(되면)이나 설명란으로 AI 요약
-import Anthropic from "@anthropic-ai/sdk";
+import { claude } from "./_ai.js";
 import { redis } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 
@@ -96,7 +96,7 @@ ${tx ? `${basis === "영상" ? "영상 내용 정리" : "자막(앞부분)"}: ${
 
 JSON 하나만 답해 주세요:
 {"sum":["핵심 한 줄","핵심 한 줄","핵심 한 줄"],"points":["숫자·근거가 담긴 포인트 (최대 5개)"],"stocks":["언급된 종목·자산 이름 (최대 8개)"],"tone":"강세|약세|중립|정보"}`;
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 1500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
+  const msg = await claude({ model: MODEL, max_tokens: 1500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
   await recordUsage(msg.usage || {}, MODEL);
   const txt = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), o = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
   if (!o?.sum) return null;

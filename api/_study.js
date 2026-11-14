@@ -1,7 +1,7 @@
 // 공부 탭: 이현님이 묻는 것(질문) 또는 해보고 싶은 전략(백테스트)을 받아 Claude가 답하고, 기록으로 남김.
 // 백테스트는 Claude가 말을 '규칙(JSON)'으로 바꾸고, 서버가 실제 과거 시세로 계산한 뒤, 결과를 Claude가 풀이함.
 // 저장: stk:study (id 목록), stk:study:<id>
-import Anthropic from "@anthropic-ai/sdk";
+import { claude } from "./_ai.js";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 
@@ -10,7 +10,7 @@ const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const r2 = (v, d = 2) => (v == null || !isFinite(v) ? null : Math.round(v * 10 ** d) / 10 ** d);
 const pickJson = (t) => json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
 async function ask(content, max = 3000) {
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: max, output_config: { effort: "low" }, messages: typeof content === "string" ? [{ role: "user", content }] : content });
+  const msg = await claude({ model: MODEL, max_tokens: max, output_config: { effort: "low" }, messages: typeof content === "string" ? [{ role: "user", content }] : content });
   await recordUsage(msg.usage || {}, MODEL);
   return msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
 }

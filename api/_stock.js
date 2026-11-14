@@ -2,7 +2,7 @@
 // 시세는 야후 파이낸스 차트(키 필요 없음), 미국 경제지표는 FRED CSV(키 필요 없음), 뉴스는 구글 뉴스 RSS.
 // 저장(Redis): stk:snap (시세 10분), stk:news (1시간), stk:brief:<날짜> (오늘의 정리), stk:bt3:<날짜> (대가 모의 매매),
 //              stk:acct (내 계좌), stk:trades (내 매매 기록)
-import Anthropic from "@anthropic-ai/sdk";
+import { claude, isQueued } from "./_ai.js";
 import { createHash } from "node:crypto";
 import { redis, kstDay } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
@@ -314,7 +314,7 @@ const daysBetween = (a, b) => (Date.parse(b) - Date.parse(a)) / 864e5;
 export async function brief(day, force) {
   const key = `stk:brief:${day}`;
   if (!force) { const [c] = await redis([["GET", key]]); const j = json(c); if (j) return j; }
-  if (!process.env.ANTHROPIC_API_KEY) return { err: "no_key" };
+  
   const [snap, nw, bt] = await Promise.all([snapshot(), news(), backtest().catch(() => null)]);
   const line = (x) => `${x.n}: ${x.v}${x.u || ""} (하루 ${x.d1 ?? "-"}${x.abs ? "" : "%"}${x.w1 != null ? `, 1주 ${x.w1}%` : ""}${x.m1 != null ? `, 1달 ${x.m1}%` : ""}${x.fromHi != null ? `, 고점 대비 ${x.fromHi}%` : ""}) [${x.d}]`;
   const ms = MASTERS.map((m) => { const b = bt?.masters?.[m.id]; return `- ${m.id} | ${m.name} | ${m.style}\n  성격: ${m.voice}\n  규칙: ${m.rule}\n  모의 계좌: ${b ? `수익률 ${b.ret}%, 현금 ${Math.round(b.cash / 1e4)}만원, 보유 ${b.hold.map((h) => `${h.n}(${h.pl}%)`).join(", ") || "없음"}, 최근 매매 ${b.trades.slice(0, 3).map((t) => `${t.d} ${t.n} ${t.side}`).join(" / ") || "없음"}` : "-"}`; }).join("\n");
@@ -340,7 +340,7 @@ ${ms}
 - 투자 권유가 아니라 공부용 정리야. 쉬운 한국어로.
 - JSON 한 덩어리만:
 {"headline":"오늘 시장 한 줄","us":{"move":"미국 시장이 어떻게 움직였나 2~3문장","why":["오른/내린 이유 1","이유 2","이유 3"]},"kr":{"move":"한국 시장 2~3문장","why":["이유"]},"macro":["오늘 꼭 볼 매크로 포인트 (숫자 포함) 3~5개"],"experts":[{"who":"사람/기관","src":"매체","said":"한 일/한 말 요약"}],"masters":[{"id":"buffett","mood":"매수|관망|매도|보유","say":"그 사람 말투로 3~4문장","todo":"그라면 오늘 할 일 한 줄"}],"verdict":{"stance":"공격|중립|방어","summary":"종합해서 이현이 오늘 어떻게 하면 좋을지 3~4문장","watch":["내일까지 지켜볼 것 2~3개"]}}`;
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 6000, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
+  const msg = await claude({ model: MODEL, max_tokens: 6000, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
   await recordUsage(msg.usage || {}, MODEL);
   const txt = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
   const r = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
@@ -352,7 +352,7 @@ ${ms}
 
 // ── 복기: 내 매매 하나를 차트와 함께 돌아보기 (Claude)
 export async function review(t) {
-  if (!process.env.ANTHROPIC_API_KEY) return { err: "no_key" };
+  
   const g = await chart(t.sym, "5y"); if (!g) return { err: "chart" };
   const i = g.rows.findIndex((r) => r.d >= t.date); const k = i < 0 ? g.rows.length - 1 : i;
   const around = g.rows.slice(Math.max(0, k - 40), k + 41), p0 = g.rows[k]?.c;
@@ -364,7 +364,7 @@ export async function review(t) {
 앞뒤 40거래일 종가: ${around.map((r) => `${r.d.slice(5)}:${r2(r.c, 2)}`).join(" ")}
 대가들: ${MASTERS.map((m) => `${m.name}(${m.style})`).join(", ")}
 JSON 한 덩어리만: {"grade":"A|B|C|D","good":"잘한 점","miss":"아쉬운 점","lesson":"다음에 쓸 교훈 한 줄","masters":[{"name":"대가 이름","say":"그 원칙으로 본 이 매매 한두 문장"}]} (대가는 이 매매와 가장 관련 깊은 3명만)`;
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 2500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
+  const msg = await claude({ model: MODEL, max_tokens: 2500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
   await recordUsage(msg.usage || {}, MODEL);
   const txt = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
   const r = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
@@ -405,9 +405,9 @@ export async function findSym(q) {
   if (!out.length || (!/[가-힣]/.test(q) && out.length < 3)) { // 야후 검색 (영문 이름·해외 종목)
     try { const r = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`, { headers: UA }); const j = await r.json(); (j.quotes || []).filter((x) => x.symbol && x.quoteType !== "OPTION").slice(0, 6).forEach((x) => add(x.symbol, x.shortname || x.longname || x.symbol, x.exchDisp || x.quoteType || "")); } catch {}
   }
-  if (!out.length && process.env.ANTHROPIC_API_KEY) { // 한글로 쓴 해외 종목 (엔비디아 → NVDA)
+  if (!out.length) { // 한글로 쓴 해외 종목 (엔비디아 → NVDA)
     const ck = "stk:symq:" + q.toLowerCase(), [c] = await redis([["GET", ck]]); let cand = json(c);
-    if (!cand) { try { const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `"${q}" 이 가리키는 주식·ETF·지수의 야후 파이낸스 심볼을 최대 4개 (가능성 높은 순). 한국 종목은 6자리코드.KS 또는 .KQ, 미국은 티커, 지수는 ^로 시작. JSON 배열만: [{"s":"NVDA","n":"엔비디아"}]` }] }); await recordUsage(msg.usage || {}, MODEL); const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); cand = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1)) || []; await redis([["SET", ck, JSON.stringify(cand)], ["EXPIRE", ck, 30 * 86400]]); } catch { cand = []; } }
+    if (!cand) { try { const msg = await claude({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `"${q}" 이 가리키는 주식·ETF·지수의 야후 파이낸스 심볼을 최대 4개 (가능성 높은 순). 한국 종목은 6자리코드.KS 또는 .KQ, 미국은 티커, 지수는 ^로 시작. JSON 배열만: [{"s":"NVDA","n":"엔비디아"}]` }] }); await recordUsage(msg.usage || {}, MODEL); const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); cand = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1)) || []; await redis([["SET", ck, JSON.stringify(cand)], ["EXPIRE", ck, 30 * 86400]]); } catch (e) { if (isQueued(e)) throw e; cand = []; } }
     const ok = await Promise.all(cand.slice(0, 4).map((x) => chart(String(x.s), "5d").then((g) => (g ? x : null)).catch(() => null)));
     ok.filter(Boolean).forEach((x) => add(x.s, x.n, "AI 추천"));
   }
@@ -432,9 +432,10 @@ export async function masterChat(id, text) {
 매매 원칙: ${M.rule}
 ${ctx}
 규칙: 한국어로, 대화하듯 짧게(보통 3~8문장) 답해요. 이 원칙이라면 어떻게 볼지 솔직하게 말하고, 모르는 최신 사실은 지어내지 말고 모른다고 해요. 특정 종목을 꼭 사라·팔라고 단정하지 말고, 판단 기준을 알려 줘요.`;
+  if (text === null) return { system, hist: hist.slice(-20) }; // 내 Claude 앱에서 이어 말하기용 (AI 부르지 않음)
   hist.push({ role: "user", content: String(text).slice(0, 2000) });
   const msgs = hist.slice(-20);
-  const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 1200, system, messages: msgs[0].role === "user" ? msgs : msgs.slice(1) });
+  const msg = await claude({ model: MODEL, max_tokens: 1200, system, messages: msgs[0].role === "user" ? msgs : msgs.slice(1) });
   await recordUsage(msg.usage || {}, MODEL);
   const reply = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("").trim();
   hist.push({ role: "assistant", content: reply });
@@ -488,13 +489,13 @@ function techOf(rows) {
 }
 export async function councilAsk(text) {
   text = String(text || "").trim().slice(0, 1500); if (!text) return { err: "empty" };
-  const A = () => new Anthropic(), tx = (m) => m.content.filter((x) => x.type === "text").map((x) => x.text).join(""), obj = (t) => json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
+  const tx = (m) => m.content.filter((x) => x.type === "text").map((x) => x.text).join(""), obj = (t) => json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
   // 1) 질문에 맞는 종목·지수 고르기
   let focus = [{ s: "^IXIC", n: "나스닥" }];
   try {
-    const m = await A().messages.create({ model: MODEL, max_tokens: 300, output_config: { effort: "low" }, messages: [{ role: "user", content: `주식 질문: "${text}"\n이 질문을 차트로 보여 주기 가장 좋은 야후 파이낸스 심볼 1~2개 (지수면 ^IXIC ^GSPC ^SOX ^KS11 ^KQ11, 한국 종목은 6자리.KS/.KQ, 미국은 티커). 특정 종목이 없으면 시장 지수. JSON만: {"syms":[{"s":"^IXIC","n":"나스닥"}]}` }] });
+    const m = await claude({ model: MODEL, max_tokens: 300, output_config: { effort: "low" }, messages: [{ role: "user", content: `주식 질문: "${text}"\n이 질문을 차트로 보여 주기 가장 좋은 야후 파이낸스 심볼 1~2개 (지수면 ^IXIC ^GSPC ^SOX ^KS11 ^KQ11, 한국 종목은 6자리.KS/.KQ, 미국은 티커). 특정 종목이 없으면 시장 지수. JSON만: {"syms":[{"s":"^IXIC","n":"나스닥"}]}` }] });
     await recordUsage(m.usage || {}, MODEL); const j = obj(tx(m)); if (j?.syms?.length) focus = j.syms.slice(0, 2).map((x) => ({ s: String(x.s), n: String(x.n || x.s) }));
-  } catch {}
+  } catch (e) { if (isQueued(e)) throw e; }
   const gs = await Promise.all(focus.map((f) => chart(f.s, "2y").catch(() => null)));
   focus = focus.map((f, i) => (gs[i]?.rows?.length > 30 ? { ...f, cur: gs[i].cur, tech: techOf(gs[i].rows) } : null)).filter(Boolean);
   if (!focus.length) { const g = await chart("^IXIC", "2y"); focus = [{ s: "^IXIC", n: "나스닥", cur: g?.cur, tech: g ? techOf(g.rows) : null }]; }
@@ -526,19 +527,19 @@ JSON 하나만:
 "levels":[{"s":"${syms[0]}","p":가격 숫자,"k":"진입|추가|손절|목표 중 하나","why":"짧은 이유"}] (심볼은 ${syms.join(", ")} 중에서, 1~4개, 현재가 근처의 현실적인 값),
 "watch":["확인할 신호 1","2"]}`;
     try {
-      const m = await A().messages.create({ model: MODEL, max_tokens: 1400, messages: [{ role: "user", content: prompt }] }); await recordUsage(m.usage || {}, MODEL);
+      const m = await claude({ model: MODEL, max_tokens: 1400, messages: [{ role: "user", content: prompt }] }); await recordUsage(m.usage || {}, MODEL);
       const j = obj(tx(m)); if (!j?.view) return null;
       const near = (l) => { const f = focus.find((x) => x.s === l.s); return f && +l.p > 0 && Math.abs(+l.p / f.tech.last - 1) < 0.6; };
       return { id: M.id, stance: j.stance, score: Math.max(-100, Math.min(100, +j.score || 0)), conf: Math.max(0, Math.min(100, +j.conf || 0)), head: j.head, view: j.view, when: j.when, eta: Math.max(0, Math.min(24, +j.eta || 0)), levels: (Array.isArray(j.levels) ? j.levels : []).map((l) => ({ s: String(l.s), p: +l.p, k: String(l.k || ""), why: String(l.why || "").slice(0, 80) })).filter(near).slice(0, 4), watch: (j.watch || []).slice(0, 3) };
-    } catch (e) { console.error("council", M.id, e?.message); return null; }
+    } catch (e) { if (isQueued(e)) throw e; console.error("council", M.id, e?.message); return null; }
   };
   const ans = (await Promise.all(MASTERS.map(one))).filter(Boolean);
   if (!ans.length) return { err: "ai" };
   let sum = {};
   try {
-    const m = await A().messages.create({ model: MODEL, max_tokens: 500, output_config: { effort: "low" }, messages: [{ role: "user", content: `질문: ${text}\n대가들 답:\n${ans.map((x) => `- ${MASTERS.find((m) => m.id === x.id).name}: ${x.stance}(${x.score}) ${x.head} / 진입: ${x.when}`).join("\n")}\nJSON만: {"consensus":"공통된 생각 1~2문장","split":"갈린 지점 1문장","tip":"제자가 오늘 기억할 한 문장"}` }] });
+    const m = await claude({ model: MODEL, max_tokens: 500, output_config: { effort: "low" }, messages: [{ role: "user", content: `질문: ${text}\n대가들 답:\n${ans.map((x) => `- ${MASTERS.find((m) => m.id === x.id).name}: ${x.stance}(${x.score}) ${x.head} / 진입: ${x.when}`).join("\n")}\nJSON만: {"consensus":"공통된 생각 1~2문장","split":"갈린 지점 1문장","tip":"제자가 오늘 기억할 한 문장"}` }] });
     await recordUsage(m.usage || {}, MODEL); sum = obj(tx(m)) || {};
-  } catch {}
+  } catch (e) { if (isQueued(e)) throw e; }
   const id = Date.now().toString(36), out = { id, at: Date.now(), q: text, focus: focus.map(({ s, n, cur, tech }) => ({ s, n, cur, tech })), ans, sum, avg: Math.round(ans.reduce((t, x) => t + x.score, 0) / ans.length) };
   const [l] = await redis([["GET", "stk:councils"]]); const list = json(l) || [];
   list.unshift({ id, at: out.at, q: text.slice(0, 120), avg: out.avg }); await redis([["SET", "stk:council:" + id, JSON.stringify(out)], ["SET", "stk:councils", JSON.stringify(list.slice(0, 50))]]);
@@ -582,20 +583,20 @@ ${ctx}
 
 JSON 한 개만 출력: {"mood":"칭찬|걱정|경고|격려 중 하나","head":"한 줄 요약(25자 안)","text":"제자에게 말하듯 4~7문장","todo":["이번 주에 해 볼 것","하나 더"]}`;
     try {
-      const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 1200, messages: [{ role: "user", content: prompt }] });
+      const msg = await claude({ model: MODEL, max_tokens: 1200, messages: [{ role: "user", content: prompt }] });
       await recordUsage(msg.usage || {}, MODEL);
       const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
       return j?.text ? { id: m.id, mood: j.mood, head: j.head, text: j.text, todo: Array.isArray(j.todo) ? j.todo.slice(0, 3) : [] } : { id: m.id, mood: "", head: "", text: t.trim().slice(0, 1500), todo: [] };
-    } catch (e) { console.error("advice", m.id, e?.message); return null; }
+    } catch (e) { if (isQueued(e)) throw e; console.error("advice", m.id, e?.message); return null; }
   };
   const list = (await Promise.all(MASTERS.map(one))).filter(Boolean);
   if (!list.length) return { err: "ai" };
   let common = "", split = "";
   try {
-    const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `스승 ${list.length}명이 제자 계좌에 준 훈수 요약이에요:\n${list.map((x) => `- ${MASTERS.find((m) => m.id === x.id)?.name}: ${x.head} / ${String(x.text).slice(0, 300)}`).join("\n")}\nJSON만: {"common":"공통으로 짚은 것 한두 문장","split":"의견이 갈린 부분 한 문장"}` }] });
+    const msg = await claude({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `스승 ${list.length}명이 제자 계좌에 준 훈수 요약이에요:\n${list.map((x) => `- ${MASTERS.find((m) => m.id === x.id)?.name}: ${x.head} / ${String(x.text).slice(0, 300)}`).join("\n")}\nJSON만: {"common":"공통으로 짚은 것 한두 문장","split":"의견이 갈린 부분 한 문장"}` }] });
     await recordUsage(msg.usage || {}, MODEL);
     const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {}; common = j.common || ""; split = j.split || "";
-  } catch {}
+  } catch (e) { if (isQueued(e)) throw e; }
   const out = { at: Date.now(), day: kstDay(), acctAt: acct.at || acct.kwAt || null, tot: Math.round(tot), list, common, split };
   await redis([["SET", "stk:advice", JSON.stringify(out)]]);
   return out;
@@ -621,7 +622,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "histhold") return res.json(await histHold(false));
       if (op === "council") { if (q.id) { const [c] = await redis([["GET", "stk:council:" + String(q.id).slice(0, 20)]]); return c ? res.json(json(c)) : res.status(404).json({ error: "none" }); } const [l] = await redis([["GET", "stk:councils"]]); return res.json({ list: json(l) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
-      if (op === "mchat") { const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
+      if (op === "mchat") { if (q.ctx) return res.json((await masterChat(String(q.id || ""), null)) || {}); const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force, +q.days || 3), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(); a = await ytAll(); } return res.json(a); }
       if (op === "f13") return res.json(await f13Agg());
@@ -684,7 +685,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "review") return res.json(await review({ sym: clip(b.t?.sym, 20), name: clip(b.t?.name, 40), date: clip(b.t?.date, 10), side: b.t?.side === "매도" ? "매도" : "매수", price: +b.t?.price || 0, qty: +b.t?.qty || 0, memo: b.t?.memo, feel: b.t?.feel }));
     return res.status(400).json({ error: "op" });
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError) return res.status(429).json({ error: "busy" });
+    if (isQueued(err)) throw err;
     console.error(err); return res.status(502).json({ error: "fail" });
   }
 }

@@ -14,7 +14,26 @@ let adminKey = (() => { try { return localStorage.getItem("ai-admin-key") || "";
 async function api(q, body) {
   const r = await fetch("/api/market" + (q ? "?" + q : ""), body ? { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify(body) } : { headers: { "x-admin-key": adminKey } });
   if (r.status === 401) { gate(); throw new Error("auth"); }
+  if (r.status === 202) { const j = await r.json().catch(() => ({})); if (j.rid) return aiWait(j.rid); }
   const j = await r.json().catch(() => ({})); if (!r.ok) { const er = new Error(j.error || "fail"); er.msg = j.msg; throw er; } return j;
+}
+// AI는 API 키 대신 이현님 구독 Claude(예약 작업)가 처리해요: 접수되면 끝날 때까지 기다렸다 이어서 보여 줘요
+const AIW = new Set();
+function aiBadge() {
+  let b = document.getElementById("aiBadge");
+  if (!b) { b = document.createElement("div"); b.id = "aiBadge"; b.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:50;background:#111827;color:#f2b632;border-radius:999px;padding:9px 14px;font:600 13px/1.3 'IBM Plex Sans KR',sans-serif;box-shadow:0 4px 14px #0004;max-width:calc(100vw - 28px)"; document.body.appendChild(b); }
+  b.hidden = !AIW.size; b.textContent = `🕒 제로(구독 Claude)가 처리 중 ${AIW.size}건 · 정각 즈음 확인해요 (최대 1시간) · 창을 닫아도 결과는 저장돼요`;
+}
+async function aiWait(rid) {
+  AIW.add(rid); aiBadge();
+  try {
+    for (let i = 0; i < 400; i++) {
+      await new Promise((r) => setTimeout(r, i < 3 ? 10e3 : 30e3));
+      const s = await api("op=aistat&rid=" + rid).catch(() => null);
+      if (s?.done) { if (s.status >= 400) { const er = new Error(s.body?.error || "fail"); er.msg = s.body?.msg; throw er; } return s.body || {}; }
+    }
+    throw new Error("timeout");
+  } finally { AIW.delete(rid); aiBadge(); }
 }
 function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
@@ -90,7 +109,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest("[data-nf
 
 // ── 오늘의 정리
 async function loadBrief(d, force) {
-  $("brief").innerHTML = `<p class="note">${force ? "AI가 다시 정리하는 중… (30초~1분)" : "불러오는 중… 오늘 첫 정리면 AI가 만드느라 30초~1분 걸려요."}</p>`;
+  $("brief").innerHTML = `<p class="note">${force ? "제로(구독 Claude)에게 다시 정리를 맡겼어요… (최대 1시간)" : "불러오는 중… 오늘 첫 정리면 제로(구독 Claude)가 만들어요. 최대 1시간 걸려요."}</p>`;
   try { BRIEF = await api(`op=brief${d ? "&d=" + d : ""}${force ? "&force=1" : ""}`); renderBrief(); }
   catch (e) { $("brief").innerHTML = `<p class="msg no">${e.message === "busy" ? "AI가 바빠요. 잠시 뒤 '다시 정리'를 눌러 주세요." : "정리를 못 만들었어요. '다시 정리'를 눌러 주세요."}</p>`; }
 }
@@ -151,7 +170,7 @@ function renderMaster(id) {
   $("mDetail").innerHTML = `<div class="prof">${face(id)}<div><h2 style="margin:0">${esc(info.name)} <span>${esc(info.style)}</span></h2>
       <div class="row" style="margin-top:4px"><span class="big ${ud(m.ret)}">${pct(m.ret)}</span><span class="num">${won(m.value)}원</span><span class="note">현금 ${won(m.cash)}원 · 매매 ${m.nTrades}번 · 최대낙폭 ${pct(m.mdd)}</span></div>
       <p class="note" style="margin:6px 0 0"><b>매매 원칙</b> ${esc(info.rule)}</p>${said ? `<p style="margin:6px 0 0">💬 <b>오늘</b> <span class="mood ${esc(said.mood)}">${esc(said.mood)}</span> ${esc(said.say)}</p>` : ""}</div></div>
-    <div class="chat"><h3 style="margin:0;display:flex;gap:8px;align-items:center">${esc(info.name)}에게 물어보기 <span class="note">AI가 이 대가의 원칙으로 답해요</span><button type="button" class="btn g s" id="mcClear" style="margin-left:auto">대화 지우기</button></h3><div class="msgs" id="mcMsgs"><p class="note">불러오는 중…</p></div><form class="row" id="mcForm"><input id="mcIn" placeholder="예: 지금 반도체 사도 될까요?" style="flex:1 1 200px" autocomplete="off"><button class="btn y s">보내기</button></form></div>
+    <div class="chat"><h3 style="margin:0;display:flex;gap:8px;align-items:center">${esc(info.name)}에게 물어보기 <span class="note">AI가 이 대가의 원칙으로 답해요</span><button type="button" class="btn y s" id="mcGo" style="margin-left:auto" title="대가 설정·내 계좌·지금까지 대화를 복사해서 Claude 앱(내 구독)에서 바로 이어 말해요">💬 내 Claude에서 이어 말하기</button><button type="button" class="btn g s" id="mcClear">대화 지우기</button></h3><div class="msgs" id="mcMsgs"><p class="note">불러오는 중…</p></div><form class="row" id="mcForm"><input id="mcIn" placeholder="예: 지금 반도체 사도 될까요?" style="flex:1 1 200px" autocomplete="off"><button class="btn y s">보내기</button></form></div>
     <div class="chat" style="background:var(--panel);border:1px solid var(--line)"><h3 style="margin:0">겹쳐 보기 <span class="note">계좌·지수·종목을 첫날 0%로 맞춰 비교 · 마우스를 올리면 그날 수익률 · ▲ 산 날 ▼ 판 날 · 이름을 눌러 켜고 끄기</span></h3>
       <div class="row" id="moCtl"></div><div id="moLeg"></div>
       <div style="position:relative"><canvas id="moCv" style="width:100%;height:340px;display:block;touch-action:none"></canvas><div class="tip" id="moTip" hidden></div></div></div>
@@ -249,10 +268,21 @@ let MC = { id: null, hist: [] };
 const mdText = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
 function renderChat(pending) {
   const box = $("mcMsgs"); if (!box) return;
-  box.innerHTML = MC.hist.map((m) => `<div class="bub ${m.role === "user" ? "me" : "them"}">${mdText(m.content)}</div>`).join("") + (pending ? `<div class="bub them note">생각하는 중…</div>` : "") || `<p class="note">궁금한 걸 물어보세요. 오늘 시장 정리, 이 대가의 모의 계좌, 내 보유 종목을 알고 답해요.</p>`;
+  box.innerHTML = MC.hist.map((m) => `<div class="bub ${m.role === "user" ? "me" : "them"}">${mdText(m.content)}</div>`).join("") + (pending ? `<div class="bub them note">제로(구독 Claude)가 처리하면 여기 떠요 (최대 1시간). 바로 대화하려면 아래 '내 Claude에서 이어 말하기'를 눌러요.</div>` : "") || `<p class="note">궁금한 걸 물어보세요. 오늘 시장 정리, 이 대가의 모의 계좌, 내 보유 종목을 알고 답해요.</p>`;
   box.scrollTop = box.scrollHeight;
 }
 async function loadChat(id) { MC = { id, hist: [] }; try { const j = await api("op=mchat&id=" + id); if (MC.id === id) { MC.hist = j.hist; renderChat(); } } catch { renderChat(); } }
+// 바로 대화하고 싶을 때: 대가 설정·계좌·지금까지 대화를 복사해 Claude 앱(내 구독)에서 이어 말하기
+document.addEventListener("click", async (e) => {
+  if (e.target.id !== "mcGo") return; const id = MC.id; if (!id) return; const b = e.target, o = b.textContent; b.disabled = true;
+  try {
+    const j = await api(`op=mchat&id=${id}&ctx=1`), t = $("mcIn").value.trim();
+    const txt = `${j.system}\n\n${j.hist?.length ? "지금까지 우리 대화:\n" + j.hist.map((m) => `${m.role === "user" ? "이현" : "대가"}: ${m.content}`).join("\n") + "\n\n" : ""}위 역할 그대로 이어서 대화해 주세요. ${t ? "제 질문: " + t : "먼저 오늘 제 계좌를 보고 한마디 해 주세요."}`;
+    await navigator.clipboard.writeText(txt); window.open("https://claude.ai/new", "_blank", "noopener");
+    b.textContent = "복사했어요. 열린 Claude 창에 붙여넣기 하세요";
+  } catch { b.textContent = "복사하지 못했어요"; }
+  setTimeout(() => { b.textContent = o; b.disabled = false; }, 4000);
+});
 document.addEventListener("submit", async (e) => {
   if (e.target.id !== "mcForm") return; e.preventDefault();
   const inp = $("mcIn"), t = inp.value.trim(), id = MC.id; if (!t || !id) return;
@@ -820,7 +850,7 @@ function renderAdv() {
   const NM = { buffett: "워런 버핏", lynch: "피터 린치", oneil: "윌리엄 오닐", livermore: "제시 리버모어", dalio: "레이 달리오", druckenmiller: "스탠리 드러켄밀러", kostolany: "앙드레 코스톨라니", zero: "제로 (AI)" };
   const a = ADV, nm = (id) => INFO.find((m) => m.id === id)?.name || NM[id] || id;
   $("advGo").textContent = a?.list?.length ? "다시 받기" : "훈수 받기";
-  if (!a?.list?.length) { $("advAt").textContent = ""; $("advSum").innerHTML = ""; $("advList").innerHTML = `<p class="note">'훈수 받기'를 누르면 30초쯤 걸려요.</p>`; return; }
+  if (!a?.list?.length) { $("advAt").textContent = ""; $("advSum").innerHTML = ""; $("advList").innerHTML = `<p class="note">'훈수 받기'를 누르면 제로(구독 Claude)가 처리해요. 최대 1시간 걸려요.</p>`; return; }
   const d = new Date(a.at), stale = ACCT.at && a.acctAt && ACCT.at > a.acctAt;
   $("advAt").textContent = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} 기준${stale ? " · 그 뒤 계좌가 바뀌었어요" : ""}`;
   $("advSum").innerHTML = a.common || a.split ? `<div class="advs">${a.common ? `<b>공통으로 짚은 것</b> ${esc(a.common)}` : ""}${a.split ? `<br><b>의견이 갈린 것</b> ${esc(a.split)}` : ""}</div>` : "";
@@ -901,7 +931,7 @@ $("tDetail").addEventListener("change", (e) => { const t = TRADES.find((x) => x.
 $("tDetail").addEventListener("click", async (e) => {
   const t = TRADES.find((x) => x.id === selT); if (!t) return;
   if (e.target.id === "tDel") { if (e.target.dataset.sure !== "1") { e.target.dataset.sure = "1"; e.target.textContent = "한 번 더 누르면 지워요"; return; } TRADES = TRADES.filter((x) => x !== t); selT = null; saveTrades().catch(() => {}); renderTrades(); $("tDetail").innerHTML = `<p class="note">지웠어요.</p>`; }
-  if (e.target.id === "tRv") { t.memo = $("tMemo").value; t.feel = $("tFeel").value; e.target.disabled = true; $("tMsg").textContent = "AI가 복기하는 중… (20초쯤)"; try { const r = await api("", { op: "review", t }); if (r.err) throw new Error(r.err); t.rv = r; await saveTrades(); $("tMsg").textContent = ""; renderRv(t); renderTrades(); } catch { $("tMsg").textContent = "복기를 못 했어요. 종목코드가 맞는지 보고 다시 눌러 주세요."; } e.target.disabled = false; }
+  if (e.target.id === "tRv") { t.memo = $("tMemo").value; t.feel = $("tFeel").value; e.target.disabled = true; $("tMsg").textContent = "제로(구독 Claude)가 복기하는 중… (최대 1시간)"; try { const r = await api("", { op: "review", t }); if (r.err) throw new Error(r.err); t.rv = r; await saveTrades(); $("tMsg").textContent = ""; renderRv(t); renderTrades(); } catch { $("tMsg").textContent = "복기를 못 했어요. 종목코드가 맞는지 보고 다시 눌러 주세요."; } e.target.disabled = false; }
 });
 // 키움 영웅문 체결내역 엑셀 → 매매 기록
 const pickFile = (drop, input, fn) => { input.onchange = () => input.files[0] && fn(input.files[0]); ["dragover", "dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); if (ev === "drop" && e.dataTransfer.files[0]) fn(e.dataTransfer.files[0]); })); };
@@ -1003,7 +1033,7 @@ async function drawAkChart() {
   AK.chart = ch;
 }
 $("akForm").onsubmit = async (e) => { e.preventDefault(); const t = $("akIn").value.trim(); if (!t) return; const b = e.target.querySelector("button"); b.disabled = true;
-  let s = 0; const tick = setInterval(() => ($("akMsg").textContent = `대가 8명이 차트와 시장을 보고 답을 쓰는 중… ${++s}초 (보통 40초쯤)`), 1000);
+  let s = 0; const tick = setInterval(() => ($("akMsg").textContent = `대가 8명에게 질문을 넘겼어요. 제로(구독 Claude)가 처리해요… ${Math.floor(++s / 60)}분 지남 (최대 1시간)`), 1000);
   try { AK.cur = await api("", { op: "council", text: t }); AK.off = new Set(); AK.fi = 0; $("akIn").value = ""; $("akMsg").textContent = ""; AK.list.unshift({ id: AK.cur.id, at: AK.cur.at, q: AK.cur.q, avg: AK.cur.avg }); renderAkList(); renderAsk(); }
   catch (er) { $("akMsg").textContent = `답을 못 받았어요 (${er?.message === "ai" ? "AI 응답 실패" : er?.message || "연결 오류"}). 다시 눌러 주세요.`; }
   clearInterval(tick); b.disabled = false; };
@@ -1217,7 +1247,7 @@ function renderDb() {
     <td class="kw2">${(r.keys || []).map((k) => `#${esc(k)}`).join(" ")}${(r.hot || []).length ? `<br><b>${(r.hot || []).map(esc).join(", ")}</b>` : ""}</td></tr>`).join("");
   $("dbList").innerHTML = L.length ? `<div class="dbt"><table><thead><tr><th>날짜</th><th>한 줄</th>${DBC.map(([, n]) => `<th>${n}</th>`).join("")}<th>키워드 · 많이 나온 종목</th></tr></thead><tbody>${rows}</tbody></table></div><p class="note">▲ 좋음(빨강) · ▼ 나쁨(파랑) · 미국 칸은 그 날짜 미국장 기준이에요.</p>` : `<p class="note">아직 기록이 없어요.</p>`;
 }
-async function makeDb(d, btn) { btn.disabled = true; const o = btn.textContent; btn.textContent = "…"; $("dbMsg").textContent = "만드는 중… (30초쯤)"; try { await api("", { op: "dbmake", d }); DB = await api("op=db"); $("dbMsg").textContent = ""; } catch (e) { $("dbMsg").textContent = "못 만들었어요: " + (e?.message || ""); } btn.disabled = false; btn.textContent = o; renderDb(); }
+async function makeDb(d, btn) { btn.disabled = true; const o = btn.textContent; btn.textContent = "…"; $("dbMsg").textContent = "제로(구독 Claude)에게 맡겼어요… (최대 1시간)"; try { await api("", { op: "dbmake", d }); DB = await api("op=db"); $("dbMsg").textContent = ""; } catch (e) { $("dbMsg").textContent = "못 만들었어요: " + (e?.message || ""); } btn.disabled = false; btn.textContent = o; renderDb(); }
 $("dbMake").onclick = (e) => makeDb("", e.currentTarget);
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-dbre]"); if (b) makeDb(b.dataset.dbre, b); });
 
@@ -1259,7 +1289,7 @@ document.addEventListener("click", async (e) => {
   const del = e.target.closest("[data-stdel]"); if (del) { if (del.dataset.sure !== "1") { del.dataset.sure = "1"; del.textContent = "정말 지울까요?"; return; } ST = await api("", { op: "study", del: del.dataset.stdel }); renderStudy(); }
 });
 $("stQ").oninput = () => renderStudy();
-$("stForm").onsubmit = async (e) => { e.preventDefault(); const t = $("stIn").value.trim(); if (!t) return; $("stGo").disabled = true; $("stMsg").textContent = "생각하는 중… 백테스트면 1분쯤 걸려요";
+$("stForm").onsubmit = async (e) => { e.preventDefault(); const t = $("stIn").value.trim(); if (!t) return; $("stGo").disabled = true; $("stMsg").textContent = "제로(구독 Claude)에게 맡겼어요… 최대 1시간 걸려요";
   try { const r = await api("", { op: "study", text: t }); ST.list.unshift(r); stOpen = r.id; $("stIn").value = ""; $("stMsg").textContent = ""; renderStudy(); } catch (err) { $("stMsg").textContent = "못 했어요: " + (err?.message || ""); } $("stGo").disabled = false; };
 document.addEventListener("submit", async (e) => { const f = e.target.closest("[data-stf]"); if (!f) return; e.preventDefault(); const inp = f.querySelector("input"), t = inp.value.trim(); if (!t) return; const btn = f.querySelector("button"); btn.disabled = true; btn.textContent = "생각 중…";
   try { const r = await api("", { op: "study", id: f.dataset.stf, text: t }); const i = ST.list.findIndex((x) => x.id === r.id); if (i >= 0) ST.list[i] = r; stOpen = r.id; renderStudy(); } catch (err) { btn.disabled = false; btn.textContent = "다시"; } });

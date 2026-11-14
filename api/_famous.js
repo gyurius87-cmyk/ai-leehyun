@@ -1,6 +1,6 @@
 // 유명인 포트폴리오: 미국 SEC 13F(분기, 45일 늦음) + ARK(매일 공개)
 // 매일 아침 cron에서 새 공시가 있는지만 보고, 바뀐 것만 다시 받음.
-import Anthropic from "@anthropic-ai/sdk";
+import { claude } from "./_ai.js";
 import { redis } from "./_redis.js";
 import { recordUsage } from "./_usage.js";
 
@@ -131,10 +131,10 @@ export async function famQuarter(id, acc) {
 export async function koMap(names) {
   const [c] = await redis([["GET", "stk:konames"]]); const M = json(c) || {};
   const miss = [...new Set(names.filter((n) => n && !(n in M)))].slice(0, 300);
-  if (miss.length && process.env.ANTHROPIC_API_KEY) {
+  if (miss.length && true) {
     try {
       const model = process.env.STOCK_MODEL || "claude-sonnet-5-5";
-      const msg = await new Anthropic().messages.create({ model, max_tokens: 8000, output_config: { effort: "low" }, messages: [{ role: "user", content: `미국 증권 공시에 나온 회사·ETF 이름이에요. 한국 투자자가 흔히 부르는 한글 이름으로 바꿔 주세요 (예: APPLE INC → 애플, AMERICAN EXPRESS CO → 아메리칸 익스프레스, SPDR S&P 500 ETF TR → SPDR S&P500 ETF). 모르는 회사는 영어 발음대로 한글로 적어 주세요.
+      const msg = await claude({ model, max_tokens: 8000, output_config: { effort: "low" }, messages: [{ role: "user", content: `미국 증권 공시에 나온 회사·ETF 이름이에요. 한국 투자자가 흔히 부르는 한글 이름으로 바꿔 주세요 (예: APPLE INC → 애플, AMERICAN EXPRESS CO → 아메리칸 익스프레스, SPDR S&P 500 ETF TR → SPDR S&P500 ETF). 모르는 회사는 영어 발음대로 한글로 적어 주세요.
 ${miss.map((n, i) => `${i}. ${n}`).join("\n")}
 
 JSON 하나만: {"0":"한글 이름", "1":"..."}` }] });
