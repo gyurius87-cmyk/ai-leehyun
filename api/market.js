@@ -40,8 +40,11 @@ export default async function handler(req, res) {
     if (missed) return res.json({ rid, queued: missed });
     await aiSaveRes(rid, cap.code, cap.body); return res.json({ rid, done: true, status: cap.code });
   }
+  // 월례회 공유 링크 (?k=): 보기 전용 — 월례회 자료와 그 안의 3개월 차트만
+  let viaShare = false; const sk = String(req.headers["x-share-key"] || "");
+  if (!admin && sk && req.method === "GET" && (op === "mon" || (op === "chart" && ["1mo", "3mo", "6mo"].includes(String(req.query.r || ""))))) { const [cur] = await redis([["GET", "stk:monshare"]]); viaShare = !!cur && cur === sk; }
   const rid = newRid();
-  const { cap, missed } = await runStock(rid, req, admin).catch((e) => { console.error(e); return { cap: { code: 502, body: { error: "fail" }, headers: {}, sent: true }, missed: 0 }; });
+  const { cap, missed } = await runStock(rid, req, admin || viaShare).catch((e) => { console.error(e); return { cap: { code: 502, body: { error: "fail" }, headers: {}, sent: true }, missed: 0 }; });
   // AI 답을 기다려야 끝나는 요청이면 접수 번호를 돌려줘요 (화면이 op=aistat 으로 기다림)
   if (missed && (cap.code >= 300 || !cap.sent)) return res.status(202).json({ queued: true, rid, n: missed });
   for (const [k, v] of Object.entries(cap.headers || {})) res.setHeader(k, v);
