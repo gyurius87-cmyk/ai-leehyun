@@ -56,7 +56,7 @@ async function chartKr(sym, range, iv) {
 export async function chart(sym, range = "1y", iv = "1d") {
   for (const host of ["query1", "query2"]) {
     try {
-      const r = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${iv}&includePrePost=false`, { headers: UA });
+      const r = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?${range === "max" ? `period1=0&period2=${Math.floor(Date.now() / 1000)}` : `range=${range}`}&interval=${iv}&includePrePost=false`, { headers: UA });
       if (!r.ok) continue;
       const j = await r.json(), x = j?.chart?.result?.[0]; if (!x?.timestamp) continue;
       const q = x.indicators.quote[0], out = [];
