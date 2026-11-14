@@ -12,7 +12,7 @@
           "team": "개발팀",
           "name": "개발 담당",
           "status": "done",
-          "doing": "SNS 후킹 제조기를 만들었어요",
+          "doing": "순일시간 체크에 기록 고치기를 붙였어요",
           "prop": "🛠️",
           "acc": "glasses"
         },
@@ -182,8 +182,8 @@
         {
           "team": "개발팀",
           "name": "주식 프로그램 담당",
-          "status": "working",
-          "doing": "주식 프로그램을 고치는 중이에요",
+          "status": "done",
+          "doing": "주식 프로그램 수정을 마쳤어요",
           "prop": "💻",
           "acc": "glasses"
         },
