@@ -1897,7 +1897,7 @@ function renderBlog() {
   }
   const p = BG.post;
   if (BG.mode === "view") {
-    box.innerHTML = `<div class="row noprint" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="edit">편집</button><button type="button" class="btn g s" id="bgPrint">인쇄 · PDF</button></div>
+    box.innerHTML = `<div class="row noprint" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="edit">편집</button><button type="button" class="btn g s" id="bgPrint">인쇄 · PDF</button><button type="button" class="btn g s" id="bgJpg">🖼 JPG로 저장</button></div>
     <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdRich(b.md)}</div>` : b.t === "chart" ? `<div class="md">${mdRich((b.spec || "").split("\n").map((x) => (x.trim() && !x.trim().startsWith("[[") ? `[[${x.trim()}]]` : x)).join("\n"))}</div>${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : bgPend(p.blocks.indexOf(b)) ? zeroWait(`'${esc(b.ask.slice(0, 40))}' 칸을 ${b.out ? "다시 쓰는" : "쓰는"}`, bgPend(p.blocks.indexOf(b)).at, BG.post.seen) : b.out ? `<div class="md">${mdRich(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
     fillImgs(box); fillBw(box); bgToc(box); return;
   }
@@ -1943,10 +1943,11 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => { if (e.target.dataset?.bgf === "url") renderBlog(); const fi = e.target.dataset?.bgfile; if (fi != null && e.target.files[0]) bgInsertImg(e.target.files[0], +fi + 1); });
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-bgo],[data-bgm],[data-bga],[data-bgu],[data-bgd],[data-bgx],[data-bgai],[data-bgtx],[data-bgcv],#bgNew,#bgDel,#bgPrint"); if (!t) return;
+  const t = e.target.closest("[data-bgo],[data-bgm],[data-bga],[data-bgu],[data-bgd],[data-bgx],[data-bgai],[data-bgtx],[data-bgcv],#bgNew,#bgDel,#bgPrint,#bgJpg"); if (!t) return;
   const p = BG.post, d = t.dataset;
   if (t.id === "bgNew") { BG.post = { id: "", title: "", blocks: [{ t: "text", md: "" }], at: Date.now() }; BG.mode = "edit"; return renderBlog(); }
   if (t.id === "bgPrint") return window.print();
+  if (t.id === "bgJpg") return bgJpg(t);
   if (t.id === "bgDel") { if (d.sure !== "1") { d.sure = "1"; t.textContent = "한 번 더 누르면 지워요"; return; } if (p.id) await api("", { op: "blog", del: p.id }).catch(() => {}); BG.mode = "list"; return loadBlog(); }
   if (d.bgo) { try { BG.post = await api("op=blog&id=" + d.bgo); BG.mode = "view"; renderBlog(); } catch {} return; }
   if (d.bgm) { if (BG.mode === "edit") await bgSave(); BG.mode = d.bgm; return d.bgm === "list" ? loadBlog() : renderBlog(); }
@@ -1965,3 +1966,27 @@ document.addEventListener("click", async (e) => {
     catch { unp(); if (BG.mode !== "list") renderBlog(); $("bgAm" + i) && ($("bgAm" + i).textContent = "못 채웠어요. 다시 눌러 주세요."); }
   }
 });
+
+let h2cP = null;
+async function bgJpg(btn) {
+  const art = document.querySelector("#blog .bg-post") || document.querySelector(".bg-post"); if (!art) return;
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "만드는 중…";
+  try {
+    h2cP = h2cP || new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"; sc.onload = ok; sc.onerror = () => { h2cP = null; no(new Error("load")); }; document.head.appendChild(sc); });
+    await h2cP;
+    const bg = getComputedStyle(document.body).backgroundColor || "#fff";
+    const W = art.scrollWidth, H = art.scrollHeight, MAXH = window.BG_JPG_MAX || 12000;
+    const scale = Math.min(2, Math.max(1, Math.floor(30000000 / (W * Math.min(H, MAXH)) * 10) / 10 || 1));
+    const title = (art.querySelector("h1")?.textContent || "스터디").trim().replace(/[\\/:*?"<>|]/g, "").slice(0, 60) || "스터디";
+    const parts = Math.ceil(H / MAXH), sy = window.scrollY; window.scrollTo(0, 0); const top0 = art.getBoundingClientRect().top;
+    for (let i = 0; i < parts; i++) {
+      const y = i * MAXH, h = Math.min(MAXH, H - y);
+      const cv = await window.html2canvas(art, { backgroundColor: bg, scale, useCORS: true, logging: false, ...(parts > 1 ? { y: y, height: h } : {}), scrollX: 0, scrollY: 0, windowWidth: document.documentElement.clientWidth, ignoreElements: (el) => el.classList?.contains("noprint") || el.classList?.contains("bg-toc") || el.classList?.contains("an-tip") });
+      const url = cv.toDataURL("image/jpeg", 0.9);
+      const a = document.createElement("a"); a.href = url; a.download = `${title}${parts > 1 ? "_" + (i + 1) : ""}.jpg`; document.body.appendChild(a); a.click(); a.remove();
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    window.scrollTo(0, sy);
+  } catch (e) { alert("JPG 저장 실패: " + (e.message || e)); }
+  btn.disabled = false; btn.textContent = old;
+}
