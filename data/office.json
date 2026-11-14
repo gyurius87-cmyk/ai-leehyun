@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-13",
+  "updated": "2026-11-14",
   "depts": [
     {
       "id": "ai",
@@ -182,8 +182,8 @@
         {
           "team": "개발팀",
           "name": "주식 프로그램 담당",
-          "status": "done",
-          "doing": "SNS·매크로 요약 카드에 기준 시각을 넣었어요",
+          "status": "working",
+          "doing": "주식 프로그램을 고치는 중이에요",
           "prop": "💻",
           "acc": "glasses"
         },
