@@ -627,6 +627,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
       if (op === "blog") return res.json(q.id ? (await blogView(String(q.id))) || { err: "none" } : await blogList());
       if (op === "bimg") return res.json(await blogImgGet(String(q.id || "")));
+      if (op === "monmac") return res.json(await monMacro(/^\d{4}-\d{2}$/.test(q.m || "") ? q.m : kstDay().slice(0, 7), !!q.force));
       if (op === "mon") return res.json(await monthGet(/^\d{4}-\d{2}$/.test(q.m || "") ? q.m : kstDay().slice(0, 7)));
       if (op === "mchat") { if (q.ctx) return res.json((await masterChat(String(q.id || ""), null)) || {}); const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force, +q.days || 3), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
@@ -701,4 +702,42 @@ export async function stockHandler(req, res, isAdmin) {
     if (isQueued(err)) throw err;
     console.error(err); return res.status(502).json({ error: "fail" });
   }
+}
+
+// ── 월례회 매크로: 이달 매일 값 (전달 마지막 값이 기준). 가격류는 %, 금리·스프레드·지수는 포인트 변화
+const MON_MAC = [
+  { k: "^TNX", n: "미 10년물 금리", src: "y", u: "%", lv: 1 },
+  { k: "DX-Y.NYB", n: "달러지수", src: "y" },
+  { k: "KRW=X", n: "원/달러", src: "y", u: "원" },
+  { k: "^VIX", n: "VIX (변동성)", src: "y", lv: 1 },
+  { k: "BAMLH0A0HYM2", n: "하이일드 스프레드", src: "f", u: "%p", lv: 1 },
+  { k: "T10Y2Y", n: "장단기 금리차 (10년-2년)", src: "f", u: "%p", lv: 1 },
+  { k: "FG", n: "공포탐욕 지수", src: "cnn", lv: 1 },
+  { k: "CL=F", n: "WTI 유가", src: "y", u: "$" },
+  { k: "GC=F", n: "금", src: "y", u: "$" },
+  { k: "BTC-USD", n: "비트코인", src: "y", u: "$" },
+  { k: "WM2NS", n: "미국 M2 통화량 (주간)", src: "f", u: "$B" },
+];
+async function cnnFG(from) {
+  try {
+    const r = await fetch(`https://production.dataviz.cnn.io/index/fearandgreed/graphdata/${from}`, { headers: { ...UA, Accept: "application/json", Referer: "https://edition.cnn.com/", Origin: "https://edition.cnn.com" } });
+    if (!r.ok) return null; const j = await r.json(), m = new Map();
+    (j?.fear_and_greed_historical?.data || []).forEach((p) => { if (p && p.y != null) m.set(new Date(p.x + 9 * 3600e3).toISOString().slice(0, 10), Math.round(p.y * 10) / 10); });
+    return [...m].map(([d, c]) => ({ d, c })).sort((a, b) => (a.d < b.d ? -1 : 1));
+  } catch { return null; }
+}
+export async function monMacro(m, force) {
+  const ck = "stk:monmac:" + m, [c] = await redis([["GET", ck]]), hit = json(c);
+  if (hit && !force && Date.now() - hit.at < 3 * 3600e3) return hit;
+  const first = m + "-01", nx = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5), 1)).toISOString().slice(0, 10), from = new Date(Date.parse(first) - 70 * 864e5).toISOString().slice(0, 10);
+  const got = await Promise.all(MON_MAC.map(async (x) => { try { return x.src === "y" ? (await chart(x.k, "6mo"))?.rows || null : x.src === "f" ? await fred(x.k, from) : await cnnFG(from); } catch { return null; } }));
+  const list = MON_MAC.map((x, i) => {
+    const rows = (got[i] || []).filter((r) => r.c != null && isFinite(r.c)), pre = rows.filter((r) => r.d < first).at(-1), inM = rows.filter((r) => r.d >= first && r.d < nx);
+    if (!inM.length) return { k: x.k, n: x.n, u: x.u || "", lv: !!x.lv, err: true };
+    const base = pre?.c ?? inM[0].c, end = inM.at(-1).c;
+    return { k: x.k, n: x.n, u: x.u || "", lv: !!x.lv, base: r2(base, 4), end: r2(end, 4), chg: base ? r2((end / base - 1) * 100) : null, dif: r2(end - base, 4), rows: inM.map((r) => ({ d: r.d, c: r2(r.c, 4) })) };
+  });
+  const out = { m, at: Date.now(), list };
+  await redis([["SET", ck, JSON.stringify(out)]]);
+  return out;
 }
