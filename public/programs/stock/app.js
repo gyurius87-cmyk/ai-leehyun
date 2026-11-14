@@ -1481,7 +1481,8 @@ function mdRich(t) {
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
 const KO_SYM = { NVDA: "엔비디아", MSFT: "마이크로소프트", META: "메타", GOOGL: "알파벳(구글)", GOOG: "알파벳(구글)", AMZN: "아마존", AAPL: "애플", TSLA: "테슬라", ORCL: "오라클", CRWV: "코어위브", PLTR: "팔란티어", AMD: "AMD", AVGO: "브로드컴", MU: "마이크론", TSM: "TSMC", INTC: "인텔", QCOM: "퀄컴", ARM: "ARM", SMCI: "슈퍼마이크로", "BRK-B": "버크셔 해서웨이", SPY: "S&P 500 (SPY)", RSP: "S&P 500 동일비중 (RSP)", QQQ: "나스닥100 (QQQ)", SOXX: "반도체 ETF (SOXX)", SMH: "반도체 ETF (SMH)", XLU: "유틸리티 ETF", XLP: "필수소비재 ETF", XLE: "에너지 ETF", XLF: "금융 ETF", GLD: "금 ETF", TLT: "미 장기채 ETF", UUP: "달러 ETF", ARKK: "ARK 혁신 ETF", SOXS: "반도체 3배 인버스", SQQQ: "나스닥 3배 인버스", SH: "S&P 500 인버스", "^IXIC": "나스닥", "^GSPC": "S&P 500", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥", "^VIX": "VIX", "^TNX": "미 10년물 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "069500.KS": "KODEX 200", "114800.KS": "KODEX 인버스", "035420.KS": "네이버", "035720.KS": "카카오", "005380.KS": "현대차", "373220.KS": "LG에너지솔루션", V: "비자", MA: "마스터카드", AXP: "아메리칸 익스프레스", KO: "코카콜라", BAC: "뱅크오브아메리카", OXY: "옥시덴탈", CVX: "셰브런", KHC: "크래프트 하인즈", MCO: "무디스", CB: "처브", KR: "크로거", DVA: "다비타", VRSN: "베리사인", SIRI: "시리우스XM", UNH: "유나이티드헬스", JPM: "JP모건", GS: "골드만삭스", WFC: "웰스파고", C: "씨티그룹", UBER: "우버", NFLX: "넷플릭스", LLY: "일라이 릴리", NVO: "노보 노디스크", JNJ: "존슨앤드존슨", PG: "P&G", WMT: "월마트", COST: "코스트코", HD: "홈디포", MCD: "맥도날드", SBUX: "스타벅스", NKE: "나이키", DIS: "디즈니", CMG: "치폴레", HLT: "힐튼", BKNG: "부킹홀딩스", ADBE: "어도비", CRM: "세일즈포스", NOW: "서비스나우", SHOP: "쇼피파이", PYPL: "페이팔", COIN: "코인베이스", HOOD: "로빈후드", BABA: "알리바바", PDD: "핀둬둬", JD: "징둥", BIDU: "바이두", SE: "씨", CPNG: "쿠팡", MELI: "메르카도리브레", ASML: "ASML", LRCX: "램리서치", AMAT: "어플라이드 머티리얼즈", KLAC: "KLA", TXN: "텍사스 인스트루먼트", ADI: "아나로그 디바이스", MRVL: "마벨", ANET: "아리스타", DELL: "델", HPE: "HPE", IBM: "IBM", CSCO: "시스코", VST: "비스트라", CEG: "컨스텔레이션 에너지", GEV: "GE 버노바", GE: "GE 에어로스페이스", CAT: "캐터필러", DE: "디어", LMT: "록히드 마틴", RTX: "RTX", BA: "보잉", XOM: "엑슨모빌", SPGI: "S&P 글로벌", BX: "블랙스톤", KKR: "KKR", APO: "아폴로", BRKB: "버크셔 해서웨이", "BRK.B": "버크셔 해서웨이", IWM: "러셀2000 ETF", EEM: "신흥국 ETF", IVV: "S&P 500 (IVV)", VOO: "S&P 500 (VOO)", VTI: "미국 전체 ETF", IEMG: "신흥국 ETF", SLV: "은 ETF", IAU: "금 ETF", XLK: "기술 ETF", XLV: "헬스케어 ETF", XLI: "산업재 ETF", XLC: "커뮤니케이션 ETF", XLY: "경기소비재 ETF", XLB: "소재 ETF", XLRE: "리츠 ETF", MAGS: "매그니피센트7 ETF", "SPY/RSP": "대형주 쏠림 (SPY÷RSP)", "SOXX/RSP": "반도체 ÷ 동일비중 S&P", "SOXX/SPY": "반도체 ÷ S&P 500" };
-const koN = (sym, fb) => KO_SYM[sym] || fb || sym;
+// 한글 이름 + (티커). 지수·환율·나누기는 티커 없이
+const koN = (sym, fb) => { const n = KO_SYM[sym] || fb || sym; if (!sym || n === sym || /[(^=/]/.test(sym) || n.includes("(")) return n; return `${n} (${String(sym).replace(/\.(KS|KQ)$/, "")})`; };
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b", "#0f766e", "#a16207", "#be185d", "#4338ca", "#15803d", "#9f1239"];
 const bwDark = () => getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
 // 차트 위 범례: 선마다 켜고 끄기 + 주요 지수 넣기 (opt.mode: "pct" 시작=0%, "won" 금액, 없으면 지수 추가 안 함)
@@ -1491,9 +1492,11 @@ function bwChartT(el, series, pctMode, opt = {}) {
   let ix = null; if (opt.mode) { ix = document.createElement("div"); ix.className = "row bw-ix"; el.appendChild(ix); }
   const h = bwChart(el, series, pctMode, opt.xi); if (!h) return;
   const items = series.map((x, i) => ({ ...x, color: x.color || BWC[i % BWC.length], sr: h.srs[i], on: true }));
-  const paint = () => { leg.innerHTML = items.map((x, i) => `<button type="button" class="pill" data-bwl="${i}" aria-pressed="${x.on}" style="border-color:${x.color}"><span style="color:${x.color}">●</span> ${x.link ? `<span class="bw-pp" data-bwp="${esc(x.link)}" title="누구인지 보기">${esc(x.name)}</span>` : esc(x.name)}${x.v != null ? ` <span class="${ud(x.v)}">${opt.mode === "won" ? won0(x.amt * (1 + x.v / 100)) : pct(x.v)}</span>` : ""}</button>`).join("") + `<button type="button" class="pill" data-bwl="all">다 켜기</button><button type="button" class="pill" data-bwl="none">다 끄기</button>`; };
+  const paint = () => { leg.innerHTML = items.map((x, i) => opt.bars && !x.top ? "" : `<button type="button" class="pill" data-bwl="${i}" aria-pressed="${x.on}" style="border-color:${x.color}"><span style="color:${x.color}">●</span> ${x.link ? `<span class="bw-pp" data-bwp="${esc(x.link)}" title="누구인지 보기">${esc(x.name)}</span>` : esc(x.name)}${x.v != null ? ` <span class="${ud(x.v)}">${opt.mode === "won" ? won0(x.amt * (1 + x.v / 100)) : pct(x.v)}</span>` : ""}</button>`).join("") + `<button type="button" class="pill" data-bwl="all">다 켜기</button><button type="button" class="pill" data-bwl="none">다 끄기</button>`; };
   paint();
-  leg.onclick = (e) => { if (e.target.closest("[data-bwp]")) return; const b = e.target.closest("[data-bwl]"); if (!b) return; const k = b.dataset.bwl; items.forEach((x, i) => { if (k === "all") x.on = true; else if (k === "none") x.on = false; else if (+k === i) x.on = !x.on; x.sr.applyOptions({ visible: x.on }); }); paint(); };
+  const tog = (k) => { items.forEach((x, i) => { if (k === "all") x.on = true; else if (k === "none") x.on = false; else if (+k === i) x.on = !x.on; x.sr.applyOptions({ visible: x.on }); }); paint(); el.querySelectorAll("[data-bwr]").forEach((r) => (r.style.opacity = items[+r.dataset.bwr]?.on === false ? 0.35 : 1)); };
+  el.bwToggle = tog;
+  leg.onclick = (e) => { if (e.target.closest("[data-bwp]")) return; const b = e.target.closest("[data-bwl]"); if (!b) return; tog(b.dataset.bwl); };
   if (ix) {
     const t0 = series[0]?.data?.[0]?.time; ix.innerHTML = `<span class="note" style="margin:0">지수 넣기:</span>` + BW_IDX.map(([sy, n]) => `<button type="button" class="pill" data-bwi="${sy}">+ ${n}</button>`).join("");
     ix.onclick = async (e) => { const b = e.target.closest("[data-bwi]"); if (!b || b.disabled) return; b.disabled = true; const sy = b.dataset.bwi;
@@ -1501,19 +1504,20 @@ function bwChartT(el, series, pctMode, opt = {}) {
         const color = ["#64748b", "#0f766e", "#a16207", "#be185d", "#4338ca", "#15803d", "#b45309", "#334155", "#9f1239", "#0369a1"][items.length % 10];
         const data = rows.map((r) => ({ time: r.d, value: opt.mode === "won" ? Math.round((opt.amt * r.c) / b0) : Math.round((r.c / b0 - 1) * 10000) / 100 }));
         const sr = h.ch.addLineSeries({ color, lineWidth: 2, lineStyle: 1, priceLineVisible: false, title: BW_IDX.find((x) => x[0] === sy)[1] }); sr.setData(data);
-        items.push({ name: BW_IDX.find((x) => x[0] === sy)[1], color, sr, on: true, v: (rows.at(-1).c / b0 - 1) * 100, amt: opt.amt }); b.textContent = "✓ " + b.textContent.slice(2); paint();
+        items.push({ name: BW_IDX.find((x) => x[0] === sy)[1], color, sr, on: true, top: true, v: (rows.at(-1).c / b0 - 1) * 100, amt: opt.amt }); b.textContent = "✓ " + b.textContent.slice(2); paint();
       } catch { b.disabled = false; b.textContent = "못 받음"; } };
   }
   items.forEach((x) => (x.amt = opt.amt));
   return { ch: h.ch, items };
 }
+document.addEventListener("click", (e) => { const r = e.target.closest("[data-bwr]"); if (!r || e.target.closest("[data-bwp]")) return; const w = r.closest(".bw"); w?.bwToggle?.(r.dataset.bwr); });
 const bwDay = (t, xi) => { const ms = typeof t === "string" ? Date.parse(t) : typeof t === "object" ? Date.UTC(t.year, t.month - 1, t.day) : t * 1000; return Math.round((ms - xi) / 864e5) + "일"; };
 const won0 = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
 function bwChart(el, series, pctMode, xi) {
   if (!window.LightweightCharts) { el.insertAdjacentHTML("beforeend", `<p class="note">차트를 못 불러왔어요.</p>`); return null; }
   const box = document.createElement("div"); box.style.height = "320px"; el.appendChild(box); const dk = bwDark();
   const ch = LightweightCharts.createChart(box, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dk ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dk ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false, ...(xi ? { tickMarkFormatter: (t) => bwDay(t, xi) } : {}) }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false, ...(xi ? { localization: { timeFormatter: (t) => "고점 후 " + bwDay(t, xi) } } : {}) });
-  const srs = []; series.forEach((x, i) => { const sr = series.length === 1 && !pctMode ? ch.addAreaSeries({ lineColor: BWC[0], topColor: BWC[0] + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false }) : ch.addLineSeries({ color: x.color || BWC[i % BWC.length], lineWidth: x.w || 2, priceLineVisible: false, title: x.name, lineStyle: x.dash ? 2 : 0 }); sr.setData(x.data); srs.push(sr); });
+  const srs = []; series.forEach((x, i) => { const sr = series.length === 1 && !pctMode ? ch.addAreaSeries({ lineColor: BWC[0], topColor: BWC[0] + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false }) : ch.addLineSeries({ color: x.color || BWC[i % BWC.length], lineWidth: x.w || 2, priceLineVisible: false, title: x.name, lineStyle: x.dash ? 2 : 0 }); const seen = new Set(); sr.setData((x.data || []).filter((p) => p && Number.isFinite(p.value) && p.time && !seen.has(String(p.time)) && seen.add(String(p.time))).sort((a1, b1) => (String(a1.time) < String(b1.time) ? -1 : 1))); srs.push(sr); });
   ch.timeScale().fitContent(); return { ch, srs };
 }
 const bwLeg = (items) => `<div class="row" style="gap:10px;margin:6px 0">${items.map((x, i) => `<span style="font-size:13px;font-weight:700"><span style="color:${x.color || BWC[i % BWC.length]}">●</span> ${esc(x.name)}${x.v != null ? ` <span class="${ud(x.v)}">${pct(x.v)}</span>` : ""}</span>`).join("")}</div>`;
@@ -1567,11 +1571,8 @@ async function bwFill(el, w) {
       const ref = ser.find((x) => x.rows)?.rows || []; ser.forEach((x) => { if (x.cash) x.rows = ref.map((r) => ({ time: r.time, value: amt })); });
       const won = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
       const S = ser.map((x, i) => ({ name: x.name, color: x.cash ? "#94a3b8" : undefined, dash: x.cash, v: (x.rows.at(-1).value / amt - 1) * 100, data: x.rows }));
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>`); bwChartT(el, S, true, { mode: "won", amt });
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>`); bwChartT(el, S, true, { mode: "won", amt, bars: true });
       el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${S.map((x, i) => ({ ...x, oi: i })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r" data-bwr="${x.oi}" style="cursor:pointer" title="눌러서 차트 선 켜고 끄기"><span class="n"><span style="color:${x.color || BWC[x.oi % BWC.length]}">●</span> ${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, (Math.abs(x.v) / Math.max(...S.map((z) => Math.abs(z.v)), 1)) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>`);
-      const bars = el.querySelector(".bw-bars"), sync = () => bars.querySelectorAll("[data-bwr]").forEach((r) => { const b = el.querySelector(`[data-bwl="${r.dataset.bwr}"]`); r.style.opacity = b && b.getAttribute("aria-pressed") === "false" ? 0.35 : 1; });
-      bars.onclick = (e) => { const r = e.target.closest("[data-bwr]"); if (!r) return; el.querySelector(`[data-bwl="${r.dataset.bwr}"]`)?.click(); sync(); };
-      el.querySelector(".bw-leg")?.addEventListener("click", () => setTimeout(sync, 0));
     } else if (k === "vs") {
       // [[vs 주제 | 왼쪽 이름 | 오른쪽 이름 ⏎ L | 사람 | 말 ⏎ R | 사람 | 말 ... ]]
       const L = a.split("\n").map((x) => x.trim()).filter(Boolean), [topic, ln, rn] = L[0].split("|").map((x) => x.trim());
@@ -1603,10 +1604,10 @@ async function bwFill(el, w) {
         return { ...sc, curve, done, v: (curve.at(-1).value / amt - 1) * 100 }; });
       const won = (v) => won0(v), wTxt = (w) => w.map(([sy, x]) => `${cash(sy) ? "현금" : koN(sy)}${w.length > 1 ? " " + Math.round(x * 100) + "%" : ""}`).join(" + ");
       el.insertAdjacentHTML("beforeend", `<div class="bw-t">시나리오 ${res.length}개 · ${esc(start)} (${esc(koN(refS))} 고점)에 ${won(amt)} · 신호대로 갈아탔다면 지금 얼마</div>`);
-      const h = bwChartT(el, res.map((x) => ({ name: x.n, data: x.curve, v: x.v })), true, { mode: "won", amt });
+      const h = bwChartT(el, res.map((x) => ({ name: x.n, data: x.curve, v: x.v })), true, { mode: "won", amt, bars: true });
       h?.items.forEach((it, i) => res[i] && it.sr.setMarkers(res[i].done.slice(1).map((dn) => ({ time: dn.d, position: "aboveBar", color: BWC[i % BWC.length], shape: "circle", text: wTxt(dn.st.w).slice(0, 14) }))));
       const mx = Math.max(...res.map((x) => Math.abs(x.v)), 1);
-      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${res.map((x, i) => ({ ...x, oi: i })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n"><span style="color:${BWC[x.oi % BWC.length]}">●</span> ${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(x.n)}</span><span class="tr ng"><i style="width:${(Math.abs(x.v) / mx) * 50}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>
+      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${res.map((x, i) => ({ ...x, oi: i })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r" data-bwr="${x.oi}" style="cursor:pointer"><span class="n"><span style="color:${BWC[x.oi % BWC.length]}">●</span> ${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(x.n)}</span><span class="tr ng"><i style="width:${(Math.abs(x.v) / mx) * 50}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>
         <div class="pl-cards">${res.map((x, i) => `<div class="pl-c" style="border-left-color:${BWC[i % BWC.length]}"><h4>${esc(x.n)} <span class="${ud(x.v)}">${pct(x.v)}</span></h4>${x.desc ? `<p class="mo-p">${esc(x.desc)}</p>` : ""}<ol class="mo-steps">${x.steps.map((st, k2) => { const dn = x.done[k2]; return `<li><span class="dt">${dn ? esc(dn.d) : "아직 안 옴"}</span> <b>${esc(wTxt(st.w))}</b>${k2 ? ` <span class="note">← ${esc(sigTxt(st.tr))}</span>` : ` <span class="note">← 고점에서 시작</span>`}</li>`; }).join("")}</ol></div>`).join("")}</div>`);
     } else if (k === "analogs") {
       // 여러 줄: 첫 줄 "심볼 | 지금 시작(peak) | 거래일 수", 다음 줄마다 "과거 시작일 | 제목 | 한 줄 설명 | 날짜 내용; 날짜 내용"
@@ -1712,8 +1713,8 @@ async function bwFill(el, w) {
     } else if (k === "f13bt") {
       const ciks = a.split(/[\s,]+/).filter(Boolean).slice(0, 5); const rs = await Promise.all(ciks.map((c) => api("op=f13bt&cik=" + encodeURIComponent(c)).catch(() => null)));
       const ok = rs.filter((r) => r?.curve?.length); if (!ok.length) throw 0;
-      const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || r.name) + " 따라 하기", link: String(r.cik), v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
-      ser.push({ name: "S&P 500 (SPY)", v: ok[0].spy, color: "#94a3b8", dash: true, data: ok[0].curve.map((c) => ({ time: c[0], value: c[2] })) });
+      const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || F13P[r.cik]?.[0]?.split(" · ").pop() || r.name) + " 따라 하기", link: String(r.cik), top: true, v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
+      ser.push({ name: "S&P 500 (SPY)", top: true, v: ok[0].spy, color: "#94a3b8", dash: true, data: ok[0].curve.map((c) => ({ time: c[0], value: c[2] })) });
       if (ok.length === 1) {
         // 펀드 하나면 그 펀드의 상위 보유 종목도 같은 차트에 (시작일 = 0%)
         try { const fd = await api("op=f13fund&cik=" + encodeURIComponent(ok[0].cik)), from = ok[0].curve[0][0];
@@ -1723,8 +1724,8 @@ async function bwFill(el, w) {
             ser.push({ name: `${koN(r.t, r.ko || r.n)} ${r.w}%`, v, w: 1, data: rows.map((x) => ({ time: x.d, value: Math.round((x.c / b0 - 1) * 10000) / 100 })) }); });
         } catch {}
       }
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 따라 하기${ok.length === 1 && ser.length > 2 ? " + 보유 상위 종목" : ""} · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>`); bwChartT(el, ser, true, { mode: "pct" });
-      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...ser].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${x.link ? `<span class="bw-pp" data-bwp="${x.link}">${esc(x.name)}</span>` : esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 따라 하기${ok.length === 1 && ser.length > 2 ? " + 보유 상위 종목" : ""} · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>`); bwChartT(el, ser, true, { mode: "pct", bars: true });
+      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${ser.map((x, oi) => ({ ...x, oi })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r" data-bwr="${x.oi}" style="cursor:pointer" title="눌러서 차트 선 켜고 끄기"><span class="n"><span style="color:${x.color || BWC[x.oi % BWC.length]}">●</span> ${i + 1}. ${x.link ? `<span class="bw-pp" data-bwp="${x.link}">${esc(x.name)}</span>` : esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
     }
   } catch { el.innerHTML = `<p class="note">그림 자료를 못 받았어요 (${esc(k)} ${esc(a)}).</p>`; }
 }
