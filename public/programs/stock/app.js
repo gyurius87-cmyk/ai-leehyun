@@ -1461,17 +1461,40 @@ const BW_HELP = "[[analog ^SOX | 2026-10-29 | 2000-03-10, 2022-01-03 | 90]] 지�
 const BW = [];
 function mdRich(t) {
   const parts = []; let buf = [];
-  for (const l of String(t || "").split("\n")) { const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
+  for (const l of String(t || "").split("\n")) { const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b"];
 const bwDark = () => getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
+// 차트 위 범례: 선마다 켜고 끄기 + 주요 지수 넣기 (opt.mode: "pct" 시작=0%, "won" 금액, 없으면 지수 추가 안 함)
+const BW_IDX = [["^GSPC", "S&P 500"], ["^IXIC", "나스닥"], ["^SOX", "필라델피아 반도체"], ["^DJI", "다우"], ["^KS11", "코스피"], ["^KQ11", "코스닥"], ["GC=F", "금"], ["^TNX", "미 10년물"], ["KRW=X", "원/달러"], ["BTC-USD", "비트코인"]];
+function bwChartT(el, series, pctMode, opt = {}) {
+  const leg = document.createElement("div"); leg.className = "row bw-leg"; el.appendChild(leg);
+  let ix = null; if (opt.mode) { ix = document.createElement("div"); ix.className = "row bw-ix"; el.appendChild(ix); }
+  const h = bwChart(el, series, pctMode); if (!h) return;
+  const items = series.map((x, i) => ({ ...x, color: x.color || BWC[i % BWC.length], sr: h.srs[i], on: true }));
+  const paint = () => { leg.innerHTML = items.map((x, i) => `<button type="button" class="pill" data-bwl="${i}" aria-pressed="${x.on}" style="border-color:${x.color}"><span style="color:${x.color}">●</span> ${x.link ? `<span class="bw-pp" data-bwp="${esc(x.link)}" title="누구인지 보기">${esc(x.name)}</span>` : esc(x.name)}${x.v != null ? ` <span class="${ud(x.v)}">${opt.mode === "won" ? won0(x.amt * (1 + x.v / 100)) : pct(x.v)}</span>` : ""}</button>`).join("") + `<button type="button" class="pill" data-bwl="all">다 켜기</button><button type="button" class="pill" data-bwl="none">다 끄기</button>`; };
+  paint();
+  leg.onclick = (e) => { if (e.target.closest("[data-bwp]")) return; const b = e.target.closest("[data-bwl]"); if (!b) return; const k = b.dataset.bwl; items.forEach((x, i) => { if (k === "all") x.on = true; else if (k === "none") x.on = false; else if (+k === i) x.on = !x.on; x.sr.applyOptions({ visible: x.on }); }); paint(); };
+  if (ix) {
+    const t0 = series[0]?.data?.[0]?.time; ix.innerHTML = `<span class="note" style="margin:0">지수 넣기:</span>` + BW_IDX.map(([sy, n]) => `<button type="button" class="pill" data-bwi="${sy}">+ ${n}</button>`).join("");
+    ix.onclick = async (e) => { const b = e.target.closest("[data-bwi]"); if (!b || b.disabled) return; b.disabled = true; const sy = b.dataset.bwi;
+      try { const g = await api(`op=chart&s=${encodeURIComponent(sy)}&r=5y&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null && r.d >= t0); if (!rows.length) throw 0; const b0 = rows[0].c;
+        const color = ["#64748b", "#0f766e", "#a16207", "#be185d", "#4338ca", "#15803d", "#b45309", "#334155", "#9f1239", "#0369a1"][items.length % 10];
+        const data = rows.map((r) => ({ time: r.d, value: opt.mode === "won" ? Math.round((opt.amt * r.c) / b0) : Math.round((r.c / b0 - 1) * 10000) / 100 }));
+        const sr = h.ch.addLineSeries({ color, lineWidth: 2, lineStyle: 1, priceLineVisible: false, title: BW_IDX.find((x) => x[0] === sy)[1] }); sr.setData(data);
+        items.push({ name: BW_IDX.find((x) => x[0] === sy)[1], color, sr, on: true, v: (rows.at(-1).c / b0 - 1) * 100, amt: opt.amt }); b.textContent = "✓ " + b.textContent.slice(2); paint();
+      } catch { b.disabled = false; b.textContent = "못 받음"; } };
+  }
+  items.forEach((x) => (x.amt = opt.amt));
+}
+const won0 = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
 function bwChart(el, series, pctMode) {
-  if (!window.LightweightCharts) { el.innerHTML = `<p class="note">차트를 못 불러왔어요.</p>`; return; }
+  if (!window.LightweightCharts) { el.insertAdjacentHTML("beforeend", `<p class="note">차트를 못 불러왔어요.</p>`); return null; }
   const box = document.createElement("div"); box.style.height = "320px"; el.appendChild(box); const dk = bwDark();
   const ch = LightweightCharts.createChart(box, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dk ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dk ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false });
-  series.forEach((x, i) => { const sr = series.length === 1 && !pctMode ? ch.addAreaSeries({ lineColor: BWC[0], topColor: BWC[0] + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false }) : ch.addLineSeries({ color: x.color || BWC[i % BWC.length], lineWidth: x.w || 2, priceLineVisible: false, title: x.name, lineStyle: x.dash ? 2 : 0 }); sr.setData(x.data); });
-  ch.timeScale().fitContent();
+  const srs = []; series.forEach((x, i) => { const sr = series.length === 1 && !pctMode ? ch.addAreaSeries({ lineColor: BWC[0], topColor: BWC[0] + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false }) : ch.addLineSeries({ color: x.color || BWC[i % BWC.length], lineWidth: x.w || 2, priceLineVisible: false, title: x.name, lineStyle: x.dash ? 2 : 0 }); sr.setData(x.data); srs.push(sr); });
+  ch.timeScale().fitContent(); return { ch, srs };
 }
 const bwLeg = (items) => `<div class="row" style="gap:10px;margin:6px 0">${items.map((x, i) => `<span style="font-size:13px;font-weight:700"><span style="color:${x.color || BWC[i % BWC.length]}">●</span> ${esc(x.name)}${x.v != null ? ` <span class="${ud(x.v)}">${pct(x.v)}</span>` : ""}</span>`).join("")}</div>`;
 const bwKV = (a) => { const [ttl, body] = a.includes("|") ? a.split("|") : ["", a]; return { ttl: ttl.trim(), kv: body.split(",").map((x) => x.trim()).filter(Boolean).map((x) => { const m = x.match(/^(.*?)\s+(-?[\d.]+)%?$/); return m ? [m[1], +m[2]] : null; }).filter(Boolean) }; };
@@ -1484,7 +1507,7 @@ async function bwFill(el, w) {
       const ok = syms.map((x, i) => ({ x, g: gs[i] })).filter((v) => v.g?.rows?.length);
       if (!ok.length) throw 0;
       const many = ok.length > 1, ser = ok.map(({ x, g }) => { const rows = g.rows.filter((r) => r.c != null), b = rows[0].c; return { name: g.name || x, v: (rows.at(-1).c / b - 1) * 100, data: rows.map((r) => ({ time: r.d, value: many ? Math.round((r.c / b - 1) * 10000) / 100 : r.c })) }; });
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${many ? "수익률 비교 (시작 = 0%)" : esc(ser[0].name) + " 주가"} · ${esc(rg)}</div>` + bwLeg(ser)); bwChart(el, ser, many);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${many ? "수익률 비교 (시작 = 0%)" : esc(ser[0].name) + " 주가"} · ${esc(rg)}</div>`); bwChartT(el, ser, many, many ? { mode: "pct" } : {});
     } else if (k === "tv") {
       el.innerHTML = `<div class="bw-t">트레이딩뷰 · ${esc(a)}</div><iframe class="bw-tv" src="https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(a)}&interval=D&theme=${bwDark() ? "dark" : "light"}&style=1&locale=kr&hide_side_toolbar=1&withdateranges=1&allow_symbol_change=1" loading="lazy"></iframe>`;
     } else if (k === "bars") {
@@ -1495,7 +1518,7 @@ async function bwFill(el, w) {
     } else if (k === "f13") {
       const d = await api("op=f13fund&cik=" + encodeURIComponent(a.split(/[\s,]/)[0])); if (!d?.rows?.length) throw 0;
       const top = d.rows.slice(0, 10), rest = Math.max(0, 100 - top.reduce((t, r) => t + r.w, 0));
-      el.innerHTML = `<div class="bw-t">${esc(d.star || d.name)} · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [r.ko || r.t || r.n, r.w]), ["그 외", Math.round(rest * 10) / 10]])}
+      el.innerHTML = `<div class="bw-t"><span class="bw-pp" data-bwp="${esc(String(d.cik))}">${esc(d.star || d.name)}</span> · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [r.ko || r.t || r.n, r.w]), ["그 외", Math.round(rest * 10) / 10]])}
       <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(r.ko || r.n)} <span class="note">${esc(r.t || "")}</span></td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
     } else if (k === "analog") {
       // [[analog SYM | 기준일 | 과거일1, 과거일2 | 거래일 수]] 기준일부터 지금까지와, 과거 날짜부터 같은 길이를 0%로 맞춰 겹쳐요
@@ -1508,7 +1531,7 @@ async function bwFill(el, w) {
       const corr = (A, B) => { const n = Math.min(A.length, B.length); if (n < 5) return null; const a1 = A.slice(0, n).map((x) => x.v), b1 = B.slice(0, n).map((x) => x.v), ma = a1.reduce((t, x) => t + x, 0) / n, mb = b1.reduce((t, x) => t + x, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (a1[i] - ma) * (b1[i] - mb); sxx += (a1[i] - ma) ** 2; syy += (b1[i] - mb) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; };
       const t0 = Date.UTC(2000, 0, 3); const toT = (i) => new Date(t0 + i * 864e5).toISOString().slice(0, 10);
       const S = ser.map((x, i) => ({ name: x.name, w: x.w, color: i ? undefined : "#e11d48", v: x.data.at(-1).v, data: x.data.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }));
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${esc(g.name || sym)} · 지금 vs 과거 (시작일 = 0%, 가로축 = 시작 후 거래일 수 ${L}일)</div>` + bwLeg(S)); bwChart(el, S, true);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${esc(g.name || sym)} · 지금 vs 과거 (시작일 = 0%, 가로축 = 시작 후 거래일 수 ${L}일)</div>`); bwChartT(el, S, true);
       el.querySelector("div[style*='height']")?.insertAdjacentHTML("afterend", "");
       const mdd = (d) => { let pk = -1e9, m = 0; d.forEach((p) => { const lv = 100 + p.v; pk = Math.max(pk, lv); m = Math.min(m, (lv / pk - 1) * 100); }); return m; };
       el.insertAdjacentHTML("beforeend", `<table style="margin-top:8px;font-size:13px"><tr><th>구간</th><th>지금과 닮은 정도</th><th>같은 기간 최대 하락</th><th>그 기간 끝 수익률</th><th>${N}일 전체 끝</th></tr>${ser.map((x, i) => { const c = i ? corr(cur, x.data) : 1, n = cur.length, part = x.data.slice(0, n); return `<tr><td>${esc(x.name)}</td><td class="num">${c == null ? "-" : i ? Math.round(c * 100) + "%" : "기준"}</td><td class="num down">${mdd(part).toFixed(1)}%</td><td class="num ${ud(part.at(-1)?.v)}">${pct(part.at(-1)?.v)}</td><td class="num ${ud(x.data.at(-1).v)}">${pct(x.data.at(-1).v)}</td></tr>`; }).join("")}</table><p class="note" style="margin:4px 0 0">닮은 정도 = 지금 구간 길이만큼 두 선의 모양이 얼마나 같이 움직였는지 (상관계수). 100%에 가까울수록 비슷해요.</p>`);
@@ -1522,15 +1545,32 @@ async function bwFill(el, w) {
       const ref = ser.find((x) => x.rows)?.rows || []; ser.forEach((x) => { if (x.cash) x.rows = ref.map((r) => ({ time: r.time, value: amt })); });
       const won = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
       const S = ser.map((x, i) => ({ name: x.name, color: x.cash ? "#94a3b8" : undefined, dash: x.cash, v: (x.rows.at(-1).value / amt - 1) * 100, data: x.rows }));
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>` + bwLeg(S)); bwChart(el, S, true);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>`); bwChartT(el, S, true, { mode: "won", amt });
       el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...S].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, (Math.abs(x.v) / Math.max(...S.map((z) => Math.abs(z.v)), 1)) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>`);
+    } else if (k === "f13rank") {
+      // [[f13rank 2026-11-03]] 등록된 펀드 전부 13F 따라 하기 성적 랭킹 (기준일 = 하락장 방어 구간 시작)
+      const since = (a.match(/\d{4}-\d{2}-\d{2}/) || [])[0] || new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+      const ciks = Object.keys(F13P).map(Number); el.innerHTML = `<div class="bw-t">13F 랭킹존 · ${ciks.length}곳</div><p class="note" id="rkP">계산 중… 0/${ciks.length}</p>`;
+      const res = []; let done = 0;
+      for (let i = 0; i < ciks.length; i += 6) { await Promise.all(ciks.slice(i, i + 6).map(async (c) => { const r = await api("op=f13bt&cik=" + c).catch(() => null); done++; if (r?.curve?.length) res.push(r); })); const pp = el.querySelector("#rkP"); if (pp) pp.textContent = `계산 중… ${done}/${ciks.length}`; }
+      if (!res.length) throw 0;
+      const at = (cv, d) => { const i = cv.findIndex((x) => x[0] >= d); return i < 0 ? cv.at(-1) : cv[i]; }, g = (a1, b1) => ((1 + b1 / 100) / (1 + a1 / 100) - 1) * 100;
+      const d3 = new Date(Date.now() - 92 * 864e5).toISOString().slice(0, 10), d1 = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+      const R = res.map((r) => { const cv = r.curve, e = cv.at(-1), yr = cv.filter((x) => x[0] >= d1); let pk = -1e9, mdd = 0; yr.forEach((x) => { pk = Math.max(pk, 100 + x[1]); mdd = Math.min(mdd, ((100 + x[1]) / pk - 1) * 100); });
+        return { cik: r.cik, n: F13N[r.cik] || F13P[r.cik]?.[0]?.split(" · ").pop() || r.name, all: e[1], allS: e[2], m3: g(at(cv, d3)[1], e[1]), m3S: g(at(cv, d3)[2], e[2]), dn: g(at(cv, since)[1], e[1]), dnS: g(at(cv, since)[2], e[2]), mdd, from: cv[0][0] }; });
+      const tabs = [["all", "전체 기간"], ["m3", "최근 3개월"], ["dn", `하락장 방어 (${since.slice(5)}~)`], ["mdd", "1년 최대 낙폭"]];
+      const draw = (k) => { const L = [...R].sort((x, y) => y[k] - x[k]), spy = k === "mdd" ? null : R[0][k + "S"], mx = Math.max(...L.map((x) => Math.abs(x[k])), Math.abs(spy || 0), 1);
+        el.querySelector(".rk-b").innerHTML = (spy != null ? `<div class="r spy"><span class="n">기준 · S&P 500</span><span class="tr ng"><i style="width:${(Math.abs(spy) / mx) * 50}%;${spy < 0 ? "right:50%" : "left:50%"};background:#94a3b8"></i></span><b class="${ud(spy)}">${pct(spy)}</b></div>` : "") + L.map((x, i) => `<div class="r${spy != null && x[k] > spy ? " win" : ""}"><span class="n">${["🥇", "🥈", "🥉"][i] || i + 1 + "."} <span class="bw-pp" data-bwp="${x.cik}">${esc(x.n)}</span></span><span class="tr ng"><i style="width:${(Math.abs(x[k]) / mx) * 50}%;${x[k] < 0 ? "right:50%" : "left:50%"};background:${x[k] < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x[k])}">${pct(x[k])}</b></div>`).join("");
+        el.querySelectorAll("[data-rk]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.rk === k)); };
+      el.innerHTML = `<div class="bw-t">13F 랭킹존 · ${R.length}곳 · 13F 공개일에 따라 산 성적 (${esc(R[0].from)}~) · 이름 누르면 인물·포트폴리오</div><div class="row" style="gap:4px;margin:6px 0">${tabs.map(([k2, n]) => `<button type="button" class="pill" data-rk="${k2}">${n}</button>`).join("")}</div><div class="bw-bars rk-b"></div>`;
+      el.querySelector(".row").onclick = (e) => { const b = e.target.closest("[data-rk]"); if (b) draw(b.dataset.rk); }; draw("all");
     } else if (k === "f13bt") {
       const ciks = a.split(/[\s,]+/).filter(Boolean).slice(0, 5); const rs = await Promise.all(ciks.map((c) => api("op=f13bt&cik=" + encodeURIComponent(c)).catch(() => null)));
       const ok = rs.filter((r) => r?.curve?.length); if (!ok.length) throw 0;
-      const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || r.name) + " 따라 하기", v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
+      const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || r.name) + " 따라 하기", link: String(r.cik), v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
       ser.push({ name: "S&P 500 (SPY)", v: ok[0].spy, color: "#94a3b8", dash: true, data: ok[0].curve.map((c) => ({ time: c[0], value: c[2] })) });
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 공개일에 사서 다음 13F까지 들고 가기 (상위 25종목 비중대로) · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>` + bwLeg(ser)); bwChart(el, ser, true);
-      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...ser].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 공개일에 사서 다음 13F까지 들고 가기 (상위 25종목 비중대로) · ${esc(ok[0].from)} ~ ${esc(ok[0].to)} · 이름을 누르면 누구인지·포트폴리오</div>`); bwChartT(el, ser, true, { mode: "pct" });
+      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...ser].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${x.link ? `<span class="bw-pp" data-bwp="${x.link}">${esc(x.name)}</span>` : esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
     }
   } catch { el.innerHTML = `<p class="note">그림 자료를 못 받았어요 (${esc(k)} ${esc(a)}).</p>`; }
 }
@@ -1541,7 +1581,70 @@ function bwPie(kv) {
     const d = `M${P(R, a0)}A${R} ${R} 0 ${lg} 1 ${P(R, a1 - 1e-4)}L${P(r, a1 - 1e-4)}A${r} ${r} 0 ${lg} 0 ${P(r, a0)}Z`; a0 = a1; return `<path d="${d}" fill="${n === "그 외" ? "#94a3b8" : BWC[i % BWC.length]}"/>`; });
   return `<div class="bw-pie"><svg viewBox="0 0 160 160" width="160" height="160">${arcs.join("")}</svg><div>${kv.map(([n, v], i) => `<div style="font-size:13px"><span style="color:${n === "그 외" ? "#94a3b8" : BWC[i % BWC.length]}">■</span> ${esc(n)} <b>${v}%</b></div>`).join("")}</div></div>`;
 }
-function fillBw(root) { root.querySelectorAll("[data-bw]").forEach((el) => { const w = BW[+el.dataset.bw]; if (w && !el.dataset.done) { el.dataset.done = 1; bwFill(el, w); } }); }
+// 13F 인물 소개 (이름 누르면 뜨는 창)
+const F13P = {
+  1067983: ["워런 버핏 · 버크셔 해서웨이", "'오마하의 현인'. 좋은 회사를 적당한 가격에 사서 아주 오래 들고 가는 가치투자의 상징이에요. 보험사(플로트)의 돈으로 투자하고, 현금을 많이 쌓아 두는 것으로 유명해요. 2025년 말 CEO에서 물러나 그렉 에이블이 이어받았어요."],
+  1336528: ["빌 애크먼 · 퍼싱 스퀘어", "행동주의 투자자. 소수 종목(보통 10개 안팎)에 크게 걸고, 경영에 목소리를 내요. 코로나 때 신용 헤지로 큰돈을 번 일로 유명해요."],
+  1649339: ["마이클 버리 · 사이언", "영화 '빅쇼트'의 주인공. 2008년 서브프라임 붕괴에 베팅해 큰 수익을 냈어요. 역발상 투자자로, 13F에 풋옵션(하락 베팅)이 자주 보여 늘 화제가 돼요."],
+  1350694: ["레이 달리오 · 브리지워터", "세계 최대 헤지펀드 창업자. 경제를 '기계'처럼 보는 매크로 투자자로 '올웨더(전천후)' 포트폴리오를 만들었어요. 13F에는 ETF와 아주 많은 종목이 나와요."],
+  1536411: ["스탠리 드러켄밀러 · 듀케인 패밀리 오피스", "조지 소로스와 함께 1992년 영국 파운드화 공매도로 유명한 매크로 투자자. 30년 넘게 손실 연도가 거의 없었다고 알려졌어요. 생각이 바뀌면 빠르게 갈아타서 13F 회전이 빨라요."],
+  1709323: ["리루 · 히말라야 캐피털", "천안문 사태 뒤 미국으로 건너간 가치투자자. 찰리 멍거가 자기 가족 돈을 맡긴 유일한 외부 운용역으로 유명해요. 종목 수가 아주 적어요."],
+  1061768: ["세스 클라만 · 바우포스트", "'안전마진' 저자. 손실을 피하는 것을 가장 중시하는 가치투자자예요. 현금 비중이 높을 때가 많아요."],
+  1079114: ["데이비드 아인혼 · 그린라이트", "가치투자와 공매도를 함께 하는 투자자. 리먼브러더스 회계 문제를 미리 지적한 일로 유명해요."],
+  1040273: ["댄 로브 · 써드 포인트", "날카로운 주주 서한으로 유명한 행동주의 헤지펀드 매니저예요."],
+  1167483: ["체이스 콜먼 · 타이거 글로벌", "줄리언 로버트슨의 '타이거 새끼' 중 하나. 기술·성장주와 비상장 투자로 유명하고, 2022년 큰 손실을 겪었어요."],
+  1135730: ["필립 라폰트 · 코투", "기술주 중심 헤지펀드. AI·소프트웨어 대형주 비중이 커요."],
+  1061165: ["스티븐 맨델 · 론 파인", "타이거 출신 성장주 투자자. 소수 대형 성장주에 집중해요."],
+  1103804: ["안드레아스 할보르센 · 바이킹 글로벌", "타이거 출신. 롱숏 전략으로 업종을 넓게 다뤄요."],
+  1656456: ["데이비드 테퍼 · 아팔루사", "2009년 금융위기 바닥에서 은행주를 사서 큰돈을 번 투자자. 시장 방향에 과감하게 베팅해요."],
+  1029160: ["조지 소로스 · 소로스 펀드", "'영란은행을 무너뜨린 남자'. 재귀성 이론의 매크로 투자자예요. 지금은 가족 자산 운용이에요."],
+  921669: ["칼 아이칸 · 아이칸 엔터프라이즈", "기업 사냥꾼으로 불린 원조 행동주의 투자자예요."],
+  1791786: ["폴 싱어 · 엘리엇", "강경한 행동주의 펀드. 한국에서는 삼성물산 합병 반대로 잘 알려졌어요."],
+  1166559: ["게이츠 재단 신탁", "빌 게이츠 재단의 투자 자산. 마이크로소프트, 버크셔, 웨이스트 매니지먼트 등을 오래 들고 있어요."],
+  1112520: ["척 애크리 · 에이크 캐피털", "'복리 기계' 같은 우량 기업을 오래 들고 가는 투자자예요."],
+  1569205: ["테리 스미스 · 펀드스미스", "'좋은 회사를 사고, 비싸게 사지 말고, 아무것도 하지 마라'로 유명한 영국 투자자예요."],
+  1096343: ["토머스 게이너 · 마켈", "'작은 버크셔'로 불리는 보험·투자 회사예요."],
+  1418814: ["밸류액트 캐피털", "조용한 행동주의 펀드. 이사회에 들어가 경영 개선을 이끌어요."],
+  1345471: ["넬슨 펠츠 · 트라이언", "소비재 기업에 들어가 경영 개선을 요구하는 행동주의 투자자예요."],
+  934639: ["리 에인슬리 · 매버릭", "타이거 출신 롱숏 헤지펀드예요."],
+  1720792: ["루안 커니프 (세쿼이아 펀드)", "버핏이 추천했던 세쿼이아 펀드를 운용하는 가치투자 회사예요."],
+  1034524: ["폴렌 캐피털", "소수 우량 성장주 집중 투자 회사예요."],
+  1088875: ["베일리 기포드", "테슬라·엔비디아 초기 투자로 유명한 영국의 장기 성장주 투자 회사예요."],
+  1697748: ["캐시 우드 · ARK 인베스트", "파괴적 혁신(AI·로봇·유전체·핀테크)에 투자하는 ETF 운용사. 테슬라 강세론으로 유명하고 변동성이 아주 커요."],
+  1541617: ["브래드 거스트너 · 알티미터", "기술·AI 성장주 투자자. 엔비디아·메타 등 대형 기술주 비중이 커요."],
+  1358706: ["데이비드 에이브럼스 · 에이브럼스 캐피털", "바우포스트 출신의 조용한 가치투자자예요."],
+  732905: ["트위디 브라운", "벤저민 그레이엄과 인연이 깊은 오래된 가치투자 회사예요."],
+  1325447: ["퍼스트 이글", "금과 가치주를 함께 담는 보수적인 운용사예요."],
+  905567: ["야크트먼 자산운용", "우량 소비재 중심의 가치투자 회사예요."],
+  807985: ["사우스이스턴 (롱리프)", "집중 가치투자 회사예요."],
+  200217: ["다지 앤 콕스", "1930년 설립된 대형 가치투자 운용사예요."],
+  813917: ["해리스 어소시에이츠 (오크마크)", "빌 나이그렌이 이끄는 가치투자 운용사예요."],
+  1631014: ["알타록 파트너스", "소수 종목 집중 장기 투자 회사예요."],
+  1647251: ["크리스 혼 · TCI", "'어린이 투자 펀드'. 높은 수익률과 강한 행동주의로 유명한 영국 펀드예요."],
+  1759760: ["돤융핑 · H&H", "'중국의 버핏'. 애플·버크셔 장기 보유로 유명해요."],
+  1549575: ["모니시 파브라이 · 달랄 스트리트", "버핏 '클로닝'을 공개적으로 말하는 가치투자자. 다른 고수의 아이디어를 참고하는 것으로 유명해요."],
+  1608046: ["국민연금", "한국 국민연금의 미국 주식 보유분이에요. 지수에 가깝게 넓게 담아요."],
+  1056831: ["브루스 버코위츠 · 페어홈", "역발상 집중 투자자. 세인트조 같은 소수 종목에 크게 걸어요."],
+  1138995: ["래리 로빈스 · 글렌뷰", "헬스케어 등에 강한 헤지펀드예요."],
+  1517137: ["제프 스미스 · 스타보드 밸류", "이사회 교체를 요구하는 행동주의 펀드예요."],
+  1403528: ["하워드 막스 · 오크트리", "'투자에 대한 생각' 저자. 메모로 유명한 부실채권·신용 투자자예요."],
+  1798849: ["헨리 엘런보겐 · 듀러블 캐피털", "성장주 중심 투자자예요."],
+};
+// 글 속 이름 → CIK (누르면 소개 창)
+const F13NAME = [["워런 버핏", 1067983], ["버핏", 1067983], ["버크셔", 1067983], ["빌 애크먼", 1336528], ["애크먼", 1336528], ["퍼싱 스퀘어", 1336528], ["마이클 버리", 1649339], ["버리", 1649339], ["사이언", 1649339], ["레이 달리오", 1350694], ["달리오", 1350694], ["브리지워터", 1350694], ["스탠리 드러켄밀러", 1536411], ["드러켄밀러", 1536411], ["듀케인", 1536411], ["리루", 1709323], ["히말라야", 1709323], ["세스 클라만", 1061768], ["데이비드 테퍼", 1656456], ["테퍼", 1656456], ["아팔루사", 1656456], ["조지 소로스", 1029160], ["소로스", 1029160], ["칼 아이칸", 921669], ["캐시 우드", 1697748], ["ARK", 1697748], ["모니시 파브라이", 1549575], ["파브라이", 1549575], ["달랄 스트리트", 1549575], ["하워드 막스", 1403528], ["테리 스미스", 1569205], ["국민연금", 1608046], ["돤융핑", 1759760], ["크리스 혼", 1647251], ["넬슨 펠츠", 1345471], ["데이비드 아인혼", 1079114], ["댄 로브", 1040273]];
+function bwLinkNames(root) {
+  const re = new RegExp(F13NAME.map((x) => x[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+  const walk = (n) => { for (const c of [...n.childNodes]) { if (c.nodeType === 3) { if (!re.test(c.data)) continue; re.lastIndex = 0; const f = document.createDocumentFragment(); let last = 0; c.data.replace(re, (m, off) => { f.append(c.data.slice(last, off)); const sp = document.createElement("span"); sp.className = "bw-pp"; sp.dataset.bwp = F13NAME.find((x) => x[0] === m)[1]; sp.textContent = m; f.append(sp); last = off + m.length; return m; }); f.append(c.data.slice(last)); c.replaceWith(f); } else if (c.nodeType === 1 && !["A", "BUTTON", "SCRIPT", "STYLE"].includes(c.tagName) && !c.classList.contains("bw-pp") && !c.classList.contains("bw")) walk(c); } };
+  root.querySelectorAll(".md").forEach(walk);
+}
+async function bwPerson(cik) {
+  let m = document.getElementById("bwPop"); if (!m) { m = document.createElement("div"); m.id = "bwPop"; m.className = "bw-pop"; document.body.appendChild(m); m.onclick = (e) => { if (e.target === m || e.target.closest("[data-bwx]")) m.hidden = true; }; }
+  const P = F13P[cik] || [F13N[cik] || "기관", ""]; m.hidden = false;
+  m.innerHTML = `<div class="in"><button type="button" class="pill" data-bwx style="float:right">닫기 ✕</button><h3 style="margin:0 0 6px">${esc(P[0])}</h3><p class="mo-p">${esc(P[1])}</p><div class="bw" id="bwPopF"></div><div class="bw" id="bwPopB"></div></div>`;
+  BW.push({ k: "f13", a: String(cik) }); bwFill($("bwPopF"), BW.at(-1)); BW.push({ k: "f13bt", a: String(cik) }); bwFill($("bwPopB"), BW.at(-1));
+}
+document.addEventListener("click", (e) => { const t = e.target.closest("[data-bwp]"); if (!t) return; e.preventDefault(); e.stopPropagation(); bwPerson(+t.dataset.bwp); }, true);
+function fillBw(root) { bwLinkNames(root); root.querySelectorAll("[data-bw]").forEach((el) => { const w = BW[+el.dataset.bw]; if (w && !el.dataset.done) { el.dataset.done = 1; bwFill(el, w); } }); }
 
 const ytId = (u) => (String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1];
 const vidHtml = (u) => { const y = ytId(u); if (y) return `<div class="bg-vid"><iframe src="https://www.youtube.com/embed/${y}" allowfullscreen loading="lazy"></iframe></div>`; if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return `<div class="bg-vid"><video src="${esc(u)}" controls></video></div>`; return u ? `<p><a href="${esc(u)}" target="_blank" rel="noopener">▶ 영상 열기</a></p>` : ""; };
