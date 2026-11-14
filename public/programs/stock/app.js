@@ -1297,9 +1297,9 @@ document.addEventListener("submit", async (e) => { const f = e.target.closest("[
 // 제로가 만들거나 고치는 중일 때 보여 주는 띠 (접수 시각 · 매시 47분 처리 · 예약 작업이 접수함을 본 시각)
 const hm = (t) => new Date(t).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 function zeroWait(what, at, seen) {
-  const now = Date.now(), nx = new Date(now); nx.setMinutes(47, 0, 0); if (nx <= now) nx.setHours(nx.getHours() + 1);
-  const warn = !seen ? "⚠️ 예약 작업이 아직 한 번도 접수함을 확인하지 못했어요. 네트워크 비밀값(x-admin-key) 등록이 필요해요." : now - seen > 2 * 3600e3 ? `⚠️ 예약 작업이 ${Math.round((now - seen) / 3600e3)}시간째 접수함을 확인하지 않았어요.` : `예약 작업 마지막 확인 ${hm(seen)}`;
-  return `<div class="zw"><b>🕒 제로(구독 Claude)가 ${what} 중이에요</b><span>${at ? hm(at) + " 접수 · " : ""}다음 처리 ${hm(nx)} 즈음 · 창을 닫아도 끝나면 저장돼요</span><span class="note" style="margin:0">${warn}</span></div>`;
+  const now = Date.now();
+  const warn = !seen ? "아직 한 번도 처리한 적 없어요." : `마지막 처리 ${new Date(seen).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+  return `<div class="zw"><b>🕒 제로(구독 Claude)가 ${what} 중이에요</b><span>${at ? hm(at) + " 접수 · " : ""}주식 프로그램 스레드에 '처리해줘'라고 하면 바로 만들어요 (안 하면 다음 날 아침 7:47) · 창을 닫아도 끝나면 저장돼요</span><span class="note" style="margin:0">${warn}</span></div>`;
 }
 
 // ── 월례회: 한 달 발표 자료
@@ -1314,7 +1314,7 @@ async function loadMon(m) {
   MON.seen = j.seen; MON.data = j.mon; $("moMsg").textContent = j.mon ? `${j.mon.from} ~ ${j.mon.upto} 기준 · ${new Date(j.mon.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 정리` : "";
   const wait = j.pend ? zeroWait(j.mon ? `${moLabel(MON.m)} 자료를 새로 고치는` : `${moLabel(MON.m)} 자료를 만드는`, j.pend.at, j.seen) : "";
   $("moMake").disabled = !!j.pend; $("moMake").textContent = j.pend ? "만드는 중…" : "지금 다시 만들기";
-  if (!j.mon) { $("moBody").innerHTML = wait || `<p class="note">${moLabel(MON.m)} 자료가 아직 없어요. '지금 다시 만들기'를 누르면 제로(구독 Claude)가 만들어요 (최대 1시간).</p>`; return; }
+  if (!j.mon) { $("moBody").innerHTML = wait || `<p class="note">${moLabel(MON.m)} 자료가 아직 없어요. '지금 다시 만들기'를 누른 뒤 주식 프로그램 스레드에 '처리해줘'라고 하면 제로(구독 Claude)가 바로 만들어요.</p>`; return; }
   renderMon(j.mon); if (wait) $("moBody").insertAdjacentHTML("afterbegin", wait);
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mom]"); if (b) loadMon(b.dataset.mom); });
