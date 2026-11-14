@@ -35,7 +35,7 @@ async function aiWait(rid) {
     throw new Error("timeout");
   } finally { AIW.delete(rid); aiBadge(); }
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -76,7 +76,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study"].forEach((x) => ($(x).hidden = x !== t)); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog"].forEach((x) => ($(x).hidden = x !== t)); if (t === "mon") loadMon(); if (t === "blog") loadBlog(); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -1293,3 +1293,168 @@ $("stForm").onsubmit = async (e) => { e.preventDefault(); const t = $("stIn").va
   try { const r = await api("", { op: "study", text: t }); ST.list.unshift(r); stOpen = r.id; $("stIn").value = ""; $("stMsg").textContent = ""; renderStudy(); } catch (err) { $("stMsg").textContent = "못 했어요: " + (err?.message || ""); } $("stGo").disabled = false; };
 document.addEventListener("submit", async (e) => { const f = e.target.closest("[data-stf]"); if (!f) return; e.preventDefault(); const inp = f.querySelector("input"), t = inp.value.trim(); if (!t) return; const btn = f.querySelector("button"); btn.disabled = true; btn.textContent = "생각 중…";
   try { const r = await api("", { op: "study", id: f.dataset.stf, text: t }); const i = ST.list.findIndex((x) => x.id === r.id); if (i >= 0) ST.list[i] = r; stOpen = r.id; renderStudy(); } catch (err) { btn.disabled = false; btn.textContent = "다시"; } });
+
+// ── 월례회: 한 달 발표 자료
+const MON = { m: null, data: null, chart: null };
+const moLabel = (m) => `${m.slice(0, 4)}년 ${+m.slice(5)}월`;
+async function loadMon(m) {
+  const cur = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7);
+  MON.m = m || MON.m || cur; $("moMsg").textContent = "불러오는 중…";
+  let j; try { j = await api("op=mon&m=" + MON.m); } catch { $("moMsg").textContent = "못 불러왔어요."; return; }
+  const months = [...new Set([cur, ...(j.list || [])])].sort().reverse();
+  $("moPick").innerHTML = months.map((x) => `<button type="button" class="pill" data-mom="${x}" aria-pressed="${x === MON.m}">${moLabel(x)}</button>`).join("");
+  MON.data = j.mon; $("moMsg").textContent = j.mon ? `${j.mon.from} ~ ${j.mon.upto} 기준 · ${new Date(j.mon.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 정리` : "";
+  if (!j.mon) { $("moBody").innerHTML = `<p class="note">${moLabel(MON.m)} 자료가 아직 없어요. '지금 다시 만들기'를 누르면 제로(구독 Claude)가 만들어요 (최대 1시간).</p>`; return; }
+  renderMon(j.mon);
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-mom]"); if (b) loadMon(b.dataset.mom); });
+$("moMake").onclick = async () => {
+  const b = $("moMake"); b.disabled = true; $("moMsg").textContent = "자료를 모아 제로(구독 Claude)에게 맡겼어요… (최대 1시간, 창을 닫아도 저장돼요)";
+  try { const r = await api("", { op: "monmake", m: MON.m }); MON.data = r; renderMon(r); $("moMsg").textContent = `${r.from} ~ ${r.upto} 기준 · 방금 정리`; }
+  catch (e) { $("moMsg").textContent = e.message === "early" ? "이 달은 아직 지난 날이 없어요." : "만들지 못했어요. 다시 눌러 주세요."; }
+  b.disabled = false;
+};
+$("moPrint").onclick = () => window.print();
+function renderMon(o) {
+  const st = (o.stats || []).filter((x) => !x.err), TL = o.timeline || [];
+  const tile = (x) => `<div class="mo-tile"><span class="note">${esc(x.n)}</span><b class="${["^VIX", "^TNX", "KRW=X"].includes(x.s) ? ud(-x.chg) : ud(x.chg)}">${pct(x.chg)}</b><span class="note">${fmt(x.end, x.end > 1000 ? 0 : 2)} · 최고 ${x.hi.d.slice(5)}</span></div>`;
+  const clip = (q) => `<a class="mo-clip" href="${esc(q.link || "#")}" target="_blank" rel="noopener"><small>${esc(q.src || "기사")} · ${esc(q.d || "")}</small>“${esc(q.t)}”</a>`;
+  $("moBody").innerHTML = `
+  <div class="mo-hero"><div class="k">MONTHLY MEETING · ${esc(moLabel(o.m))} · ${esc(o.from)} ~ ${esc(o.upto)}</div><h3>${esc(o.title || "")}</h3>${o.sub ? `<p style="color:#f2b632;margin-top:0">${esc(o.sub)}</p>` : ""}<p>${esc(o.summary || "")}</p></div>
+  ${o.lead ? `<div class="mo-sec"><h3>지난달 말부터 이어진 흐름</h3><p>${esc(o.lead)}</p></div>` : ""}
+  <div class="mo-sec"><h3>지수·매크로 이달 성적표 <span class="note">전달 마지막 종가 대비</span></h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
+  <div class="mo-sec"><h3>한 달 흐름 <span class="note">달 시작을 0%로 · 동그라미 번호 = 아래 사건</span></h3>
+    ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span><br>${esc(p.desc || "")}</span>`).join("")}</div>` : ""}
+    <div class="row" id="moLeg" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:360px"></div></div>
+  <div class="mo-sec"><h3>무슨 일이 있었나</h3><div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(x.d)}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4><p style="margin:0 0 4px">${esc(x.what || "")}</p>${x.why ? `<p class="note" style="margin:0">왜: ${esc(x.why)}</p>` : ""}${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div></div>
+  ${o.themes?.length ? `<div class="mo-sec"><h3>이달의 테마</h3><div class="two">${o.themes.map((t) => `<div class="mo-tile"><b style="font-size:16px">${esc(t.name)}</b><p style="margin:4px 0">${esc(t.desc || "")}</p><span class="note">${(t.syms || []).map(esc).join(" · ")}</span></div>`).join("")}</div></div>` : ""}
+  ${o.stocks?.length ? `<div class="mo-sec"><h3>이달 화제 종목 <span class="note">이달 종가 흐름</span></h3><div class="mo-tiles" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${o.stocks.map((x, i) => `<div class="mo-tile"><b style="font-size:15px">${esc(x.n)} <span class="note">${esc(x.s)}</span></b><span class="num" id="moSc${i}"></span><canvas id="moSk${i}" style="width:100%;height:56px;display:block;margin:4px 0"></canvas><span class="note">${esc(x.why || "")}</span></div>`).join("")}</div></div>` : ""}
+  ${o.numbers?.length ? `<div class="mo-sec"><h3>숫자로 본 이달</h3><div class="mo-tiles">${o.numbers.map((n) => `<div class="mo-tile"><span class="note">${esc(n.k)}</span><b>${esc(n.v)}</b></div>`).join("")}</div></div>` : ""}
+  ${o.next?.length ? `<div class="mo-sec"><h3>다음 달에 확인할 것</h3><ul>${o.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}
+  <p class="note" style="margin-top:16px">자료: 그날그날의 오늘의 정리·일별 DB·야후 파이낸스 종가·구글 뉴스 기사 제목을 제로가 정리 · 공부용, 투자 권유 아님 · 출처 AI이현</p>`;
+  drawMonChart(o);
+  (o.stocks || []).forEach(async (x, i) => {
+    try { const g = await api(`op=chart&s=${encodeURIComponent(x.s)}&r=3mo&i=1d`); const rows = (g.rows || []).filter((r) => r.d >= o.from && r.d <= o.upto && r.c != null); const pre = (g.rows || []).filter((r) => r.d < o.from).at(-1);
+      if (!rows.length) return; const base = pre?.c ?? rows[0].c, ch = (rows.at(-1).c / base - 1) * 100;
+      $("moSc" + i).innerHTML = `<span class="${ud(ch)}">${pct(ch)}</span>`; line($("moSk" + i), rows.map((r) => r.c), { color: ch >= 0 ? css("--up") : css("--down") });
+    } catch {}
+  });
+}
+const MO_COL = { "^IXIC": "#2563eb", "^GSPC": "#7c3aed", "^SOX": "#f59e0b", "^KS11": "#e11d48", "^KQ11": "#10b981" };
+MON.on = new Set(["^IXIC", "^SOX", "^KS11", "^KQ11"]);
+function drawMonChart(o) {
+  const el = $("moChart"); if (!el || !window.LightweightCharts) return; el.innerHTML = ""; MON.chart?.remove?.();
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dark ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dark ? "#1f2937" : "#eef0f3" } }, rightPriceScale: { mode: 2 }, timeScale: { borderVisible: false }, handleScroll: false, handleScale: false });
+  MON.chart = ch; const st = (o.stats || []).filter((x) => !x.err && MO_COL[x.s]);
+  $("moLeg").innerHTML = st.map((x) => `<button type="button" class="pill" data-mol="${x.s}" aria-pressed="${MON.on.has(x.s)}" style="border-color:${MO_COL[x.s]}"><span style="color:${MO_COL[x.s]}">●</span> ${esc(x.n)} ${pct(x.chg)}</button>`).join("");
+  let first = true;
+  st.filter((x) => MON.on.has(x.s)).forEach((x) => {
+    const s = ch.addLineSeries({ color: MO_COL[x.s], lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: x.n });
+    const data = [{ time: x.daily[0] ? new Date(Date.parse(x.daily[0].d) - 864e5).toISOString().slice(0, 10) : o.from, value: 0 }, ...x.daily.map((d) => ({ time: d.d, value: Math.round((d.c / x.base - 1) * 10000) / 100 }))].filter((v, i, a) => !i || v.time > a[i - 1].time);
+    s.setData(data);
+    if (first) { // 사건 번호를 첫 선에 표시 (그날 거래가 없으면 다음 거래일에)
+      const days = data.map((d) => d.time);
+      s.setMarkers((o.timeline || []).map((t, i) => { const d = days.find((x) => x >= t.d); return d ? { time: d, position: "aboveBar", color: "#f2b632", shape: "circle", text: String(i + 1) } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1)));
+      first = false;
+    }
+  });
+  ch.timeScale().fitContent();
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-mol]"); if (!b || !MON.data) return; const s = b.dataset.mol; MON.on.has(s) ? MON.on.delete(s) : MON.on.add(s); drawMonChart(MON.data); });
+
+// ── 스터디 (블로그 글쓰기)
+const BG = { list: [], post: null, mode: "list", img: {}, saveT: null, focus: -1 };
+const mdHtml = (t) => {
+  const lines = String(t || "").split("\n"), out = []; let list = null, tbl = null;
+  const inl = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const flush = () => { if (list) { out.push(`<${list.t}>${list.items.map((i) => `<li>${inl(i)}</li>`).join("")}</${list.t}>`); list = null; } if (tbl) { out.push(`<table>${tbl.map((r, i) => `<tr>${r.map((c) => (i ? `<td>${inl(c)}</td>` : `<th>${inl(c)}</th>`)).join("")}</tr>`).join("")}</table>`); tbl = null; } };
+  for (const l of lines) {
+    let m;
+    if (/^\s*\|.*\|\s*$/.test(l)) { if (list) flush(); if (/^\s*\|[\s:|-]+\|\s*$/.test(l)) continue; (tbl ||= []).push(l.trim().slice(1, -1).split("|").map((c) => c.trim())); continue; }
+    if ((m = l.match(/^\s*[-*]\s+(.*)/))) { if (tbl || (list && list.t !== "ul")) flush(); (list ||= { t: "ul", items: [] }).items.push(m[1]); continue; }
+    if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (tbl || (list && list.t !== "ol")) flush(); (list ||= { t: "ol", items: [] }).items.push(m[1]); continue; }
+    flush();
+    if ((m = l.match(/^(#{1,3})\s+(.*)/))) out.push(`<h${m[1].length + 1}>${inl(m[2])}</h${m[1].length + 1}>`);
+    else if (/^>\s?/.test(l)) out.push(`<blockquote>${inl(l.replace(/^>\s?/, ""))}</blockquote>`);
+    else if (l.trim()) out.push(`<p>${inl(l)}</p>`);
+  }
+  flush(); return out.join("");
+};
+const ytId = (u) => (String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1];
+const vidHtml = (u) => { const y = ytId(u); if (y) return `<div class="bg-vid"><iframe src="https://www.youtube.com/embed/${y}" allowfullscreen loading="lazy"></iframe></div>`; if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return `<div class="bg-vid"><video src="${esc(u)}" controls></video></div>`; return u ? `<p><a href="${esc(u)}" target="_blank" rel="noopener">▶ 영상 열기</a></p>` : ""; };
+async function bgImg(id) { if (!id) return ""; if (!BG.img[id]) BG.img[id] = api("op=bimg&id=" + id).then((j) => j.data).catch(() => ""); return BG.img[id]; }
+async function fillImgs(root) { for (const el of root.querySelectorAll("[data-bimg]")) { const d = await bgImg(el.dataset.bimg); if (d) el.tagName === "IMG" ? (el.src = d) : (el.style.backgroundImage = `url(${d})`); } }
+async function loadBlog() { if (BG.mode !== "list") return renderBlog(); try { BG.list = (await api("op=blog")).list || []; } catch { BG.list = []; } renderBlog(); }
+function renderBlog() {
+  const box = $("bgBody");
+  if (BG.mode === "list") {
+    box.innerHTML = `<div class="row" style="margin-bottom:10px"><button type="button" class="btn y s" id="bgNew">✍️ 새 글 쓰기</button><span class="note" style="margin:0">${BG.list.length}개</span></div>` + (BG.list.length ? `<div class="bg-cards">${BG.list.map((p) => `<button type="button" class="bg-card" data-bgo="${p.id}"><div class="cv" ${p.cover ? `data-bimg="${p.cover}"` : ""}></div><div class="tx"><h4>${esc(p.title)}</h4><span class="note">${new Date(p.upd).toLocaleDateString("ko-KR")}</span><p class="note" style="margin:4px 0 0">${esc(p.lead)}</p></div></button>`).join("")}</div>` : `<p class="note">아직 글이 없어요. '새 글 쓰기'로 첫 스터디 발표 글을 써 보세요.</p>`);
+    fillImgs(box); return;
+  }
+  const p = BG.post;
+  if (BG.mode === "view") {
+    box.innerHTML = `<div class="row noprint" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="edit">편집</button><button type="button" class="btn g s" id="bgPrint">인쇄 · PDF</button></div>
+    <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdHtml(b.md)}</div>` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : b.out ? `<div class="md">${mdHtml(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
+    fillImgs(box); return;
+  }
+  // 편집
+  const add = (i) => `<div class="bg-add"><button type="button" class="pill" data-bga="text:${i}">+ 글</button><button type="button" class="pill" data-bga="img:${i}">+ 사진</button><button type="button" class="pill" data-bga="video:${i}">+ 영상</button><button type="button" class="pill" data-bga="ai:${i}">+ 제로에게 맡기기</button></div>`;
+  const tools = (i) => `<div class="tools"><span class="note" style="margin:0 auto 0 0">${["글", "사진", "영상", "제로에게 맡기기"][["text", "img", "video", "ai"].indexOf(p.blocks[i].t)]}</span><button type="button" class="pill" data-bgu="${i}">↑</button><button type="button" class="pill" data-bgd="${i}">↓</button><button type="button" class="pill" data-bgx="${i}">✕</button></div>`;
+  box.innerHTML = `<div class="row" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="view">미리보기</button><button type="button" class="btn g s" id="bgDel" style="margin-left:auto">글 지우기</button><span class="note" id="bgSv" style="margin:0"></span></div>
+  <div class="bg-post"><input id="bgTitle" value="${esc(p.title)}" placeholder="제목" style="font-size:22px;font-weight:800;width:100%;box-sizing:border-box;margin-bottom:6px">
+  <p class="note">사진은 아무 곳에서나 Ctrl+V로 붙여넣거나 끌어다 놓으면 들어가요. 글 칸은 마크다운(## 소제목, - 목록, **굵게**)을 써도 돼요.</p>
+  ${add(0)}${p.blocks.map((b, i) => `<div class="bg-blk" data-bi="${i}">${tools(i)}${
+    b.t === "text" ? `<textarea data-bgf="md" rows="${Math.max(3, Math.min(30, (b.md.match(/\n/g) || []).length + 2))}" placeholder="내용을 써요">${esc(b.md)}</textarea>` :
+    b.t === "img" ? `${b.img ? `<img class="ph" data-bimg="${b.img}" style="max-width:100%;border-radius:8px">` : `<p class="note">여기에 사진을 붙여넣거나 <label class="btn g s" style="display:inline-block">파일 고르기<input type="file" accept="image/*" data-bgfile="${i}" hidden></label></p>`}<input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="사진 설명 (선택)">` :
+    b.t === "video" ? `<input data-bgf="url" value="${esc(b.url || "")}" placeholder="유튜브 주소 (쇼츠도 돼요) 또는 mp4 주소">${b.url ? vidHtml(b.url) : ""}<input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="영상 설명 (선택)">` :
+    `<div class="bg-zero"><textarea data-bgf="ask" rows="2" placeholder="예) 위 차트를 보고 반도체 업황을 표로 정리해 줘 / 이번 달 금리 이야기를 쉽게 3문단으로 써 줘">${esc(b.ask || "")}</textarea><div class="row" style="gap:6px;margin:6px 0"><button type="button" class="btn y s" data-bgai="${i}">${b.out ? "다시 맡기기" : "제로에게 맡기기"}</button>${b.out ? `<button type="button" class="btn g s" data-bgtx="${i}">글 칸으로 옮겨서 고치기</button>` : ""}<span class="note" id="bgAm${i}" style="margin:0"></span></div>${b.out ? `<div class="md">${mdHtml(b.out)}</div>` : ""}</div>`
+  }</div>${add(i + 1)}`).join("")}</div>`;
+  fillImgs(box);
+}
+function bgDirty() { $("bgSv") && ($("bgSv").textContent = "저장 중…"); clearTimeout(BG.saveT); BG.saveT = setTimeout(bgSave, 1200); }
+async function bgSave() { clearTimeout(BG.saveT); if (!BG.post) return; try { const r = await api("", { op: "blog", post: BG.post }); BG.post.id = r.id; BG.post.at = r.at; $("bgSv") && ($("bgSv").textContent = "저장됨 " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })); } catch { $("bgSv") && ($("bgSv").textContent = "저장 실패 (다시 고치면 다시 저장해요)"); } }
+// 사진은 화면에서 줄여서 올려요 (긴 변 1400px, JPG)
+async function bgUpImg(file) {
+  const url = URL.createObjectURL(file), im = new Image(); im.src = url; await im.decode();
+  const k = Math.min(1, 1400 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+  c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+  let q = 0.82, d = c.toDataURL("image/jpeg", q); while (d.length > 900000 && q > 0.4) { q -= 0.12; d = c.toDataURL("image/jpeg", q); }
+  const r = await api("", { op: "bimg", data: d }); BG.img[r.id] = Promise.resolve(d); return r.id;
+}
+async function bgInsertImg(file, at) {
+  const p = BG.post; if (!p) return; $("bgSv").textContent = "사진 올리는 중…";
+  try { const id = await bgUpImg(file); const i = at ?? (BG.focus >= 0 ? BG.focus + 1 : p.blocks.length); if (p.blocks[i - 1]?.t === "img" && !p.blocks[i - 1].img) p.blocks[i - 1].img = id; else p.blocks.splice(i, 0, { t: "img", img: id, cap: "" }); renderBlog(); bgSave(); }
+  catch { $("bgSv").textContent = "사진을 못 올렸어요"; }
+}
+document.addEventListener("paste", (e) => { if (BG.mode !== "edit" || $("blog").hidden) return; const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith("image/")); if (!f) return; e.preventDefault(); const bi = e.target.closest?.("[data-bi]")?.dataset.bi; bgInsertImg(f, bi != null && BG.post.blocks[+bi].t === "img" && !BG.post.blocks[+bi].img ? +bi + 1 : undefined); });
+document.addEventListener("dragover", (e) => { if (BG.mode === "edit" && !$("blog").hidden) e.preventDefault(); });
+document.addEventListener("drop", (e) => { if (BG.mode !== "edit" || $("blog").hidden) return; const f = [...(e.dataTransfer?.files || [])].find((x) => x.type.startsWith("image/")); if (!f) return; e.preventDefault(); const bi = e.target.closest?.("[data-bi]")?.dataset.bi; bgInsertImg(f, bi != null ? +bi + 1 : undefined); });
+document.addEventListener("focusin", (e) => { const b = e.target.closest?.("[data-bi]"); if (b) BG.focus = +b.dataset.bi; });
+document.addEventListener("input", (e) => {
+  if (!BG.post || BG.mode !== "edit") return;
+  if (e.target.id === "bgTitle") { BG.post.title = e.target.value; return bgDirty(); }
+  const f = e.target.dataset?.bgf, bi = e.target.closest?.("[data-bi]")?.dataset.bi; if (!f || bi == null) return;
+  BG.post.blocks[+bi][f] = e.target.value; bgDirty();
+});
+document.addEventListener("change", (e) => { if (e.target.dataset?.bgf === "url") renderBlog(); const fi = e.target.dataset?.bgfile; if (fi != null && e.target.files[0]) bgInsertImg(e.target.files[0], +fi + 1); });
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-bgo],[data-bgm],[data-bga],[data-bgu],[data-bgd],[data-bgx],[data-bgai],[data-bgtx],#bgNew,#bgDel,#bgPrint"); if (!t) return;
+  const p = BG.post, d = t.dataset;
+  if (t.id === "bgNew") { BG.post = { id: "", title: "", blocks: [{ t: "text", md: "" }], at: Date.now() }; BG.mode = "edit"; return renderBlog(); }
+  if (t.id === "bgPrint") return window.print();
+  if (t.id === "bgDel") { if (d.sure !== "1") { d.sure = "1"; t.textContent = "한 번 더 누르면 지워요"; return; } if (p.id) await api("", { op: "blog", del: p.id }).catch(() => {}); BG.mode = "list"; return loadBlog(); }
+  if (d.bgo) { try { BG.post = await api("op=blog&id=" + d.bgo); BG.mode = "view"; renderBlog(); } catch {} return; }
+  if (d.bgm) { if (BG.mode === "edit") await bgSave(); BG.mode = d.bgm; return d.bgm === "list" ? loadBlog() : renderBlog(); }
+  if (d.bga) { const [k, i] = d.bga.split(":"); p.blocks.splice(+i, 0, k === "text" ? { t: "text", md: "" } : k === "img" ? { t: "img", img: "", cap: "" } : k === "video" ? { t: "video", url: "", cap: "" } : { t: "ai", ask: "", out: "" }); renderBlog(); bgDirty(); return; }
+  if (d.bgu || d.bgd) { const i = +(d.bgu ?? d.bgd), j = d.bgu != null ? i - 1 : i + 1; if (j < 0 || j >= p.blocks.length) return; [p.blocks[i], p.blocks[j]] = [p.blocks[j], p.blocks[i]]; renderBlog(); bgDirty(); return; }
+  if (d.bgx) { p.blocks.splice(+d.bgx, 1); renderBlog(); bgDirty(); return; }
+  if (d.bgtx) { const i = +d.bgtx; p.blocks.splice(i, 1, { t: "text", md: p.blocks[i].out }); renderBlog(); bgDirty(); return; }
+  if (d.bgai) {
+    const i = +d.bgai; if (!p.blocks[i].ask?.trim()) { $("bgAm" + i).textContent = "무엇을 채울지 먼저 써 주세요."; return; }
+    t.disabled = true; $("bgAm" + i).textContent = "제로(구독 Claude)에게 맡겼어요… 최대 1시간, 창을 닫아도 글에 저장돼요";
+    await bgSave();
+    try { const r = await api("", { op: "blogai", id: p.id, bi: i }); if (BG.post?.id === r.id) { BG.post.blocks[i] = r.blocks[i]; if (BG.mode === "edit" || BG.mode === "view") renderBlog(); } }
+    catch { $("bgAm" + i) && ($("bgAm" + i).textContent = "못 채웠어요. 다시 눌러 주세요."); t.disabled = false; }
+  }
+});
