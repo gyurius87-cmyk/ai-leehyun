@@ -113,7 +113,14 @@ async function f13BuildAgg(meta) {
   await redis([["SET", "stk:f13agg", JSON.stringify(out)]]);
   return out;
 }
-export async function f13Agg() { const [c, m] = await redis([["GET", "stk:f13agg"], ["GET", "stk:f13meta"]]); return { agg: json(c), meta: json(m) }; }
+export async function f13Agg() {
+  const [c, m, k] = await redis([["GET", "stk:f13agg"], ["GET", "stk:f13meta"], ["GET", "stk:konames"]]); const agg = json(c), K = json(k) || {};
+  if (agg?.list) { agg.list.forEach((o) => { if (!o.ko && K[o.n]) o.ko = K[o.n]; });
+    // 많이 담긴 종목인데 한글 이름이 없으면 하루 한 번만 이름 짓기 요청 (구독 접수함)
+    const miss = agg.list.filter((o) => !o.ko && o.h.length >= 2).sort((a, b) => b.h.length - a.h.length).slice(0, 150).map((o) => o.n);
+    if (miss.length) { const [ok] = await redis([["SET", "stk:f13kopend", "1", "NX", "EX", "86400"]]); if (ok) await koMap(miss).catch(() => {}); } }
+  return { agg, meta: json(m) };
+}
 
 // 종목 이름·티커 → 순위표 안의 그 종목 (한글 이름이면 findSym으로 티커부터)
 export async function f13Stock(q, findSym) {

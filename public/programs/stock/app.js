@@ -1465,10 +1465,10 @@ function mdRich(t) {
   for (const l of String(t || "").split("\n")) {
     if (ml) { if (l.trim() === "]]") { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; { const hd = ml[0].match(/^(analogs|vs)\s+(.*)$/i); BW.push({ k: hd[1].toLowerCase(), a: [hd[2], ...ml.slice(1)].join("\n") }); } parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); ml = null; } else ml.push(l); continue; }
     if (/^\[\[(analogs|vs)\s/i.test(l.trim()) && !/\]\]\s*$/.test(l.trim())) { ml = [l.trim().replace(/^\[\[/, "")]; continue; }
-    const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
+    const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|f13rank|f13top|f13move|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
-const KO_SYM = { NVDA: "엔비디아", MSFT: "마이크로소프트", META: "메타", GOOGL: "알파벳(구글)", GOOG: "알파벳(구글)", AMZN: "아마존", AAPL: "애플", TSLA: "테슬라", ORCL: "오라클", CRWV: "코어위브", PLTR: "팔란티어", AMD: "AMD", AVGO: "브로드컴", MU: "마이크론", TSM: "TSMC", INTC: "인텔", QCOM: "퀄컴", ARM: "ARM", SMCI: "슈퍼마이크로", "BRK-B": "버크셔 해서웨이", SPY: "S&P 500 (SPY)", RSP: "S&P 500 동일비중 (RSP)", QQQ: "나스닥100 (QQQ)", SOXX: "반도체 ETF (SOXX)", SMH: "반도체 ETF (SMH)", XLU: "유틸리티 ETF", XLP: "필수소비재 ETF", XLE: "에너지 ETF", XLF: "금융 ETF", GLD: "금 ETF", TLT: "미 장기채 ETF", UUP: "달러 ETF", ARKK: "ARK 혁신 ETF", SOXS: "반도체 3배 인버스", SQQQ: "나스닥 3배 인버스", SH: "S&P 500 인버스", "^IXIC": "나스닥", "^GSPC": "S&P 500", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥", "^VIX": "VIX", "^TNX": "미 10년물 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "069500.KS": "KODEX 200", "114800.KS": "KODEX 인버스", "035420.KS": "네이버", "035720.KS": "카카오", "005380.KS": "현대차", "373220.KS": "LG에너지솔루션" };
+const KO_SYM = { NVDA: "엔비디아", MSFT: "마이크로소프트", META: "메타", GOOGL: "알파벳(구글)", GOOG: "알파벳(구글)", AMZN: "아마존", AAPL: "애플", TSLA: "테슬라", ORCL: "오라클", CRWV: "코어위브", PLTR: "팔란티어", AMD: "AMD", AVGO: "브로드컴", MU: "마이크론", TSM: "TSMC", INTC: "인텔", QCOM: "퀄컴", ARM: "ARM", SMCI: "슈퍼마이크로", "BRK-B": "버크셔 해서웨이", SPY: "S&P 500 (SPY)", RSP: "S&P 500 동일비중 (RSP)", QQQ: "나스닥100 (QQQ)", SOXX: "반도체 ETF (SOXX)", SMH: "반도체 ETF (SMH)", XLU: "유틸리티 ETF", XLP: "필수소비재 ETF", XLE: "에너지 ETF", XLF: "금융 ETF", GLD: "금 ETF", TLT: "미 장기채 ETF", UUP: "달러 ETF", ARKK: "ARK 혁신 ETF", SOXS: "반도체 3배 인버스", SQQQ: "나스닥 3배 인버스", SH: "S&P 500 인버스", "^IXIC": "나스닥", "^GSPC": "S&P 500", "^SOX": "필라델피아 반도체", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥", "^VIX": "VIX", "^TNX": "미 10년물 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가", "BTC-USD": "비트코인", "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "069500.KS": "KODEX 200", "114800.KS": "KODEX 인버스", "035420.KS": "네이버", "035720.KS": "카카오", "005380.KS": "현대차", "373220.KS": "LG에너지솔루션", V: "비자", MA: "마스터카드", AXP: "아메리칸 익스프레스", KO: "코카콜라", BAC: "뱅크오브아메리카", OXY: "옥시덴탈", CVX: "셰브런", KHC: "크래프트 하인즈", MCO: "무디스", CB: "처브", KR: "크로거", DVA: "다비타", VRSN: "베리사인", SIRI: "시리우스XM", UNH: "유나이티드헬스", JPM: "JP모건", GS: "골드만삭스", WFC: "웰스파고", C: "씨티그룹", UBER: "우버", NFLX: "넷플릭스", LLY: "일라이 릴리", NVO: "노보 노디스크", JNJ: "존슨앤드존슨", PG: "P&G", WMT: "월마트", COST: "코스트코", HD: "홈디포", MCD: "맥도날드", SBUX: "스타벅스", NKE: "나이키", DIS: "디즈니", CMG: "치폴레", HLT: "힐튼", BKNG: "부킹홀딩스", ADBE: "어도비", CRM: "세일즈포스", NOW: "서비스나우", SHOP: "쇼피파이", PYPL: "페이팔", COIN: "코인베이스", HOOD: "로빈후드", BABA: "알리바바", PDD: "핀둬둬", JD: "징둥", BIDU: "바이두", SE: "씨", CPNG: "쿠팡", MELI: "메르카도리브레", ASML: "ASML", LRCX: "램리서치", AMAT: "어플라이드 머티리얼즈", KLAC: "KLA", TXN: "텍사스 인스트루먼트", ADI: "아나로그 디바이스", MRVL: "마벨", ANET: "아리스타", DELL: "델", HPE: "HPE", IBM: "IBM", CSCO: "시스코", VST: "비스트라", CEG: "컨스텔레이션 에너지", GEV: "GE 버노바", GE: "GE 에어로스페이스", CAT: "캐터필러", DE: "디어", LMT: "록히드 마틴", RTX: "RTX", BA: "보잉", XOM: "엑슨모빌", SPGI: "S&P 글로벌", BX: "블랙스톤", KKR: "KKR", APO: "아폴로", BRKB: "버크셔 해서웨이", "BRK.B": "버크셔 해서웨이", IWM: "러셀2000 ETF", EEM: "신흥국 ETF", IVV: "S&P 500 (IVV)", VOO: "S&P 500 (VOO)", VTI: "미국 전체 ETF", IEMG: "신흥국 ETF", SLV: "은 ETF", IAU: "금 ETF" };
 const koN = (sym, fb) => KO_SYM[sym] || fb || sym;
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b", "#0f766e", "#a16207", "#be185d", "#4338ca", "#15803d", "#9f1239"];
 const bwDark = () => getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
@@ -1524,8 +1524,8 @@ async function bwFill(el, w) {
     } else if (k === "f13") {
       const d = await api("op=f13fund&cik=" + encodeURIComponent(a.split(/[\s,]/)[0])); if (!d?.rows?.length) throw 0;
       const top = d.rows.slice(0, 10), rest = Math.max(0, 100 - top.reduce((t, r) => t + r.w, 0));
-      el.innerHTML = `<div class="bw-t"><span class="bw-pp" data-bwp="${esc(String(d.cik))}">${esc(d.star || d.name)}</span> · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [r.ko || r.t || r.n, r.w]), ["그 외", Math.round(rest * 10) / 10]])}
-      <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(r.ko || r.n)} <span class="note">${esc(r.t || "")}</span></td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
+      el.innerHTML = `<div class="bw-t"><span class="bw-pp" data-bwp="${esc(String(d.cik))}">${esc(d.star || d.name)}</span> · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [koN(r.t, r.ko || r.n), r.w]), ["그 외", Math.round(rest * 10) / 10]])}
+      <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(koN(r.t, r.ko || r.n))}</td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
     } else if (k === "analog") {
       // [[analog SYM | 기준일 | 과거일1, 과거일2 | 거래일 수]] 기준일부터 지금까지와, 과거 날짜부터 같은 길이를 0%로 맞춰 겹쳐요
       const [sym, d0, past, nS, labS, ttl] = a.split("|").map((x) => x.trim()), N = Math.min(400, +nS || 120), pd = (past || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5), labs = (labS || "").split(",").map((x) => x.trim());
@@ -1597,6 +1597,23 @@ async function bwFill(el, w) {
         });
       };
       await run(sym0);
+    } else if (k === "f13top" || k === "f13move") {
+      // [[f13top 20]] 여러 고수가 함께 담은 종목 순위 · [[f13move 20]] 그 종목들의 13F 기준일 이후 등락 순위 (몇 명·누가)
+      const N = Math.min(40, +a.match(/\d+/)?.[0] || 20), d = (await api("op=f13"))?.agg; if (!d?.list?.length) throw 0;
+      const F = d.funds || [], nm = (o) => koN(o.t, o.ko || o.n), held = (o) => o.h.filter((h) => h[1] > 0);
+      const who = (o) => held(o).sort((x, y) => y[1] - x[1]).map((h) => { const f = F[h[0]] || {}; return `<span class="bw-pp" data-bwp="${esc(String(f.cik))}" title="비중 ${h[1]}%">${esc(String(f.ko || "").split(" (")[0])}${h[2] === "N" ? " 🆕" : ""}</span>`; }).join(" · ");
+      const top = [...d.list].filter((o) => held(o).length).sort((x, y) => held(y).length - held(x).length || y.val - x.val);
+      if (k === "f13top") {
+        const L = top.slice(0, N), mx = held(L[0]).length;
+        el.innerHTML = `<div class="bw-t">고수 ${F.length}명이 가장 많이 담은 종목 TOP ${L.length} · ${esc(d.period || "")} 기준 · 🆕 = 이번 분기 새로 삼</div><div class="bw-bars rk-b">${L.map((o, i) => { const n = held(o).length, nw = held(o).filter((h) => h[2] === "N").length; return `<div class="r" style="grid-template-columns:minmax(90px,30%) 1fr 90px"><span class="n">${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(nm(o))}</span><span class="tr"><i style="left:0;width:${(n / mx) * 100}%;background:${css("--up")}"></i></span><b>${n}명${nw ? ` <small>(🆕${nw})</small>` : ""}</b></div><div class="note" style="margin:-2px 0 8px 4px">${who(o)}</div>`; }).join("")}</div>`;
+      } else {
+        const L = top.filter((o) => o.t).slice(0, N), from = d.period || new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+        el.innerHTML = `<p class="note">가격 받는 중… 0/${L.length}</p>`; let dn = 0;
+        const gs = await Promise.all(L.map((o) => api(`op=chart&s=${encodeURIComponent(o.t.replace(".", "-"))}&r=6mo&i=1d`).catch(() => null).finally(() => { dn++; const p = el.querySelector(".note"); if (p) p.textContent = `가격 받는 중… ${dn}/${L.length}`; })));
+        const R = L.map((o, i) => { const rows = (gs[i]?.rows || []).filter((r) => r.c != null), r0 = rows.find((r) => r.d >= from) || rows[0]; return rows.length ? { o, v: (rows.at(-1).c / r0.c - 1) * 100 } : null; }).filter(Boolean).sort((x, y) => y.v - x.v);
+        if (!R.length) throw 0; const mx = Math.max(...R.map((x) => Math.abs(x.v)), 1);
+        el.innerHTML = `<div class="bw-t">많이 담긴 종목 ${R.length}개 · ${esc(from)} (13F 기준일) 이후 등락 순위 · 몇 명이·누가 담았나</div><div class="bw-bars rk-b">${R.map((x, i) => `<div class="r"><span class="n">${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(nm(x.o))} <small class="note">${held(x.o).length}명</small></span><span class="tr ng"><i style="width:${(Math.abs(x.v) / mx) * 50}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div><div class="note" style="margin:-2px 0 8px 4px">${who(x.o)}</div>`).join("")}</div>`;
+      }
     } else if (k === "f13rank") {
       // [[f13rank 2026-11-03]] 등록된 펀드 전부 13F 따라 하기 성적 랭킹 (기준일 = 하락장 방어 구간 시작)
       const since = (a.match(/\d{4}-\d{2}-\d{2}/) || [])[0] || new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
@@ -1625,7 +1642,7 @@ async function bwFill(el, w) {
           const hs = (fd?.rows || []).filter((r) => r.t && /^[A-Z.\-]{1,6}$/.test(r.t)).slice(0, 10);
           const gs = await Promise.all(hs.map((r) => api(`op=chart&s=${encodeURIComponent(r.t.replace(".", "-"))}&r=5y&i=1d`).catch(() => null)));
           hs.forEach((r, i) => { const rows = (gs[i]?.rows || []).filter((x) => x.c != null && x.d >= from); if (rows.length < 5) return; const b0 = rows[0].c, v = (rows.at(-1).c / b0 - 1) * 100;
-            ser.push({ name: `${r.ko || koN(r.t, r.n)} ${r.w}%`, v, w: 1, data: rows.map((x) => ({ time: x.d, value: Math.round((x.c / b0 - 1) * 10000) / 100 })) }); });
+            ser.push({ name: `${koN(r.t, r.ko || r.n)} ${r.w}%`, v, w: 1, data: rows.map((x) => ({ time: x.d, value: Math.round((x.c / b0 - 1) * 10000) / 100 })) }); });
         } catch {}
       }
       el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 따라 하기${ok.length === 1 && ser.length > 2 ? " + 보유 상위 종목" : ""} · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>`); bwChartT(el, ser, true, { mode: "pct" });
