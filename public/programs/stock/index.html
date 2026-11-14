@@ -303,6 +303,20 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 .mo-mx{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:10px}
 .mo-mc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:var(--card,#fff)}
 .mo-mc[aria-pressed=true]{border-color:var(--ink)}.mo-mc .t{font-size:13px;font-weight:700}.mo-mc .v{font-size:15px;margin:2px 0}.mo-mc .sp{height:60px;margin-top:4px}
+.dt-map{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.dt-map .nd rect{fill:var(--card,#fff);stroke:var(--line);stroke-width:1.5}.dt-map .nd.e{cursor:pointer}.dt-map .nd.e rect{stroke:#64748b}
+.dt-map .nd text{font-size:13px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:middle;pointer-events:none}.dt-map .nd.t text{font-weight:500;fill:var(--muted)}
+.dt-map .nd.on rect{stroke:#f2b632;stroke-width:3}.dt-map path{fill:none;stroke-width:1.2;opacity:.13}.dt-map path.hl{opacity:.95;stroke-width:2.2}
+.dt-map .eg{font-size:11px;font-weight:700;opacity:0}.dt-map .eg.hl{opacity:1}
+.dt-chains{display:grid;gap:6px;margin:10px 0}.dt-ch{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:13.5px}.dt-ch>b{min-width:120px}
+.dt-ch .a{color:var(--muted)}.dt-chip{border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:var(--card,#fff);font-weight:700;cursor:pointer}.dt-chip.t{cursor:default;font-weight:500}
+.dt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:10px}
+.dt-c{border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;background:var(--card,#fff);text-align:left;font:inherit;color:inherit}
+.dt-c[aria-pressed=true]{border-color:#f2b632;box-shadow:0 0 0 2px #f2b63255}.dt-c .g{font-size:11.5px;color:var(--muted)}.dt-c b{display:block;font-size:15px;margin:2px 0}.dt-c p{margin:0;font-size:13px}
+.dt-d{border:2px solid #f2b632;border-radius:14px;padding:14px 16px;margin:12px 0;background:var(--card,#fff)}
+.dt-d h3{margin:0;font-size:20px}.dt-d .one{font-size:15.5px;font-weight:700;margin:6px 0}.dt-d .now{font-size:14px;margin:4px 0}
+.dt-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin:8px 0}.dt-up>div{border-radius:10px;padding:7px 10px;background:var(--soft);font-size:13.5px}
+.dt-up .ar{font-weight:900;font-size:16px;margin:0 4px}.dt-read{border-left:4px solid #f2b632;padding:4px 10px;margin:8px 0;font-size:14px}
 </style>
 </head>
 <body>
@@ -330,7 +344,7 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
     <button type="button" data-tab="hist" aria-pressed="false">거래이력</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
     <button type="button" data-tab="db" aria-pressed="false">DB</button>
-    <button type="button" data-tab="study" aria-pressed="false">공부</button>
+    <button type="button" data-tab="study" aria-pressed="false">공부 사전</button>
     <button type="button" data-tab="mon" aria-pressed="false">월례회</button>
     <button type="button" data-tab="blog" aria-pressed="false">스터디</button>
   </nav>
@@ -545,12 +559,16 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 
   <!-- 공부 -->
   <section class="box" id="study" hidden>
-    <h2>공부 <span>궁금한 걸 묻거나, 해보고 싶은 전략을 말로 쓰면 과거 시세로 백테스트해 줘요. 모든 질문과 결과가 아래에 기록으로 쌓여요.</span></h2>
+    <h2>공부 사전</h2>
+    <div class="row" id="dtCat" style="gap:4px;margin:0 0 10px"></div>
+    <div id="dtBody"></div>
+    <div id="stAsk" hidden>
     <form id="stForm" class="stform"><textarea id="stIn" rows="3" placeholder="예) 나스닥이 52주 고점 대비 20% 빠졌을 때 QQQ를 사서 30% 오르면 팔았다면 10년 동안 어땠을까?&#10;예) 금리 인하기에 반도체 주식은 보통 어떻게 움직여?"></textarea>
       <div class="row" style="gap:6px"><button class="btn y s" id="stGo">물어보기</button><span class="note" id="stMsg"></span></div></form>
     <div class="row" id="stEx" style="gap:4px;margin:6px 0 12px"></div>
     <div class="row" style="gap:6px;margin-bottom:6px"><input id="stQ" placeholder="기록 검색" style="flex:0 1 220px"><span class="note" id="stCnt"></span></div>
     <div id="stList"></div>
+    </div>
   </section>
 
   <!-- 월례회 -->
@@ -598,6 +616,7 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 </main></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" defer></script>
+<script src="/programs/stock/dict.js" defer></script>
 <script src="/programs/stock/app.js" defer></script>
 <script src="/programs/stock/chart.js" defer></script>
 </body>

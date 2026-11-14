@@ -1301,7 +1301,64 @@ function mdh(t) { // 아주 간단한 마크다운 → HTML (제목·굵게·목
     else if (l.trim()) out.push(`<p style="margin:4px 0">${inl(l)}</p>`); });
   if (ul) out.push("</ul>"); if (tb) out.push("</table></div>"); return out.join("");
 }
-async function loadStudy() {
+// ── 공부 사전: 카테고리 (매크로부터) · 연결 지도 · 흐름 예시 · 항목 카드 → 자세히 (차트·이게 오르면·같이 볼 것)
+let dtCat = ls.get("stk-dtcat", "macro"), dtSel = ls.get("stk-dtsel", ""), dtQ = "";
+const DT_CATS = [["macro", "🌍 매크로"], ["term", "📘 용어 (준비 중)"], ["guru", "🧓 대가 (준비 중)"], ["ask", "💬 질문 기록"]];
+const dtE = (id) => (window.DICT || []).find((x) => x.id === id), dtN = (id) => dtE(id)?.n || (window.DICT_T || {})[id] || id;
+const dtArC = (a) => (a === "↑" ? css("--up") : css("--down"));
+function dtRender() {
+  $("dtCat").innerHTML = DT_CATS.map(([k, n]) => `<button type="button" class="pill" data-dtc="${k}" aria-pressed="${k === dtCat}">${n}</button>`).join("");
+  $("stAsk").hidden = dtCat !== "ask"; const B = $("dtBody");
+  if (dtCat === "ask") { B.innerHTML = `<p class="note">궁금한 걸 묻거나 전략을 쓰면 과거 시세로 백테스트해 줘요.</p>`; return; }
+  if (dtCat !== "macro") { B.innerHTML = `<p class="note">아직 준비 중이에요. 주식 프로그램 스레드에 '${dtCat === "term" ? "용어" : "대가"} 사전 만들어줘'라고 하면 채워요.</p>`; return; }
+  const D = window.DICT || [];
+  B.innerHTML = `<div class="bw-t">🌍 매크로 연결 지도 <span class="note">항목을 누르면 '이게 오르면' 화살표가 켜지고 아래에 자세히 나와요 · <span style="color:${css("--up")}">빨강 = 오름</span> · <span style="color:${css("--down")}">파랑 = 내림</span></span></div>${dtMap()}
+    <div class="bw-t" style="margin-top:12px">🔗 하나가 움직이면 줄줄이</div><div class="dt-chains">${(window.DICT_CHAINS || []).map((c) => `<div class="dt-ch"><b>${esc(c.t)}</b>${c.s.map(([id, a], k) => `${k ? `<span class="a">→</span>` : ""}<span class="dt-chip${dtE(id) ? "" : " t"}" ${dtE(id) ? `data-dts="${id}"` : ""}>${esc(dtN(id))} <b style="color:${dtArC(a)}">${a}</b></span>`).join("")}</div>`).join("")}</div>
+    <div id="dtDet"></div>
+    <div class="row" style="gap:6px;margin-top:12px"><input id="dtQ" placeholder="찾기 (예: 금리, 달러)" value="${esc(dtQ)}" style="flex:0 1 240px"><span class="note">${D.length}개</span></div>
+    <div class="dt-grid" id="dtGrid"></div>`;
+  dtGrid(); dtOpen(dtSel && dtE(dtSel) ? dtSel : "", true);
+}
+function dtGrid() { const q = dtQ.trim(), D = (window.DICT || []).filter((x) => !q || (x.n + x.en + x.g + x.one + x.read).toLowerCase().includes(q.toLowerCase())); const G = [...new Set(D.map((x) => x.g))];
+  $("dtGrid").innerHTML = G.map((g) => D.filter((x) => x.g === g).map((x) => `<button type="button" class="dt-c" data-dts="${x.id}" aria-pressed="${x.id === dtSel}"><span class="g">${esc(g)} · ${esc(x.en)}</span><b>${esc(x.n)}</b><p>${esc(x.one)}</p></button>`).join("")).join("") || `<p class="note">없어요. 스레드에 물어보면 추가할게요.</p>`; }
+function dtMap() {
+  const P = window.DICT_POS || {}, D = window.DICT || [], W = 1040, H = 580, nodes = new Set(D.map((x) => x.id)); D.forEach((x) => x.up.forEach(([t]) => nodes.add(t)));
+  const wOf = (id) => Math.max(70, dtN(id).replace(/\s*\(.*\)/, "").length * 13 + 22), lab = (id) => dtN(id).replace(/\s*\(.*\)/, "");
+  const edges = D.flatMap((x) => x.up.filter(([t]) => P[t] && P[x.id]).map(([t, a, why]) => ({ f: x.id, t, a, why })));
+  const ep = (e, k) => { const [x1, y1] = P[e.f], [x2, y2] = P[e.t], mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 30 - (k % 3) * 8; return { d: `M${x1 + 20},${y1} Q${mx},${my} ${x2 + 20},${y2}`, lx: mx + 20, ly: my + 10 }; };
+  return `<svg class="dt-map" viewBox="0 0 ${W} ${H}" role="img" aria-label="매크로 연결 지도"><defs><marker id="dtAu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:${css("--up")};stroke:none;opacity:1"/></marker><marker id="dtAd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:${css("--down")};stroke:none;opacity:1"/></marker></defs>
+    ${edges.map((e, k) => { const g = ep(e, k); return `<path d="${g.d}" data-ef="${e.f}" data-et="${e.t}" stroke="${dtArC(e.a)}" marker-end="url(#${e.a === "↑" ? "dtAu" : "dtAd"})"><title>${esc(dtN(e.f))} ↑ → ${esc(dtN(e.t))} ${e.a} : ${esc(e.why)}</title></path>`; }).join("")}
+    ${[...nodes].filter((id) => P[id]).map((id) => { const [x, y] = P[id], w = wOf(id), e = !!dtE(id); return `<g class="nd ${e ? "e" : "t"}" data-nd="${id}" ${e ? `data-dts="${id}"` : ""} transform="translate(${x + 20 - w / 2},${y - 15})"><rect width="${w}" height="30" rx="15"/><text x="${w / 2}" y="15.5">${esc(lab(id))}</text></g>`; }).join("")}</svg>`;
+}
+async function dtOpen(id, quiet) {
+  dtSel = id; ls.set("stk-dtsel", id);
+  document.querySelectorAll(".dt-c").forEach((b) => b.setAttribute("aria-pressed", b.dataset.dts === id));
+  document.querySelectorAll(".dt-map path").forEach((p) => p.classList.toggle("hl", !!id && (p.dataset.ef === id)));
+  document.querySelectorAll(".dt-map .nd").forEach((n) => n.classList.toggle("on", n.dataset.nd === id || (!!id && !!dtE(id)?.up.some(([t]) => t === n.dataset.nd))));
+  const box = $("dtDet"), x = dtE(id); if (!box) return; if (!x) { box.innerHTML = ""; return; }
+  const chip = (t) => `<span class="dt-chip${dtE(t) ? "" : " t"}" ${dtE(t) ? `data-dts="${t}"` : ""}>${esc(dtN(t))}</span>`;
+  box.innerHTML = `<div class="dt-d"><span class="note">${esc(x.g)} · ${esc(x.en)}</span><h3>${esc(x.n)}</h3><div class="one">${esc(x.one)}</div><div class="now" id="dtNow"></div>
+    <div id="dtCh">${x.f || x.s ? `<p class="note">차트 불러오는 중…</p>` : ""}</div>
+    <div class="bw-t" style="margin-top:10px">📈 이게 오르면</div><div class="dt-up">${x.up.map(([t, a, why]) => `<div>${chip(t)}<span class="ar" style="color:${dtArC(a)}">${a}</span><span>${esc(why)}</span></div>`).join("")}</div>
+    <div class="dt-read">${esc(x.read)}</div>
+    <div class="row" style="gap:4px;margin-top:6px"><span class="note" style="margin:0">움직이게 하는 것</span>${(x.from || []).map(chip).join("")}<span class="note" style="margin:0 0 0 10px">같이 볼 것</span>${(x.rel || []).map(chip).join("")}</div></div>`;
+  if (!quiet) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  if (!x.f && !x.s) return;
+  try {
+    const y5 = new Date(Date.now() - (x.yoy ? 6 : 5) * 365 * 864e5).toISOString().slice(0, 10);
+    const g = x.f ? await api(`op=fred&id=${x.f}&from=${y5}${x.yoy ? "&yoy=1" : ""}`) : await api(`op=chart&s=${encodeURIComponent(x.s)}&r=5y&i=1d`);
+    if (dtSel !== id) return; const rows = (g.rows || []).filter((r) => r.c != null && isFinite(r.c)); if (!rows.length) throw 0;
+    const L = rows.at(-1), y1 = rows.find((r) => r.d >= new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10)), unit = x.u === "$B" ? "" : x.u, fv = (v) => (x.u === "$B" ? "$" + fmt(v / 1000, 2) + "T" : x.u === "$M" ? "$" + fmt(v / 1e6, 2) + "T" : fmt(v, v >= 1000 ? 0 : 2) + (unit === "%" || unit === "%p" ? unit : unit === "원" ? "원" : ""));
+    const lv = x.u === "%" || x.u === "%p" || x.id === "vix", d1 = y1 ? (lv ? L.c - y1.c : (L.c / y1.c - 1) * 100) : null;
+    $("dtNow").innerHTML = `지금 <b style="font-size:20px">${fv(L.c)}</b> <span class="note">${esc(L.d)}</span>${d1 != null ? ` · 1년 전 ${fv(y1.c)} → <b class="${ud(d1)}">${lv ? (d1 > 0 ? "+" : "") + fmt(d1, 2) + (x.id === "vix" ? "p" : "%p") : pct(d1)}</b>` : ""}`;
+    const el = $("dtCh"); el.innerHTML = ""; const h = bwChart(el, [{ name: x.n, data: rows.map((r) => ({ time: r.d, value: Math.round(r.c * 100) / 100 })) }], false);
+    (x.lines || []).forEach(([v, t]) => h?.srs[0].createPriceLine({ price: v, color: "#f2b632", lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: t }));
+  } catch { const el = $("dtCh"); if (el && dtSel === id) el.innerHTML = `<p class="note">차트 자료를 못 받았어요.</p>`; }
+}
+document.addEventListener("click", (e) => { const c = e.target.closest("[data-dtc]"); if (c) { dtCat = c.dataset.dtc; ls.set("stk-dtcat", dtCat); dtRender(); if (dtCat === "ask") loadStudyAsk(); return; } const b = e.target.closest("[data-dts]"); if (b && $("study").contains(b)) dtOpen(b.dataset.dts === dtSel && b.closest(".dt-map") ? "" : b.dataset.dts); });
+document.addEventListener("input", (e) => { if (e.target.id === "dtQ") { dtQ = e.target.value; dtGrid(); } });
+function loadStudy() { setTimeout(() => { dtRender(); if (dtCat === "ask") loadStudyAsk(); }); }
+async function loadStudyAsk() {
   $("stEx").innerHTML = EXQ.map((q) => `<button type="button" class="pill" data-stex="${esc(q)}">${esc(q.length > 26 ? q.slice(0, 26) + "…" : q)}</button>`).join("");
   try { ST = await api("op=study"); renderStudy(); } catch { $("stList").innerHTML = `<p class="msg no">기록을 못 불러왔어요.</p>`; }
 }
