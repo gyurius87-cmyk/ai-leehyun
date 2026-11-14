@@ -145,7 +145,7 @@ export async function f13Mine(acct) {
 // 따라 하기 백테스트: 공시가 나온 날 그 펀드 상위 25종목을 비중대로 사서 다음 공시 날까지 들고 있기 (S&P500과 비교)
 export async function f13Backtest(cik, chart) {
   const d = await f13Fund(cik); if (!d || d.none) return { err: "none" };
-  const ck = `stk:f13bt:${cik}:${d.acc}`, [c] = await redis([["GET", ck]]); const hit = json(c); if (hit) return hit;
+  const ck = `stk:f13bt2:${cik}:${d.acc}`, [c] = await redis([["GET", ck]]); const hit = json(c); if (hit) return hit;
   const T = await nameToTicker(), hist = d.hist.slice(0, 9).reverse(), qs = [];
   for (const h of hist) {
     const hk = "stk:f13h:" + h.acc, [hc] = await redis([["GET", hk]]); let top = json(hc);
@@ -169,7 +169,12 @@ export async function f13Backtest(cik, chart) {
     curve.push([day, Math.round(value * 10000) / 100 - 100, Math.round((last.SPY / spy0) * 10000) / 100 - 100]);
   }
   if (qi >= 0) { const v = curve.at(-1)[1] / 100 + 1; per.push({ ...qs[qi], to: days.at(-1), ret: Math.round((v / per.startEq - 1) * 1000) / 10 }); }
-  const out = { cik: d.cik, name: d.name, from: days[0], to: days.at(-1), ret: curve.at(-1)?.[1], spy: curve.at(-1)?.[2], curve, per: per.map(({ w, ...p }) => ({ ...p, top: w.slice(0, 5).map((x) => x[0]) })), at: Date.now() };
+  // 가장 최근 13F 포트 그대로: 분기 말(기준일)부터 · 공개일부터 지금까지
+  const all = [...px.SPY.keys()].sort(), endD = all.at(-1), L = qs.at(-1);
+  const pAt = (s, from) => { for (const dd of all) if (dd >= from) { const v = px[s]?.get(dd); if (v != null) return v; } return null; };
+  const hold = (from) => { if (!L || from > endD) return null; let t = 0, ws = 0; L.w.forEach(([s, w]) => { const a = pAt(s, from), b = px[s]?.get(endD) ?? [...(px[s]?.values() || [])].at(-1); if (a && b) { t += w * (b / a); ws += w; } }); const sa = pAt("SPY", from); return ws ? { ret: Math.round((t / ws - 1) * 1000) / 10, spy: sa ? Math.round((px.SPY.get(endD) / sa - 1) * 1000) / 10 : null, from: all.find((dd) => dd >= from) } : null; };
+  const latest = L ? { period: L.period, filed: L.filed, cover: L.cover, top: L.w.slice(0, 5).map((x) => x[0]), sincePeriod: hold(L.period), sinceFiled: hold(L.filed) } : null;
+  const out = { cik: d.cik, name: d.name, from: days[0], to: days.at(-1), latest, ret: curve.at(-1)?.[1], spy: curve.at(-1)?.[2], curve, per: per.map(({ w, ...p }) => ({ ...p, top: w.slice(0, 5).map((x) => x[0]) })), at: Date.now() };
   await redis([["SET", ck, JSON.stringify(out)]]);
   return out;
 }

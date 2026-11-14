@@ -520,7 +520,7 @@ function renderFam() {
   $("fGrp").innerHTML = ["전체", ...Object.keys(FAM_G)].map((g) => `<button type="button" class="pill" data-famg="${g}" aria-pressed="${g === famG}">${g} <span class="note">${FAM.list.filter((f) => famIn(f, g)).length}</span></button>`).join("");
   $("fAt").textContent = FAM.at ? new Date(FAM.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " 확인" : "";
   $("fList").innerHTML = FAM.list.filter((f) => famIn(f, famG)).map((f) => { const d = f.data, news = d ? d.rows.filter((r) => r.ch === "new").length : 0;
-    return `<button type="button" class="mcard" data-fam="${f.id}" aria-pressed="${f.id === fSel}">${LOOK[f.id] ? face(f.id) : `<span class="ini">${esc(f.who.slice(0, 1))}</span>`}<div class="nm">${esc(f.who)}${news ? `<span class="chg new">새로 ${news}</span>` : ""}</div><div class="note" style="margin:0">${esc(f.fund)}</div><div class="say">${d ? `<span class="note">${d.kind === "ark" ? d.day + " 기준" : d.period + " 분기 · " + d.filed + " 공시"}</span><br>${d.rows.slice(0, 3).map((r) => esc(kn(r))).join(" · ")}` : `<span class="note">아직 못 받았어요</span>`}</div></button>`; }).join("");
+    return `<button type="button" class="mcard" data-fam="${f.id}" aria-pressed="${f.id === fSel}">${LOOK[f.id] ? face(f.id) : `<span class="ini">${esc(f.who.slice(0, 1))}</span>`}<div class="nm">${esc(f.who)}${news ? `<span class="chg new">새로 ${news}</span>` : ""}</div><div class="note" style="margin:0">${esc(f.fund)} <b>(${f.cik ? esc(f13Kind(f.cik)) : "ETF"})</b></div><div class="say">${d ? `<span class="note">${d.kind === "ark" ? d.day + " 기준" : d.period + " 분기 · " + d.filed + " 공시"}</span><br>${d.rows.slice(0, 3).map((r) => esc(kn(r))).join(" · ")}` : `<span class="note">아직 못 받았어요</span>`}</div></button>`; }).join("");
   renderFamDetail();
 }
 document.addEventListener("click", (e) => { const g = e.target.closest("[data-famg]"); if (g) { famG = g.dataset.famg; ls.set("stk-famg", famG); renderFam(); } });
@@ -1544,7 +1544,7 @@ async function bwFill(el, w) {
     } else if (k === "f13") {
       const d = await api("op=f13fund&cik=" + encodeURIComponent(a.split(/[\s,]/)[0])); if (!d?.rows?.length) throw 0;
       const top = d.rows.slice(0, 10), rest = Math.max(0, 100 - top.reduce((t, r) => t + r.w, 0));
-      el.innerHTML = `<div class="bw-t"><span class="bw-pp" data-bwp="${esc(String(d.cik))}">${esc(d.star || d.name)}</span> · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [koN(r.t, r.ko || r.n), r.w]), ["그 외", Math.round(rest * 10) / 10]])}
+      el.innerHTML = `<div class="bw-t"><span class="bw-pp" data-bwp="${esc(String(d.cik))}">${esc(d.star || d.name)}</span> · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div>${Date.now() - Date.parse(d.filed) > 200 * 864e5 ? `<p class="msg no" style="margin:4px 0">⚠ ${esc(d.filed)} 이후 새 13F가 없어요 (공시를 멈췄거나 다른 회사 이름으로 내고 있을 수 있어요). 오래된 자료예요.</p>` : ""}<div class="bw-f13">${bwPie([...top.map((r) => [koN(r.t, r.ko || r.n), r.w]), ["그 외", Math.round(rest * 10) / 10]])}
       <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(koN(r.t, r.ko || r.n))}</td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
     } else if (k === "analog") {
       // [[analog SYM | 기준일 | 과거일1, 과거일2 | 거래일 수]] 기준일부터 지금까지와, 과거 날짜부터 같은 길이를 0%로 맞춰 겹쳐요
@@ -1702,33 +1702,55 @@ async function bwFill(el, w) {
       const at = (cv, d) => { const i = cv.findIndex((x) => x[0] >= d); return i < 0 ? cv.at(-1) : cv[i]; }, g = (a1, b1) => ((1 + b1 / 100) / (1 + a1 / 100) - 1) * 100;
       const d3 = new Date(Date.now() - 92 * 864e5).toISOString().slice(0, 10), d1 = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
       const R = res.map((r) => { const cv = r.curve, e = cv.at(-1), yr = cv.filter((x) => x[0] >= d1); let pk = -1e9, mdd = 0; yr.forEach((x) => { pk = Math.max(pk, 100 + x[1]); mdd = Math.min(mdd, ((100 + x[1]) / pk - 1) * 100); });
-        const lf = r.per?.at(-1)?.filed || cv.at(-1)[0];
-        return { to: r.to, cik: r.cik, n: F13N[r.cik] || F13P[r.cik]?.[0]?.split(" · ").pop() || r.name, lf, lq: g(at(cv, lf)[1], e[1]), lqS: g(at(cv, lf)[2], e[2]), all: e[1], allS: e[2], m3: g(at(cv, d3)[1], e[1]), m3S: g(at(cv, d3)[2], e[2]), dn: g(at(cv, since)[1], e[1]), dnS: g(at(cv, since)[2], e[2]), mdd, from: cv[0][0] }; });
-      const lfs = [...new Set(R.map((x) => x.lf))].sort(), tabs = [["lq", `최근 13F 공개일 이후 (${lfs.length > 1 ? `${lfs[0]} ~ ${lfs.at(-1)} 중 각자` : lfs[0] || ""} → ${R[0].to || "오늘"})`], ["all", "2년 전체"], ["m3", "최근 3개월"], ["dn", `하락장 방어 (${since.slice(5)}~)`], ["mdd", "1년 최대 낙폭"]];
-      const draw = (k) => { const L = [...R].sort((x, y) => y[k] - x[k]), spy = k === "mdd" ? null : R[0][k + "S"], mx = Math.max(...L.map((x) => Math.abs(x[k])), Math.abs(spy || 0), 1);
-        el.querySelector(".rk-b").innerHTML = (spy != null ? `<div class="r spy"><span class="n">기준 · S&P 500</span><span class="tr ng"><i style="width:${(Math.abs(spy) / mx) * 50}%;${spy < 0 ? "right:50%" : "left:50%"};background:#94a3b8"></i></span><b class="${ud(spy)}">${pct(spy)}</b></div>` : "") + L.map((x, i) => `<div class="r${spy != null && x[k] > spy ? " win" : ""}"><span class="n">${["🥇", "🥈", "🥉"][i] || i + 1 + "."} <span class="bw-pp" data-bwp="${x.cik}">${esc(x.n)}</span>${k === "lq" ? ` <small class="note">${esc(x.lf)}~</small>` : ""}</span><span class="tr ng"><i style="width:${(Math.abs(x[k]) / mx) * 50}%;${x[k] < 0 ? "right:50%" : "left:50%"};background:${x[k] < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x[k])}">${pct(x[k])}</b></div>`).join("");
+        const Lq = r.latest || {}, sf = Lq.sinceFiled, sp = Lq.sincePeriod;
+        return { to: r.to, cik: r.cik, n: f13Label(r.cik, r.name), lp: Lq.period || "", lf: Lq.filed || "", qf: sf?.ret ?? null, qfS: sf?.spy ?? null, qfFrom: sf?.from || "", qp: sp?.ret ?? null, qpS: sp?.spy ?? null, all: e[1], allS: e[2], m3: g(at(cv, d3)[1], e[1]), m3S: g(at(cv, d3)[2], e[2]), dn: g(at(cv, since)[1], e[1]), dnS: g(at(cv, since)[2], e[2]), mdd, from: cv[0][0] }; });
+      const LP = R.map((x) => x.lp).sort().at(-1) || "", qn = (p) => (p ? `${p.slice(0, 4)}년 ${Math.ceil(+p.slice(5, 7) / 3)}분기` : ""), TO = R[0].to || "";
+      const tabs = [["qf", `${qn(LP)} 포트 · 공개일부터 (→ ${TO})`], ["qp", `${qn(LP)} 포트 · 분기 말 ${LP.slice(5)}부터`], ["all", "2년 따라 하기"], ["m3", "최근 3개월"], ["dn", `하락장 방어 (${since.slice(5)}~)`], ["mdd", "1년 최대 낙폭"]];
+      const isQ = (k) => k === "qf" || k === "qp", okQ = (x, k) => x.lp === LP && x[k] != null;
+      const draw = (k) => { const L = [...R].filter((x) => !isQ(k) || okQ(x, k)).sort((x, y) => y[k] - x[k]), spy = k === "mdd" ? null : isQ(k) ? (L.find((x) => x[k + "S"] != null) || {})[k + "S"] ?? null : R[0][k + "S"], miss = isQ(k) ? R.filter((x) => !okQ(x, k)) : [], mx = Math.max(...L.map((x) => Math.abs(x[k])), Math.abs(spy || 0), 1);
+        el.querySelector(".rk-b").innerHTML = (spy != null ? `<div class="r spy"><span class="n">기준 · S&P 500</span><span class="tr ng"><i style="width:${(Math.abs(spy) / mx) * 50}%;${spy < 0 ? "right:50%" : "left:50%"};background:#94a3b8"></i></span><b class="${ud(spy)}">${pct(spy)}</b></div>` : "") + L.map((x, i) => `<div class="r${spy != null && x[k] > spy ? " win" : ""}"><span class="n">${["🥇", "🥈", "🥉"][i] || i + 1 + "."} <span class="bw-pp" data-bwp="${x.cik}">${esc(x.n)}</span>${k === "qf" ? ` <small class="note">${esc(x.qfFrom || x.lf)}~ · S&P ${pct(x.qfS)}</small>` : k === "qp" ? ` <small class="note">${esc(x.lf)} 공개</small>` : ""}</span><span class="tr ng"><i style="width:${(Math.abs(x[k]) / mx) * 50}%;${x[k] < 0 ? "right:50%" : "left:50%"};background:${x[k] < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x[k])}">${pct(x[k])}</b></div>`).join("") + (miss.length ? `<p class="note" style="margin-top:8px">${esc(qn(LP))} 13F가 아직 없거나 공개 후 거래일이 없어 빠짐 (${miss.length}곳): ${miss.map((x) => `<span class="bw-pp" data-bwp="${x.cik}">${esc(x.n)}</span> ${esc(x.lp ? qn(x.lp) : "")}`).join(" · ")}</p>` : "");
         el.querySelectorAll("[data-rk]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.rk === k)); };
-      el.innerHTML = `<div class="bw-t">13F 랭킹존 · ${R.length}곳 · 각 펀드 13F가 공개된 날 따라 샀다면 · 이름 누르면 인물·포트폴리오</div><div class="row" style="gap:4px;margin:6px 0">${tabs.map(([k2, n]) => `<button type="button" class="pill" data-rk="${k2}">${n}</button>`).join("")}</div><div class="bw-bars rk-b"></div>`;
-      el.querySelector(".row").onclick = (e) => { const b = e.target.closest("[data-rk]"); if (b) draw(b.dataset.rk); }; draw("lq");
+      el.innerHTML = `<div class="bw-t">13F 랭킹존 · ${R.length}곳 · 최신 ${esc(qn(LP))} (${esc(LP)} 기준) 포트 그대로 들고 있었다면 · 가격 ${esc(TO)}까지</div><div class="row" style="gap:4px;margin:6px 0">${tabs.map(([k2, n]) => `<button type="button" class="pill" data-rk="${k2}">${n}</button>`).join("")}</div><div class="bw-bars rk-b"></div>`;
+      el.querySelector(".row").onclick = (e) => { const b = e.target.closest("[data-rk]"); if (b) draw(b.dataset.rk); }; draw("qf");
     } else if (k === "f13bt") {
       const ciks = a.split(/[\s,]+/).filter(Boolean).slice(0, 5); const rs = await Promise.all(ciks.map((c) => api("op=f13bt&cik=" + encodeURIComponent(c)).catch(() => null)));
       const ok = rs.filter((r) => r?.curve?.length); if (!ok.length) throw 0;
-      const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || F13P[r.cik]?.[0]?.split(" · ").pop() || r.name) + " 따라 하기", link: String(r.cik), top: true, v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
+      const ser = ok.map((r, i) => ({ name: f13Label(r.cik, r.name) + " 따라 하기", link: String(r.cik), top: true, v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
       ser.push({ name: "S&P 500 (SPY)", top: true, v: ok[0].spy, color: "#94a3b8", dash: true, data: ok[0].curve.map((c) => ({ time: c[0], value: c[2] })) });
-      if (ok.length === 1) {
-        // 펀드 하나면 그 펀드의 상위 보유 종목도 같은 차트에 (시작일 = 0%)
-        try { const fd = await api("op=f13fund&cik=" + encodeURIComponent(ok[0].cik)), from = ok[0].curve[0][0];
-          const hs = (fd?.rows || []).filter((r) => r.t && /^[A-Z.\-]{1,6}$/.test(r.t)).slice(0, 10);
-          const gs = await Promise.all(hs.map((r) => api(`op=chart&s=${encodeURIComponent(r.t.replace(".", "-"))}&r=5y&i=1d`).catch(() => null)));
-          hs.forEach((r, i) => { const rows = (gs[i]?.rows || []).filter((x) => x.c != null && x.d >= from); if (rows.length < 5) return; const b0 = rows[0].c, v = (rows.at(-1).c / b0 - 1) * 100;
-            ser.push({ name: `${koN(r.t, r.ko || r.n)} ${r.w}%`, v, w: 1, data: rows.map((x) => ({ time: x.d, value: Math.round((x.c / b0 - 1) * 10000) / 100 })) }); });
-        } catch {}
-      }
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 따라 하기${ok.length === 1 && ser.length > 2 ? " + 보유 상위 종목" : ""} · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>`); bwChartT(el, ser, true, { mode: "pct", bars: true });
-      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${ser.map((x, oi) => ({ ...x, oi })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r" data-bwr="${x.oi}" style="cursor:pointer" title="눌러서 차트 선 켜고 끄기"><span class="n"><span style="color:${x.color || BWC[x.oi % BWC.length]}">●</span> ${i + 1}. ${x.link ? `<span class="bw-pp" data-bwp="${x.link}">${esc(x.name)}</span>` : esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
+      const barsOf = (S) => `<div class="bw-bars" style="margin-top:8px">${S.map((x, oi) => ({ ...x, oi })).sort((x, y) => y.v - x.v).map((x, i) => `<div class="r" data-bwr="${x.oi}" style="cursor:pointer" title="눌러서 차트 선 켜고 끄기"><span class="n"><span style="color:${x.color || BWC[x.oi % BWC.length]}">●</span> ${i + 1}. ${x.link ? `<span class="bw-pp" data-bwp="${x.link}">${esc(x.name)}</span>` : esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, (Math.abs(x.v) / Math.max(...S.map((z) => Math.abs(z.v)), 1)) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`;
+      if (ok.length !== 1) { el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 따라 하기 (공개일마다 갈아타기) · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>`); bwChartT(el, ser, true, { mode: "pct", bars: true }); el.insertAdjacentHTML("beforeend", barsOf(ser)); return; }
+      // 펀드 하나: 최신 13F 포트 기준(분기 말부터) ↔ 2년 따라 하기
+      const L = ok[0].latest || {}, qn = (p) => (p ? `${p.slice(0, 4)}년 ${Math.ceil(+p.slice(5, 7) / 3)}분기` : "");
+      let hs = [], gs = [], spyR = [];
+      try { const fd = await api("op=f13fund&cik=" + encodeURIComponent(ok[0].cik)); hs = (fd?.rows || []).filter((r) => r.t && /^[A-Z.\-]{1,6}$/.test(r.t)).slice(0, 10);
+        [gs, spyR] = await Promise.all([Promise.all(hs.map((r) => api(`op=chart&s=${encodeURIComponent(r.t.replace(".", "-"))}&r=5y&i=1d`).catch(() => null))), api("op=chart&s=SPY&r=5y&i=1d").then((g) => (g.rows || []).filter((x) => x.c != null)).catch(() => [])]); } catch {}
+      const pctFrom = (rows, from) => { const rr = rows.filter((x) => x.c != null && x.d >= from); if (rr.length < 2) return null; const b0 = rr[0].c; return { v: (rr.at(-1).c / b0 - 1) * 100, data: rr.map((x) => ({ time: x.d, value: Math.round((x.c / b0 - 1) * 10000) / 100 })) }; };
+      const draw = (mode) => {
+        el.innerHTML = ""; const from = mode === "q" ? L.period || ok[0].curve[0][0] : ok[0].curve[0][0];
+        let S;
+        if (mode === "q") {
+          const H = hs.map((r, i) => ({ r, p: pctFrom(gs[i]?.rows || [], from) })).filter((x) => x.p), sp = pctFrom(spyR, from);
+          const tw = H.reduce((t, x) => t + x.r.w, 0), M = new Map(); H.forEach((x) => x.p.data.forEach((d) => M.set(d.time, (M.get(d.time) || 0) + (x.r.w / tw) * d.value)));
+          const port = [...M.entries()].sort((a1, b1) => (a1[0] < b1[0] ? -1 : 1)).map(([time, value]) => ({ time, value: Math.round(value * 100) / 100 }));
+          S = [{ name: `${qn(L.period)} 포트 그대로 (상위 ${H.length}종목 비중대로)`, top: true, w: 3, v: port.at(-1)?.value ?? 0, data: port }, ...(sp ? [{ name: "S&P 500 (SPY)", top: true, color: "#94a3b8", dash: true, v: sp.v, data: sp.data }] : []), ...H.map((x) => ({ name: `${koN(x.r.t, x.r.ko || x.r.n)} ${x.r.w}%`, w: 1, v: x.p.v, data: x.p.data }))];
+        } else {
+          S = [...ser]; hs.forEach((r, i) => { const p = pctFrom(gs[i]?.rows || [], from); if (p) S.push({ name: `${koN(r.t, r.ko || r.n)} ${r.w}%`, w: 1, v: p.v, data: p.data }); });
+        }
+        el.insertAdjacentHTML("beforeend", `<div class="row" style="gap:4px;margin:0 0 6px"><button type="button" class="pill" data-f13m="q" aria-pressed="${mode === "q"}">${esc(qn(L.period) || "최신")} 포트 기준</button><button type="button" class="pill" data-f13m="all" aria-pressed="${mode === "all"}">2년 따라 하기</button></div>
+          <div class="bw-t">${mode === "q" ? `${esc(qn(L.period))} 13F 포트 (기준일 ${esc(L.period || "")} · 공개 ${esc(L.filed || "")}) · ${esc(from)} → ${esc(ok[0].to)}` : `13F 공개일마다 갈아타며 따라 하기 · ${esc(ok[0].from)} → ${esc(ok[0].to)}`}</div>`);
+        if (mode === "q" && L.sinceFiled) el.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0 0 4px">공개일(${esc(L.sinceFiled.from)})부터 샀다면 <b class="${ud(L.sinceFiled.ret)}">${pct(L.sinceFiled.ret)}</b> · S&P ${pct(L.sinceFiled.spy)}</p>`);
+        bwChartT(el, S, true, { mode: "pct", bars: true }); el.insertAdjacentHTML("beforeend", barsOf(S));
+        el.querySelector("[data-f13m]").parentElement.onclick = (e) => { const b = e.target.closest("[data-f13m]"); if (b) draw(b.dataset.f13m); };
+      };
+      draw("q");
     }
   } catch { el.innerHTML = `<p class="note">그림 자료를 못 받았어요 (${esc(k)} ${esc(a)}).</p>`; }
 }
+// 13F 제출자가 어떤 곳인지 (개인 이름이 아니라 회사·기관이 내요)
+const F13K = { 1067983: "지주회사", 1096343: "지주회사", 921669: "지주회사", 1608046: "연기금", 1166559: "재단", 1536411: "패밀리오피스", 1029160: "패밀리오피스", 1759760: "개인 투자회사", 732905: "자산운용사", 1325447: "자산운용사", 905567: "자산운용사", 807985: "자산운용사", 200217: "자산운용사", 813917: "자산운용사", 1088875: "자산운용사", 1720792: "자산운용사", 1034524: "자산운용사", 1697748: "ETF 운용사", 1569205: "자산운용사", 1112520: "자산운용사", 1403528: "자산운용사" };
+const f13Kind = (cik) => F13K[cik] || "헤지펀드";
+// "그린라이트 (데이비드 아인혼 · 헤지펀드)"처럼 회사 이름 + (사람 · 종류)
+function f13Label(cik, fb) { const P = F13P[cik]; const [a1, b1] = P ? (P[0].includes(" · ") ? P[0].split(" · ") : [null, P[0]]) : [null, F13N[cik] || fb || String(cik)]; const firm = F13N[cik] || b1; return `${firm} (${a1 ? a1 + " · " : ""}${f13Kind(cik)})`; }
 const F13N = { 1067983: "버크셔", 1336528: "퍼싱 스퀘어", 1649339: "사이언", 1350694: "브리지워터", 1536411: "듀케인", 1709323: "히말라야", 1549575: "파브라이", 1697748: "ARK", 1608046: "국민연금", 1656456: "아팔루사", 1029160: "소로스" };
 function bwPie(kv) {
   const tot = kv.reduce((t, x) => t + Math.max(0, x[1]), 0) || 1; let a0 = -Math.PI / 2; const R = 70, r = 42, cx = 80, cy = 80;
@@ -1795,7 +1817,7 @@ function bwLinkNames(root) {
 async function bwPerson(cik) {
   let m = document.getElementById("bwPop"); if (!m) { m = document.createElement("div"); m.id = "bwPop"; m.className = "bw-pop"; document.body.appendChild(m); m.onclick = (e) => { if (e.target === m || e.target.closest("[data-bwx]")) m.hidden = true; }; }
   const P = F13P[cik] || [F13N[cik] || "기관", ""]; m.hidden = false;
-  m.innerHTML = `<div class="in"><button type="button" class="pill" data-bwx style="float:right">닫기 ✕</button><h3 style="margin:0 0 6px">${esc(P[0])}</h3><p class="mo-p">${esc(P[1])}</p><div class="bw" id="bwPopF"></div><div class="bw" id="bwPopB"></div></div>`;
+  m.innerHTML = `<div class="in"><button type="button" class="pill" data-bwx style="float:right">닫기 ✕</button><h3 style="margin:0 0 6px">${esc(P[0])} <span class="chip" style="font-size:13px">${esc(f13Kind(cik))}${P[0].includes(" · ") ? " · 개인이 이끄는 회사" : " · 기관"}</span></h3><p class="mo-p">${esc(P[1])}</p><div class="bw" id="bwPopF"></div><div class="bw" id="bwPopB"></div></div>`;
   BW.push({ k: "f13", a: String(cik) }); bwFill($("bwPopF"), BW.at(-1)); BW.push({ k: "f13bt", a: String(cik) }); bwFill($("bwPopB"), BW.at(-1));
 }
 document.addEventListener("click", (e) => { const t = e.target.closest("[data-bwp]"); if (!t) return; e.preventDefault(); e.stopPropagation(); bwPerson(+t.dataset.bwp); }, true);
