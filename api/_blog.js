@@ -1,6 +1,6 @@
 // 스터디 (블로그): 스터디 발표 글. 블록 = 글(마크다운) | 사진 | 영상 | 제로에게 맡기기(AI가 채우는 칸)
 // 저장: stk:blog:<id> {id,title,blocks,at,upd}, 목록 stk:blogs (id), 사진 stk:bimg:<id> (data URL, 화면에서 줄여서 올림)
-import { claude } from "./_ai.js";
+import { claude, aiWaiting } from "./_ai.js";
 import { redis, kstDay } from "./_redis.js";
 
 const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
@@ -14,11 +14,14 @@ const cleanBlock = (b) => {
   return { t, md: clip(b.md, 30000) };
 };
 
+// 제로가 아직 쓰는 중인 칸: 접수함 일 이름 '스터디 글 칸 <id>:<칸 번호>'
+const pendOf = (w, id) => w.jobs.filter((j) => j.label.startsWith(`스터디 글 칸 ${id}:`)).map((j) => ({ bi: +j.label.split(":").pop(), at: j.at }));
 export async function blogList() {
-  const [ids] = await redis([["LRANGE", "stk:blogs", 0, 199]]); if (!ids?.length) return { list: [] };
+  const [[ids], w] = await Promise.all([redis([["LRANGE", "stk:blogs", 0, 199]]), aiWaiting()]); if (!ids?.length) return { list: [], seen: w.seen };
   const vals = await redis(ids.map((i) => ["GET", "stk:blog:" + i]));
-  return { list: vals.map(json).filter(Boolean).map((p) => ({ id: p.id, title: p.title, at: p.at, upd: p.upd, n: p.blocks.length, cover: p.blocks.find((b) => b.t === "img")?.img || "", lead: (p.blocks.find((b) => b.t === "text" && b.md)?.md || "").slice(0, 120) })) };
+  return { seen: w.seen, list: vals.map(json).filter(Boolean).map((p) => ({ pend: pendOf(w, p.id).length,  id: p.id, title: p.title, at: p.at, upd: p.upd, n: p.blocks.length, cover: p.blocks.find((b) => b.t === "img")?.img || "", lead: (p.blocks.find((b) => b.t === "text" && b.md)?.md || "").slice(0, 120) })) };
 }
+export async function blogView(id) { const [p, w] = await Promise.all([blogGet(id), aiWaiting()]); return p ? { ...p, pend: pendOf(w, id), seen: w.seen } : null; }
 export async function blogGet(id) { const [c] = await redis([["GET", "stk:blog:" + id]]); return json(c); }
 export async function blogSave(p) {
   const id = /^[a-z0-9]{6,20}$/.test(p?.id || "") ? p.id : nid(), old = await blogGet(id);
@@ -47,7 +50,7 @@ ${B?.headline ? `- 참고: 오늘(${kstDay()}) 시장 정리 한 줄: ${B.headli
 
 [지금까지의 글]
 ${ctx}`;
-  const msg = await claude({ max_tokens: 4000, messages: [{ role: "user", content: prompt }] }, "스터디 글 칸");
+  const msg = await claude({ max_tokens: 4000, messages: [{ role: "user", content: prompt }] }, `스터디 글 칸 ${id}:${+bi}`);
   const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("").trim();
   const now = await blogGet(id); const nb = now?.blocks?.[+bi]; if (!nb || nb.t !== "ai") return { err: "moved" };
   nb.out = t; nb.at = Date.now(); now.upd = Date.now();

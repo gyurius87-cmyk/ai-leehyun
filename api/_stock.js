@@ -12,7 +12,7 @@ import { f13Find, f13FundView, f13Refresh, f13Build, f13Agg, f13Stock, f13Mine, 
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
 import { monthGet, monthMake } from "./_monthly.js";
-import { blogList, blogGet, blogSave, blogDel, blogImgPut, blogImgGet, blogAi } from "./_blog.js";
+import { blogList, blogGet, blogView, blogSave, blogDel, blogImgPut, blogImgGet, blogAi } from "./_blog.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
 import { studyAsk, studyFollow, studyList, studyDel } from "./_study.js";
 
@@ -624,7 +624,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "histhold") return res.json(await histHold(false));
       if (op === "council") { if (q.id) { const [c] = await redis([["GET", "stk:council:" + String(q.id).slice(0, 20)]]); return c ? res.json(json(c)) : res.status(404).json({ error: "none" }); } const [l] = await redis([["GET", "stk:councils"]]); return res.json({ list: json(l) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
-      if (op === "blog") return res.json(q.id ? (await blogGet(String(q.id))) || { err: "none" } : await blogList());
+      if (op === "blog") return res.json(q.id ? (await blogView(String(q.id))) || { err: "none" } : await blogList());
       if (op === "bimg") return res.json(await blogImgGet(String(q.id || "")));
       if (op === "mon") return res.json(await monthGet(/^\d{4}-\d{2}$/.test(q.m || "") ? q.m : kstDay().slice(0, 7)));
       if (op === "mchat") { if (q.ctx) return res.json((await masterChat(String(q.id || ""), null)) || {}); const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }

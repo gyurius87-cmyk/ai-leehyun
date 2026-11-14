@@ -1294,6 +1294,14 @@ $("stForm").onsubmit = async (e) => { e.preventDefault(); const t = $("stIn").va
 document.addEventListener("submit", async (e) => { const f = e.target.closest("[data-stf]"); if (!f) return; e.preventDefault(); const inp = f.querySelector("input"), t = inp.value.trim(); if (!t) return; const btn = f.querySelector("button"); btn.disabled = true; btn.textContent = "생각 중…";
   try { const r = await api("", { op: "study", id: f.dataset.stf, text: t }); const i = ST.list.findIndex((x) => x.id === r.id); if (i >= 0) ST.list[i] = r; stOpen = r.id; renderStudy(); } catch (err) { btn.disabled = false; btn.textContent = "다시"; } });
 
+// 제로가 만들거나 고치는 중일 때 보여 주는 띠 (접수 시각 · 매시 47분 처리 · 예약 작업이 접수함을 본 시각)
+const hm = (t) => new Date(t).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+function zeroWait(what, at, seen) {
+  const now = Date.now(), nx = new Date(now); nx.setMinutes(47, 0, 0); if (nx <= now) nx.setHours(nx.getHours() + 1);
+  const warn = !seen ? "⚠️ 예약 작업이 아직 한 번도 접수함을 확인하지 못했어요. 네트워크 비밀값(x-admin-key) 등록이 필요해요." : now - seen > 2 * 3600e3 ? `⚠️ 예약 작업이 ${Math.round((now - seen) / 3600e3)}시간째 접수함을 확인하지 않았어요.` : `예약 작업 마지막 확인 ${hm(seen)}`;
+  return `<div class="zw"><b>🕒 제로(구독 Claude)가 ${what} 중이에요</b><span>${at ? hm(at) + " 접수 · " : ""}다음 처리 ${hm(nx)} 즈음 · 창을 닫아도 끝나면 저장돼요</span><span class="note" style="margin:0">${warn}</span></div>`;
+}
+
 // ── 월례회: 한 달 발표 자료
 const MON = { m: null, data: null, chart: null };
 const moLabel = (m) => `${m.slice(0, 4)}년 ${+m.slice(5)}월`;
@@ -1303,16 +1311,19 @@ async function loadMon(m) {
   let j; try { j = await api("op=mon&m=" + MON.m); } catch { $("moMsg").textContent = "못 불러왔어요."; return; }
   const months = [...new Set([cur, ...(j.list || [])])].sort().reverse();
   $("moPick").innerHTML = months.map((x) => `<button type="button" class="pill" data-mom="${x}" aria-pressed="${x === MON.m}">${moLabel(x)}</button>`).join("");
-  MON.data = j.mon; $("moMsg").textContent = j.mon ? `${j.mon.from} ~ ${j.mon.upto} 기준 · ${new Date(j.mon.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 정리` : "";
-  if (!j.mon) { $("moBody").innerHTML = `<p class="note">${moLabel(MON.m)} 자료가 아직 없어요. '지금 다시 만들기'를 누르면 제로(구독 Claude)가 만들어요 (최대 1시간).</p>`; return; }
-  renderMon(j.mon);
+  MON.seen = j.seen; MON.data = j.mon; $("moMsg").textContent = j.mon ? `${j.mon.from} ~ ${j.mon.upto} 기준 · ${new Date(j.mon.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 정리` : "";
+  const wait = j.pend ? zeroWait(j.mon ? `${moLabel(MON.m)} 자료를 새로 고치는` : `${moLabel(MON.m)} 자료를 만드는`, j.pend.at, j.seen) : "";
+  $("moMake").disabled = !!j.pend; $("moMake").textContent = j.pend ? "만드는 중…" : "지금 다시 만들기";
+  if (!j.mon) { $("moBody").innerHTML = wait || `<p class="note">${moLabel(MON.m)} 자료가 아직 없어요. '지금 다시 만들기'를 누르면 제로(구독 Claude)가 만들어요 (최대 1시간).</p>`; return; }
+  renderMon(j.mon); if (wait) $("moBody").insertAdjacentHTML("afterbegin", wait);
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-mom]"); if (b) loadMon(b.dataset.mom); });
 $("moMake").onclick = async () => {
-  const b = $("moMake"); b.disabled = true; $("moMsg").textContent = "자료를 모아 제로(구독 Claude)에게 맡겼어요… (최대 1시간, 창을 닫아도 저장돼요)";
+  const b = $("moMake"); b.disabled = true; b.textContent = "만드는 중…"; $("moMsg").textContent = "자료를 모으는 중…";
+  const mk = MON.m; setTimeout(() => { if (MON.m === mk && b.disabled) { $("moMsg").textContent = ""; $("moBody").querySelector(".zw")?.remove(); $("moBody").insertAdjacentHTML("afterbegin", zeroWait(`${moLabel(mk)} 자료를 ${MON.data ? "새로 고치는" : "만드는"}`, Date.now(), MON.seen)); } }, 4000);
   try { const r = await api("", { op: "monmake", m: MON.m }); MON.data = r; renderMon(r); $("moMsg").textContent = `${r.from} ~ ${r.upto} 기준 · 방금 정리`; }
   catch (e) { $("moMsg").textContent = e.message === "early" ? "이 달은 아직 지난 날이 없어요." : "만들지 못했어요. 다시 눌러 주세요."; }
-  b.disabled = false;
+  b.disabled = false; b.textContent = "지금 다시 만들기";
 };
 $("moPrint").onclick = () => window.print();
 function renderMon(o) {
@@ -1386,16 +1397,17 @@ const vidHtml = (u) => { const y = ytId(u); if (y) return `<div class="bg-vid"><
 async function bgImg(id) { if (!id) return ""; if (!BG.img[id]) BG.img[id] = api("op=bimg&id=" + id).then((j) => j.data).catch(() => ""); return BG.img[id]; }
 async function fillImgs(root) { for (const el of root.querySelectorAll("[data-bimg]")) { const d = await bgImg(el.dataset.bimg); if (d) el.tagName === "IMG" ? (el.src = d) : (el.style.backgroundImage = `url(${d})`); } }
 async function loadBlog() { if (BG.mode !== "list") return renderBlog(); try { BG.list = (await api("op=blog")).list || []; } catch { BG.list = []; } renderBlog(); }
+const bgPend = (i) => (BG.post?.pend || []).find((x) => x.bi === i);
 function renderBlog() {
   const box = $("bgBody");
   if (BG.mode === "list") {
-    box.innerHTML = `<div class="row" style="margin-bottom:10px"><button type="button" class="btn y s" id="bgNew">✍️ 새 글 쓰기</button><span class="note" style="margin:0">${BG.list.length}개</span></div>` + (BG.list.length ? `<div class="bg-cards">${BG.list.map((p) => `<button type="button" class="bg-card" data-bgo="${p.id}"><div class="cv" ${p.cover ? `data-bimg="${p.cover}"` : ""}></div><div class="tx"><h4>${esc(p.title)}</h4><span class="note">${new Date(p.upd).toLocaleDateString("ko-KR")}</span><p class="note" style="margin:4px 0 0">${esc(p.lead)}</p></div></button>`).join("")}</div>` : `<p class="note">아직 글이 없어요. '새 글 쓰기'로 첫 스터디 발표 글을 써 보세요.</p>`);
+    box.innerHTML = `<div class="row" style="margin-bottom:10px"><button type="button" class="btn y s" id="bgNew">✍️ 새 글 쓰기</button><span class="note" style="margin:0">${BG.list.length}개</span></div>` + (BG.list.length ? `<div class="bg-cards">${BG.list.map((p) => `<button type="button" class="bg-card" data-bgo="${p.id}"><div class="cv" ${p.cover ? `data-bimg="${p.cover}"` : ""}></div><div class="tx"><h4>${esc(p.title)}</h4><span class="note">${new Date(p.upd).toLocaleDateString("ko-KR")}${p.pend ? ` · <b style="color:#b7791f">🕒 제로가 ${p.pend}칸 쓰는 중</b>` : ""}</span><p class="note" style="margin:4px 0 0">${esc(p.lead)}</p></div></button>`).join("")}</div>` : `<p class="note">아직 글이 없어요. '새 글 쓰기'로 첫 스터디 발표 글을 써 보세요.</p>`);
     fillImgs(box); return;
   }
   const p = BG.post;
   if (BG.mode === "view") {
     box.innerHTML = `<div class="row noprint" style="margin-bottom:8px"><button type="button" class="btn g s" data-bgm="list">← 목록</button><button type="button" class="btn y s" data-bgm="edit">편집</button><button type="button" class="btn g s" id="bgPrint">인쇄 · PDF</button></div>
-    <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdHtml(b.md)}</div>` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : b.out ? `<div class="md">${mdHtml(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
+    <article class="bg-post"><span class="note">${new Date(p.at).toLocaleDateString("ko-KR")} · 스터디</span><h1>${esc(p.title)}</h1>${p.blocks.map((b) => b.t === "text" ? `<div class="md">${mdHtml(b.md)}</div>` : b.t === "img" ? `<img class="ph" data-bimg="${b.img}" alt="">${b.cap ? `<p class="cap">${esc(b.cap)}</p>` : ""}` : b.t === "video" ? vidHtml(b.url) + (b.cap ? `<p class="cap">${esc(b.cap)}</p>` : "") : bgPend(p.blocks.indexOf(b)) ? zeroWait(`'${esc(b.ask.slice(0, 40))}' 칸을 ${b.out ? "다시 쓰는" : "쓰는"}`, bgPend(p.blocks.indexOf(b)).at, BG.post.seen) : b.out ? `<div class="md">${mdHtml(b.out)}</div>` : `<div class="bg-zero note">제로에게 맡긴 칸: ${esc(b.ask)} (아직 비어 있어요)</div>`).join("")}</article>`;
     fillImgs(box); return;
   }
   // 편집
@@ -1408,7 +1420,7 @@ function renderBlog() {
     b.t === "text" ? `<textarea data-bgf="md" rows="${Math.max(3, Math.min(30, (b.md.match(/\n/g) || []).length + 2))}" placeholder="내용을 써요">${esc(b.md)}</textarea>` :
     b.t === "img" ? `${b.img ? `<img class="ph" data-bimg="${b.img}" style="max-width:100%;border-radius:8px">` : `<p class="note">여기에 사진을 붙여넣거나 <label class="btn g s" style="display:inline-block">파일 고르기<input type="file" accept="image/*" data-bgfile="${i}" hidden></label></p>`}<input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="사진 설명 (선택)">` :
     b.t === "video" ? `<input data-bgf="url" value="${esc(b.url || "")}" placeholder="유튜브 주소 (쇼츠도 돼요) 또는 mp4 주소">${b.url ? vidHtml(b.url) : ""}<input data-bgf="cap" value="${esc(b.cap || "")}" placeholder="영상 설명 (선택)">` :
-    `<div class="bg-zero"><textarea data-bgf="ask" rows="2" placeholder="예) 위 차트를 보고 반도체 업황을 표로 정리해 줘 / 이번 달 금리 이야기를 쉽게 3문단으로 써 줘">${esc(b.ask || "")}</textarea><div class="row" style="gap:6px;margin:6px 0"><button type="button" class="btn y s" data-bgai="${i}">${b.out ? "다시 맡기기" : "제로에게 맡기기"}</button>${b.out ? `<button type="button" class="btn g s" data-bgtx="${i}">글 칸으로 옮겨서 고치기</button>` : ""}<span class="note" id="bgAm${i}" style="margin:0"></span></div>${b.out ? `<div class="md">${mdHtml(b.out)}</div>` : ""}</div>`
+    `<div class="bg-zero"><textarea data-bgf="ask" rows="2" placeholder="예) 위 차트를 보고 반도체 업황을 표로 정리해 줘 / 이번 달 금리 이야기를 쉽게 3문단으로 써 줘">${esc(b.ask || "")}</textarea><div class="row" style="gap:6px;margin:6px 0"><button type="button" class="btn y s" data-bgai="${i}" ${bgPend(i) ? "disabled" : ""}>${bgPend(i) ? "쓰는 중…" : b.out ? "다시 맡기기" : "제로에게 맡기기"}</button>${b.out ? `<button type="button" class="btn g s" data-bgtx="${i}">글 칸으로 옮겨서 고치기</button>` : ""}<span class="note" id="bgAm${i}" style="margin:0"></span></div>${bgPend(i) ? zeroWait(b.out ? "이 칸을 다시 쓰는" : "이 칸을 쓰는", bgPend(i).at, BG.post.seen) : ""}${b.out ? `<div class="md">${mdHtml(b.out)}</div>` : ""}</div>`
   }</div>${add(i + 1)}`).join("")}</div>`;
   fillImgs(box);
 }
@@ -1452,9 +1464,11 @@ document.addEventListener("click", async (e) => {
   if (d.bgtx) { const i = +d.bgtx; p.blocks.splice(i, 1, { t: "text", md: p.blocks[i].out }); renderBlog(); bgDirty(); return; }
   if (d.bgai) {
     const i = +d.bgai; if (!p.blocks[i].ask?.trim()) { $("bgAm" + i).textContent = "무엇을 채울지 먼저 써 주세요."; return; }
-    t.disabled = true; $("bgAm" + i).textContent = "제로(구독 Claude)에게 맡겼어요… 최대 1시간, 창을 닫아도 글에 저장돼요";
-    await bgSave();
-    try { const r = await api("", { op: "blogai", id: p.id, bi: i }); if (BG.post?.id === r.id) { BG.post.blocks[i] = r.blocks[i]; if (BG.mode === "edit" || BG.mode === "view") renderBlog(); } }
-    catch { $("bgAm" + i) && ($("bgAm" + i).textContent = "못 채웠어요. 다시 눌러 주세요."); t.disabled = false; }
+    t.disabled = true; t.textContent = "쓰는 중…";
+    await bgSave(); const pid = p.id;
+    setTimeout(() => { if (BG.post?.id === pid && !bgPend(i) && t.disabled) { (BG.post.pend ||= []).push({ bi: i, at: Date.now() }); if (BG.mode !== "list") renderBlog(); } }, 4000);
+    const unp = () => { if (BG.post?.id === pid) BG.post.pend = (BG.post.pend || []).filter((x) => x.bi !== i); };
+    try { const r = await api("", { op: "blogai", id: pid, bi: i }); unp(); if (BG.post?.id === r.id) { BG.post.blocks[i] = r.blocks[i]; if (BG.mode === "edit" || BG.mode === "view") renderBlog(); } }
+    catch { unp(); if (BG.mode !== "list") renderBlog(); $("bgAm" + i) && ($("bgAm" + i).textContent = "못 채웠어요. 다시 눌러 주세요."); }
   }
 });
