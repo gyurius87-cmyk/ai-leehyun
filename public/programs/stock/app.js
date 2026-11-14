@@ -1334,36 +1334,41 @@ function renderMon(o) {
   const tile = (x) => `<div class="mo-tile"><span class="note">${esc(x.n)}</span><b class="${MO_REV.includes(x.s) ? ud(-x.chg) : ud(x.chg)}">${pct(x.chg)}</b><span class="note">${fmt(x.end, x.end > 1000 ? 0 : 2)} · 최고 ${x.hi.d.slice(5)}</span></div>`;
   const clip = (q) => `<a class="mo-clip" href="${esc(q.link || "#")}" target="_blank" rel="noopener"><small>${esc(q.src || "기사")} · ${esc(q.d || "")}</small>“${esc(q.t)}”</a>`;
   const dayChips = (d) => st.map((x) => { const v = x.daily.find((y) => y.d === d); return v ? `<span class="mo-dc ${MO_REV.includes(x.s) ? ud(-v.p) : ud(v.p)}${Math.abs(v.p) >= 1.8 ? " big" : ""}"><small>${esc(x.n)}</small>${pct(v.p)}</span>` : ""; }).join("");
+  const MDAYS = [...new Set([...(st[0]?.daily || []).map((x) => x.d), ...TL.map((t) => t.d), ...DY.map((x) => x.d)])].sort();
+  MON.dayHtml = (d) => { const evs = TL.map((t, i) => ({ t, i })).filter((x) => x.t.d === d), dy = DY.find((x) => x.d === d);
+    return `<div class="mo-day"><div class="hd"><span class="dt">${esc(mdw(d))}</span><h4>${esc(dy?.title || evs[0]?.t.title || "")}</h4></div><div class="mo-dcs">${dayChips(d)}</div>
+      ${evs.map(({ t, i }) => `<div class="mo-ev"><span class="no">${i + 1}</span> <span class="tag">${esc(t.tag || "")}</span><h4>${esc(t.title)}</h4>${t.what ? `<p class="mo-p" style="margin:0 0 4px">${esc(t.what)}</p>` : ""}${t.why ? `<p class="mo-p" style="margin:0"><b>왜:</b> ${esc(t.why)}</p>` : ""}${t.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${t.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(t.quotes || []).map(clip).join("")}</div>`).join("")}
+      ${dy?.story ? `<p class="mo-p">${esc(dy.story)}</p>` : ""}${dy?.idx?.length ? `<ul class="mo-idx">${dy.idx.map((v) => { const s0 = st.find((y) => y.s === v.s), dv = s0?.daily.find((y) => y.d === d); return `<li><b>${esc(nm(v.s))}${dv ? ` <span class="${MO_REV.includes(v.s) ? ud(-dv.p) : ud(dv.p)}">${pct(dv.p)}</span>` : ""}</b> ${esc(v.why || "")}</li>`; }).join("")}</ul>` : ""}${(dy?.quotes || []).map(clip).join("")}
+      ${!evs.length && !dy ? `<p class="note">이날 따로 정리된 사건은 없어요.</p>` : ""}</div>`; };
   const pxOf = (sym) => o.px?.[sym] || (() => { const x = st.find((y) => y.s === sym); return x ? { chg: x.chg, rows: x.daily } : null; })();
   $("moBody").innerHTML = `
   <div class="mo-hero"><div class="k">MONTHLY MEETING · ${esc(moLabel(o.m))} · ${esc(o.from)} ~ ${esc(o.upto)}</div><h3>${esc(o.title || "")}</h3>${o.sub ? `<p style="color:#f2b632;margin-top:0">${esc(o.sub)}</p>` : ""}${o.summary ? `<p>${esc(String(o.summary).split(/(?<=[.다요])\s+/)[0])}</p>` : ""}</div>
-  <nav class="mo-nav noprint"><a href="#moS1">성적표</a><a href="#moS2">한 달 흐름</a><a href="#moS2b">종목 겹쳐 보기</a>${DY.length ? `<a href="#moS3">하루하루</a>` : ""}${TH.length ? `<a href="#moS4">사건 테마</a>` : ""}${SK.length ? `<a href="#moS5">화제 종목</a>` : ""}<a href="#moS6">숫자·다음 달</a></nav>
+  <nav class="mo-nav noprint"><a href="#moS1">성적표</a><a href="#moS2">한 달 흐름</a><a href="#moS2b">종목 겹쳐 보기</a>${TH.length ? `<a href="#moS4">사건 테마</a>` : ""}${SK.length ? `<a href="#moS5">화제 종목</a>` : ""}<a href="#moS6">숫자·다음 달</a></nav>
   <div class="mo-sec" id="moS1"><h3>지수·매크로 이달 성적표</h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
   <div class="mo-sec" id="moS2"><h3>한 달 흐름</h3>
     ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span></span>`).join("")}</div>` : ""}
     <div class="row" id="moLegM" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:380px"></div>
-    <div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(mdw(x.d))}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4>${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).slice(0, 1).map(clip).join("")}</div>`).join("")}</div></div>
+    <div class="mo-dl noprint">${MDAYS.map((d) => { const k2 = TL.findIndex((t) => t.d === d), dy = DY.find((x) => x.d === d); return `<button type="button" class="pill${k2 >= 0 ? " ev" : ""}" data-mod="${d}">${k2 >= 0 ? `<b>${k2 + 1}</b> ` : ""}${esc(mdw(d))}${dy?.title ? ` · ${esc(dy.title.slice(0, 14))}` : ""}</button>`; }).join("")}</div>
+    <div id="moDay"></div></div>
   <div class="mo-sec" id="moS2b"><h3>이달 거론된 종목 겹쳐 보기</h3>
     <div class="row" id="moOvLeg" style="gap:4px;margin:6px 0"></div><div id="moOv" style="height:420px"></div>
     <div class="mo-evl">${TL.map((x, i) => `<span><b>${i + 1}</b> ${esc(mdw(x.d))} ${esc(x.title)}</span>`).join("")}</div></div>
-  ${DY.length ? `<div class="mo-sec" id="moS3"><h3>하루하루 짚어 보기</h3>
-    ${DY.map((x) => `<div class="mo-day"><div class="hd"><span class="dt">${esc(mdw(x.d))}</span><h4>${esc(x.title || "")}</h4></div><div class="mo-dcs">${dayChips(x.d)}</div><p class="mo-p">${esc(x.story || "")}</p>${x.idx?.length ? `<ul class="mo-idx">${x.idx.map((v) => { const s0 = st.find((y) => y.s === v.s), dv = s0?.daily.find((y) => y.d === x.d); return `<li><b>${esc(nm(v.s))}${dv ? ` <span class="${MO_REV.includes(v.s) ? ud(-dv.p) : ud(dv.p)}">${pct(dv.p)}</span>` : ""}</b> ${esc(v.why || "")}</li>`; }).join("")}</ul>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div>` : ""}
   ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마</h3>
     ${TH.map((t, i) => { const P = pxOf(t.sym); return `<div class="mo-big"><div class="hd"><span class="no">테마 ${i + 1}</span><h4>${esc(t.name)}</h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700">${esc(nm(t.sym))} 이달 ${pct(P.chg)}</span>` : ""}</div>
       <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div><p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 표시 = ${t.steps?.length ? "아래 날짜" : "이달 사건"}</p>` : ""}
       ${t.steps?.length ? `<ol class="mo-steps">${t.steps.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${t.impact ? `<p class="mo-p"><b>시장에 준 영향</b><br>${esc(t.impact)}</p>` : ""}${t.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(t.watch)}</p>` : ""}${(t.quotes || []).map(clip).join("")}</div>`; }).join("")}</div>` : ""}
   ${SK.length ? `<div class="mo-sec" id="moS5"><h3>이달 화제 종목</h3>
-    ${SK.map((x, i) => { const P = pxOf(x.s); return `<div class="mo-big"><div class="hd"><span class="no">종목 ${i + 1}</span><h4>${esc(x.n)} <span class="note">${esc(x.s)}</span></h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700;font-size:15px">이달 ${pct(P.chg)}</span>` : ""}</div>
-      ${x.why ? `<p class="mo-p" style="font-weight:700">${esc(x.why)}</p>` : ""}${x.about ? `<p class="mo-p"><b>어떤 회사?</b> ${esc(x.about)}</p>` : ""}
+    ${SK.map((x, i) => { const P = pxOf(x.s), mv = (v) => Math.abs(P?.rows.find((y) => y.d === v.d)?.p || 0), srt = [...(x.events || [])].sort((a1, b1) => mv(b1) - mv(a1)), KEY = srt.filter((v) => mv(v) >= 3).slice(0, 3); if (!KEY.length) KEY.push(...srt.slice(0, 2)); return `<div class="mo-big"><div class="hd"><span class="no">종목 ${i + 1}</span><h4>${esc(x.n)} <span class="note">${esc(x.s)}</span></h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700;font-size:15px">이달 ${pct(P.chg)}</span>` : ""}</div>
+      ${x.why ? `<p class="mo-p" style="font-weight:700">${esc(x.why)}</p>` : ""}${KEY.length ? `<div class="mo-key">${[...KEY].sort((a1, b1) => (a1.d < b1.d ? -1 : 1)).map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<div class="${r ? ud(r.p) : ""}"><small>${esc(mdw(v.d))}</small>${r ? `<b>${pct(r.p)}</b>` : ""}<span>${esc(String(v.what || "").split(/(?<=[.다요])\s+/)[0].slice(0, 60))}</span></div>`; }).join("")}</div>` : ""}${x.about ? `<p class="mo-p"><b>어떤 회사?</b> ${esc(x.about)}</p>` : ""}
       <div class="mo-pc" id="moSc${i}"></div>${x.events?.length ? "" : `<p class="note" style="margin:2px 0 8px">차트 번호 = 이달 사건: ${TL.map((v, k) => `${k + 1} ${esc(mdw(v.d))} ${esc(v.title)}`).join(" · ")}</p>`}
       ${x.story ? `<p class="mo-p">${esc(x.story)}</p>` : ""}
-      ${x.events?.length ? `<ol class="mo-steps">${x.events.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
+      ${x.events?.length ? `<ol class="mo-steps">${x.events.map((v) => { const r = P?.rows.find((y) => y.d === v.d), hot = KEY.includes(v); return `<li class="${hot ? "hot" : "dim"}"><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:800">${pct(r.p)}</span>` : ""}${hot ? " ⭐" : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${x.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(x.watch)}</p>` : ""}</div>`; }).join("")}</div>` : ""}
   <div id="moS6">${o.numbers?.length ? `<div class="mo-sec"><h3>숫자로 본 이달</h3><div class="mo-tiles">${o.numbers.map((n) => `<div class="mo-tile"><span class="note">${esc(n.k)}</span><b>${esc(n.v)}</b></div>`).join("")}</div></div>` : ""}
   ${o.next?.length ? `<div class="mo-sec"><h3>다음 달에 확인할 것</h3><ul class="mo-p">${o.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}</div>
   <p class="note" style="margin-top:16px">자료: 그날그날의 오늘의 정리·일별 DB·야후 파이낸스 종가·구글 뉴스 기사 제목을 제로가 정리 · 공부용, 투자 권유 아님 · 출처 AI이현</p>`;
-  drawMonChart(o);
+  drawMonChart(o); monDay(TL[0]?.d || MDAYS.at(-1));
   const tlEv = TL.map((x) => ({ d: x.d, what: x.title }));
   TH.forEach((t, i) => { const P = pxOf(t.sym); if (P) monPx($("moTc" + i), P.rows, t.steps?.length ? t.steps : tlEv); });
   monOverlay(o);
@@ -1404,7 +1409,7 @@ function drawOverlay(o) {
   const col = (i) => BWC[i % BWC.length];
   $("moOvLeg").innerHTML = all.map((x, i) => `<button type="button" class="pill" data-moov="${esc(x.s)}" aria-pressed="${MON.ovOn.has(x.s)}" style="border-color:${col(i)}"><span style="color:${col(i)}">●</span> ${esc(x.n)} <span class="${ud(x.chg)}">${pct(x.chg)}</span></button>`).join("") + `<button type="button" class="pill" data-moov="*">다 켜기</button><button type="button" class="pill" data-moov="-">다 끄기</button>`;
   const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dk ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dk ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false });
-  MON.ov = ch; let first = true;
+  MON.ov = ch; let first = true; ch.subscribeClick((p) => { const d = lwDay(p?.time); if (d && $("moDay")) { monDay(d); $("moS2")?.scrollIntoView({ behavior: "smooth" }); } });
   all.forEach((x, i) => { if (!MON.ovOn.has(x.s)) return;
     const sr = ch.addLineSeries({ color: col(i), lineWidth: x.idx ? 3 : 2, lineStyle: x.idx ? 2 : 0, priceLineVisible: false, title: x.n });
     const data = [{ time: new Date(Date.parse(x.rows[0].d) - 864e5).toISOString().slice(0, 10), value: 0 }, ...x.rows.map((r) => ({ time: r.d, value: Math.round((r.c / x.base - 1) * 10000) / 100 }))];
@@ -1416,11 +1421,14 @@ function drawOverlay(o) {
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-moov]"); if (!b || !MON.data) return; const s0 = b.dataset.moov; if (s0 === "*") (MON.ovAll || []).forEach((x) => MON.ovOn.add(x.s)); else if (s0 === "-") MON.ovOn.clear(); else MON.ovOn.has(s0) ? MON.ovOn.delete(s0) : MON.ovOn.add(s0); drawOverlay(MON.data); });
 const MO_COL = { "^IXIC": "#2563eb", "^GSPC": "#7c3aed", "^SOX": "#f59e0b", "^KS11": "#e11d48", "^KQ11": "#10b981" };
 MON.on = new Set(["^IXIC", "^SOX", "^KS11", "^KQ11"]);
+function monDay(d) { if (!d || !MON.dayHtml) return; const box = $("moDay"); if (!box) return; box.innerHTML = MON.dayHtml(d); document.querySelectorAll("[data-mod]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mod === d)); }
+const lwDay = (t) => (typeof t === "string" ? t : t && typeof t === "object" ? `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}` : t ? new Date(t * 1000).toISOString().slice(0, 10) : null);
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-mod]"); if (b) monDay(b.dataset.mod); });
 function drawMonChart(o) {
   const el = $("moChart"); if (!el || !window.LightweightCharts) return; el.innerHTML = ""; MON.chart?.remove?.();
   const dark = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
   const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dark ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dark ? "#1f2937" : "#eef0f3" } }, rightPriceScale: { borderVisible: false }, timeScale: { borderVisible: false }, handleScroll: false, handleScale: false });
-  MON.chart = ch; const st = (o.stats || []).filter((x) => !x.err && MO_COL[x.s]);
+  MON.chart = ch; ch.subscribeClick((p) => { const d = lwDay(p?.time); if (d) { monDay(d); $("moDay")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); } }); const st = (o.stats || []).filter((x) => !x.err && MO_COL[x.s]);
   $("moLegM").innerHTML = st.map((x) => `<button type="button" class="pill" data-mol="${x.s}" aria-pressed="${MON.on.has(x.s)}" style="border-color:${MO_COL[x.s]}"><span style="color:${MO_COL[x.s]}">●</span> ${esc(x.n)} ${pct(x.chg)}</button>`).join("");
   let first = true;
   st.filter((x) => MON.on.has(x.s)).forEach((x) => {
