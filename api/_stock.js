@@ -11,6 +11,8 @@ import { famousAll, famousRefresh, famQuarter } from "./_famous.js";
 import { f13Find, f13FundView, f13Refresh, f13Build, f13Agg, f13Stock, f13Mine, f13Backtest } from "./_f13.js";
 import { ytAll, ytSync, ytAdd, ytDel, ytOne, ytSeen } from "./_ytstock.js";
 import { socialGet, socialSync } from "./_social.js";
+import { monthGet, monthMake } from "./_monthly.js";
+import { blogList, blogGet, blogSave, blogDel, blogImgPut, blogImgGet, blogAi } from "./_blog.js";
 import { dayDb, dayDbList, dayDbFill, marketEvents } from "./_daydb.js";
 import { studyAsk, studyFollow, studyList, studyDel } from "./_study.js";
 
@@ -606,7 +608,7 @@ const DBDEPS = { backtest: () => backtest(), chart: (s, r) => chart(s, r) };
 export async function stockHandler(req, res, isAdmin) {
   const q = req.query || {};
   // 아침 자동 정리 (Vercel cron): 오늘 것이 없을 때만 만듦
-  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), f13Refresh(40e3).then((r) => (r.left ? null : f13Build())).catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
+  if (q.cron) { const day = kstDay(); const r = await brief(day).catch((e) => ({ err: String(e?.message || e) })); const k = kwReady(); await Promise.all([backtest().catch(() => {}), famousRefresh().catch((e) => console.error(e)), f13Refresh(40e3).then((r) => (r.left ? null : f13Build())).catch((e) => console.error(e)), ytSync().catch((e) => console.error(e)), socialSync().catch((e) => console.error(e)), dayDb(kstDay(new Date(Date.now() - 864e5)), DBDEPS).catch((e) => console.error(e)), (day.endsWith("-01") || new Date(Date.now() + 9 * 3600e3).getUTCDay() === 1) ? monthMake(day.endsWith("-01") ? kstDay(new Date(Date.now() - 864e5)).slice(0, 7) : day.slice(0, 7), DBDEPS).catch((e) => console.error(e)) : null, k.key && k.proxy ? kwSync(4, await krMkt()).then(() => kwHistSync(kstDay(new Date(Date.now() - 7 * 864e5)), day)).then(async () => { const [a] = await redis([["GET", "stk:acct"]]); if ((json(a)?.hold || []).some((h) => h.src === "kwhist")) await histHold(true); }).catch((e) => console.error(e)) : null]); return res.json({ ok: !r.err, day }); }
   if (!isAdmin) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   const op = q.op || req.body?.op;
@@ -622,6 +624,9 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "histhold") return res.json(await histHold(false));
       if (op === "council") { if (q.id) { const [c] = await redis([["GET", "stk:council:" + String(q.id).slice(0, 20)]]); return c ? res.json(json(c)) : res.status(404).json({ error: "none" }); } const [l] = await redis([["GET", "stk:councils"]]); return res.json({ list: json(l) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
+      if (op === "blog") return res.json(q.id ? (await blogGet(String(q.id))) || { err: "none" } : await blogList());
+      if (op === "bimg") return res.json(await blogImgGet(String(q.id || "")));
+      if (op === "mon") return res.json(await monthGet(/^\d{4}-\d{2}$/.test(q.m || "") ? q.m : kstDay().slice(0, 7)));
       if (op === "mchat") { if (q.ctx) return res.json((await masterChat(String(q.id || ""), null)) || {}); const [h] = await redis([["GET", "stk:mchat:" + String(q.id || "")]]); return res.json({ hist: json(h) || [] }); }
       if (op === "soc") { const [o, [seen]] = await Promise.all([socialGet(!!q.force, +q.days || 3), redis([["SMEMBERS", "stk:soc:seen"]])]); return res.json({ ...o, seen: Array.isArray(seen) ? seen : [] }); }
       if (op === "yt") { let a = await ytAll(); if (!a.at || Date.now() - a.at > 3 * 3600e3) { await ytSync(); a = await ytAll(); } return res.json(a); }
@@ -676,6 +681,10 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "study") { try { if (b.del) return res.json(await studyDel(String(b.del))); if (b.id) return res.json(await studyFollow(String(b.id), b.text)); const [bf] = await redis([["GET", `stk:brief:${kstDay()}`]]); const B = json(bf); return res.json(await studyAsk(b.text, (s, r) => chart(s, r), B ? `${B.headline} / 미국: ${B.us?.move || ""} / 한국: ${B.kr?.move || ""}` : "")); } catch (e) { return res.status(502).json({ error: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "draw") { const k = "stk:draw:" + String(b.s || "").slice(0, 30), L = (Array.isArray(b.list) ? b.list : []).slice(0, 200); await redis([L.length ? ["SET", k, JSON.stringify(L).slice(0, 60000)] : ["DEL", k]]); return res.json({ ok: true }); }
     if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
+    if (b.op === "blog") return res.json(b.del ? await blogDel(String(b.del)) : await blogSave(b.post));
+    if (b.op === "bimg") { const r = await blogImgPut(b.data); return r.err ? res.status(400).json({ error: r.err }) : res.json(r); }
+    if (b.op === "blogai") { const r = await blogAi(String(b.id || ""), +b.bi, DBDEPS); return r.err ? res.status(400).json({ error: r.err }) : res.json(r); }
+    if (b.op === "monmake") { const r = await monthMake(String(b.m || kstDay().slice(0, 7)), DBDEPS); return r.err ? res.status(r.err === "early" ? 400 : 502).json({ error: r.err }) : res.json(r); }
     if (b.op === "dbmake") { const d = /^\d{4}-\d{2}-\d{2}$/.test(b.d || "") ? b.d : kstDay(); const r = await dayDb(d, DBDEPS, true); return r.err ? res.status(502).json({ error: r.err }) : res.json(r); }
     if (b.op === "socseen") { const ids = (Array.isArray(b.ids) ? b.ids : [b.id]).map((x) => String(x || "").slice(0, 300)).filter(Boolean).slice(0, 500); if (ids.length) await redis([[b.on ? "SADD" : "SREM", "stk:soc:seen", ...ids]]); return res.json({ ok: true, n: ids.length }); }
     if (b.op === "ytseen") { await ytSeen(b.id, !!b.on); return res.json({ ok: true }); }
