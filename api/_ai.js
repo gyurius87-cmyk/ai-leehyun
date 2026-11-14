@@ -43,6 +43,8 @@ export async function aiPut(items) {
   if (cmds.length) await redis(cmds);
   return { ok: cmds.length / 2, rids: [...rids] };
 }
+// 화면용: 접수함에 남은 일(이름·접수 시각)과 예약 작업이 마지막으로 접수함을 본 시각
+export async function aiWaiting() { const [l, [seen]] = await Promise.all([aiList(500), redis([["GET", "stk:ai:seen"]])]); return { jobs: l.map((j) => ({ label: j.label || "", at: j.at })), seen: +seen || 0 }; }
 // 아직 답이 덜 온 요청(rid)인지
 export async function aiPending(rid) { const l = await aiList(500); return l.some((j) => j.rid === rid); }
 export async function aiReq(rid) { const [r] = await redis([["GET", "stk:aireq:" + rid]]); return json(r); }

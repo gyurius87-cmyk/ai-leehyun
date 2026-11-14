@@ -4,7 +4,7 @@
 // 주식의 AI는 API 키를 쓰지 않아요: _ai.js 의 접수함 → 이현님 구독 Claude 예약 작업이 처리
 import ainews from "./_ainews.js";
 import { stockHandler } from "./_stock.js";
-import { hasRedis } from "./_redis.js";
+import { hasRedis, redis } from "./_redis.js";
 import { aiRun, newRid, aiMissed, isQueued, aiReq, aiSaveRes, aiList, aiPut, aiStat, aiReady, capRes } from "./_ai.js";
 
 // 요청 하나를 접수함 방식으로 실행: AI 답이 아직 없으면 202 {queued, rid}
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   // ── 접수함 (예약 작업·화면용)
   if (op === "aistat") { if (!admin) return res.status(401).json({ error: "auth" }); return res.json(await aiStat(String(req.query.rid || ""))); }
-  if (op === "aiq") { const r = await aiReady(); return res.json({ ...r, list: await aiList(+req.query.n || 20) }); }
+  if (op === "aiq") { await redis([["SET", "stk:ai:seen", String(Date.now())]]); const r = await aiReady(); return res.json({ ...r, list: await aiList(+req.query.n || 20) }); }
   if (op === "aiput") return res.json(await aiPut(req.body?.items || (req.body?.key ? [req.body] : [])));
   if (op === "aireplay") {
     const rid = String(req.body?.rid || req.query.rid || ""); const r0 = await aiReq(rid);

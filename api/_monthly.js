@@ -1,7 +1,7 @@
 // 월례회: 한 달 동안 무슨 일이 있었고, 지수·종목이 어떻게 움직였는지 발표 자료 한 장으로.
 // 재료: 그달의 '오늘의 정리'(stk:brief:<날짜>), 일별 DB(stk:db:<날짜>), 지수·매크로 종가, 날짜별 기사 제목(구글 뉴스, 출처·날짜·링크).
 // AI는 claude()(구독 접수함)로. 저장 stk:mon:<YYYY-MM>, 목록 stk:mons.
-import { claude, isQueued } from "./_ai.js";
+import { claude, isQueued, aiWaiting } from "./_ai.js";
 import { redis, kstDay } from "./_redis.js";
 
 const json = (s) => { try { return JSON.parse(s); } catch { return null; } };
@@ -29,7 +29,11 @@ async function monthNews(from, to) {
   const seen = new Set(); return got.flat().filter((x) => { const k = x.t.slice(0, 60); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
-export async function monthGet(m) { const [c, l] = await redis([["GET", "stk:mon:" + m], ["LRANGE", "stk:mons", 0, 60]]); return { mon: json(c), list: l || [] }; }
+export async function monthGet(m) {
+  const [[c, l], w] = await Promise.all([redis([["GET", "stk:mon:" + m], ["LRANGE", "stk:mons", 0, 60]]), aiWaiting()]);
+  const pj = w.jobs.filter((j) => j.label === "월례회 " + m);
+  return { mon: json(c), list: l || [], pend: pj.length ? { at: Math.min(...pj.map((j) => j.at)) } : null, seen: w.seen };
+}
 
 // deps.chart(sym, range) 를 _stock.js 에서 넘겨받아요
 export async function monthMake(m, deps) {
