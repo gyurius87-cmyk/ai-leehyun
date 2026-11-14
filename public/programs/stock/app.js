@@ -11,9 +11,12 @@ const pct = (v, abs) => (v == null ? "-" : `${v > 0 ? "+" : ""}${fmt(v, 2)}${abs
 const ud = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
 
 let adminKey = (() => { try { return localStorage.getItem("ai-admin-key") || ""; } catch { return ""; } })();
+// 월례회 공유 링크로 들어온 사람: ?mon=1&k=... → 월례회만 보기 전용
+const SHARE = (() => { const u = new URLSearchParams(location.search); return u.get("mon") && u.get("k") ? { k: u.get("k"), m: /^\d{4}-\d{2}$/.test(u.get("m") || "") ? u.get("m") : "" } : null; })();
 async function api(q, body) {
-  const r = await fetch("/api/market" + (q ? "?" + q : ""), body ? { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify(body) } : { headers: { "x-admin-key": adminKey } });
-  if (r.status === 401) { gate(); throw new Error("auth"); }
+  const h = SHARE ? { "x-share-key": SHARE.k } : { "x-admin-key": adminKey };
+  const r = await fetch("/api/market" + (q ? "?" + q : ""), body ? { method: "POST", headers: { "Content-Type": "application/json", ...h }, body: JSON.stringify(body) } : { headers: h });
+  if (r.status === 401) { if (SHARE) { if (/op=mon&/.test(q)) $("moBody").innerHTML = `<p class="msg no">이 공유 링크는 더 이상 쓸 수 없어요.</p>`; throw new Error("auth"); } gate(); throw new Error("auth"); }
   if (r.status === 202) { const j = await r.json().catch(() => ({})); if (j.rid) return aiWait(j.rid); }
   const j = await r.json().catch(() => ({})); if (!r.ok) { const er = new Error(j.error || "fail"); er.msg = j.msg; throw er; } return j;
 }
@@ -81,6 +84,7 @@ $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) sh
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
 async function boot() {
+  if (SHARE) { document.body.classList.add("mon-share"); $("gate").hidden = true; $("tabs").hidden = true; $("mon").hidden = false; document.title = "월례회"; return void setTimeout(() => loadMon(SHARE.m || undefined)); }
   if (!adminKey) return gate();
   $("gate").hidden = true; $("tabs").hidden = false;
   showTab(ls.get("stk-tab", "dash"));
@@ -1359,6 +1363,16 @@ $("moMake").onclick = async () => {
   b.disabled = false; b.textContent = "지금 다시 만들기";
 };
 $("moPrint").onclick = () => window.print();
+// 공유하기: 보기 전용 링크 복사 (월례회만 보여요). '링크 새로 만들기'를 누르면 예전 링크는 막혀요
+$("moShare").onclick = async () => {
+  const box = $("moShareBox"); box.hidden = false; box.innerHTML = `<span class="note">링크 만드는 중…</span>`;
+  const draw = (k) => { const url = `${location.origin}/programs/stock/?mon=1&m=${MON.m}&k=${encodeURIComponent(k)}`;
+    box.innerHTML = `<b>🔗 보기 전용 링크</b> <span class="note">(이 링크를 받은 사람은 월례회만 볼 수 있어요. 다른 탭·만들기 버튼은 안 보여요)</span><div class="row" style="gap:6px;margin-top:6px"><input readonly value="${esc(url)}" style="flex:1;min-width:200px" onclick="this.select()"><button type="button" class="btn y s" data-msc="1">복사</button><button type="button" class="btn g s" data-msn="1">링크 새로 만들기</button></div><span class="note" id="moShMsg"></span>`;
+    box.querySelector("[data-msc]").onclick = async () => { try { await navigator.clipboard.writeText(url); $("moShMsg").textContent = "복사했어요. 카톡 등에 붙여 넣어 보내면 돼요."; } catch { box.querySelector("input").select(); $("moShMsg").textContent = "Ctrl+C로 복사해 주세요."; } };
+    box.querySelector("[data-msn]").onclick = async () => { const j = await api("op=monshare&new=1").catch(() => null); if (j?.k) { draw(j.k); $("moShMsg").textContent = "새 링크를 만들었어요. 예전 링크는 이제 안 열려요."; } };
+    navigator.clipboard?.writeText(url).then(() => { const m = $("moShMsg"); if (m && !m.textContent) m.textContent = "링크를 복사해 뒀어요."; }).catch(() => {}); };
+  const j = await api("op=monshare").catch(() => null); if (j?.k) draw(j.k); else box.innerHTML = `<span class="msg no">링크를 못 만들었어요.</span>`;
+};
 const MWD = ["일", "월", "화", "수", "목", "금", "토"], mdw = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)} (${MWD[new Date(d + "T00:00:00Z").getUTCDay()]})`;
 const MO_REV = ["^VIX", "^TNX", "KRW=X"];
 function renderMon(o) {
@@ -1388,13 +1402,13 @@ function renderMon(o) {
     <div class="mo-evl">${TL.map((x, i) => `<span><b>${i + 1}</b> ${esc(mdw(x.d))} ${esc(x.title)}</span>`).join("")}</div></div>
   ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마</h3>
     ${TH.map((t, i) => { const P = pxOf(t.sym); return `<div class="mo-big"><div class="hd"><span class="no">테마 ${i + 1}</span><h4>${esc(t.name)}</h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700">${esc(nm(t.sym))} 이달 ${pct(P.chg)}</span>` : ""}</div>
-      <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div><p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 표시 = ${t.steps?.length ? "아래 날짜" : "이달 사건"}</p>` : ""}
+      <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div>${t.steps?.length ? `<p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 번호 = 아래 날짜</p>` : `<ol class="mo-evl">${TL.map((v) => `<li><span class="dt">${esc(mdw(v.d))}</span> ${esc(v.title)}</li>`).join("")}</ol>`}` : ""}
       ${t.steps?.length ? `<ol class="mo-steps">${t.steps.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${t.impact ? `<p class="mo-p"><b>시장에 준 영향</b><br>${esc(t.impact)}</p>` : ""}${t.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(t.watch)}</p>` : ""}${(t.quotes || []).map(clip).join("")}</div>`; }).join("")}</div>` : ""}
   ${SK.length ? `<div class="mo-sec" id="moS5"><h3>이달 화제 종목</h3>
     ${SK.map((x, i) => { const P = pxOf(x.s), mv = (v) => Math.abs(P?.rows.find((y) => y.d === v.d)?.p || 0), srt = [...(x.events || [])].sort((a1, b1) => mv(b1) - mv(a1)), KEY = srt.filter((v) => mv(v) >= 3).slice(0, 3); if (!KEY.length) KEY.push(...srt.slice(0, 2)); return `<div class="mo-big"><div class="hd"><span class="no">종목 ${i + 1}</span><h4>${esc(x.n)} <span class="note">${esc(x.s)}</span></h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700;font-size:15px">이달 ${pct(P.chg)}</span>` : ""}</div>
       ${x.why ? `<p class="mo-p" style="font-weight:700">${esc(x.why)}</p>` : ""}${KEY.length ? `<div class="mo-key">${[...KEY].sort((a1, b1) => (a1.d < b1.d ? -1 : 1)).map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<div class="${r ? ud(r.p) : ""}"><small>${esc(mdw(v.d))}</small>${r ? `<b>${pct(r.p)}</b>` : ""}<span>${esc(String(v.what || "").split(/(?<=[.다요])\s+/)[0].slice(0, 60))}</span></div>`; }).join("")}</div>` : ""}${x.about ? `<p class="mo-p"><b>어떤 회사?</b> ${esc(x.about)}</p>` : ""}
-      <div class="mo-pc" id="moSc${i}"></div>${x.events?.length ? "" : `<p class="note" style="margin:2px 0 8px">차트 번호 = 이달 사건: ${TL.map((v, k) => `${k + 1} ${esc(mdw(v.d))} ${esc(v.title)}`).join(" · ")}</p>`}
+      <div class="mo-pc" id="moSc${i}"></div>${x.events?.length ? "" : `<ol class="mo-evl">${TL.map((v) => `<li><span class="dt">${esc(mdw(v.d))}</span> ${esc(v.title)}</li>`).join("")}</ol>`}
       ${x.story ? `<p class="mo-p">${esc(x.story)}</p>` : ""}
       ${x.events?.length ? `<ol class="mo-steps">${x.events.map((v) => { const r = P?.rows.find((y) => y.d === v.d), hot = KEY.includes(v); return `<li class="${hot ? "hot" : "dim"}"><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:800">${pct(r.p)}</span>` : ""}${hot ? " ⭐" : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${x.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(x.watch)}</p>` : ""}</div>`; }).join("")}</div>` : ""}
@@ -1420,8 +1434,9 @@ function monPx(el, rows, evs) {
   const s = ch.addAreaSeries({ lineColor: up ? css("--up") : css("--down"), topColor: (up ? css("--up") : css("--down")) + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false });
   s.setData(rows.map((r) => ({ time: r.d, value: r.c })));
   const days = rows.map((r) => r.d);
-  const lab = (v) => { const w = String(v.what || "").split(/[.,·—(]/)[0].trim(); return w.length > 14 ? w.slice(0, 13) + "…" : w; };
-  s.setMarkers(evs.map((v, i) => { const d = days.find((x) => x >= v.d); return d ? { time: d, position: i % 2 ? "belowBar" : "aboveBar", color: "#d97706", shape: i % 2 ? "arrowUp" : "arrowDown", text: `${i + 1} ${mdw(v.d)} ${lab(v)}` } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1)));
+  // 글자는 번호만 (내용은 차트 아래 목록) → 겹치거나 잘리지 않게. 주말 사건은 다음 거래일에 붙고, 같은 날이면 "6·7"로 묶음
+  const G = new Map(); evs.forEach((v, i) => { const d = days.find((x) => x >= v.d); if (d) G.set(d, [...(G.get(d) || []), i + 1]); });
+  s.setMarkers([...G].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([d, ns]) => ({ time: d, position: "aboveBar", color: "#d97706", shape: "arrowDown", text: ns.join("·") })));
   ch.timeScale().fitContent();
 }
 // 이달 거론된 종목 겹쳐 보기 (달 시작 0%)
