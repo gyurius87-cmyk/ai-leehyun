@@ -67,7 +67,7 @@ export async function blogAi(id, bi, deps) {
   R | 젠슨 황 | 주장 | 엔비디아 창업자
   ]]
   [[f13rank 시작일]] 등록된 13F 펀드 전부의 따라 하기 성적 랭킹존 (전체·최근 3개월·시작일 이후 하락장 방어·최대 낙폭 탭)
-  [[fin MSFT,GOOGL,META | rev,ni,nim,capex,op | 제목 | sum]] SEC 공시 연간 실적 막대 비교 (매출·순이익·순이익률·설비투자·영업이익, sum이면 합계 쌓기)
+  [[fin MSFT,GOOGL,META | rev,ni,nim,capex,op | 제목 | sum]] SEC 공시 연간 실적 막대 비교 (매출·순이익·순이익률·설비투자·영업이익, sum이면 합계 쌓기, judge면 숫자로 계산한 결론 상자)
   [[chart SPY/RSP,SOXX/SPY 5y]] 'A/B'는 두 종목 나누기 (쏠림·상대 강도)
   [[plans 100000000 | peak:^SOX ⏎ 이름 | 설명 | 시작 SOXX; dd:-10 현금; ma50up SOXX ⏎ ... ]] 신호대로 갈아타기 시나리오 비교 (신호: 날짜, dd:-N 고점 대비, ma50dn·ma50up 50일선, bounce:+N 바닥 대비, 비중은 SOXX:50+GLD:50)
   [[f13top 20]] 고수들이 가장 많이 함께 담은 종목 순위 (몇 명·누가·새로 산 사람)
