@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 // 시장·뉴스 묶음 (Vercel 무료 요금제 함수 12개 제한 때문에 한 파일에서 나눔)
 // /api/market?ainews=1 → AI 백과사전 'AI 새 소식' (예전 /api/ai-news)
 // /api/market?op=... → 주식 프로그램 (이현님 전용, x-admin-key)
@@ -23,7 +24,9 @@ export default async function handler(req, res) {
   if (!hasRedis()) return res.status(503).json({ error: "no_redis" });
   const admin = !!process.env.ADMIN_KEY && req.headers["x-admin-key"] === process.env.ADMIN_KEY;
   const op = req.query?.op || req.body?.op;
-  if (op && op.startsWith("ai") && op !== "aistat" && !admin) return res.status(401).json({ error: "auth" });
+  // 접수함 처리 전용 열쇠 (이현님 승인 2026-11-14): aiq·aiput·aireplay 만. 코드에는 해시만 둬요.
+  const wk = req.headers["x-ai-worker"], worker = !!wk && createHash("sha256").update(String(wk)).digest("hex") === "c7faa263525dcf70e2f16c133926407f6e918d188c926e54acd1053e7d62e816";
+  if (op && op.startsWith("ai") && op !== "aistat" && !admin && !(worker && ["aiq", "aiput", "aireplay"].includes(op))) return res.status(401).json({ error: "auth" });
   res.setHeader("Cache-Control", "no-store");
   // ── 접수함 (예약 작업·화면용)
   if (op === "aistat") { if (!admin) return res.status(401).json({ error: "auth" }); return res.json(await aiStat(String(req.query.rid || ""))); }
