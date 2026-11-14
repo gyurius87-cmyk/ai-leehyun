@@ -1619,7 +1619,16 @@ async function bwFill(el, w) {
       const ok = rs.filter((r) => r?.curve?.length); if (!ok.length) throw 0;
       const ser = ok.map((r, i) => ({ name: (F13N[r.cik] || r.name) + " 따라 하기", link: String(r.cik), v: r.ret, data: r.curve.map((c) => ({ time: c[0], value: c[1] })) }));
       ser.push({ name: "S&P 500 (SPY)", v: ok[0].spy, color: "#94a3b8", dash: true, data: ok[0].curve.map((c) => ({ time: c[0], value: c[2] })) });
-      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 공개일에 사서 다음 13F까지 들고 가기 (상위 25종목 비중대로) · ${esc(ok[0].from)} ~ ${esc(ok[0].to)} · 이름을 누르면 누구인지·포트폴리오</div>`); bwChartT(el, ser, true, { mode: "pct" });
+      if (ok.length === 1) {
+        // 펀드 하나면 그 펀드의 상위 보유 종목도 같은 차트에 (시작일 = 0%)
+        try { const fd = await api("op=f13fund&cik=" + encodeURIComponent(ok[0].cik)), from = ok[0].curve[0][0];
+          const hs = (fd?.rows || []).filter((r) => r.t && /^[A-Z.\-]{1,6}$/.test(r.t)).slice(0, 10);
+          const gs = await Promise.all(hs.map((r) => api(`op=chart&s=${encodeURIComponent(r.t.replace(".", "-"))}&r=5y&i=1d`).catch(() => null)));
+          hs.forEach((r, i) => { const rows = (gs[i]?.rows || []).filter((x) => x.c != null && x.d >= from); if (rows.length < 5) return; const b0 = rows[0].c, v = (rows.at(-1).c / b0 - 1) * 100;
+            ser.push({ name: `${r.ko || koN(r.t, r.n)} ${r.w}%`, v, w: 1, data: rows.map((x) => ({ time: x.d, value: Math.round((x.c / b0 - 1) * 10000) / 100 })) }); });
+        } catch {}
+      }
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">13F 따라 하기${ok.length === 1 && ser.length > 2 ? " + 보유 상위 종목" : ""} · ${esc(ok[0].from)} ~ ${esc(ok[0].to)}</div>`); bwChartT(el, ser, true, { mode: "pct" });
       el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...ser].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${x.link ? `<span class="bw-pp" data-bwp="${x.link}">${esc(x.name)}</span>` : esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, Math.abs(x.v) / Math.max(...ser.map((z) => Math.abs(z.v)), 1) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${pct(x.v)}</b></div>`).join("")}</div>`);
     }
   } catch { el.innerHTML = `<p class="note">그림 자료를 못 받았어요 (${esc(k)} ${esc(a)}).</p>`; }
