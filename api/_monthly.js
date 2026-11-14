@@ -128,8 +128,9 @@ ${nl.slice(0, 400).map((x, i) => `${i} | ${x.d} | ${x.src} | ${x.t}`).join("\n")
   // 테마·종목 차트용 종가 (후보에 없던 심볼은 여기서 받아요)
   const need = [...new Set([...(ai.stocks || []).map((x) => x.s), ...(ai.themes || []).map((x) => x.sym)].filter((x) => x && !PX[x] && !MON_IDX.some(([s]) => s === x)))].slice(0, 8);
   const extra = await Promise.all(need.map((x) => deps.chart(x, "6mo").catch(() => null))); need.forEach((x, i) => { const v = pxRows(extra[i], first, last); if (v) PX[x] = v; });
-  const px = {}; [...(ai.stocks || []).map((x) => x.s), ...(ai.themes || []).map((x) => x.sym)].forEach((x) => { if (PX[x]) px[x] = PX[x]; });
-  const out = { m, from: first, upto: last, at: Date.now(), ...ai, ndays: ai.days, days: keys.filter((d) => B[d] || D[d]).length, stats, px };
+  const px = { ...PX }; // 후보 종목 전부 (겹쳐 보기 차트용) + AI가 고른 종목
+  const pxn = Object.fromEntries([...MON_CAND, ...(ai.stocks || []).map((x) => [x.s, x.n])]);
+  const out = { m, from: first, upto: last, at: Date.now(), ...ai, ndays: ai.days, days: keys.filter((d) => B[d] || D[d]).length, stats, px, pxn };
   delete out.ndays; out.daily = ai.days || [];
   await redis([["SET", "stk:mon:" + m, JSON.stringify(out)], ["DEL", "stk:mon:pend:" + m], ["LREM", "stk:mons", 0, m], ["LPUSH", "stk:mons", m]]);
   return out;

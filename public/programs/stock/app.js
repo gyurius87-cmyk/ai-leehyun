@@ -1337,24 +1337,27 @@ function renderMon(o) {
   const pxOf = (sym) => o.px?.[sym] || (() => { const x = st.find((y) => y.s === sym); return x ? { chg: x.chg, rows: x.daily } : null; })();
   $("moBody").innerHTML = `
   <div class="mo-hero"><div class="k">MONTHLY MEETING · ${esc(moLabel(o.m))} · ${esc(o.from)} ~ ${esc(o.upto)}</div><h3>${esc(o.title || "")}</h3>${o.sub ? `<p style="color:#f2b632;margin-top:0">${esc(o.sub)}</p>` : ""}<p>${esc(o.summary || "")}</p></div>
-  <nav class="mo-nav noprint"><a href="#moS1">성적표</a><a href="#moS2">한 달 흐름</a>${DY.length ? `<a href="#moS3">하루하루</a>` : ""}${TH.length ? `<a href="#moS4">사건 테마</a>` : ""}${SK.length ? `<a href="#moS5">화제 종목</a>` : ""}<a href="#moS6">숫자·다음 달</a></nav>
+  <nav class="mo-nav noprint"><a href="#moS1">성적표</a><a href="#moS2">한 달 흐름</a><a href="#moS2b">종목 겹쳐 보기</a>${DY.length ? `<a href="#moS3">하루하루</a>` : ""}${TH.length ? `<a href="#moS4">사건 테마</a>` : ""}${SK.length ? `<a href="#moS5">화제 종목</a>` : ""}<a href="#moS6">숫자·다음 달</a></nav>
   ${o.lead ? `<div class="mo-sec"><h3>지난달 말부터 이어진 흐름</h3><p class="mo-p">${esc(o.lead)}</p></div>` : ""}
   <div class="mo-sec" id="moS1"><h3>지수·매크로 이달 성적표 <span class="note">전달 마지막 종가 대비</span></h3><div class="mo-tiles">${st.map(tile).join("")}</div></div>
   <div class="mo-sec" id="moS2"><h3>한 달 흐름 <span class="note">달 시작을 0%로 · 동그라미 번호 = 아래 사건</span></h3>
     ${o.phases?.length ? `<div class="mo-ph">${o.phases.map((p) => `<span><b>${esc(p.name)}</b> <span class="note">${esc(p.from.slice(5))}~${esc(p.to.slice(5))}</span><br>${esc(p.desc || "")}</span>`).join("")}</div>` : ""}
     <div class="row" id="moLeg" style="gap:4px;margin:6px 0"></div><div id="moChart" style="height:380px"></div>
     <div class="mo-tl">${TL.map((x, i) => `<div class="mo-ev"><span class="no">${i + 1}</span><span class="note num">${esc(mdw(x.d))}</span> <span class="tag">${esc(x.tag || "")}</span><h4>${esc(x.title)}</h4><p class="mo-p" style="margin:0 0 4px">${esc(x.what || "")}</p>${x.why ? `<p class="mo-p" style="margin:0"><b>왜:</b> ${esc(x.why)}</p>` : ""}${x.move?.length ? `<div class="row" style="gap:4px;margin-top:6px">${x.move.map((v) => `<span class="chip ${ud(v.p)}" style="font-weight:700">${esc(v.n || v.s)} ${pct(v.p)}</span>`).join("")}</div>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div></div>
+  <div class="mo-sec" id="moS2b"><h3>이달 거론된 종목 겹쳐 보기 <span class="note">달 시작 = 0% · 이름을 눌러 켜고 끄기 · 노란 번호 = 위 사건</span></h3>
+    <div class="row" id="moOvLeg" style="gap:4px;margin:6px 0"></div><div id="moOv" style="height:420px"></div>
+    <div class="mo-evl">${TL.map((x, i) => `<span><b>${i + 1}</b> ${esc(mdw(x.d))} ${esc(x.title)}</span>`).join("")}</div></div>
   ${DY.length ? `<div class="mo-sec" id="moS3"><h3>하루하루 짚어 보기 <span class="note">그날 종가 기준 지수 하나하나 · 1.8% 넘게 움직이면 굵게</span></h3>
     ${DY.map((x) => `<div class="mo-day"><div class="hd"><span class="dt">${esc(mdw(x.d))}</span><h4>${esc(x.title || "")}</h4></div><div class="mo-dcs">${dayChips(x.d)}</div><p class="mo-p">${esc(x.story || "")}</p>${x.idx?.length ? `<ul class="mo-idx">${x.idx.map((v) => { const s0 = st.find((y) => y.s === v.s), dv = s0?.daily.find((y) => y.d === x.d); return `<li><b>${esc(nm(v.s))}${dv ? ` <span class="${MO_REV.includes(v.s) ? ud(-dv.p) : ud(dv.p)}">${pct(dv.p)}</span>` : ""}</b> ${esc(v.why || "")}</li>`; }).join("")}</ul>` : ""}${(x.quotes || []).map(clip).join("")}</div>`).join("")}</div>` : ""}
   ${TH.length ? `<div class="mo-sec" id="moS4"><h3>이달의 사건 테마 <span class="note">테마별로 날짜(요일)마다 무슨 일이 있었고 주가가 어떻게 움직였는지</span></h3>
     ${TH.map((t, i) => { const P = pxOf(t.sym); return `<div class="mo-big"><div class="hd"><span class="no">테마 ${i + 1}</span><h4>${esc(t.name)}</h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700">${esc(nm(t.sym))} 이달 ${pct(P.chg)}</span>` : ""}</div>
-      <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div><p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 번호 = 아래 날짜</p>` : ""}
+      <p class="mo-p">${esc(t.desc || "")}</p>${P ? `<div class="mo-pc" id="moTc${i}"></div><p class="note" style="margin:2px 0 8px">${esc(nm(t.sym))} 종가 · 노란 표시 = ${t.steps?.length ? "아래 날짜" : "이달 사건"}</p>` : ""}
       ${t.steps?.length ? `<ol class="mo-steps">${t.steps.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${t.impact ? `<p class="mo-p"><b>시장에 준 영향</b><br>${esc(t.impact)}</p>` : ""}${t.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(t.watch)}</p>` : ""}${(t.quotes || []).map(clip).join("")}</div>`; }).join("")}</div>` : ""}
   ${SK.length ? `<div class="mo-sec" id="moS5"><h3>이달 화제 종목 <span class="note">종목 하나하나 크게</span></h3>
     ${SK.map((x, i) => { const P = pxOf(x.s); return `<div class="mo-big"><div class="hd"><span class="no">종목 ${i + 1}</span><h4>${esc(x.n)} <span class="note">${esc(x.s)}</span></h4>${P ? `<span class="chip ${ud(P.chg)}" style="font-weight:700;font-size:15px">이달 ${pct(P.chg)}</span>` : ""}</div>
       ${x.why ? `<p class="mo-p" style="font-weight:700">${esc(x.why)}</p>` : ""}${x.about ? `<p class="mo-p"><b>어떤 회사?</b> ${esc(x.about)}</p>` : ""}
-      <div class="mo-pc" id="moSc${i}"></div>
+      <div class="mo-pc" id="moSc${i}"></div>${x.events?.length ? "" : `<p class="note" style="margin:2px 0 8px">차트 번호 = 이달 사건: ${TL.map((v, k) => `${k + 1} ${esc(mdw(v.d))} ${esc(v.title)}`).join(" · ")}</p>`}
       ${x.story ? `<p class="mo-p">${esc(x.story)}</p>` : ""}
       ${x.events?.length ? `<ol class="mo-steps">${x.events.map((v) => { const r = P?.rows.find((y) => y.d === v.d); return `<li><span class="dt">${esc(mdw(v.d))}</span>${r ? ` <span class="${ud(r.p)}" style="font-weight:700">${pct(r.p)}</span>` : ""}<div>${esc(v.what || "")}</div></li>`; }).join("")}</ol>` : ""}
       ${x.watch ? `<p class="mo-p"><b>앞으로 볼 점</b><br>${esc(x.watch)}</p>` : ""}</div>`; }).join("")}</div>` : ""}
@@ -1362,11 +1365,13 @@ function renderMon(o) {
   ${o.next?.length ? `<div class="mo-sec"><h3>다음 달에 확인할 것</h3><ul class="mo-p">${o.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}</div>
   <p class="note" style="margin-top:16px">자료: 그날그날의 오늘의 정리·일별 DB·야후 파이낸스 종가·구글 뉴스 기사 제목을 제로가 정리 · 공부용, 투자 권유 아님 · 출처 AI이현</p>`;
   drawMonChart(o);
-  TH.forEach((t, i) => { const P = pxOf(t.sym); if (P) monPx($("moTc" + i), P.rows, t.steps || []); });
+  const tlEv = TL.map((x) => ({ d: x.d, what: x.title }));
+  TH.forEach((t, i) => { const P = pxOf(t.sym); if (P) monPx($("moTc" + i), P.rows, t.steps?.length ? t.steps : tlEv); });
+  monOverlay(o);
   SK.forEach(async (x, i) => {
     let P = pxOf(x.s);
     if (!P) { try { const g = await api(`op=chart&s=${encodeURIComponent(x.s)}&r=3mo&i=1d`); const rows = (g.rows || []).filter((r) => r.d >= o.from && r.d <= o.upto && r.c != null); if (rows.length) P = { rows }; } catch {} }
-    if (P) monPx($("moSc" + i), P.rows, x.events || []);
+    if (P) monPx($("moSc" + i), P.rows, x.events?.length ? x.events : tlEv);
   });
 }
 // 종목·테마 차트: 이달 종가 선 + 사건 날짜에 번호
@@ -1378,9 +1383,38 @@ function monPx(el, rows, evs) {
   const s = ch.addAreaSeries({ lineColor: up ? css("--up") : css("--down"), topColor: (up ? css("--up") : css("--down")) + "33", bottomColor: "transparent", lineWidth: 2, priceLineVisible: false });
   s.setData(rows.map((r) => ({ time: r.d, value: r.c })));
   const days = rows.map((r) => r.d);
-  s.setMarkers(evs.map((v, i) => { const d = days.find((x) => x >= v.d); return d ? { time: d, position: "aboveBar", color: "#f2b632", shape: "circle", text: String(i + 1) } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1)));
+  const lab = (v) => { const w = String(v.what || "").split(/[.,·—(]/)[0].trim(); return w.length > 14 ? w.slice(0, 13) + "…" : w; };
+  s.setMarkers(evs.map((v, i) => { const d = days.find((x) => x >= v.d); return d ? { time: d, position: i % 2 ? "belowBar" : "aboveBar", color: "#d97706", shape: i % 2 ? "arrowUp" : "arrowDown", text: `${i + 1} ${mdw(v.d)} ${lab(v)}` } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1)));
   ch.timeScale().fitContent();
 }
+// 이달 거론된 종목 겹쳐 보기 (달 시작 0%)
+MON.ov = null;
+async function monOverlay(o) {
+  const el = $("moOv"); if (!el) return;
+  const st = (o.stats || []).filter((x) => !x.err), names = { ...(o.pxn || {}) }; (o.stocks || []).forEach((x) => (names[x.s] = x.n));
+  const P = { ...(o.px || {}) };
+  const want = [...new Set([...(o.stocks || []).map((x) => x.s), ...(o.themes || []).map((x) => x.sym)])].filter((x) => x && !P[x] && !st.some((y) => y.s === x));
+  await Promise.all(want.map(async (x) => { try { const g = await api(`op=chart&s=${encodeURIComponent(x)}&r=3mo&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null), pre = rows.filter((r) => r.d < o.from).at(-1), inM = rows.filter((r) => r.d >= o.from && r.d <= o.upto); if (inM.length) P[x] = { base: pre?.c ?? inM[0].c, chg: ((inM.at(-1).c / (pre?.c ?? inM[0].c)) - 1) * 100, rows: inM }; } catch {} }));
+  const all = [...st.filter((x) => ["^IXIC", "^SOX", "^KS11"].includes(x.s)).map((x) => ({ s: x.s, n: x.n, base: x.base, chg: x.chg, rows: x.daily, idx: true })), ...Object.entries(P).map(([s0, v]) => ({ s: s0, n: names[s0] || s0, base: v.base ?? v.rows[0].c, chg: v.chg, rows: v.rows }))];
+  if (!MON.ovOn) MON.ovOn = new Set([...(o.stocks || []).map((x) => x.s), "^SOX"]);
+  MON.ovAll = all; drawOverlay(o);
+}
+function drawOverlay(o) {
+  const el = $("moOv"), all = MON.ovAll || []; if (!el || !window.LightweightCharts) return; el.innerHTML = ""; MON.ov?.remove?.();
+  const dk = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim().toLowerCase() === "#e8ecf1";
+  const col = (i) => BWC[i % BWC.length];
+  $("moOvLeg").innerHTML = all.map((x, i) => `<button type="button" class="pill" data-moov="${esc(x.s)}" aria-pressed="${MON.ovOn.has(x.s)}" style="border-color:${col(i)}"><span style="color:${col(i)}">●</span> ${esc(x.n)} <span class="${ud(x.chg)}">${pct(x.chg)}</span></button>`).join("") + `<button type="button" class="pill" data-moov="*">다 켜기</button><button type="button" class="pill" data-moov="-">다 끄기</button>`;
+  const ch = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: dk ? "#cbd5e1" : "#374151" }, grid: { vertLines: { visible: false }, horzLines: { color: dk ? "#2d3440" : "#eef0f3" } }, timeScale: { borderVisible: false }, rightPriceScale: { borderVisible: false }, handleScroll: false, handleScale: false });
+  MON.ov = ch; let first = true;
+  all.forEach((x, i) => { if (!MON.ovOn.has(x.s)) return;
+    const sr = ch.addLineSeries({ color: col(i), lineWidth: x.idx ? 3 : 2, lineStyle: x.idx ? 2 : 0, priceLineVisible: false, title: x.n });
+    const data = [{ time: new Date(Date.parse(x.rows[0].d) - 864e5).toISOString().slice(0, 10), value: 0 }, ...x.rows.map((r) => ({ time: r.d, value: Math.round((r.c / x.base - 1) * 10000) / 100 }))];
+    sr.setData(data);
+    if (first) { const days = data.map((d) => d.time); sr.setMarkers((o.timeline || []).map((t, k) => { const d = days.find((z) => z >= t.d); return d ? { time: d, position: "aboveBar", color: "#d97706", shape: "circle", text: String(k + 1) } : null; }).filter(Boolean).sort((a, b) => (a.time < b.time ? -1 : 1))); first = false; }
+  });
+  ch.timeScale().fitContent();
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-moov]"); if (!b || !MON.data) return; const s0 = b.dataset.moov; if (s0 === "*") (MON.ovAll || []).forEach((x) => MON.ovOn.add(x.s)); else if (s0 === "-") MON.ovOn.clear(); else MON.ovOn.has(s0) ? MON.ovOn.delete(s0) : MON.ovOn.add(s0); drawOverlay(MON.data); });
 const MO_COL = { "^IXIC": "#2563eb", "^GSPC": "#7c3aed", "^SOX": "#f59e0b", "^KS11": "#e11d48", "^KQ11": "#10b981" };
 MON.on = new Set(["^IXIC", "^SOX", "^KS11", "^KQ11"]);
 function drawMonChart(o) {
@@ -1423,11 +1457,11 @@ const mdHtml = (t) => {
   flush(); return out.join("");
 };
 // ── 스터디 글 안의 차트·그림 ([[chart NVDA,SPY 1y]] 같은 한 줄이 그림이 돼요)
-const BW_HELP = "[[chart NVDA,SPY 1y]] 주가·비교 · [[tv NASDAQ:NVDA]] 트레이딩뷰 · [[bars 제목 | 버크셔 12.5, S&P500 9.1]] 막대 · [[pie 제목 | 애플 40, 은행 20]] 원그래프 · [[f13 1067983]] 펀드 보유 종목 · [[f13bt 1067983,1649339]] 13F 따라 하기 성과";
+const BW_HELP = "[[analog ^SOX | 2026-10-29 | 2000-03-10, 2022-01-03 | 90]] 지금과 과거 하락 겹쳐 보기 · [[whatif 100000000 | peak:^SOX | SPY, SOXX, TLT, GLD, 현금]] 그날 1억을 넣었다면 · [[chart NVDA,SPY 1y]] 주가·비교 · [[tv NASDAQ:NVDA]] 트레이딩뷰 · [[bars 제목 | 버크셔 12.5, S&P500 9.1]] 막대 · [[pie 제목 | 애플 40, 은행 20]] 원그래프 · [[f13 1067983]] 펀드 보유 종목 · [[f13bt 1067983,1649339]] 13F 따라 하기 성과";
 const BW = [];
 function mdRich(t) {
   const parts = []; let buf = [];
-  for (const l of String(t || "").split("\n")) { const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
+  for (const l of String(t || "").split("\n")) { const m = l.trim().match(/^\[\[(chart|tv|bars|pie|f13|f13bt|analog|whatif)\s+(.+?)\]\]$/i); if (m) { if (buf.length) parts.push(mdHtml(buf.join("\n"))); buf = []; BW.push({ k: m[1].toLowerCase(), a: m[2].trim() }); parts.push(`<div class="bw" data-bw="${BW.length - 1}"><p class="note">그림 불러오는 중…</p></div>`); } else buf.push(l); }
   if (buf.length) parts.push(mdHtml(buf.join("\n"))); return parts.join("");
 }
 const BWC = ["#2563eb", "#e11d48", "#f59e0b", "#10b981", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#64748b"];
@@ -1463,6 +1497,32 @@ async function bwFill(el, w) {
       const top = d.rows.slice(0, 10), rest = Math.max(0, 100 - top.reduce((t, r) => t + r.w, 0));
       el.innerHTML = `<div class="bw-t">${esc(d.star || d.name)} · ${esc(d.period)} 기준 13F (제출 ${esc(d.filed)}) · 전체 ${d.count}종목</div><div class="bw-f13">${bwPie([...top.map((r) => [r.ko || r.t || r.n, r.w]), ["그 외", Math.round(rest * 10) / 10]])}
       <table><tr><th>종목</th><th>비중</th><th>지난 분기 대비</th></tr>${top.map((r) => `<tr><td>${esc(r.ko || r.n)} <span class="note">${esc(r.t || "")}</span></td><td class="num">${r.w}%</td><td class="note">${esc(r.tag || (r.chg != null ? pct(r.chg) : ""))}</td></tr>`).join("")}</table></div>`;
+    } else if (k === "analog") {
+      // [[analog SYM | 기준일 | 과거일1, 과거일2 | 거래일 수]] 기준일부터 지금까지와, 과거 날짜부터 같은 길이를 0%로 맞춰 겹쳐요
+      const [sym, d0, past, nS] = a.split("|").map((x) => x.trim()), N = Math.min(400, +nS || 120), pd = (past || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
+      const g = await api(`op=chart&s=${encodeURIComponent(sym)}&r=max&i=1d`); const rows = (g.rows || []).filter((r) => r.c != null); if (!rows.length) throw 0;
+      const win = (from, n) => { const i0 = rows.findIndex((r) => r.d >= from); if (i0 < 0) return null; const w = rows.slice(i0, i0 + n), b = w[0].c; return w.map((r, i) => ({ i, d: r.d, v: (r.c / b - 1) * 100 })); };
+      const cur = win(d0, N); if (!cur) throw 0; const L = Math.max(cur.length, ...pd.map((x) => win(x, N)?.length || 0));
+      const ser = [{ name: `지금 (${d0}~)`, w: 3, data: cur }, ...pd.map((x) => ({ name: `${x}~`, data: win(x, N) || [] }))].filter((x) => x.data.length);
+      const corr = (A, B) => { const n = Math.min(A.length, B.length); if (n < 5) return null; const a1 = A.slice(0, n).map((x) => x.v), b1 = B.slice(0, n).map((x) => x.v), ma = a1.reduce((t, x) => t + x, 0) / n, mb = b1.reduce((t, x) => t + x, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (a1[i] - ma) * (b1[i] - mb); sxx += (a1[i] - ma) ** 2; syy += (b1[i] - mb) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; };
+      const t0 = Date.UTC(2000, 0, 3); const toT = (i) => new Date(t0 + i * 864e5).toISOString().slice(0, 10);
+      const S = ser.map((x, i) => ({ name: x.name, w: x.w, color: i ? undefined : "#e11d48", v: x.data.at(-1).v, data: x.data.map((p) => ({ time: toT(p.i), value: Math.round(p.v * 100) / 100 })) }));
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${esc(g.name || sym)} · 지금 vs 과거 (시작일 = 0%, 가로축 = 시작 후 거래일 수 ${L}일)</div>` + bwLeg(S)); bwChart(el, S, true);
+      el.querySelector("div[style*='height']")?.insertAdjacentHTML("afterend", "");
+      const mdd = (d) => { let pk = -1e9, m = 0; d.forEach((p) => { const lv = 100 + p.v; pk = Math.max(pk, lv); m = Math.min(m, (lv / pk - 1) * 100); }); return m; };
+      el.insertAdjacentHTML("beforeend", `<table style="margin-top:8px;font-size:13px"><tr><th>구간</th><th>지금과 닮은 정도</th><th>같은 기간 최대 하락</th><th>그 기간 끝 수익률</th><th>${N}일 전체 끝</th></tr>${ser.map((x, i) => { const c = i ? corr(cur, x.data) : 1, n = cur.length, part = x.data.slice(0, n); return `<tr><td>${esc(x.name)}</td><td class="num">${c == null ? "-" : i ? Math.round(c * 100) + "%" : "기준"}</td><td class="num down">${mdd(part).toFixed(1)}%</td><td class="num ${ud(part.at(-1)?.v)}">${pct(part.at(-1)?.v)}</td><td class="num ${ud(x.data.at(-1).v)}">${pct(x.data.at(-1).v)}</td></tr>`; }).join("")}</table><p class="note" style="margin:4px 0 0">닮은 정도 = 지금 구간 길이만큼 두 선의 모양이 얼마나 같이 움직였는지 (상관계수). 100%에 가까울수록 비슷해요.</p>`);
+    } else if (k === "whatif") {
+      // [[whatif 금액 | 시작일 또는 peak:SYM | SYM, SYM, 현금]] 그날 금액을 각각 넣었다면 지금 얼마
+      const [amtS, startS, symS] = a.split("|").map((x) => x.trim()), amt = +String(amtS).replace(/[^\d]/g, "") || 1e8, syms = (symS || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10);
+      let start = startS;
+      if (/^peak:/i.test(startS)) { const ps = startS.slice(5).trim(), g = await api(`op=chart&s=${encodeURIComponent(ps)}&r=1y&i=1d`); const rr = (g.rows || []).filter((r) => r.c != null); start = rr.reduce((m, r) => (r.c > m.c ? r : m)).d; }
+      const gs = await Promise.all(syms.map((x) => (/^(현금|cash)$/i.test(x) ? null : api(`op=chart&s=${encodeURIComponent(x)}&r=2y&i=1d`).catch(() => null))));
+      const ser = syms.map((x, i) => { if (/^(현금|cash)$/i.test(x)) return { name: "현금 그대로", cash: true }; const rows = (gs[i]?.rows || []).filter((r) => r.c != null && r.d >= start); if (!rows.length) return null; const b = rows[0].c; return { name: gs[i].name ? `${gs[i].name} (${x})` : x, rows: rows.map((r) => ({ time: r.d, value: Math.round((amt * r.c) / b) })) }; }).filter(Boolean);
+      const ref = ser.find((x) => x.rows)?.rows || []; ser.forEach((x) => { if (x.cash) x.rows = ref.map((r) => ({ time: r.time, value: amt })); });
+      const won = (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.round(v / 1e4).toLocaleString("ko-KR") + "만") + "원";
+      const S = ser.map((x, i) => ({ name: x.name, color: x.cash ? "#94a3b8" : undefined, dash: x.cash, v: (x.rows.at(-1).value / amt - 1) * 100, data: x.rows }));
+      el.insertAdjacentHTML("beforeend", `<div class="bw-t">${start}에 ${won(amt)}을 넣었다면 · 지금(${ref.at(-1)?.time || ""})까지 평가금액 (달러 자산은 환율 변화 제외)</div>` + bwLeg(S)); bwChart(el, S, true);
+      el.insertAdjacentHTML("beforeend", `<div class="bw-bars" style="margin-top:8px">${[...S].sort((x, y) => y.v - x.v).map((x, i) => `<div class="r"><span class="n">${i + 1}. ${esc(x.name)}</span><span class="tr ng"><i style="width:${Math.min(50, (Math.abs(x.v) / Math.max(...S.map((z) => Math.abs(z.v)), 1)) * 50)}%;${x.v < 0 ? "right:50%" : "left:50%"};background:${x.v < 0 ? css("--down") : css("--up")}"></i></span><b class="${ud(x.v)}">${won(amt * (1 + x.v / 100))}</b></div>`).join("")}</div>`);
     } else if (k === "f13bt") {
       const ciks = a.split(/[\s,]+/).filter(Boolean).slice(0, 5); const rs = await Promise.all(ciks.map((c) => api("op=f13bt&cik=" + encodeURIComponent(c)).catch(() => null)));
       const ok = rs.filter((r) => r?.curve?.length); if (!ok.length) throw 0;
