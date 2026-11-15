@@ -625,7 +625,8 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "histhold") return res.json(await histHold(false));
       if (op === "council") { if (q.id) { const [c] = await redis([["GET", "stk:council:" + String(q.id).slice(0, 20)]]); return c ? res.json(json(c)) : res.status(404).json({ error: "none" }); } const [l] = await redis([["GET", "stk:councils"]]); return res.json({ list: json(l) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
-      if (op === "juri") { const [t] = await redis([["GET", "stk:juri"]]); return res.json(json(t) || { meetings: [] }); }
+      if (op === "juri") { const [t, d] = await redis([["GET", "stk:juri"], ["GET", "stk:jrdraft"]]); return res.json({ ...(json(t) || { meetings: [] }), drafts: json(d) || {} }); }
+      if (op === "jrfile") { const [d] = await redis([["GET", `stk:jrf:${String(q.id || "").slice(0, 20)}:${+q.i || 0}`]]); return res.json({ data: d || "" }); }
       if (op === "todo") { const [t, g] = await redis([["GET", "stk:todo"], ["GET", "stk:todotags"]]); return res.json({ list: json(t) || [], tags: json(g) || null }); }
       if (op === "blog") return res.json(q.id ? (await blogView(String(q.id))) || { err: "none" } : await blogList());
       if (op === "bimg") return res.json(await blogImgGet(String(q.id || "")));
@@ -688,7 +689,12 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "study") { try { if (b.del) return res.json(await studyDel(String(b.del))); if (b.id) return res.json(await studyFollow(String(b.id), b.text)); const [bf] = await redis([["GET", `stk:brief:${kstDay()}`]]); const B = json(bf); return res.json(await studyAsk(b.text, (s, r) => chart(s, r), B ? `${B.headline} / 미국: ${B.us?.move || ""} / 한국: ${B.kr?.move || ""}` : "")); } catch (e) { return res.status(502).json({ error: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "draw") { const k = "stk:draw:" + String(b.s || "").slice(0, 30), L = (Array.isArray(b.list) ? b.list : []).slice(0, 200); await redis([L.length ? ["SET", k, JSON.stringify(L).slice(0, 60000)] : ["DEL", k]]); return res.json({ ok: true }); }
     if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
-    if (b.op === "juri") { const M = (Array.isArray(b.meetings) ? b.meetings : []).slice(0, 500).map((m) => ({ id: String(m.id || "").slice(0, 20), d: /^\d{4}-\d{2}-\d{2}$/.test(m.d || "") ? m.d : "", title: String(m.title || "").slice(0, 120), memo: String(m.memo || "").slice(0, 5000), items: (Array.isArray(m.items) ? m.items : []).slice(0, 500).map((x) => ({ id: String(x.id || "").slice(0, 20), t: String(x.t || "").slice(0, 2000), who: String(x.who || "").slice(0, 40), kind: String(x.kind || "").slice(0, 20), syms: (Array.isArray(x.syms) ? x.syms : []).map((y) => String(y).trim().slice(0, 40)).filter(Boolean).slice(0, 10), star: !!x.star, at: +x.at || Date.now() })).filter((x) => x.id && x.t) })).filter((m) => m.id); await redis([["SET", "stk:juri", JSON.stringify({ meetings: M, at: Date.now() })]]); return res.json({ ok: true }); }
+    if (b.op === "juri") { const M = (Array.isArray(b.meetings) ? b.meetings : []).slice(0, 500).map((m) => ({ id: String(m.id || "").slice(0, 20), d: /^\d{4}-\d{2}-\d{2}$/.test(m.d || "") ? m.d : "", title: String(m.title || "").slice(0, 120), memo: String(m.memo || "").slice(0, 5000), no: +m.no || 0, summary: String(m.summary || "").slice(0, 8000), files: (Array.isArray(m.files) ? m.files : []).slice(0, 100).map((f) => ({ id: String(f.id || "").slice(0, 20), name: String(f.name || "").slice(0, 160), type: String(f.type || "").slice(0, 80), size: +f.size || 0, n: Math.min(40, +f.n || 1), who: String(f.who || "").slice(0, 40), at: +f.at || Date.now() })).filter((f) => f.id), items: (Array.isArray(m.items) ? m.items : []).slice(0, 500).map((x) => ({ id: String(x.id || "").slice(0, 20), t: String(x.t || "").slice(0, 2000), who: String(x.who || "").slice(0, 40), kind: String(x.kind || "").slice(0, 20), syms: (Array.isArray(x.syms) ? x.syms : []).map((y) => String(y).trim().slice(0, 40)).filter(Boolean).slice(0, 10), star: !!x.star, at: +x.at || Date.now() })).filter((x) => x.id && x.t) })).filter((m) => m.id); await redis([["SET", "stk:juri", JSON.stringify({ meetings: M, at: Date.now() })]]); return res.json({ ok: true }); }
+    // 주리딩 파일: 700KB(base64) 조각으로 나눠 저장 · 지우기 · 클로드 다듬기(구독 접수함)
+    if (b.op === "jrfile") { const id = String(b.id || "").slice(0, 20), i = +b.i || 0; if (!/^[a-z0-9]+$/.test(id) || i < 0 || i >= 40 || typeof b.data !== "string" || b.data.length > 760000) return res.status(400).json({ error: "file" }); await redis([["SET", `stk:jrf:${id}:${i}`, b.data]]); return res.json({ ok: true }); }
+    if (b.op === "jrfiledel") { const id = String(b.id || "").slice(0, 20), n = Math.min(40, +b.n || 1); await redis([...Array(n)].map((_, i) => ["DEL", `stk:jrf:${id}:${i}`])); return res.json({ ok: true }); }
+    if (b.op === "jrdraftdel") { const [d] = await redis([["GET", "stk:jrdraft"]]); const D = json(d) || {}; delete D[String(b.mid || "")]; await redis([["SET", "stk:jrdraft", JSON.stringify(D)]]); return res.json({ ok: true }); }
+    if (b.op === "jrai") return res.json(await juriAi(String(b.mid || ""), String(b.text || "").slice(0, 40000), Array.isArray(b.fileIds) ? b.fileIds.slice(0, 5) : []));
     if (b.op === "todotags") { const T = [...new Set((Array.isArray(b.tags) ? b.tags : []).map((x) => String(x || "").trim().slice(0, 20)).filter(Boolean))].slice(0, 30); await redis([["SET", "stk:todotags", JSON.stringify(T)]]); return res.json({ ok: true, tags: T }); }
     if (b.op === "todoadd") return res.json(await todoAdd(b.t, b.src, b));
     if (b.op === "todo") { const L = (Array.isArray(b.list) ? b.list : []).slice(0, 2000).map((x) => ({ id: String(x.id || "").slice(0, 20), t: String(x.t || "").slice(0, 500), tag: String(x.tag || "").slice(0, 20), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due || "") ? x.due : "", star: !!x.star, at: +x.at || Date.now(), done: +x.done || 0, src: x.src && typeof x.src === "object" ? { tab: String(x.src.tab || "").slice(0, 20), ref: String(x.src.ref || "").slice(0, 100), label: String(x.src.label || "").slice(0, 80), auto: !!x.src.auto } : null, memo: String(x.memo || "").slice(0, 2000) })).filter((x) => x.id && x.t);
@@ -758,4 +764,28 @@ export async function todoAdd(t, src, o = {}) {
   const ref = src?.ref ? String(src.ref).slice(0, 100) : ""; if (ref && L.some((x) => x.src?.ref === ref)) return { dup: true };
   const it = { id: Math.random().toString(36).slice(2, 12), t, tag: String(o.tag || "").slice(0, 20), due: /^\d{4}-\d{2}-\d{2}$/.test(o.due || "") ? o.due : "", star: !!o.star, at: Date.now(), done: 0, src: src ? { tab: String(src.tab || "").slice(0, 20), ref, label: String(src.label || "").slice(0, 80), auto: !!src.auto } : null, memo: String(o.memo || "").slice(0, 2000) };
   await redis([["SET", "stk:todo", JSON.stringify([it, ...L].slice(0, 2000))]]); return { ok: true, item: it };
+}
+
+// ── 주리딩: 그 회차에 받은 글·텍스트 파일 → 클로드가 사람별 이야기로 정리 (stk:jrdraft[회차]에 정리안 저장, 화면에서 '넣기')
+async function juriAi(mid, text, fileIds) {
+  const [t] = await redis([["GET", "stk:juri"]]), J = json(t) || { meetings: [] }, m = J.meetings.find((x) => x.id === mid); if (!m) return { err: "none" };
+  let ftxt = "";
+  for (const fid of fileIds) { const f = (m.files || []).find((x) => x.id === fid); if (!f) continue; const parts = await redis([...Array(f.n)].map((_, i) => ["GET", `stk:jrf:${f.id}:${i}`])); try { const b64 = parts.map((p) => String(p || "").replace(/^data:[^,]*,/, "")).join(""); ftxt += `\n\n[파일: ${f.name}${f.who ? " · " + f.who + " 가져옴" : ""}]\n` + Buffer.from(b64, "base64").toString("utf8").slice(0, 30000); } catch {} }
+  const people = [...new Set([...m.items.map((x) => x.who), ...(m.files || []).map((f) => f.who)].filter(Boolean))];
+  const prompt = `주식 스터디 모임 '주리딩'의 ${m.no ? m.no + "회차" : "한 회차"} (${m.d}${m.title ? ", " + m.title : ""}) 기록을 정리해요. 아래 받은 내용을 읽고, 누가 어떤 내용을 가져왔는지 중심으로 정리해 주세요.
+- 이미 아는 참석자: ${people.join(", ") || "(없음)"}
+- 이미 적힌 이야기 ${m.items.length}개 (겹치면 빼요): ${m.items.slice(0, 40).map((x) => `${x.who || "?"}: ${x.t.slice(0, 60)}`).join(" / ") || "(없음)"}
+- 받은 내용에 없는 사실·숫자는 지어내지 마요. 말투는 짧고 쉬운 한국어. 한 이야기 = 한 가지 내용, 1~2문장.
+- kind 는 아이디어|정보|질문|결론|기타 중 하나. syms 는 나온 종목·지수·자산 이름 (한국어 이름, 없으면 빈 배열). who 는 말하거나 가져온 사람 (모르면 "").
+
+=== 받은 내용 ===
+${text}${ftxt}
+
+JSON 하나만: {"summary":"이 회차 한눈에 3~5줄 (사람별 핵심 한 줄씩)","items":[{"who":"","t":"","kind":"정보","syms":[]}]}`;
+  const msg = await claude({ max_tokens: 6000, messages: [{ role: "user", content: prompt }] }, "주리딩 정리");
+  const raw = (msg.content || []).map((c) => c.text || "").join(""), mm = raw.match(/\{[\s\S]*\}/); let o = null; try { o = JSON.parse(mm ? mm[0] : raw); } catch {}
+  if (!o) return { err: "parse" };
+  const draft = { summary: String(o.summary || "").slice(0, 8000), items: (o.items || []).slice(0, 200).map((x) => ({ who: String(x.who || "").slice(0, 40), t: String(x.t || "").slice(0, 2000), kind: ["아이디어", "정보", "질문", "결론", "기타"].includes(x.kind) ? x.kind : "기타", syms: (Array.isArray(x.syms) ? x.syms : []).map(String).slice(0, 10) })).filter((x) => x.t), at: Date.now() };
+  const [d] = await redis([["GET", "stk:jrdraft"]]); const D = json(d) || {}; D[mid] = draft; await redis([["SET", "stk:jrdraft", JSON.stringify(D)]]);
+  return { draft };
 }
