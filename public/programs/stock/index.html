@@ -37,8 +37,8 @@ main { margin-top: -32px; display: grid; gap: 14px; padding-bottom: 60px; }
 h2 { margin: 0 0 10px; font-size: 16px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 h2 span, .note { font-size: 13px; font-weight: 400; color: var(--muted); }
 h3 { margin: 0 0 6px; font-size: 14px; }
-nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-nav.tabs button { border: 0; border-radius: 999px; padding: 8px 14px; white-space: nowrap; font: inherit; font-weight: 700; background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+nav.tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+nav.tabs button { border: 0; border-radius: 999px; padding: 8px 12px; white-space: nowrap; font: inherit; font-weight: 700; background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
 nav.tabs button[aria-pressed="true"] { background: var(--amber); color: #1c2027; }
 .btn { border: 0; border-radius: 10px; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; background: var(--board); color: var(--on-board); }
 .btn.g { background: var(--soft); color: var(--ink); border: 1px solid var(--line); }
@@ -323,6 +323,14 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 .td-i .tg{border-radius:999px;padding:0 7px;background:var(--soft);font-weight:700}.td-i .src{border-radius:999px;padding:0 7px;border:1px solid var(--line);cursor:pointer}
 .td-i .bt{display:flex;gap:2px}.td-i .bt button{border:0;background:none;cursor:pointer;font-size:15px;padding:2px 5px;color:var(--muted)}.td-i .bt button.on{color:#f2b632}
 .td-h{margin:14px 0 2px;font-size:13px;color:var(--muted);font-weight:700}.td-undo{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;z-index:60;box-shadow:0 4px 14px #0004}.td-undo button{background:none;border:0;color:#f2b632;font-weight:800;cursor:pointer;margin-left:8px}
+.jr-wrap{display:grid;grid-template-columns:240px 1fr;gap:12px}@media(max-width:800px){.jr-wrap{grid-template-columns:1fr}}
+.jr-ml{display:flex;flex-direction:column;gap:4px}.jr-m{border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:left;background:var(--card,#fff);cursor:pointer;font:inherit;color:inherit}.jr-m[aria-pressed=true]{border-color:#f2b632;box-shadow:0 0 0 2px #f2b63255}.jr-m small{display:block;color:var(--muted)}
+.jr-d{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--card,#fff)}.jr-d .hd{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.jr-d .hd input{font-weight:800}
+.jr-add{display:grid;gap:6px;margin:10px 0;padding:10px;border-radius:10px;background:var(--soft)}
+.jr-i{display:flex;gap:8px;padding:9px 4px;border-bottom:1px solid var(--line)}.jr-i .k{flex:0 0 auto;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:800;height:fit-content;background:var(--soft)}
+.jr-i .k.k0{background:#fef3c7;color:#92400e}.jr-i .k.k1{background:#dbeafe;color:#1e40af}.jr-i .k.k2{background:#fce7f3;color:#9d174d}.jr-i .k.k3{background:#dcfce7;color:#166534}
+.jr-i .tx{flex:1;min-width:0}.jr-i .tx b{font-weight:600;font-size:15px;white-space:pre-wrap;word-break:break-word}.jr-i .mt{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px;font-size:12px;color:var(--muted)}.jr-i .sy{border:1px solid var(--line);border-radius:999px;padding:0 7px;cursor:pointer;color:var(--ink)}
+.jr-i .bt button{border:0;background:none;cursor:pointer;font-size:14px;padding:2px 4px;color:var(--muted)}.jr-i .bt button.on{color:#f2b632}
 </style>
 </head>
 <body>
@@ -354,6 +362,7 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
     <button type="button" data-tab="mon" aria-pressed="false">월례회</button>
     <button type="button" data-tab="blog" aria-pressed="false">스터디</button>
     <button type="button" data-tab="todo" aria-pressed="false">할일</button>
+    <button type="button" data-tab="juri" aria-pressed="false">주리딩</button>
   </nav>
 
   <!-- 대시보드 -->
@@ -584,6 +593,13 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
     <form id="tdForm" class="row" style="gap:6px"><input id="tdIn" placeholder="할 일 (예: 엔비디아 실적 발표 보고 비중 정하기)" style="flex:1;min-width:220px" autocomplete="off"><input id="tdDue" type="date" style="flex:0 0 auto" title="언제까지 (안 넣어도 돼요)"><button class="btn y s">추가</button></form>
     <div class="row" id="tdTags" style="gap:4px;margin:8px 0"></div>
     <div id="tdList"></div>
+  </section>
+
+  <!-- 주리딩: 주식 스터디 모임에서 나온 이야기 -->
+  <section class="box" id="juri" hidden>
+    <h2>주리딩 <span id="jrCnt"></span></h2>
+    <div class="row" style="gap:6px;margin-bottom:8px"><button type="button" class="btn y s" id="jrNew">+ 새 모임</button><input id="jrQ" placeholder="찾기 (이야기·사람·종목)" style="flex:0 1 240px"><span class="row" id="jrView" style="gap:4px"></span></div>
+    <div id="jrBody"></div>
   </section>
 
   <!-- 월례회 -->

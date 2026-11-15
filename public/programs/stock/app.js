@@ -38,7 +38,7 @@ async function aiWait(rid) {
     throw new Error("timeout");
   } finally { AIW.delete(rid); aiBadge(); }
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog", "todo"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog", "todo", "juri"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -79,7 +79,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog", "todo"].forEach((x) => ($(x).hidden = x !== t)); if (t === "todo") loadTodo(); if (t === "mon") loadMon(); if (t === "blog") loadBlog(); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog", "todo", "juri"].forEach((x) => ($(x).hidden = x !== t)); if (t === "todo") loadTodo(); if (t === "juri") loadJuri(); if (t === "mon") loadMon(); if (t === "blog") loadBlog(); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -2186,4 +2186,61 @@ document.addEventListener("click", (e) => {
     box.querySelector("[data-tdno]").onclick = () => tdRender();
     f.onkeydown = (ev) => { if (ev.key === "Enter" && (!memo || ev.ctrlKey)) box.querySelector("[data-tdok]").click(); if (ev.key === "Escape") tdRender(); };
   }
+});
+
+
+// ── 주리딩: 주식 스터디 모임마다 나온 이야기 (stk:juri). 모임별 / 종목별 / 종류별로 모아 보기, 이야기 → 할일 보내기
+let JR = null, jrSel = ls.get("stk-jrsel", ""), jrView = ls.get("stk-jrview", "m"), jrQ = "", jrSym = "";
+const JR_K = ["아이디어", "정보", "질문", "결론", "기타"];
+function loadJuri() { setTimeout(async () => { if (!JR) $("jrBody").innerHTML = `<p class="note">불러오는 중…</p>`; try { JR = await api("op=juri"); JR.meetings ||= []; } catch { if (!JR) { $("jrBody").innerHTML = `<p class="msg no">못 불러왔어요.</p>`; return; } } jrRender(); }); }
+let jrT = null; function jrSave() { clearTimeout(jrT); jrT = setTimeout(() => api("", { op: "juri", meetings: JR.meetings }).catch(() => { $("jrCnt").textContent = "⚠️ 저장 실패, 다시 시도해 주세요"; }), 500); }
+const jrAll = () => JR.meetings.flatMap((m) => m.items.map((x) => ({ ...x, m })));
+const jrHit = (x) => { const q = jrQ.trim().toLowerCase(); return !q || (x.t + " " + x.who + " " + x.syms.join(" ") + " " + x.kind).toLowerCase().includes(q); };
+function jrItem(x, mShow) { const ki = JR_K.indexOf(x.kind); return `<div class="jr-i" data-jri="${x.id}" data-jrm="${x.m?.id || ""}"><span class="k k${ki}">${esc(x.kind || "기타")}</span><div class="tx"><b>${esc(x.t)}</b><div class="mt">${x.who ? `<span>🗣 ${esc(x.who)}</span>` : ""}${x.syms.map((y) => `<span class="sy" data-jrsym="${esc(y)}">${esc(y)}</span>`).join("")}${mShow && x.m ? `<span>📅 ${esc(x.m.d)} ${esc(x.m.title)}</span>` : ""}</div></div><div class="bt"><button type="button" data-jrstar="${x.id}" class="${x.star ? "on" : ""}" title="중요">★</button><button type="button" data-jrtodo="${x.id}" title="할일로 보내기">✅</button><button type="button" data-jredit="${x.id}" title="고치기">✏️</button><button type="button" data-jrdel="${x.id}" title="지우기">✕</button></div></div>`; }
+function jrRender() {
+  if (!JR) return; const M = [...JR.meetings].sort((a, b) => (a.d < b.d ? 1 : -1)), all = jrAll();
+  $("jrCnt").textContent = `모임 ${M.length} · 이야기 ${all.length}`;
+  $("jrView").innerHTML = [["m", "모임별"], ["s", "종목별"], ["k", "종류별"], ["star", "★ 중요"]].map(([k, n]) => `<button type="button" class="pill" data-jrv="${k}" aria-pressed="${k === jrView}">${n}</button>`).join("");
+  const B = $("jrBody");
+  if (jrView === "m") {
+    if (!M.length) { B.innerHTML = `<p class="note">아직 모임이 없어요. '+ 새 모임'을 눌러 시작하세요.</p>`; return; }
+    if (!M.some((m) => m.id === jrSel)) jrSel = M[0].id; const m = M.find((x) => x.id === jrSel);
+    const its = m.items.map((x) => ({ ...x, m })).filter(jrHit);
+    B.innerHTML = `<div class="jr-wrap"><div class="jr-ml">${M.map((x) => `<button type="button" class="jr-m" data-jrsel="${x.id}" aria-pressed="${x.id === jrSel}"><b>${esc(x.title || "제목 없음")}</b><small>${esc(x.d)} · 이야기 ${x.items.length}</small></button>`).join("")}</div>
+      <div class="jr-d"><div class="hd"><input type="date" data-jrmf="d" value="${esc(m.d)}"><input data-jrmf="title" value="${esc(m.title)}" placeholder="모임 이름 (예: 11월 둘째 주 스터디)" style="flex:1;min-width:180px"><button type="button" class="btn g s" data-jrmdel="${m.id}">모임 지우기</button></div>
+        <textarea data-jrmf="memo" rows="2" placeholder="모임 메모 (장소·참석자·한 줄 요약)" style="width:100%;margin-top:6px">${esc(m.memo)}</textarea>
+        <div class="jr-add"><textarea id="jrT" rows="2" placeholder="나온 이야기 (Enter = 추가, Shift+Enter = 줄바꿈)"></textarea><div class="row" style="gap:6px"><input id="jrWho" placeholder="누가 (선택)" style="flex:0 1 130px" list="jrWhoL"><datalist id="jrWhoL">${[...new Set(all.map((x) => x.who).filter(Boolean))].map((w) => `<option value="${esc(w)}">`).join("")}</datalist><input id="jrSyms" placeholder="종목 (쉼표로, 예: 엔비디아, 삼성전자)" style="flex:1;min-width:160px"><span class="row" style="gap:3px">${JR_K.map((k) => `<button type="button" class="pill" data-jrk="${k}" aria-pressed="${ls.get("stk-jrk", "정보") === k}">${k}</button>`).join("")}</span><button type="button" class="btn y s" id="jrAdd">추가</button></div></div>
+        ${its.length ? its.map((x) => jrItem(x)).join("") : `<p class="note">${jrQ ? "찾는 이야기가 없어요." : "아직 이야기가 없어요."}</p>`}</div></div>`;
+  } else if (jrView === "s") {
+    const S = {}; all.filter(jrHit).forEach((x) => x.syms.forEach((y) => (S[y] ||= []).push(x))); const ks = Object.keys(S).sort((a, b) => S[b].length - S[a].length);
+    if (jrSym && !S[jrSym]) jrSym = "";
+    B.innerHTML = ks.length ? `<div class="row" style="gap:4px;margin-bottom:8px">${ks.map((k) => `<button type="button" class="pill" data-jrsym="${esc(k)}" aria-pressed="${k === jrSym}">${esc(k)} <span class="note">${S[k].length}</span></button>`).join("")}</div>${(jrSym ? [jrSym] : ks).map((k) => `<h3 style="margin:12px 0 2px">${esc(k)} <span class="note">${S[k].length}</span></h3>${S[k].sort((a, b) => (a.m.d < b.m.d ? 1 : -1)).map((x) => jrItem(x, true)).join("")}`).join("")}` : `<p class="note">종목을 단 이야기가 아직 없어요.</p>`;
+  } else if (jrView === "k") {
+    B.innerHTML = JR_K.map((k) => { const L = all.filter((x) => (x.kind || "기타") === k && jrHit(x)).sort((a, b) => (a.m.d < b.m.d ? 1 : -1)); return L.length ? `<h3 style="margin:12px 0 2px">${k} <span class="note">${L.length}</span></h3>${L.map((x) => jrItem(x, true)).join("")}` : ""; }).join("") || `<p class="note">이야기가 아직 없어요.</p>`;
+  } else {
+    const L = all.filter((x) => x.star && jrHit(x)).sort((a, b) => (a.m.d < b.m.d ? 1 : -1)); B.innerHTML = L.length ? L.map((x) => jrItem(x, true)).join("") : `<p class="note">★ 표시한 이야기가 없어요.</p>`;
+  }
+}
+const jrFind = (id) => { for (const m of JR.meetings) { const x = m.items.find((y) => y.id === id); if (x) return { m, x }; } return {}; };
+function jrAddItem() { const m = JR.meetings.find((x) => x.id === jrSel), t = $("jrT").value.trim(); if (!m || !t) return; m.items.push({ id: uid(), t, who: $("jrWho").value.trim(), kind: ls.get("stk-jrk", "정보"), syms: $("jrSyms").value.split(/[,，]/).map((y) => y.trim()).filter(Boolean), star: false, at: Date.now() }); const who = $("jrWho").value; jrSave(); jrRender(); $("jrWho").value = who; $("jrT").focus(); }
+$("jrNew").onclick = () => { if (!JR) return; const m = { id: uid(), d: tdDay(), title: "", memo: "", items: [] }; JR.meetings.push(m); jrSel = m.id; ls.set("stk-jrsel", m.id); jrView = "m"; ls.set("stk-jrview", "m"); jrSave(); jrRender(); document.querySelector('[data-jrmf="title"]')?.focus(); };
+document.addEventListener("input", (e) => { if (e.target.id === "jrQ") { jrQ = e.target.value; jrRender(); $("jrQ").focus(); } });
+document.addEventListener("change", (e) => { const f = e.target.dataset?.jrmf; if (!f || !JR) return; const m = JR.meetings.find((x) => x.id === jrSel); if (!m) return; m[f] = e.target.value; jrSave(); if (f !== "memo") jrRender(); });
+document.addEventListener("keydown", (e) => { if (e.target.id === "jrT" && e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); jrAddItem(); } });
+document.addEventListener("click", (e) => {
+  if (!JR || !e.target.closest("#juri")) return; const g = (a) => e.target.closest(`[${a}]`)?.getAttribute(a); let id;
+  if ((id = g("data-jrv"))) { jrView = id; ls.set("stk-jrview", id); return jrRender(); }
+  if ((id = g("data-jrsel"))) { jrSel = id; ls.set("stk-jrsel", id); return jrRender(); }
+  if ((id = g("data-jrk"))) { ls.set("stk-jrk", id); document.querySelectorAll("[data-jrk]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.jrk === id)); return; }
+  if (e.target.id === "jrAdd") return jrAddItem();
+  if ((id = g("data-jrsym"))) { jrSym = jrView === "s" && jrSym === id ? "" : id; jrView = "s"; ls.set("stk-jrview", "s"); return jrRender(); }
+  if ((id = g("data-jrstar"))) { const { x } = jrFind(id); if (x) { x.star = !x.star; jrSave(); jrRender(); } return; }
+  if ((id = g("data-jrtodo"))) { const { m, x } = jrFind(id); if (x) window.stkTodoAdd(x.t, { tab: "juri", ref: "juri:" + x.id, label: `주리딩 · ${m.d}${m.title ? " " + m.title : ""}` }, { memo: [x.who && "말한 사람: " + x.who, x.syms.length && "종목: " + x.syms.join(", ")].filter(Boolean).join(" · ") }); return; }
+  if ((id = g("data-jrdel"))) { const { m, x } = jrFind(id); if (!x) return; const k = m.items.indexOf(x); m.items.splice(k, 1); jrSave(); jrRender(); tdToast("지웠어요", () => { m.items.splice(k, 0, x); jrSave(); jrRender(); }); return; }
+  if ((id = g("data-jrmdel"))) { const k = JR.meetings.findIndex((x) => x.id === id); if (k < 0) return; const [m] = JR.meetings.splice(k, 1); jrSave(); jrRender(); tdToast(`모임을 지웠어요 (이야기 ${m.items.length}개)`, () => { JR.meetings.splice(k, 0, m); jrSel = m.id; jrSave(); jrRender(); }); return; }
+  if ((id = g("data-jredit"))) { const { x } = jrFind(id); if (!x) return; const box = e.target.closest(".jr-i").querySelector(".tx");
+    box.innerHTML = `<textarea rows="3" style="width:100%">${esc(x.t)}</textarea><div class="row" style="gap:4px;margin-top:4px"><input value="${esc(x.who)}" placeholder="누가" style="width:110px"><input value="${esc(x.syms.join(", "))}" placeholder="종목 (쉼표)" style="flex:1;min-width:140px"><select>${JR_K.map((k) => `<option ${k === x.kind ? "selected" : ""}>${k}</option>`).join("")}</select><button type="button" class="btn y s" data-jrok="1">저장</button><button type="button" class="btn g s" data-jrno="1">취소</button></div>`;
+    const [ta] = box.querySelectorAll("textarea"), [wi, si] = box.querySelectorAll("input"); ta.focus();
+    box.querySelector("[data-jrok]").onclick = () => { if (ta.value.trim()) x.t = ta.value.trim(); x.who = wi.value.trim(); x.syms = si.value.split(/[,，]/).map((y) => y.trim()).filter(Boolean); x.kind = box.querySelector("select").value; jrSave(); jrRender(); };
+    box.querySelector("[data-jrno]").onclick = () => jrRender(); }
 });
