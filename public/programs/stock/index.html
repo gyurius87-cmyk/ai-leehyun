@@ -331,6 +331,19 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 .jr-i .k.k0{background:#fef3c7;color:#92400e}.jr-i .k.k1{background:#dbeafe;color:#1e40af}.jr-i .k.k2{background:#fce7f3;color:#9d174d}.jr-i .k.k3{background:#dcfce7;color:#166534}
 .jr-i .tx{flex:1;min-width:0}.jr-i .tx b{font-weight:600;font-size:15px;white-space:pre-wrap;word-break:break-word}.jr-i .mt{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px;font-size:12px;color:var(--muted)}.jr-i .sy{border:1px solid var(--line);border-radius:999px;padding:0 7px;cursor:pointer;color:var(--ink)}
 .jr-i .bt button{border:0;background:none;cursor:pointer;font-size:14px;padding:2px 4px;color:var(--muted)}.jr-i .bt button.on{color:#f2b632}
+.jr-i .k.k4{background:#e5e7eb;color:#374151}
+.jr-dash{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:10px 0}
+.jr-pc{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:left;background:var(--card,#fff);cursor:pointer;font:inherit;color:inherit;display:grid;gap:5px}.jr-pc[aria-pressed=true]{border-color:#f2b632;box-shadow:0 0 0 2px #f2b63255}
+.jr-pc .nm{font-weight:800;font-size:15px}.jr-pc .nm .note{font-weight:500;margin:0}
+.jr-pc .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--soft)}.jr-pc .bar i{display:block;height:100%}
+.jr-pc .bar i.k0{background:#f59e0b}.jr-pc .bar i.k1{background:#3b82f6}.jr-pc .bar i.k2{background:#ec4899}.jr-pc .bar i.k3{background:#22c55e}.jr-pc .bar i.k4{background:#9ca3af}
+.jr-pc .kk,.jr-pc .sy2,.jr-pc .fl{font-size:12px;color:var(--ink);display:flex;flex-wrap:wrap;gap:4px}.jr-pc .sy2 span{border:1px solid var(--line);border-radius:999px;padding:0 6px}
+.jr-ptabs{gap:4px;margin:8px 0;flex-wrap:wrap}
+.jr-sum{margin:8px 0;padding:10px 12px;border-left:4px solid #f2b632;background:var(--soft);border-radius:8px;white-space:pre-wrap;line-height:1.55}
+.jr-files{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}.jr-f{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 6px 2px 10px;background:var(--card,#fff);font-size:13px}.jr-f a{color:var(--ink);font-weight:600}.jr-f button{border:0;background:none;cursor:pointer;color:var(--muted)}
+.jr-ai{margin:8px 0;padding:8px 10px;border:1px dashed #f2b632;border-radius:10px}.jr-ai summary{cursor:pointer;font-weight:700}.jr-ai textarea{width:100%;margin-top:6px}
+.jr-draft{margin:10px 0;padding:10px 12px;border:2px solid #f2b632;border-radius:12px;background:#fffbeb;color:#1f2937}.jr-di{display:flex;gap:8px;padding:6px 2px;border-bottom:1px solid #fde68a;align-items:flex-start}.jr-dsum{display:block;margin:6px 0;line-height:1.5}
+.jr-who{cursor:pointer;font-weight:700;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -598,7 +611,7 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
   <!-- 주리딩: 주식 스터디 모임에서 나온 이야기 -->
   <section class="box" id="juri" hidden>
     <h2>주리딩 <span id="jrCnt"></span></h2>
-    <div class="row" style="gap:6px;margin-bottom:8px"><button type="button" class="btn y s" id="jrNew">+ 새 모임</button><input id="jrQ" placeholder="찾기 (이야기·사람·종목)" style="flex:0 1 240px"><span class="row" id="jrView" style="gap:4px"></span></div>
+    <div class="row" style="gap:6px;margin-bottom:8px"><button type="button" class="btn y s" id="jrNew">+ 새 회차</button><input id="jrQ" placeholder="찾기 (이야기·사람·종목)" style="flex:0 1 240px"><span class="row" id="jrView" style="gap:4px"></span></div>
     <div id="jrBody"></div>
   </section>
 
