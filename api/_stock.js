@@ -625,7 +625,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "histhold") return res.json(await histHold(false));
       if (op === "council") { if (q.id) { const [c] = await redis([["GET", "stk:council:" + String(q.id).slice(0, 20)]]); return c ? res.json(json(c)) : res.status(404).json({ error: "none" }); } const [l] = await redis([["GET", "stk:councils"]]); return res.json({ list: json(l) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
-      if (op === "todo") { const [t] = await redis([["GET", "stk:todo"]]); return res.json({ list: json(t) || [] }); }
+      if (op === "todo") { const [t, g] = await redis([["GET", "stk:todo"], ["GET", "stk:todotags"]]); return res.json({ list: json(t) || [], tags: json(g) || null }); }
       if (op === "blog") return res.json(q.id ? (await blogView(String(q.id))) || { err: "none" } : await blogList());
       if (op === "bimg") return res.json(await blogImgGet(String(q.id || "")));
       if (op === "monmac") return res.json(await monMacro(/^\d{4}-\d{2}$/.test(q.m || "") ? q.m : kstDay().slice(0, 7), !!q.force));
@@ -687,6 +687,7 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "study") { try { if (b.del) return res.json(await studyDel(String(b.del))); if (b.id) return res.json(await studyFollow(String(b.id), b.text)); const [bf] = await redis([["GET", `stk:brief:${kstDay()}`]]); const B = json(bf); return res.json(await studyAsk(b.text, (s, r) => chart(s, r), B ? `${B.headline} / 미국: ${B.us?.move || ""} / 한국: ${B.kr?.move || ""}` : "")); } catch (e) { return res.status(502).json({ error: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "draw") { const k = "stk:draw:" + String(b.s || "").slice(0, 30), L = (Array.isArray(b.list) ? b.list : []).slice(0, 200); await redis([L.length ? ["SET", k, JSON.stringify(L).slice(0, 60000)] : ["DEL", k]]); return res.json({ ok: true }); }
     if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
+    if (b.op === "todotags") { const T = [...new Set((Array.isArray(b.tags) ? b.tags : []).map((x) => String(x || "").trim().slice(0, 20)).filter(Boolean))].slice(0, 30); await redis([["SET", "stk:todotags", JSON.stringify(T)]]); return res.json({ ok: true, tags: T }); }
     if (b.op === "todoadd") return res.json(await todoAdd(b.t, b.src, b));
     if (b.op === "todo") { const L = (Array.isArray(b.list) ? b.list : []).slice(0, 2000).map((x) => ({ id: String(x.id || "").slice(0, 20), t: String(x.t || "").slice(0, 500), tag: String(x.tag || "").slice(0, 20), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due || "") ? x.due : "", star: !!x.star, at: +x.at || Date.now(), done: +x.done || 0, src: x.src && typeof x.src === "object" ? { tab: String(x.src.tab || "").slice(0, 20), ref: String(x.src.ref || "").slice(0, 100), label: String(x.src.label || "").slice(0, 80), auto: !!x.src.auto } : null, memo: String(x.memo || "").slice(0, 2000) })).filter((x) => x.id && x.t);
       // 화면을 연 뒤(base 이후)에 자동으로 들어온 것은 지우지 않고 살려 둠
