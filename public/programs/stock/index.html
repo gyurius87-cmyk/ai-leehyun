@@ -317,6 +317,12 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 .dt-d h3{margin:0;font-size:20px}.dt-d .one{font-size:15.5px;font-weight:700;margin:6px 0}.dt-d .now{font-size:14px;margin:4px 0}
 .dt-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin:8px 0}.dt-up>div{border-radius:10px;padding:7px 10px;background:var(--soft);font-size:13.5px}
 .dt-up .ar{font-weight:900;font-size:16px;margin:0 4px}.dt-read{border-left:4px solid #f2b632;padding:4px 10px;margin:8px 0;font-size:14px}
+.td-i{display:flex;gap:10px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid var(--line)}.td-i input[type=checkbox]{width:20px;height:20px;margin-top:1px;flex:0 0 auto;cursor:pointer}
+.td-i .tx{flex:1;min-width:0}.td-i .tx b{font-weight:600;font-size:15px;word-break:break-word;cursor:text}.td-i.dn .tx b{text-decoration:line-through;color:var(--muted)}
+.td-i .mt{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px;font-size:12px;color:var(--muted)}.td-i .mt .late{color:var(--up);font-weight:700}.td-i .mt .today{color:#b45309;font-weight:700}
+.td-i .tg{border-radius:999px;padding:0 7px;background:var(--soft);font-weight:700}.td-i .src{border-radius:999px;padding:0 7px;border:1px solid var(--line);cursor:pointer}
+.td-i .bt{display:flex;gap:2px}.td-i .bt button{border:0;background:none;cursor:pointer;font-size:15px;padding:2px 5px;color:var(--muted)}.td-i .bt button.on{color:#f2b632}
+.td-h{margin:14px 0 2px;font-size:13px;color:var(--muted);font-weight:700}.td-undo{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;z-index:60;box-shadow:0 4px 14px #0004}.td-undo button{background:none;border:0;color:#f2b632;font-weight:800;cursor:pointer;margin-left:8px}
 </style>
 </head>
 <body>
@@ -347,6 +353,7 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
     <button type="button" data-tab="study" aria-pressed="false">공부 사전</button>
     <button type="button" data-tab="mon" aria-pressed="false">월례회</button>
     <button type="button" data-tab="blog" aria-pressed="false">스터디</button>
+    <button type="button" data-tab="todo" aria-pressed="false">할일</button>
   </nav>
 
   <!-- 대시보드 -->
@@ -569,6 +576,14 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
     <div class="row" style="gap:6px;margin-bottom:6px"><input id="stQ" placeholder="기록 검색" style="flex:0 1 220px"><span class="note" id="stCnt"></span></div>
     <div id="stList"></div>
     </div>
+  </section>
+
+  <!-- 할일 -->
+  <section class="box" id="todo" hidden>
+    <h2>할일 <span id="tdCnt"></span></h2>
+    <form id="tdForm" class="row" style="gap:6px"><input id="tdIn" placeholder="할 일 (예: 엔비디아 실적 발표 보고 비중 정하기)" style="flex:1;min-width:220px" autocomplete="off"><input id="tdDue" type="date" style="flex:0 0 auto" title="언제까지 (안 넣어도 돼요)"><button class="btn y s">추가</button></form>
+    <div class="row" id="tdTags" style="gap:4px;margin:8px 0"></div>
+    <div id="tdList"></div>
   </section>
 
   <!-- 월례회 -->

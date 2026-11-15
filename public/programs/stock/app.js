@@ -38,7 +38,7 @@ async function aiWait(rid) {
     throw new Error("timeout");
   } finally { AIW.delete(rid); aiBadge(); }
 }
-function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog"].forEach((t) => ($(t).hidden = true)); }
+function gate() { $("gate").hidden = false; $("tabs").hidden = true; ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog", "todo"].forEach((t) => ($(t).hidden = true)); }
 $("keyForm").onsubmit = (e) => { e.preventDefault(); adminKey = $("keyIn").value.trim(); try { localStorage.setItem("ai-admin-key", adminKey); } catch {} boot(); };
 
 // ── 대가 얼굴 (실제 사진 대신 특징을 살린 그림)
@@ -79,7 +79,7 @@ function line(cnv, vals, opt = {}) {
 const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 
 // ── 탭
-function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog"].forEach((x) => ($(x).hidden = x !== t)); if (t === "mon") loadMon(); if (t === "blog") loadBlog(); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
+function showTab(t) { ls.set("stk-tab", t); $$("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tab === t)); ["dash", "chart", "macro", "masters", "famous", "f13", "yt", "soc", "acct", "hist", "review", "db", "study", "mon", "blog", "todo"].forEach((x) => ($(x).hidden = x !== t)); if (t === "todo") loadTodo(); if (t === "mon") loadMon(); if (t === "blog") loadBlog(); if (t === "db") loadDb(); if (t === "study") loadStudy(); if (t === "chart") window.openChartTab?.(); if (t === "macro") loadWorld(); if (t === "masters") loadMasters(); if (t === "famous") loadFam(); if (t === "f13") loadF13(); if (t === "yt") loadYt(); if (t === "soc") loadSoc(); if (t === "acct") renderAcct(); if (t === "hist") loadHist(); if (t === "review") { renderTrades(); renderKwRv(); } }
 $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); };
 
 let SNAP = null, NEWS = null, BRIEF = null, BT = null, INFO = [], ACCT = { hold: [], cash: 0, cashUsd: 0 }, TRADES = [], Q = {}, FX = 1400;
@@ -2134,3 +2134,47 @@ async function bgJpg(btn) {
   } catch (e) { alert("JPG 저장 실패: " + (e.message || e)); }
   btn.disabled = false; btn.textContent = old;
 }
+
+
+// ── 할일: 주식 관련 투두 (서버 stk:todo 하나에 통째로 저장). 다른 탭에서는 window.stkTodoAdd(글, {tab, ref, label}) 로 넘겨요
+let TD = null, tdTag = ls.get("stk-tdtag", "전체"), tdUndo = null;
+const TD_TAGS = ["매매", "공부", "확인", "월례회", "기타"];
+const tdDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+let tdBase = 0;
+// 탭을 열 때마다 새로 받아요 (자동으로 들어온 것 반영)
+function loadTodo() { setTimeout(async () => { if (!TD) $("tdList").innerHTML = `<p class="note">불러오는 중…</p>`; try { const t0 = Date.now(); TD = (await api("op=todo")).list || []; tdBase = t0; } catch { if (!TD) { $("tdList").innerHTML = `<p class="msg no">못 불러왔어요.</p>`; return; } } tdRender(); $("tdIn").focus(); }); }
+let tdSaveT = null; function tdSave() { clearTimeout(tdSaveT); tdSaveT = setTimeout(async () => { try { const t0 = Date.now(), r = await api("", { op: "todo", list: TD, base: tdBase }); tdBase = t0; if (r.added?.length) { const ids = new Set(TD.map((x) => x.id)); TD.unshift(...r.added.filter((x) => !ids.has(x.id))); tdRender(); } } catch { $("tdCnt").textContent = "⚠️ 저장 실패, 다시 시도해 주세요"; } }, 400); }
+function tdRender() {
+  if (!TD) return; const today = tdDay(), open = TD.filter((x) => !x.done), done = TD.filter((x) => x.done);
+  const tags = ["전체", ...TD_TAGS.filter((g) => TD.some((x) => x.tag === g)), ...(TD.some((x) => x.src?.auto) ? ["🤖 자동"] : [])];
+  if (!tags.includes(tdTag)) tdTag = "전체";
+  $("tdCnt").textContent = `남은 ${open.length} · 끝낸 ${done.length}`;
+  $("tdTags").innerHTML = tags.map((g) => `<button type="button" class="pill" data-tdg="${g}" aria-pressed="${g === tdTag}">${g} <span class="note">${g === "전체" ? open.length : open.filter((x) => (g === "🤖 자동" ? x.src?.auto : x.tag === g)).length}</span></button>`).join("") + `<span class="note" style="margin:0 0 0 8px">새로 넣을 때 분류:</span>` + TD_TAGS.map((g) => `<button type="button" class="pill" data-tdnew="${g}" aria-pressed="${(ls.get("stk-tdnew", "") || "") === g}">${g}</button>`).join("");
+  const F = (L) => L.filter((x) => tdTag === "전체" || (tdTag === "🤖 자동" ? x.src?.auto : x.tag === tdTag));
+  const ord = (a, b) => (b.star - a.star) || ((a.due || "9") < (b.due || "9") ? -1 : (a.due || "9") > (b.due || "9") ? 1 : b.at - a.at);
+  const row = (x) => { const late = x.due && !x.done && x.due < today, td = x.due === today; return `<div class="td-i${x.done ? " dn" : ""}" data-tdi="${x.id}"><input type="checkbox" data-tdc="${x.id}" ${x.done ? "checked" : ""} aria-label="끝냄"><div class="tx"><b data-tde="${x.id}" title="눌러서 고치기">${esc(x.t)}</b><div class="mt">${x.tag ? `<span class="tg">${esc(x.tag)}</span>` : ""}${x.due ? `<span class="${late ? "late" : td ? "today" : ""}">${late ? "⏰ 지남 " : td ? "오늘 " : ""}${esc(x.due.slice(5).replace("-", "/"))}까지</span>` : ""}${x.src?.auto ? `<span class="tg" title="자동으로 들어온 할일">🤖 자동</span>` : ""}${x.src?.label ? `<span class="src" data-tdsrc="${x.id}" title="${esc(x.src.tab)}에서 넘어옴">↪ ${esc(x.src.label)}</span>` : ""}${x.done ? `<span>${new Date(x.done).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })} 끝냄</span>` : ""}${x.memo ? `<span>📝 ${esc(x.memo.slice(0, 60))}</span>` : ""}</div></div><div class="bt"><button type="button" data-tds="${x.id}" class="${x.star ? "on" : ""}" title="중요">★</button><button type="button" data-tdm="${x.id}" title="메모">📝</button><button type="button" data-tdx="${x.id}" title="지우기">✕</button></div></div>`; };
+  const O = F(open).sort(ord), D = F(done).sort((a, b) => b.done - a.done);
+  $("tdList").innerHTML = (O.length ? O.map(row).join("") : `<p class="note">남은 할일이 없어요.</p>`) + (D.length ? `<div class="td-h">끝낸 것 ${D.length}</div>${D.slice(0, ls.get("stk-tdall", false) ? 999 : 10).map(row).join("")}${D.length > 10 ? `<button type="button" class="btn g s" data-tdall="1" style="margin-top:6px">${ls.get("stk-tdall", false) ? "접기" : "끝낸 것 다 보기"}</button>` : ""}` : "");
+}
+function tdToast(msg, undo) { document.querySelector(".td-undo")?.remove(); clearTimeout(tdUndo); const d = document.createElement("div"); d.className = "td-undo"; d.innerHTML = `${esc(msg)}${undo ? `<button type="button">되돌리기</button>` : ""}`; document.body.appendChild(d); if (undo) d.querySelector("button").onclick = () => { undo(); d.remove(); }; tdUndo = setTimeout(() => d.remove(), 5000); }
+window.stkTodoAdd = async (t, src, opt = {}) => { if (!TD) { try { TD = (await api("op=todo")).list || []; } catch { return false; } } TD.unshift({ id: uid(), t: String(t).trim(), tag: opt.tag || "", due: opt.due || "", star: false, at: Date.now(), done: 0, src: src || null, memo: opt.memo || "" }); tdSave(); tdRender(); tdToast("할일에 넣었어요"); return true; };
+$("tdForm").onsubmit = (e) => { e.preventDefault(); const t = $("tdIn").value.trim(); if (!t || !TD) return; TD.unshift({ id: uid(), t, tag: ls.get("stk-tdnew", "") || (tdTag !== "전체" ? tdTag : ""), due: $("tdDue").value || "", star: false, at: Date.now(), done: 0, src: null, memo: "" }); $("tdIn").value = ""; $("tdDue").value = ""; tdSave(); tdRender(); $("tdIn").focus(); };
+document.addEventListener("click", (e) => {
+  if (!TD || !e.target.closest("#todo")) return; const g = (a) => e.target.closest(`[${a}]`)?.getAttribute(a), it = (id) => TD.find((x) => x.id === id);
+  let id;
+  if ((id = g("data-tdg"))) { tdTag = id; ls.set("stk-tdtag", id); return tdRender(); }
+  if ((id = g("data-tdnew"))) { ls.set("stk-tdnew", ls.get("stk-tdnew", "") === id ? "" : id); return tdRender(); }
+  if (g("data-tdall")) { ls.set("stk-tdall", !ls.get("stk-tdall", false)); return tdRender(); }
+  if ((id = g("data-tdc"))) { const x = it(id); if (!x) return; const was = x.done; x.done = x.done ? 0 : Date.now(); tdSave(); tdRender(); if (x.done) tdToast("끝냄 ✓", () => { x.done = was; tdSave(); tdRender(); }); return; }
+  if ((id = g("data-tds"))) { const x = it(id); if (x) { x.star = !x.star; tdSave(); tdRender(); } return; }
+  if ((id = g("data-tdx"))) { const k = TD.findIndex((x) => x.id === id); if (k < 0) return; const [x] = TD.splice(k, 1); tdSave(); tdRender(); tdToast("지웠어요", () => { TD.splice(k, 0, x); tdSave(); tdRender(); }); return; }
+  if ((id = g("data-tdsrc"))) { const x = it(id); if (x?.src?.tab && document.querySelector(`[data-tab="${x.src.tab}"]`)) showTab(x.src.tab); return; }
+  if ((id = g("data-tdm")) || (id = g("data-tde"))) { const x = it(id); if (!x) return; const memo = !!g("data-tdm"), box = e.target.closest(".td-i").querySelector(".tx");
+    box.innerHTML = memo ? `<b>${esc(x.t)}</b><textarea rows="3" style="width:100%;margin-top:4px" placeholder="메모 (근거, 가격, 링크 등)">${esc(x.memo)}</textarea>` : `<input value="${esc(x.t)}" style="width:100%"><div class="row" style="gap:4px;margin-top:4px"><input type="date" value="${esc(x.due)}"><select>${["", ...TD_TAGS].map((t) => `<option value="${t}" ${t === x.tag ? "selected" : ""}>${t || "분류 없음"}</option>`).join("")}</select></div>`;
+    box.insertAdjacentHTML("beforeend", `<div class="row" style="gap:4px;margin-top:4px"><button type="button" class="btn y s" data-tdok="1">저장</button><button type="button" class="btn g s" data-tdno="1">취소</button></div>`);
+    const f = box.querySelector(memo ? "textarea" : "input"); f.focus();
+    box.querySelector("[data-tdok]").onclick = () => { if (memo) x.memo = f.value.trim(); else { if (f.value.trim()) x.t = f.value.trim(); x.due = box.querySelector("input[type=date]").value || ""; x.tag = box.querySelector("select").value; } tdSave(); tdRender(); };
+    box.querySelector("[data-tdno]").onclick = () => tdRender();
+    f.onkeydown = (ev) => { if (ev.key === "Enter" && (!memo || ev.ctrlKey)) box.querySelector("[data-tdok]").click(); if (ev.key === "Escape") tdRender(); };
+  }
+});
