@@ -38,7 +38,7 @@ h2 { margin: 0 0 10px; font-size: 16px; display: flex; gap: 8px; align-items: ba
 h2 span, .note { font-size: 13px; font-weight: 400; color: var(--muted); }
 h3 { margin: 0 0 6px; font-size: 14px; }
 nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-nav.tabs button { border: 0; border-radius: 999px; padding: 8px 16px; font: inherit; font-weight: 700; background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+nav.tabs button { border: 0; border-radius: 999px; padding: 8px 14px; white-space: nowrap; font: inherit; font-weight: 700; background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
 nav.tabs button[aria-pressed="true"] { background: var(--amber); color: #1c2027; }
 .btn { border: 0; border-radius: 10px; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; background: var(--board); color: var(--on-board); }
 .btn.g { background: var(--soft); color: var(--ink); border: 1px solid var(--line); }
@@ -342,15 +342,15 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
     <button type="button" data-tab="macro" aria-pressed="false">매크로</button>
     <button type="button" data-tab="chart" aria-pressed="false">차트</button>
     <button type="button" data-tab="masters" aria-pressed="false">대가</button>
-    <button type="button" data-tab="famous" aria-pressed="false">유명인 포폴</button>
+    <button type="button" data-tab="famous" aria-pressed="false">유명인</button>
     <button type="button" data-tab="f13" aria-pressed="false">13F</button>
     <button type="button" data-tab="yt" aria-pressed="false">유튜버</button>
     <button type="button" data-tab="soc" aria-pressed="false">SNS 발언</button>
-    <button type="button" data-tab="acct" aria-pressed="false">내 계좌</button>
+    <button type="button" data-tab="acct" aria-pressed="false">계좌</button>
     <button type="button" data-tab="hist" aria-pressed="false">거래이력</button>
     <button type="button" data-tab="review" aria-pressed="false">복기</button>
     <button type="button" data-tab="db" aria-pressed="false">DB</button>
-    <button type="button" data-tab="study" aria-pressed="false">공부 사전</button>
+    <button type="button" data-tab="study" aria-pressed="false">주식사전</button>
     <button type="button" data-tab="mon" aria-pressed="false">월례회</button>
     <button type="button" data-tab="blog" aria-pressed="false">스터디</button>
     <button type="button" data-tab="todo" aria-pressed="false">할일</button>
@@ -566,7 +566,7 @@ body.mon-share #moMake,body.mon-share #moShare,body.mon-share #moShareBox,body.m
 
   <!-- 공부 -->
   <section class="box" id="study" hidden>
-    <h2>공부 사전</h2>
+    <h2>주식사전</h2>
     <div class="row" id="dtCat" style="gap:4px;margin:0 0 10px"></div>
     <div id="dtBody"></div>
     <div id="stAsk" hidden>
