@@ -625,6 +625,7 @@ export async function stockHandler(req, res, isAdmin) {
       if (op === "histhold") return res.json(await histHold(false));
       if (op === "council") { if (q.id) { const [c] = await redis([["GET", "stk:council:" + String(q.id).slice(0, 20)]]); return c ? res.json(json(c)) : res.status(404).json({ error: "none" }); } const [l] = await redis([["GET", "stk:councils"]]); return res.json({ list: json(l) || [] }); }
       if (op === "advice") return res.json((await acctAdvice(false)) || {});
+      if (op === "todo") { const [t] = await redis([["GET", "stk:todo"]]); return res.json({ list: json(t) || [] }); }
       if (op === "blog") return res.json(q.id ? (await blogView(String(q.id))) || { err: "none" } : await blogList());
       if (op === "bimg") return res.json(await blogImgGet(String(q.id || "")));
       if (op === "monmac") return res.json(await monMacro(/^\d{4}-\d{2}$/.test(q.m || "") ? q.m : kstDay().slice(0, 7), !!q.force));
@@ -686,6 +687,11 @@ export async function stockHandler(req, res, isAdmin) {
     if (b.op === "study") { try { if (b.del) return res.json(await studyDel(String(b.del))); if (b.id) return res.json(await studyFollow(String(b.id), b.text)); const [bf] = await redis([["GET", `stk:brief:${kstDay()}`]]); const B = json(bf); return res.json(await studyAsk(b.text, (s, r) => chart(s, r), B ? `${B.headline} / 미국: ${B.us?.move || ""} / 한국: ${B.kr?.move || ""}` : "")); } catch (e) { return res.status(502).json({ error: String(e?.message || e).slice(0, 200) }); } }
     if (b.op === "draw") { const k = "stk:draw:" + String(b.s || "").slice(0, 30), L = (Array.isArray(b.list) ? b.list : []).slice(0, 200); await redis([L.length ? ["SET", k, JSON.stringify(L).slice(0, 60000)] : ["DEL", k]]); return res.json({ ok: true }); }
     if (b.op === "dbfill") return res.json(await dayDbFill(Math.min(14, +b.n || 7), DBDEPS, !!b.force));
+    if (b.op === "todoadd") return res.json(await todoAdd(b.t, b.src, b));
+    if (b.op === "todo") { const L = (Array.isArray(b.list) ? b.list : []).slice(0, 2000).map((x) => ({ id: String(x.id || "").slice(0, 20), t: String(x.t || "").slice(0, 500), tag: String(x.tag || "").slice(0, 20), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due || "") ? x.due : "", star: !!x.star, at: +x.at || Date.now(), done: +x.done || 0, src: x.src && typeof x.src === "object" ? { tab: String(x.src.tab || "").slice(0, 20), ref: String(x.src.ref || "").slice(0, 100), label: String(x.src.label || "").slice(0, 80), auto: !!x.src.auto } : null, memo: String(x.memo || "").slice(0, 2000) })).filter((x) => x.id && x.t);
+      // 화면을 연 뒤(base 이후)에 자동으로 들어온 것은 지우지 않고 살려 둠
+      const [cur] = await redis([["GET", "stk:todo"]]), base = +b.base || 0, ids = new Set(L.map((x) => x.id)), keep = (json(cur) || []).filter((x) => !ids.has(x.id) && x.at > base);
+      const out = [...keep, ...L]; await redis([["SET", "stk:todo", JSON.stringify(out)]]); return res.json({ ok: true, n: out.length, added: keep }); }
     if (b.op === "blog") return res.json(b.del ? await blogDel(String(b.del)) : await blogSave(b.post));
     if (b.op === "bimg") { const r = await blogImgPut(b.data); return r.err ? res.status(400).json({ error: r.err }) : res.json(r); }
     if (b.op === "blogai") { const r = await blogAi(String(b.id || ""), +b.bi, DBDEPS); return r.err ? res.status(400).json({ error: r.err }) : res.json(r); }
@@ -740,4 +746,13 @@ export async function monMacro(m, force) {
   const out = { m, at: Date.now(), list };
   await redis([["SET", ck, JSON.stringify(out)]]);
   return out;
+}
+
+// ── 할일 자동 추가: 다른 기능(예약 작업·크론·다른 탭)이 부르는 입구. src.ref가 같은 게 이미 있으면 다시 넣지 않아요
+export async function todoAdd(t, src, o = {}) {
+  t = String(t || "").trim().slice(0, 500); if (!t) return { err: "empty" };
+  const [cur] = await redis([["GET", "stk:todo"]]), L = json(cur) || [];
+  const ref = src?.ref ? String(src.ref).slice(0, 100) : ""; if (ref && L.some((x) => x.src?.ref === ref)) return { dup: true };
+  const it = { id: Math.random().toString(36).slice(2, 12), t, tag: String(o.tag || "").slice(0, 20), due: /^\d{4}-\d{2}-\d{2}$/.test(o.due || "") ? o.due : "", star: !!o.star, at: Date.now(), done: 0, src: src ? { tab: String(src.tab || "").slice(0, 20), ref, label: String(src.label || "").slice(0, 80), auto: !!src.auto } : null, memo: String(o.memo || "").slice(0, 2000) };
+  await redis([["SET", "stk:todo", JSON.stringify([it, ...L].slice(0, 2000))]]); return { ok: true, item: it };
 }
