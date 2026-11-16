@@ -389,6 +389,16 @@
       "private": true,
       "href": "/programs/sourcing/",
       "cat": "업무·운영"
+    },
+    {
+      "id": "vercel",
+      "name": "버셀 모니터링",
+      "status": "using",
+      "summary": "사이트 서버(버셀)에 이번 결제 기간 어디에 얼마 썼는지, 포함 크레딧이 얼마 남았고 기간 끝에 얼마 나올지, 최근 배포 상태를 한 화면에 보여 줘요.",
+      "start": "2026-11-16",
+      "private": true,
+      "href": "/programs/vercel/",
+      "cat": "업무·운영"
     }
   ]
 }

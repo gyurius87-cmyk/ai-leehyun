@@ -3,6 +3,7 @@
 import { parseFeed } from "./_youtube.js";
 import motiv from "./_motiv.js";
 import shop from "./_shop.js";
+import vercelMon from "./_vercel.js";
 
 const CHANNEL_ID = "UCIYCw2XtVtNibEApbO8HeQA"; // 유튜브 @AI이현
 const UPLOADS = "UU" + CHANNEL_ID.slice(2); // 업로드 재생목록 = 새 영상이 맨 앞
@@ -52,6 +53,7 @@ async function fromPlaylist() {
 export default async function handler(req, res) {
   if (req.query.motiv) return motiv(req, res); // 동기부여 저장소 (/api/motiv)
   if (req.query.shop) return shop(req, res); // 쇼핑몰 뭐 팔까? (/api/shop)
+  if (req.query.vc) return vercelMon(req, res); // 버셀 모니터링 (/api/vercel)
   let items = null, from = "";
   try { items = await fromFeed(); from = "feed"; } catch (e) { console.error(e); }
   if (!items || !items.length) {

@@ -30,6 +30,10 @@
     {
       "source": "/api/shop",
       "destination": "/api/youtube?shop=1"
+    },
+    {
+      "source": "/api/vercel",
+      "destination": "/api/youtube?vc=1"
     }
   ],
   "crons": [

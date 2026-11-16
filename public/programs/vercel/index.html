@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>버셀 모니터링</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#f2f2f0;--card:#fff;--fg:#111;--sub:#3b3d42;--line:#dcdcd8;--acc:#111;--ok:#0d7a4f;--warn:#c2410c;--bad:#c0262d;--chip:#ececea;--track:#e6e6e2;
+--c1:#2563eb;--c2:#0d9488;--c3:#d97706;--c4:#9333ea;--c5:#e11d48;--c6:#65a30d;--c7:#0891b2;--c8:#78716c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0b0c;--card:#161618;--fg:#f1f1ef;--sub:#c4c4c0;--line:#2c2c30;--acc:#f1f1ef;--ok:#34d399;--warn:#fb923c;--bad:#f87171;--chip:#232327;--track:#26262a;--c1:#6b9bff;--c2:#2dd4bf;--c3:#fbbf24;--c4:#c084fc;--c5:#fb7185;--c6:#a3e635;--c7:#22d3ee;--c8:#a8a29e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b0b0c;--card:#161618;--fg:#f1f1ef;--sub:#c4c4c0;--line:#2c2c30;--acc:#f1f1ef;--ok:#34d399;--warn:#fb923c;--bad:#f87171;--chip:#232327;--track:#26262a;--c1:#6b9bff;--c2:#2dd4bf;--c3:#fbbf24;--c4:#c084fc;--c5:#fb7185;--c6:#a3e635;--c7:#22d3ee;--c8:#a8a29e;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "IBM Plex Sans KR",system-ui,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 60px;display:flex;flex-direction:column;gap:14px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:28px;margin:0;display:flex;align-items:center;gap:10px}
+h1 svg{width:24px;height:24px}
+h3{margin:0 0 10px;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.banner{background:var(--card);border:1px dashed var(--warn);border-radius:12px;padding:12px 14px;font-size:14px}
+.banner b{color:var(--warn)}
+.banner ol{margin:6px 0 0;padding-left:20px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:600 14px "IBM Plex Sans KR";cursor:pointer;background:var(--card);color:var(--fg)}
+.btn.main{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.btn:disabled{opacity:.5;cursor:wait}
+input,select{font:15px "IBM Plex Sans KR";color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 10px;min-width:0}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:760px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g2{grid-template-columns:1fr}}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat .k{font-size:13px;color:var(--sub);font-weight:600}
+.stat .v{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;line-height:1.15}
+.stat .s{font-size:13px;color:var(--sub)}
+.gauge{height:22px;border-radius:11px;background:var(--track);overflow:hidden;position:relative;display:flex}
+.gauge b{display:block;height:100%}
+.gauge .proj{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--fg);border-radius:2px}
+.gmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);font-weight:600;margin-top:6px;flex-wrap:wrap;gap:6px}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.legend button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:3px 10px;cursor:pointer;font:600 13px "IBM Plex Sans KR";display:flex;gap:6px;align-items:center}
+.legend button.off{opacity:.35}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chart{width:100%;height:auto;display:block}
+.chart text{font:11px "IBM Plex Mono";fill:var(--sub)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.br{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,2fr) 70px;gap:10px;align-items:center;font-size:14px;font-weight:600}
+.br .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.br i{display:block;height:12px;border-radius:6px;background:var(--track);overflow:hidden}
+.br i b{display:block;height:100%}
+.br span:last-child{font-family:"IBM Plex Mono";text-align:right}
+.list{display:flex;flex-direction:column}
+.it{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.it:last-child{border-bottom:0}
+.dot{width:10px;height:10px;border-radius:50%}
+.it .t{min-width:0}
+.it .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it .t small{color:var(--sub);font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it .r{font-family:"IBM Plex Mono";font-size:13px;text-align:right;color:var(--sub)}
+.tag{font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;background:var(--chip);color:var(--fg);margin-left:6px}
+.err{color:var(--bad);font-size:13.5px;font-weight:600}
+.empty{color:var(--sub);font-size:14px}
+.gate{max-width:420px;margin:60px auto;display:flex;flex-direction:column;gap:10px}
+.foot{font-size:12.5px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <h1><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2z" fill="currentColor"/></svg>버셀 모니터링</h1>
+    <div class="row">
+      <label class="foot">결제일 매달 <select id="day"></select>일</label>
+      <button class="btn" id="refresh">새로 읽기</button>
+    </div>
+  </header>
+
+  <div class="banner" id="demo" hidden>
+    <b>예시 자료예요.</b> 진짜 숫자를 보려면 한 번만 해 주세요.
+    <ol>
+      <li>vercel.com/account/tokens 에서 <b>Create Token</b> (Scope는 내 팀, 만료는 길게)</li>
+      <li>Vercel → ai-leehyun 프로젝트 → Settings → Environment Variables 에 이름 <span class="mono">VERCEL_TOKEN</span>, 값에 그 토큰 붙여넣기</li>
+      <li>Deployments 에서 맨 위 배포 <b>Redeploy</b></li>
+    </ol>
+    토큰은 채팅에 붙이지 마세요.
+  </div>
+
+  <section class="card">
+    <div class="grid g4">
+      <div class="stat"><span class="k">이번 기간 쓴 돈</span><span class="v" id="sUsed">-</span><span class="s" id="sPer">-</span></div>
+      <div class="stat"><span class="k">포함 크레딧 남은 것</span><span class="v" id="sLeft">-</span><span class="s">Pro 요금제 $20 크레딧 기준</span></div>
+      <div class="stat"><span class="k">이대로면 기간 끝에</span><span class="v" id="sProj">-</span><span class="s" id="sProjS">-</span></div>
+      <div class="stat"><span class="k">다음 결제일까지</span><span class="v" id="sDays">-</span><span class="s" id="sNext">-</span></div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="gauge" id="gauge"></div>
+      <div class="gmeta"><span>$0</span><span id="gMid"></span><span>$20 크레딧</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>하루에 어디에 썼나</h3>
+    <div class="legend" id="legend"></div>
+    <svg class="chart" id="daily" viewBox="0 0 900 240" role="img" aria-label="날짜별 사용 금액"></svg>
+  </section>
+
+  <div class="grid g2">
+    <section class="card"><h3>항목별</h3><div class="bars" id="bySvc"></div></section>
+    <section class="card"><h3>프로젝트별</h3><div class="bars" id="byProj"></div></section>
+  </div>
+
+  <div class="grid g2">
+    <section class="card"><h3>최근 배포</h3><div class="list" id="deps"></div></section>
+    <section class="card"><h3>프로젝트</h3><div class="list" id="projs"></div></section>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<div class="gate" id="gate" hidden>
+  <h1>버셀 모니터링</h1>
+  <p>관리자 키를 넣어 주세요. 이 기기에만 저장돼요.</p>
+  <input id="gateKey" type="password" placeholder="관리자 키">
+  <button class="btn main" id="gateBtn">들어가기</button>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let KEY = ''; try { KEY = localStorage.getItem('ai-admin-key') || ''; } catch (e) {}
+let DAY = 16; try { DAY = +localStorage.getItem('vc-day') || 16; } catch (e) {}
+const COLORS = ['--c1','--c2','--c3','--c4','--c5','--c6','--c7','--c8'];
+const NAMES = { 'Function Invocations':'함수 실행 횟수', 'Fluid Active CPU':'함수 CPU 시간', 'Fluid Provisioned Memory':'함수 메모리', 'Fast Data Transfer':'데이터 전송', 'Fast Origin Transfer':'원본 전송', 'Edge Requests':'접속 요청', 'Edge Request CPU Duration':'접속 CPU', 'Image Optimization':'이미지 최적화', 'Image Optimization Transformations':'이미지 변환', 'Image Optimization Cache Reads':'이미지 캐시 읽기', 'Image Optimization Cache Writes':'이미지 캐시 쓰기', 'Build Minutes':'빌드 시간', 'Build CPU Minutes':'빌드 CPU', 'ISR Reads':'페이지 캐시 읽기', 'ISR Writes':'페이지 캐시 쓰기', 'Blob Storage Size':'파일 저장소', 'Web Analytics Events':'방문 분석', 'Speed Insights Data Points':'속도 측정', 'Observability Events':'로그·관찰' };
+const ko = (s) => NAMES[s] ? `${NAMES[s]}` : s;
+const usd = (n) => '$' + (n >= 100 ? n.toFixed(0) : n.toFixed(2));
+const hidden = new Set();
+let DATA = null;
+
+for (let d = 1; d <= 28; d++) { const o = document.createElement('option'); o.value = d; o.textContent = d; if (d === DAY) o.selected = true; $('day').append(o); }
+$('day').onchange = () => { DAY = +$('day').value; try { localStorage.setItem('vc-day', DAY); } catch (e) {} load(); };
+$('refresh').onclick = () => load(true);
+$('gateBtn').onclick = () => { KEY = $('gateKey').value.trim(); try { localStorage.setItem('ai-admin-key', KEY); } catch (e) {} location.reload(); };
+
+async function load(fresh) {
+  $('refresh').disabled = true;
+  try {
+    const r = await fetch(`/api/vercel?day=${DAY}${fresh ? '&fresh=1' : ''}`, { headers: { 'x-admin-key': KEY } });
+    if (r.status === 401) { $('app').hidden = true; $('gate').hidden = false; return; }
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    DATA = j; render();
+  } catch (e) {
+    $('foot').innerHTML = `<span class="err">못 읽었어요: ${esc(e.message)}</span>`;
+  } finally { $('refresh').disabled = false; }
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const col = (i) => `var(${COLORS[i % COLORS.length]})`;
+const ago = (t) => { const m = (Date.now() - t) / 6e4; return m < 60 ? Math.round(m) + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
+
+function render() {
+  const { per, bill, projects, deps, demo } = DATA;
+  $('demo').hidden = !demo;
+  const b = bill && !bill.error ? bill : null;
+  const CREDIT = 20;
+  const used = b ? b.total : 0, proj = b ? b.projected : 0;
+  $('sUsed').textContent = b ? usd(used) : '-';
+  $('sPer').textContent = `${per.from.slice(5).replace('-', '.')} ~ ${per.to.slice(5).replace('-', '.')}`;
+  const left = CREDIT - used;
+  $('sLeft').textContent = b ? (left >= 0 ? usd(left) : '-' + usd(-left)) : '-';
+  $('sLeft').style.color = left < 0 ? 'var(--bad)' : left < 5 ? 'var(--warn)' : 'var(--ok)';
+  $('sProj').textContent = b ? usd(proj) : '-';
+  $('sProj').style.color = proj > CREDIT ? 'var(--bad)' : 'var(--ok)';
+  $('sProjS').textContent = b ? (proj > CREDIT ? `크레딧보다 ${usd(proj - CREDIT)} 더 나올 것 같아요` : '크레딧 안에서 끝나요') : '';
+  const dleft = Math.max(0, Math.ceil(per.days - per.elapsed));
+  $('sDays').textContent = dleft + '일';
+  $('sNext').textContent = per.to.replace(/-/g, '.');
+
+  // 게이지: 항목별 색으로 쌓기 + 예상 위치 선
+  const svcs = b ? b.byService : [];
+  const max = Math.max(CREDIT, used, proj) || CREDIT;
+  $('gauge').innerHTML = svcs.map((s, i) => `<b style="width:${s.cost / max * 100}%;background:${col(i)}" title="${esc(ko(s.name))} ${usd(s.cost)}"></b>`).join('') +
+    (b ? `<span class="proj" style="left:calc(${Math.min(100, proj / max * 100)}% - 1px)" title="예상 ${usd(proj)}"></span>` : '') +
+    (max > CREDIT ? `<span class="proj" style="left:calc(${CREDIT / max * 100}% - 1px);background:var(--bad)"></span>` : '');
+  $('gMid').textContent = b ? `▮ 예상 ${usd(proj)}` : (bill && bill.error ? '' : '');
+
+  // 범례 + 날짜별 쌓은 막대
+  $('legend').innerHTML = svcs.map((s, i) => `<button data-s="${esc(s.name)}" class="${hidden.has(s.name) ? 'off' : ''}"><i style="background:${col(i)}"></i>${esc(ko(s.name))}</button>`).join('');
+  $('legend').querySelectorAll('button').forEach((bt) => bt.onclick = () => { const n = bt.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); render(); });
+  drawDaily(b, svcs);
+
+  bars('bySvc', svcs.map((s, i) => ({ n: ko(s.name), v: s.cost, c: col(i) })), b ? '' : (bill && bill.error) || '');
+  bars('byProj', b ? b.byProject.map((p, i) => ({ n: p.name, v: p.cost, c: col(i + 3) })) : [], b && !b.byProject.length ? '버셀 결제 자료에 프로젝트 구분이 없어서 팀 전체로만 보여요.' : '');
+
+  // 배포
+  if (deps && deps.error) $('deps').innerHTML = `<div class="err">${esc(deps.error)}</div>`;
+  else $('deps').innerHTML = (deps || []).slice(0, 12).map((d) => {
+    const c = d.state === 'READY' ? 'var(--ok)' : d.state === 'ERROR' ? 'var(--bad)' : d.state === 'CANCELED' ? 'var(--sub)' : 'var(--warn)';
+    const st = { READY: '완료', ERROR: '실패', BUILDING: '빌드 중', QUEUED: '대기', CANCELED: '취소', INITIALIZING: '준비 중' }[d.state] || d.state;
+    return `<div class="it"><span class="dot" style="background:${c}"></span><span class="t"><b>${esc(d.msg || d.name)}</b><small>${esc(d.name)} · ${st}${d.target === 'production' ? '' : ' · 미리보기'}</small></span><span class="r">${ago(d.created)}${d.build != null ? '<br>' + d.build + '초' : ''}</span></div>`;
+  }).join('') || '<div class="empty">배포가 없어요</div>';
+
+  // 프로젝트
+  if (projects && projects.error) $('projs').innerHTML = `<div class="err">${esc(projects.error)}</div>`;
+  else $('projs').innerHTML = (projects || []).slice().sort((a, b) => b.updatedAt - a.updatedAt).map((p) =>
+    `<div class="it"><span class="dot" style="background:var(--c1)"></span><span class="t"><b>${esc(p.name)}<span class="tag">${esc(p.framework || '기타')}</span></b><small>만든 지 ${Math.round((Date.now() - p.created) / 864e5)}일</small></span><span class="r">${ago(p.updatedAt)}</span></div>`).join('') || '<div class="empty">프로젝트가 없어요</div>';
+
+  // 최근 배포 7일 성공률·평균 빌드
+  const wk = (deps && !deps.error ? deps : []).filter((d) => Date.now() - d.created < 7 * 864e5);
+  const okN = wk.filter((d) => d.state === 'READY').length, bs = wk.filter((d) => d.build != null);
+  $('foot').textContent = `${new Date(DATA.at).toLocaleString('ko-KR')} 기준 · 최근 7일 배포 ${wk.length}번, 성공 ${okN}번` + (bs.length ? `, 평균 빌드 ${Math.round(bs.reduce((s, d) => s + d.build, 0) / bs.length)}초` : '') + ' · 버셀 결제 자료는 하루 늦게 들어올 수 있어요.';
+}
+
+function bars(id, items, note) {
+  const mx = Math.max(...items.map((x) => x.v), 0) || 1;
+  $(id).innerHTML = (note && !items.length ? `<div class="${/vercel \d/.test(note) ? 'err' : 'empty'}">${esc(note)}</div>` : '') +
+    items.slice(0, 10).map((x) => `<div class="br"><span class="n" title="${esc(x.n)}">${esc(x.n)}</span><i><b style="width:${x.v / mx * 100}%;background:${x.c}"></b></i><span>${usd(x.v)}</span></div>`).join('') +
+    (note && items.length ? `<div class="empty">${esc(note)}</div>` : '');
+}
+
+function drawDaily(b, svcs) {
+  const svg = $('daily');
+  if (!b) { svg.innerHTML = ''; return; }
+  const W = 900, H = 240, L = 44, R = 8, T = 10, B = 26;
+  const days = b.byDay;
+  const vis = svcs.map((s, i) => ({ n: s.name, c: col(i) })).filter((s) => !hidden.has(s.n));
+  const tot = days.map((d) => vis.reduce((s, v) => s + (d[v.n] || 0), 0));
+  const mx = Math.max(...tot, 0.01) * 1.1;
+  const bw = (W - L - R) / days.length;
+  let out = '';
+  for (let k = 0; k <= 4; k++) { const v = mx / 4 * k, y = H - B - (H - T - B) * k / 4; out += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${usd(v)}</text>`; }
+  days.forEach((d, i) => {
+    let y = H - B; const x = L + i * bw + bw * 0.15, w = bw * 0.7;
+    vis.forEach((v) => { const h = (d[v.n] || 0) / mx * (H - T - B); if (h > 0) { y -= h; out += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${v.c}"><title>${d.day} ${esc(ko(v.n))} ${usd(d[v.n])}</title></rect>`; } });
+    if (i % Math.ceil(days.length / 10) === 0) out += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${d.day.slice(5).replace('-', '.')}</text>`;
+  });
+  svg.innerHTML = out;
+}
+
+if (!KEY) { $('app').hidden = true; $('gate').hidden = false; } else load();
+</script>
+</body>
+</html>
