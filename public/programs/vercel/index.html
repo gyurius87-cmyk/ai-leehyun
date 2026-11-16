@@ -190,7 +190,8 @@ function render() {
   $('legend').querySelectorAll('button').forEach((bt) => bt.onclick = () => { const n = bt.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); render(); });
   drawDaily(b, svcs);
 
-  bars('bySvc', svcs.map((s, i) => ({ n: ko(s.name), v: s.cost, c: col(i) })), b ? '' : (bill && bill.error) || '');
+  const billNote = bill && bill.noPlan ? '버셀이 아직 이번 결제 기간 자료를 만들지 않았어요. 오늘 Pro로 바꿔서 그래요. 첫 사용 기록이 쌓이면(보통 하루 안) 여기 숫자가 나와요.' : (bill && bill.error) || '';
+  bars('bySvc', svcs.map((s, i) => ({ n: ko(s.name), v: s.cost, c: col(i) })), b ? '' : billNote);
   bars('byProj', b ? b.byProject.map((p, i) => ({ n: p.name, v: p.cost, c: col(i + 3) })) : [], b && !b.byProject.length ? '버셀 결제 자료에 프로젝트 구분이 없어서 팀 전체로만 보여요.' : '');
 
   // 배포

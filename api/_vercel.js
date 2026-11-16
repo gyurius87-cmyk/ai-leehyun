@@ -105,9 +105,12 @@ async function live(day, fresh) {
   const [bill, projects, deps] = await Promise.all([
     cached(key, 1800, async () => {
       const toD = new Date(Math.min(Date.now() + 864e5, Date.parse(per.to + "T00:00:00Z")));
-      const text = await vc(`/v1/billing/charges?${tq}&from=${per.from}T00:00:00.000Z&to=${ymd(toD)}T00:00:00.000Z`, true);
+      const qs = `from=${per.from}T00:00:00.000Z&to=${ymd(toD)}T00:00:00.000Z`;
+      let text;
+      try { text = await vc(`/v1/billing/charges?${tq}&${qs}`, true); }
+      catch (e) { if (!tq || !/ 404 /.test(e.message)) throw e; text = await vc(`/v1/billing/charges?${qs}`, true); }
       return summarize(parseCharges(text), per);
-    }).catch((e) => ({ error: String(e.message || e) })),
+    }).catch((e) => ({ error: String(e.message || e), noPlan: /Plan not found/i.test(String(e.message)) })),
     cached("p", 1800, async () => {
       const j = await vc(`/v9/projects?limit=100&${tq}`);
       return (j.projects || []).map((p) => ({ name: p.name, framework: p.framework || "", updatedAt: p.updatedAt, created: p.createdAt, node: p.nodeVersion || "" }));
