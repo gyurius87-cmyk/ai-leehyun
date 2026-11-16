@@ -379,6 +379,16 @@
       "private": true,
       "href": "https://claude.ai/artifact/U8enQU1HNAUqXcfuVCRgq4",
       "cat": "SNS·콘텐츠"
+    },
+    {
+      "id": "sourcing",
+      "name": "쇼핑몰 뭐 팔까?",
+      "status": "using",
+      "summary": "키워드를 넣으면 월 검색량·상품 수·경쟁·1년 흐름·성수기·가격대·찾는 사람을 한 화면에 보여 주고, 카테고리 흐름과 내 조건에 맞는 팔 만한 키워드를 점수로 추천해요.",
+      "start": "2026-11-16",
+      "private": true,
+      "href": "/programs/sourcing/",
+      "cat": "업무·운영"
     }
   ]
 }

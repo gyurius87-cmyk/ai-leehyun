@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>쇼핑몰 뭐 팔까?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#f3f1ec;--card:#fff;--fg:#17181a;--sub:#3d4046;--line:#dedad1;--acc:#0f7b5f;--acc2:#e0582b;--soft:#e9f4ef;--warn:#b5462f;--chip:#f0ede6;--g1:#0f7b5f;--g2:#e0582b;--g3:#3866c9;--g4:#a2671a;--g5:#8b3fb0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111314;--card:#1a1d1f;--fg:#eeece8;--sub:#c3c0ba;--line:#2e3235;--acc:#3fc79c;--acc2:#ff8a5c;--soft:#163029;--warn:#ff8a70;--chip:#24282b;--g1:#3fc79c;--g2:#ff8a5c;--g3:#7ea3ff;--g4:#e0b060;--g5:#d08cf0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111314;--card:#1a1d1f;--fg:#eeece8;--sub:#c3c0ba;--line:#2e3235;--acc:#3fc79c;--acc2:#ff8a5c;--soft:#163029;--warn:#ff8a70;--chip:#24282b;--g1:#3fc79c;--g2:#ff8a5c;--g3:#7ea3ff;--g4:#e0b060;--g5:#d08cf0;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "IBM Plex Sans KR",system-ui,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 60px;display:flex;flex-direction:column;gap:14px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:28px;margin:0;letter-spacing:.01em}
+h1 em{font-style:normal;color:var(--acc2)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 14px;font:600 14px "IBM Plex Sans KR";cursor:pointer}
+.tab.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.banner{background:var(--soft);border:1px solid var(--acc);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--fg)}
+.banner b{color:var(--acc)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,textarea,select{font:15px "IBM Plex Sans KR";color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:0}
+input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.btn{border:0;border-radius:10px;padding:10px 18px;font:700 15px "IBM Plex Sans KR";cursor:pointer;background:var(--acc);color:#fff}
+.btn.ghost{background:var(--chip);color:var(--fg)}
+.btn:disabled{opacity:.5;cursor:wait}
+.big{flex:1 1 260px;font-size:17px;padding:12px 14px}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:760px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g2{grid-template-columns:1fr}}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat .k{font-size:13px;color:var(--sub);font-weight:600}
+.stat .v{font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;line-height:1.15}
+.stat .s{font-size:13px;color:var(--sub)}
+.scorebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.ring{width:92px;height:92px;flex:none}
+.parts{display:flex;flex-direction:column;gap:5px;flex:1;min-width:200px}
+.bar{display:grid;grid-template-columns:64px 1fr 44px;gap:8px;align-items:center;font-size:13px;font-weight:600}
+.bar i{display:block;height:10px;border-radius:5px;background:var(--chip);overflow:hidden}
+.bar i b{display:block;height:100%;background:var(--acc)}
+.bar span:last-child{font-family:"IBM Plex Mono";text-align:right}
+h3{margin:0 0 8px;font-size:15px}
+.chart{width:100%;height:auto;display:block}
+.chart text{font:11px "IBM Plex Mono";fill:var(--sub)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600}
+.legend button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:3px 10px;cursor:pointer;font:600 13px "IBM Plex Sans KR";display:flex;gap:6px;align-items:center}
+.legend button.off{opacity:.35}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:12px;color:var(--sub);cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card)}
+th:first-child,td:first-child{text-align:left}
+td.kw{font-weight:700;cursor:pointer;color:var(--fg)}
+td.kw:hover{color:var(--acc)}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700}
+.p-low{background:#d8f0e6;color:#0c5c46}.p-mid{background:#fbe8c8;color:#7a4a05}.p-high{background:#fbd6cc;color:#8a2a12}
+.up{color:var(--acc);font-weight:700}.down{color:var(--warn);font-weight:700}
+.sc{font-family:"IBM Plex Mono";font-weight:700}
+.months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px}
+.months div{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font:600 12px "IBM Plex Mono";color:var(--fg)}
+.split{display:flex;height:26px;border-radius:8px;overflow:hidden;font:700 12px "IBM Plex Sans KR"}
+.split div{display:flex;align-items:center;justify-content:center;color:#fff;min-width:0;overflow:hidden;white-space:nowrap}
+.prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.prods a{color:var(--fg);text-decoration:none;font-size:12px;display:flex;flex-direction:column;gap:4px}
+.prods img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--chip)}
+.prods b{font-family:"IBM Plex Mono"}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.cat{border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:var(--card);color:var(--fg);text-align:left;font:inherit;display:flex;flex-direction:column;gap:4px}
+.cat.on{outline:2px solid var(--acc)}
+.cat b{font-size:14px}.cat .g{font:700 20px "IBM Plex Mono"}
+.recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.rec{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--card)}
+.rec .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.rec .t{font-weight:700;font-size:16px;cursor:pointer}
+.rec .t:hover{color:var(--acc)}
+.rec .n{font:700 26px "IBM Plex Mono";color:var(--acc)}
+.rec .m{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:13px}
+.rec .m span{color:var(--sub)}
+.rec .m b{font-family:"IBM Plex Mono";text-align:right}
+.mini{font-size:12px;border:1px solid var(--line);background:var(--chip);color:var(--fg);border-radius:8px;padding:4px 10px;cursor:pointer;font-weight:600}
+.muted{color:var(--sub);font-size:13px}
+.form{display:grid;grid-template-columns:150px 1fr;gap:10px 14px;align-items:center}
+.form label{font-weight:700;font-size:14px}
+@media (max-width:640px){.form{grid-template-columns:1fr}}
+.checks{display:flex;gap:6px;flex-wrap:wrap}
+.checks label{font-weight:600;font-size:13px;background:var(--chip);border-radius:999px;padding:5px 11px;cursor:pointer;display:flex;gap:5px;align-items:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:9}
+.load{display:flex;gap:10px;align-items:center;color:var(--sub);font-weight:600}
+.spin{width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+.pick td select{padding:3px 6px;font-size:13px}
+.pick td input{padding:4px 8px;font-size:13px;width:100%}
+#gate .card{max-width:420px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>쇼핑몰 <em>뭐 팔까?</em></h1>
+    <nav class="tabs" id="tabs">
+      <button class="tab on" data-t="kw">🔎 키워드</button>
+      <button class="tab" data-t="cat">🗂 카테고리</button>
+      <button class="tab" data-t="rec">✨ 추천</button>
+      <button class="tab" data-t="pick">⭐ 찜</button>
+      <button class="tab" data-t="prof">⚙ 내 조건</button>
+    </nav>
+  </header>
+
+  <div id="gate" hidden><div class="card"><h3>관리자 키를 넣어 주세요</h3><div class="row"><input id="gateKey" type="password" placeholder="관리자 키" class="big"><button class="btn" id="gateBtn">열기</button></div></div></div>
+  <div class="banner" id="demoBan" hidden></div>
+
+  <!-- 키워드 -->
+  <section id="t-kw" class="grid">
+    <div class="row"><input id="kwIn" class="big" placeholder="키워드 (예: 차렵이불)" autocomplete="off"><button class="btn" id="kwGo">보기</button></div>
+    <div class="row" id="kwHist"></div>
+    <div id="kwOut" class="grid"></div>
+  </section>
+
+  <!-- 카테고리 -->
+  <section id="t-cat" class="grid" hidden>
+    <div class="card"><h3>대분류 최근 3달 성장률 <span class="muted">(1년 전 같은 3달 대비, 쇼핑 클릭)</span></h3><div class="cats" id="catGrid"></div></div>
+    <div class="card" id="catChartBox" hidden><div class="legend" id="catLeg"></div><div id="catChart"></div></div>
+    <div class="card" id="cmpBox"><h3>키워드끼리 비교 <span class="muted">(최대 5개, 쉼표로)</span></h3>
+      <div class="row"><input id="cmpIn" class="big" placeholder="차렵이불, 극세사이불, 구스이불"><select id="cmpCat"><option value="">카테고리 클릭 비교 안 함</option></select><button class="btn" id="cmpGo">비교</button></div>
+      <div id="cmpOut"></div></div>
+  </section>
+
+  <!-- 추천 -->
+  <section id="t-rec" class="grid" hidden>
+    <div class="card row" style="justify-content:space-between"><div><b id="recHead">내 조건으로 팔 만한 키워드 찾기</b><div class="muted" id="recSub"></div></div><button class="btn" id="recGo">추천 찾기</button></div>
+    <div id="recOut" class="recs"></div>
+  </section>
+
+  <!-- 찜 -->
+  <section id="t-pick" class="card" hidden><div class="tbl"><table class="pick"><thead><tr><th>키워드</th><th>점수</th><th>월 검색</th><th>경쟁</th><th>성장</th><th>중간 가격</th><th>상태</th><th style="text-align:left">메모</th><th></th></tr></thead><tbody id="pickBody"></tbody></table></div><div class="muted" id="pickEmpty">⭐를 누르면 여기 모여요.</div></section>
+
+  <!-- 내 조건 -->
+  <section id="t-prof" class="card" hidden>
+    <div class="form">
+      <label>씨앗 키워드</label><textarea id="pSeeds" rows="2" placeholder="이불, 베개, 토퍼, 매트리스커버, 수면용품 (쉼표, 최대 15개)"></textarea>
+      <label>잘 아는 분야</label><div class="checks" id="pCats"></div>
+      <label>팔고 싶은 가격</label><div class="row"><input id="pMin" type="number" placeholder="최소 원" style="width:140px"> ~ <input id="pMax" type="number" placeholder="최대 원" style="width:140px"></div>
+      <label>월 검색량 범위</label><div class="row"><input id="vMin" type="number" placeholder="1000" style="width:140px"> ~ <input id="vMax" type="number" placeholder="100000" style="width:140px"></div>
+      <label>빼고 싶은 말</label><input id="pAvoid" placeholder="중고, 렌탈, 브랜드명 (쉼표)">
+      <label>내 상황 메모</label><textarea id="pMemo" rows="3" placeholder="창고 크기, 촬영 가능 여부, 사입/위탁, 한 달 예산 등"></textarea>
+      <span></span><div class="row"><button class="btn" id="pSave">저장</button><span class="muted" id="pMsg"></span></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (n) => (n == null || isNaN(n) ? '–' : Math.round(n).toLocaleString('ko-KR'));
+const won = (n) => (n ? fmt(n) + '원' : '–');
+const short = (n) => (n == null ? '–' : n >= 10000 ? (Math.round(n / 1000) / 10).toLocaleString('ko-KR') + '만' : fmt(n));
+const COL = ['var(--g1)', 'var(--g2)', 'var(--g3)', 'var(--g4)', 'var(--g5)'];
+let KEY = ''; try { KEY = localStorage.getItem('ai-admin-key') || ''; } catch (e) {}
+let STATUS = {}, PROF = null, PICKS = [];
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 2200); }
+async function api(op, params = {}, post) {
+  const url = '/api/shop?op=' + op + (post ? '' : Object.entries(params).map(([k, v]) => '&' + k + '=' + encodeURIComponent(v)).join(''));
+  const r = await fetch(url, { method: post ? 'POST' : 'GET', headers: { 'x-admin-key': KEY, ...(post ? { 'content-type': 'application/json' } : {}) }, body: post ? JSON.stringify({ op, ...params }) : undefined });
+  if (r.status === 401) { $('gate').hidden = false; throw new Error('auth'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+const loading = (el, t) => { el.innerHTML = `<div class="load"><div class="spin"></div>${esc(t)}</div>`; };
+
+// ── 탭 (주소 뒤 #kw 처럼 기억)
+const TABS = ['kw', 'cat', 'rec', 'pick', 'prof'];
+function show(t) { if (!TABS.includes(t)) t = 'kw'; for (const x of TABS) $('t-' + x).hidden = x !== t; document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.t === t)); try { localStorage.setItem('sourcing-tab', t); } catch (e) {} if (t === 'cat') loadCats(); if (t === 'pick') loadPicks(); if (t === 'prof') fillProf(); if (t === 'rec') loadLastRec(); }
+$('tabs').onclick = (e) => { const b = e.target.closest('.tab'); if (b) show(b.dataset.t); };
+
+// ── 그림 도구 (SVG)
+function lineChart(series, { h = 200, labels = true, fmtX = (p) => p.slice(2, 7).replace('-', '.') } = {}) {
+  const W = 760, H = h, L = 34, R = 8, T = 10, B = 22;
+  const all = series.filter((s) => !s.off).flatMap((s) => s.data.map((d) => d[1]));
+  const max = Math.max(1, ...all), n = Math.max(...series.map((s) => s.data.length), 2);
+  const x = (i) => L + ((W - L - R) * i) / (n - 1), y = (v) => T + (H - T - B) * (1 - v / max);
+  let g = '';
+  for (let k = 0; k <= 4; k++) { const v = (max * k) / 4; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 4}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`; }
+  const ref = series[0]?.data || [];
+  if (labels) { const step = Math.ceil(ref.length / 8); ref.forEach((d, i) => { if (i % step === 0) g += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${fmtX(d[0])}</text>`; }); }
+  series.forEach((s, si) => { if (s.off) return; const pts = s.data.map((d, i) => `${x(i).toFixed(1)},${y(d[1]).toFixed(1)}`).join(' '); g += `<polyline points="${pts}" fill="none" stroke="${s.color || COL[si % 5]}" stroke-width="2.4" stroke-linejoin="round"/>`; });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+function spark(vals, w = 110, h = 30) { if (!vals?.length) return ''; const max = Math.max(...vals, 1), min = Math.min(...vals); const pts = vals.map((v, i) => `${((w * i) / (vals.length - 1)).toFixed(1)},${(h - 2 - ((h - 4) * (v - min)) / (max - min || 1)).toFixed(1)}`).join(' '); return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2"/></svg>`; }
+function ring(score) { const r = 38, c = 2 * Math.PI * r, col = score >= 70 ? 'var(--acc)' : score >= 50 ? 'var(--g4)' : 'var(--warn)'; return `<svg class="ring" viewBox="0 0 92 92"><circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--chip)" stroke-width="9"/><circle cx="46" cy="46" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-dasharray="${(c * score) / 100} ${c}" transform="rotate(-90 46 46)" stroke-linecap="round"/><text x="46" y="54" text-anchor="middle" style="font:700 26px 'IBM Plex Mono';fill:var(--fg)">${score}</text></svg>`; }
+const PART = [['demand', '수요', 30], ['comp', '경쟁', 30], ['grow', '성장', 20], ['ads', '광고', 10], ['fit', '내 조건', 10]];
+const compPill = (c) => (c ? `<span class="pill ${c === '낮음' ? 'p-low' : c === '중간' ? 'p-mid' : 'p-high'}">${esc(c)}</span>` : '–');
+const growTxt = (g) => (g == null ? '–' : `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '▲' : '▼'}${Math.abs(g)}%</span>`);
+const ratioTxt = (r) => (r == null ? '–' : `<span class="${r < 1 ? 'up' : r > 10 ? 'down' : ''}">${r}</span>`);
+
+// ── 키워드 보기
+let hist = []; try { hist = JSON.parse(localStorage.getItem('sourcing-hist') || '[]'); } catch (e) {}
+function drawHist() { $('kwHist').innerHTML = hist.map((k) => `<button class="mini" data-k="${esc(k)}">${esc(k)}</button>`).join(''); }
+$('kwHist').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) runKw(b.dataset.k); };
+$('kwGo').onclick = () => runKw($('kwIn').value);
+$('kwIn').onkeydown = (e) => { if (e.key === 'Enter') runKw($('kwIn').value); };
+let LAST = null, relSort = 'vol';
+async function runKw(kw) {
+  kw = String(kw || '').trim(); if (!kw) return; $('kwIn').value = kw; show('kw');
+  hist = [kw, ...hist.filter((x) => x !== kw)].slice(0, 12); try { localStorage.setItem('sourcing-hist', JSON.stringify(hist)); } catch (e) {} drawHist();
+  loading($('kwOut'), '네이버 자료 모으는 중…');
+  try { LAST = await api('kw', { kw }); drawKw(); } catch (e) { $('kwOut').innerHTML = `<div class="card">못 가져왔어요: ${esc(e.message)}</div>`; }
+}
+function drawKw() {
+  const d = LAST, s = d.shop || {}, picked = PICKS.some((p) => p.kw === d.kw);
+  const mPeak = new Set(d.peak || []);
+  const mAvg = Array(13).fill(0), mCnt = Array(13).fill(0); for (const [p, r] of d.month || []) { const m = +p.slice(5, 7); mAvg[m] += r; mCnt[m]++; }
+  const mv = mAvg.map((v, i) => (mCnt[i] ? v / mCnt[i] : 0)), mMax = Math.max(...mv, 1);
+  const aud = d.aud || {}, g = aud.gender || {}, dv = aud.device || {}, ag = aud.age || {};
+  const binMax = Math.max(1, ...(s.priceBins || []).map((b) => b.n));
+  $('kwOut').innerHTML = `
+  <div class="card scorebox">${ring(d.score)}
+    <div class="parts">${PART.map(([k, n, m]) => `<div class="bar"><span>${n}</span><i><b style="width:${((d.parts?.[k] || 0) / m) * 100}%"></b></i><span>${d.parts?.[k] || 0}/${m}</span></div>`).join('')}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><b style="font-size:20px">${esc(d.kw)}</b><span class="muted">${esc(s.topCat || '')}</span><button class="btn ${picked ? 'ghost' : ''}" id="pickBtn">${picked ? '⭐ 찜함' : '☆ 찜하기'}</button></div></div>
+  <div class="grid g4">
+    <div class="card stat"><span class="k">월 검색량</span><span class="v">${d.vol ? short(d.vol) : '–'}</span><span class="s">모바일 ${d.vol ? Math.round((d.mo / d.vol) * 100) : '–'}% · 클릭 ${fmt(d.clk)}</span></div>
+    <div class="card stat"><span class="k">상품 수</span><span class="v">${short(s.total)}</span><span class="s">검색 1회당 상품 <b>${d.ratio ?? '–'}</b>개</span></div>
+    <div class="card stat"><span class="k">1년 전보다</span><span class="v">${growTxt(d.grow)}</span><span class="s">성수기 ${(d.peak || []).map((m) => m + '월').join('·') || '–'}</span></div>
+    <div class="card stat"><span class="k">중간 가격</span><span class="v">${won(s.price?.med)}</span><span class="s">${won(s.price?.q1)} ~ ${won(s.price?.q3)}</span></div>
+  </div>
+  <div class="card"><h3>검색 흐름 (1년, 주)</h3>${lineChart([{ data: d.week || [] }])}</div>
+  <div class="grid g2">
+    <div class="card"><h3>달마다 검색 (3년 평균)</h3><div class="months">${mv.slice(1).map((v, i) => `<div style="background:color-mix(in srgb,var(--acc) ${Math.round((v / mMax) * 85)}%,var(--chip));${mPeak.has(i + 1) ? 'outline:2px solid var(--acc2)' : ''}">${i + 1}</div>`).join('')}</div></div>
+    <div class="card"><h3>가격대 (상위 100개)</h3><svg class="chart" viewBox="0 0 400 130">${(s.priceBins || []).map((b, i) => `<rect x="${i * 50 + 4}" y="${110 - (b.n / binMax) * 95}" width="42" height="${(b.n / binMax) * 95}" rx="4" fill="var(--g3)"/><text x="${i * 50 + 25}" y="125" text-anchor="middle">${short(b.from)}</text><text x="${i * 50 + 25}" y="${105 - (b.n / binMax) * 95}" text-anchor="middle">${b.n}</text>`).join('')}</svg></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>누가 찾나 (쇼핑 클릭, 1년)</h3>
+      ${g.f != null ? `<div class="split" style="margin-bottom:8px"><div style="width:${g.f}%;background:var(--g2)">여 ${g.f}%</div><div style="width:${g.m}%;background:var(--g3)">남 ${g.m}%</div></div>` : '<div class="muted">카테고리를 못 찾아서 없어요</div>'}
+      ${dv.mo != null ? `<div class="split" style="margin-bottom:8px"><div style="width:${dv.mo}%;background:var(--g1)">모바일 ${dv.mo}%</div><div style="width:${dv.pc}%;background:var(--g4)">PC ${dv.pc}%</div></div>` : ''}
+      ${Object.keys(ag).length ? `<div class="split">${Object.entries(ag).map(([k, v], i) => `<div style="width:${v}%;background:${COL[i % 5]}">${v >= 8 ? k + '대 ' + Math.round(v) + '%' : ''}</div>`).join('')}</div>` : ''}</div>
+    <div class="card"><h3>많이 보이는 판매처 (상위 100개 중)</h3>${(s.topMalls || []).map((m) => `<div class="bar"><span style="overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</span><i><b style="width:${m.n}%;background:${m.name === '네이버' ? 'var(--g4)' : 'var(--acc)'}"></b></i><span>${m.n}</span></div>`).join('')}<div class="muted" style="margin-top:6px">'네이버'는 가격비교로 묶인 상품이에요. 많을수록 가격 싸움이 세요.</div></div>
+  </div>
+  ${(s.top || []).length ? `<div class="card"><h3>지금 상위 상품</h3><div class="prods">${s.top.map((p) => `<a href="${esc(p.link)}" target="_blank" rel="noopener"><img src="${esc(p.img)}" alt="" loading="lazy"><span>${esc(p.t.slice(0, 40))}</span><b>${won(p.p)}</b><span class="muted">${esc(p.mall)}</span></a>`).join('')}</div></div>` : ''}
+  <div class="card"><h3>연관 키워드 ${d.related?.length ? `<span class="muted">${d.related.length}개 · 이름을 누르면 그 키워드로</span>` : ''}</h3>
+    ${d.relError ? `<div class="muted">연관 키워드를 못 가져왔어요: ${esc(d.relError)}</div>` : !STATUS.searchad && !d.demo ? '<div class="muted">검색광고 키를 넣으면 월 검색량·연관 키워드가 켜져요.</div>' : ''}
+    <div class="tbl"><table><thead><tr><th data-s="kw">키워드</th><th data-s="vol">월 검색 ▾</th><th data-s="mo">모바일</th><th data-s="clk">월 클릭</th><th data-s="comp">광고 경쟁</th></tr></thead><tbody>${relRows()}</tbody></table></div></div>`;
+  $('pickBtn').onclick = () => togglePick(d);
+  $('kwOut').querySelector('thead').onclick = (e) => { const th = e.target.closest('th'); if (th) { relSort = th.dataset.s; $('kwOut').querySelector('tbody').innerHTML = relRows(); } };
+  $('kwOut').querySelector('tbody').onclick = (e) => { const td = e.target.closest('td.kw'); if (td) runKw(td.textContent); };
+}
+function relRows() { const cr = { 낮음: 0, 중간: 1, 높음: 2 }; const r = [...(LAST.related || [])].sort((a, b) => (relSort === 'kw' ? a.kw.localeCompare(b.kw) : relSort === 'comp' ? (cr[a.comp] ?? 3) - (cr[b.comp] ?? 3) : (b[relSort] || 0) - (a[relSort] || 0))); return r.map((x) => `<tr><td class="kw">${esc(x.kw)}</td><td class="mono">${fmt(x.vol)}</td><td class="mono">${x.vol ? Math.round((x.mo / x.vol) * 100) + '%' : '–'}</td><td class="mono">${fmt(x.clk)}</td><td>${compPill(x.comp)}</td></tr>`).join(''); }
+
+// ── 카테고리
+let CATS = null, catOn = new Set();
+async function loadCats() {
+  if (CATS) return; loading($('catGrid'), '카테고리 흐름 모으는 중…');
+  try { const j = await api('cats'); CATS = j.list; } catch (e) { $('catGrid').innerHTML = esc(e.message); return; }
+  const sorted = [...CATS].sort((a, b) => (b.grow ?? -999) - (a.grow ?? -999));
+  catOn = new Set(sorted.slice(0, 3).map((c) => c.id));
+  $('catGrid').innerHTML = sorted.map((c) => `<button class="cat" data-id="${c.id}"><b>${esc(c.name)}</b><span class="g ${c.grow >= 0 ? 'up' : 'down'}">${c.grow == null ? '–' : (c.grow >= 0 ? '+' : '') + c.grow + '%'}</span>${spark(c.data.map((d) => d[1]), 140, 28)}<span class="muted">성수기 ${(c.peak || []).map((m) => m + '월').join('·')}</span></button>`).join('');
+  $('catGrid').onclick = (e) => { const b = e.target.closest('.cat'); if (!b) return; catOn.has(b.dataset.id) ? catOn.delete(b.dataset.id) : catOn.add(b.dataset.id); drawCat(); };
+  drawCat();
+}
+function drawCat() {
+  document.querySelectorAll('.cat').forEach((b) => b.classList.toggle('on', catOn.has(b.dataset.id)));
+  const on = CATS.filter((c) => catOn.has(c.id)); $('catChartBox').hidden = !on.length;
+  // 묶음마다 비율 기준이 달라서, 각자 첫 달=100 으로 맞춰 그려요
+  const ser = on.map((c, i) => { const b = c.data[0]?.[1] || 1; return { name: c.name, color: COL[i % 5], data: c.data.map(([p, r]) => [p, Math.round((r / b) * 100)]) }; });
+  $('catLeg').innerHTML = ser.map((s) => `<span style="display:flex;gap:5px;align-items:center"><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('') + '<span class="muted">2년 전 첫 달 = 100</span>';
+  $('catChart').innerHTML = lineChart(ser, { h: 220 });
+}
+$('cmpGo').onclick = async () => {
+  const kws = $('cmpIn').value.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 5); if (!kws.length) return;
+  loading($('cmpOut'), '비교하는 중…');
+  try {
+    const j = await api('compare', { kws: kws.join(','), cat: $('cmpCat').value });
+    const draw = (list, title) => { const ser = list.map((s, i) => ({ name: s.kw, color: COL[i % 5], data: s.data })); return `<h3 style="margin-top:12px">${title}</h3><div class="legend">${ser.map((s) => `<span style="display:flex;gap:5px;align-items:center"><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>${lineChart(ser)}`; };
+    $('cmpOut').innerHTML = draw(j.list || [], '검색량 비교 (가장 높은 때 = 100)') + (j.click?.length ? draw(j.click, '쇼핑 클릭 비교 (같은 카테고리 안)') : '');
+  } catch (e) { $('cmpOut').innerHTML = esc(e.message); }
+};
+
+// ── 추천
+let RECS = null;
+async function loadLastRec() { if (RECS) return; try { const j = await api('lastrec'); if (j.list?.length) { RECS = j; drawRec(); } else recSub(); } catch (e) {} }
+function recSub() { const p = PROF || {}; $('recSub').textContent = p.seeds?.length ? `씨앗 ${p.seeds.length}개 · 월 검색 ${fmt(p.vmin || 1000)}~${fmt(p.vmax || 100000)} · 가격 ${p.pmin || p.pmax ? won(p.pmin) + '~' + won(p.pmax) : '제한 없음'}` : '⚙ 내 조건에서 씨앗 키워드부터 넣어 주세요'; }
+$('recGo').onclick = async () => {
+  $('recGo').disabled = true; loading($('recOut'), '연관 키워드 수백 개를 모아서 점수 매기는 중… (20~40초)');
+  try { RECS = await api('rec'); drawRec(); } catch (e) { $('recOut').innerHTML = `<div class="card">못 했어요: ${esc(e.message)}</div>`; }
+  $('recGo').disabled = false;
+};
+function drawRec() {
+  recSub();
+  if (RECS.at) $('recSub').textContent += ` · ${new Date(RECS.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 기준 · 연관 ${fmt(RECS.pool)}개 중 ${RECS.checked}개 확인`;
+  if (RECS.msg) { $('recOut').innerHTML = `<div class="card">${esc(RECS.msg)}</div>`; return; }
+  $('recOut').innerHTML = (RECS.list || []).map((x, i) => `<div class="rec"><div class="top"><div><div class="t" data-k="${esc(x.kw)}">${i + 1}. ${esc(x.kw)}</div><div class="muted">${esc((x.topCat || x.cat1 || '').split(' > ').slice(-2).join(' > '))}</div></div><span class="n">${x.score}</span></div>
+    ${spark(x.spark, 200, 34)}
+    <div class="m"><span>월 검색</span><b>${short(x.vol)}</b><span>검색당 상품</span><b>${ratioTxt(x.ratio)}</b><span>1년 전보다</span><b>${growTxt(x.grow)}</b><span>광고 경쟁</span><b>${compPill(x.comp)}</b><span>중간 가격</span><b>${won(x.price?.med)}</b><span>성수기</span><b>${(x.peak || []).map((m) => m + '월').join('·') || '–'}</b></div>
+    <div class="row"><button class="mini" data-k="${esc(x.kw)}">자세히</button><button class="mini" data-p="${i}">${PICKS.some((p) => p.kw === x.kw) ? '⭐ 찜함' : '☆ 찜'}</button></div></div>`).join('');
+  $('recOut').onclick = (e) => { const k = e.target.closest('[data-k]'); if (k) return runKw(k.dataset.k); const p = e.target.closest('[data-p]'); if (p) togglePick(RECS.list[+p.dataset.p]).then(drawRec); };
+}
+
+// ── 찜
+async function loadPicks() { try { PICKS = (await api('picks')).picks || []; } catch (e) {} drawPicks(); }
+async function togglePick(x) {
+  const has = PICKS.some((p) => p.kw === x.kw);
+  const j = await api('picks', has ? { del: x.kw } : { add: { kw: x.kw, score: x.score, vol: x.vol, ratio: x.ratio, grow: x.grow, price: x.price?.med || 0 } }, true);
+  PICKS = j.picks; toast(has ? '찜에서 뺐어요' : '찜했어요'); if (LAST && LAST.kw === x.kw && !$('t-kw').hidden) drawKw(); drawPicks();
+}
+function drawPicks() {
+  $('pickEmpty').hidden = PICKS.length > 0;
+  $('pickBody').innerHTML = PICKS.map((p) => `<tr><td class="kw">${esc(p.kw)}</td><td class="sc">${p.score}</td><td class="mono">${short(p.vol)}</td><td class="mono">${ratioTxt(p.ratio)}</td><td>${growTxt(p.grow)}</td><td class="mono">${won(p.price)}</td><td><select data-s="${esc(p.kw)}">${['후보', '조사 중', '샘플', '판매 중', '보류'].map((s) => `<option${p.status === s ? ' selected' : ''}>${s}</option>`).join('')}</select></td><td style="min-width:180px"><input data-n="${esc(p.kw)}" value="${esc(p.note)}" placeholder="메모"></td><td><button class="mini" data-d="${esc(p.kw)}">✕</button></td></tr>`).join('');
+}
+$('pickBody').onclick = async (e) => { const td = e.target.closest('td.kw'); if (td) return runKw(td.textContent); const d = e.target.closest('[data-d]'); if (d) { PICKS = (await api('picks', { del: d.dataset.d }, true)).picks; drawPicks(); toast('뺐어요'); } };
+$('pickBody').onchange = async (e) => { const s = e.target.dataset.s, n = e.target.dataset.n; if (s) PICKS = (await api('picks', { upd: { kw: s, status: e.target.value } }, true)).picks; if (n) PICKS = (await api('picks', { upd: { kw: n, note: e.target.value } }, true)).picks; toast('저장했어요'); };
+
+// ── 내 조건
+function fillProf() {
+  const p = PROF || {}; $('pSeeds').value = (p.seeds || []).join(', '); $('pAvoid').value = (p.avoid || []).join(', '); $('pMemo').value = p.memo || '';
+  $('pMin').value = p.pmin || ''; $('pMax').value = p.pmax || ''; $('vMin').value = p.vmin || ''; $('vMax').value = p.vmax || '';
+  $('pCats').innerHTML = (STATUS.cats || []).map(([id, n]) => `<label><input type="checkbox" value="${esc(n)}"${(p.cats || []).includes(n) ? ' checked' : ''}>${esc(n)}</label>`).join('');
+}
+$('pSave').onclick = async () => {
+  const prof = { seeds: $('pSeeds').value, avoid: $('pAvoid').value, memo: $('pMemo').value, pmin: $('pMin').value, pmax: $('pMax').value, vmin: $('vMin').value, vmax: $('vMax').value, cats: [...$('pCats').querySelectorAll('input:checked')].map((i) => i.value) };
+  try { PROF = (await api('prof', { prof }, true)).prof; toast('저장했어요'); RECS = null; recSub(); } catch (e) { $('pMsg').textContent = e.message; }
+};
+
+$('gateBtn').onclick = () => { KEY = $('gateKey').value.trim(); try { localStorage.setItem('ai-admin-key', KEY); } catch (e) {} location.reload(); };
+(async () => {
+  drawHist();
+  if (!KEY) { $('gate').hidden = false; return; }
+  try { STATUS = await api('status'); } catch (e) { return; }
+  const miss = [!STATUS.naver && '네이버 개발자센터 키(데이터랩·쇼핑 검색)', !STATUS.searchad && '네이버 검색광고 키(월 검색량·연관 키워드)'].filter(Boolean);
+  if (miss.length) { $('demoBan').hidden = false; $('demoBan').innerHTML = `<b>${STATUS.naver ? '일부 자료가 꺼져 있어요' : '지금은 예시 자료예요'}</b> · ${miss.join(', ')}를 사이트 설정(Vercel 환경변수)에 넣으면 진짜 자료로 바뀌어요.`; }
+  $('cmpCat').innerHTML += (STATUS.cats || []).map(([id, n]) => `<option value="${id}">${esc(n)} 안에서 클릭 비교</option>`).join('');
+  try { PROF = (await api('prof')).prof; } catch (e) {}
+  loadPicks();
+  let t = (location.hash || '').slice(1); if (!TABS.includes(t)) { try { t = localStorage.getItem('sourcing-tab') || 'kw'; } catch (e) { t = 'kw'; } }
+  show(t);
+  if (t === 'kw' && hist[0]) runKw(hist[0]);
+})();
+</script>
+</body>
+</html>
