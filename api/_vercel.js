@@ -83,7 +83,17 @@ function summarize(rows, per) {
 
 async function teamId() {
   if (process.env.VERCEL_TEAM_ID) return process.env.VERCEL_TEAM_ID;
-  return cached("team", 86400, async () => { const t = await vc("/v2/teams?limit=20"); return (t.teams || [])[0]?.id || ""; });
+  // 팀 하나에만 쓰는 토큰은 팀 목록을 못 봐요(403) → 내 정보의 기본 팀 → 프로젝트 주인 순서로 찾아요
+  return cached("team", 86400, async () => {
+    const tries = [
+      async () => (await vc("/v2/teams?limit=20")).teams?.[0]?.id,
+      async () => { const u = (await vc("/v2/user")).user || {}; return u.defaultTeamId; },
+      async () => { const p = await vc("/v9/projects/" + (process.env.VERCEL_PROJECT_NAME || "ai-leehyun")); return p.accountId; },
+      async () => (await vc("/v9/projects?limit=1")).projects?.[0]?.accountId,
+    ];
+    for (const t of tries) { try { const id = await t(); if (id) return id; } catch {} }
+    return "";
+  }).catch(() => "");
 }
 
 async function live(day, fresh) {
