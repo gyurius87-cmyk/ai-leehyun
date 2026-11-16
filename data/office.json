@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-15",
+  "updated": "2026-11-16",
   "depts": [
     {
       "id": "ai",
@@ -11,10 +11,11 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "done",
-          "doing": "순일시간 체크에 기록 고치기를 붙였어요",
+          "status": "waiting",
+          "doing": "쇼핑몰 뭐 팔까?를 만들고 네이버 키 넣기를 기다려요",
           "prop": "🛠️",
-          "acc": "glasses"
+          "acc": "glasses",
+          "since": "2026-11-16"
         },
         {
           "team": "콘텐츠팀",
