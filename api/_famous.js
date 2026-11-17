@@ -85,7 +85,10 @@ export function parseInfoTable(xml) {
     const o = by.get(k) || { n: tag(b, "nameOfIssuer").replace(/&amp;/g, "&"), cls: tag(b, "titleOfClass"), cusip, pc, val: 0, sh: 0 };
     o.val += +tag(b, "value") || 0; o.sh += +tag(b, "sshPrnamt") || 0; by.set(k, o);
   }
-  return [...by.values()].sort((a, b) => b.val - a.val);
+  const out = [...by.values()].sort((a, b) => b.val - a.val), sum = out.reduce((t, r) => t + r.val, 0);
+  // 일부 펀드(듀케인·바우포스트 등)는 아직 금액을 '천 달러' 단위로 내요. 13F는 1억 달러 넘는 곳만 내니까 합이 2천만보다 작으면 천 단위로 봐요
+  if (sum > 0 && sum < 2e7) out.forEach((r) => (r.val *= 1000));
+  return out;
 }
 
 export async function filing13F(cik, acc) {

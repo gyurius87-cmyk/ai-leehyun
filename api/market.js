@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   let viaShare = false; const sk = String(req.headers["x-share-key"] || "");
   if (!admin && sk && req.method === "GET" && (op === "mon" || op === "monmac" || (op === "chart" && ["1mo", "3mo", "6mo"].includes(String(req.query.r || ""))))) { const [cur] = await redis([["GET", "stk:monshare"]]); viaShare = !!cur && cur === sk; }
   // 제로 열쇠 읽기 확장 (이현님 승인 2026-11-17): 스터디 글·13F 읽기 + 13F 새 공시 받기만. 쓰기·삭제는 안 돼요
-  const viaWorker = !admin && worker && ((req.method === "GET" && ["blog", "f13", "f13fund", "f13stock", "famnow"].includes(op)) || (req.method === "POST" && ["f13refresh", "f13build"].includes(op)));
+  const viaWorker = !admin && worker && ((req.method === "GET" && ["blog", "f13", "f13fund", "f13stock", "f13find", "famnow"].includes(op)) || (req.method === "POST" && ["f13refresh", "f13build"].includes(op)));
   const rid = newRid();
   const { cap, missed } = await runStock(rid, req, admin || viaShare || viaWorker).catch((e) => { console.error(e); return { cap: { code: 502, body: { error: "fail" }, headers: {}, sent: true }, missed: 0 }; });
   // AI 답을 기다려야 끝나는 요청이면 접수 번호를 돌려줘요 (화면이 op=aistat 으로 기다림)
