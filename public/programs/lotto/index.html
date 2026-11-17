@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>로또 추천 번호</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#f3f2ee;--card:#fff;--fg:#111;--sub:#3b3d42;--line:#dcdbd5;--acc:#111;--ok:#0d7a4f;--warn:#c2410c;--chip:#ecebe6;--track:#e7e6e1;
+--b1:#e9a800;--b2:#2f9fd6;--b3:#e5484d;--b4:#7c7f86;--b5:#5f9e1a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0d;--card:#17171a;--fg:#f1f1ef;--sub:#c6c6c1;--line:#2d2d31;--acc:#f1f1ef;--ok:#34d399;--warn:#fb923c;--chip:#242428;--track:#26262a;--b1:#f5b800;--b2:#3fb1ea;--b3:#f2585d;--b4:#8e9198;--b5:#79bd2b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c0c0d;--card:#17171a;--fg:#f1f1ef;--sub:#c6c6c1;--line:#2d2d31;--acc:#f1f1ef;--ok:#34d399;--warn:#fb923c;--chip:#242428;--track:#26262a;--b1:#f5b800;--b2:#3fb1ea;--b3:#f2585d;--b4:#8e9198;--b5:#79bd2b;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "IBM Plex Sans KR",system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 60px;display:flex;flex-direction:column;gap:14px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:28px;margin:0}
+h3{margin:0 0 10px;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h3 small{font-weight:600;color:var(--sub);font-size:13px}
+a{color:inherit}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+.btn{border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:600 14px "IBM Plex Sans KR";cursor:pointer;background:var(--card);color:var(--fg)}
+.btn.main{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);padding:4px 12px;font:600 13px "IBM Plex Sans KR";cursor:pointer}
+.seg button.on{background:var(--acc);color:var(--bg)}
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;background:var(--chip)}
+.chip.ok{background:var(--ok);color:var(--bg)}
+.ball{--c:var(--b4);width:34px;height:34px;border-radius:50%;display:inline-grid;place-items:center;font:600 14px "IBM Plex Mono";color:#fff;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.45),transparent 42%),var(--c);text-shadow:0 1px 1px rgba(0,0,0,.35);flex:none}
+.ball.k1{--c:var(--b1)}.ball.k2{--c:var(--b2)}.ball.k3{--c:var(--b3)}.ball.k4{--c:var(--b4)}.ball.k5{--c:var(--b5)}
+.ball.dim{opacity:.28}.ball.sm{width:26px;height:26px;font-size:12px}
+.ball.hit{outline:3px solid var(--fg);outline-offset:2px}
+.line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0}
+.line .lb{width:22px;font:700 14px "IBM Plex Mono";color:var(--sub)}
+.line .tag{font-size:12px;font-weight:600;color:var(--sub);margin-left:auto}
+.plus{color:var(--sub);font-weight:700;padding:0 2px}
+.hero{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.big{font:600 30px "IBM Plex Mono";line-height:1}
+.chart{width:100%;height:auto;display:block}
+.chart text{font:10px "IBM Plex Mono";fill:var(--sub)}
+.chart rect.bar{cursor:pointer}
+.bars{display:flex;flex-direction:column;gap:7px}
+.br{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr) 58px;gap:10px;align-items:center;font-size:14px;font-weight:600}
+.br i{display:block;height:12px;border-radius:6px;background:var(--track);overflow:hidden;position:relative}
+.br i b{display:block;height:100%;background:var(--fg)}
+.br i.ref::after{content:"";position:absolute;top:-3px;bottom:-3px;left:var(--r);width:2px;background:var(--warn)}
+.br span:last-child{font-family:"IBM Plex Mono";text-align:right}
+.detail{margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:14px;font-weight:600;min-height:40px}
+.detail .s{color:var(--sub);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--sub)}
+.tw{overflow-x:auto}
+.note{font-size:13px;color:var(--sub);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎱 로또 추천 번호</h1>
+    <div class="row"><a class="btn" href="https://app.notion.com/p/41b7b277b4b8811f8772d5fff20bcf10" target="_blank" rel="noopener">노션 (피클)</a> <a class="btn" href="/programs/">프로그램</a></div>
+  </header>
+
+  <section class="card" id="week"></section>
+
+  <div class="grid g2">
+    <section class="card" id="last"></section>
+    <section class="card">
+      <h3>바로 뽑기 <button class="btn main" id="gen">다섯 줄 뽑기</button></h3>
+      <div id="genOut"><div class="note">A~C 덜 겹치는 조합 · D~E 패턴</div></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h3>번호별 나온 횟수 <span class="seg" id="rng"><button data-n="0" class="on">전체</button><button data-n="100">최근 100회</button><button data-n="20">최근 20회</button></span></h3>
+    <svg class="chart" id="freq" viewBox="0 0 900 230"></svg>
+    <div class="detail" id="det"></div>
+  </section>
+
+  <section class="card">
+    <h3>방법별 맞힌 개수 <small id="btNote"></small></h3>
+    <div class="bars" id="bt"></div>
+  </section>
+
+  <div class="grid g3">
+    <section class="card"><h3>홀수 개수</h3><div class="bars" id="odd"></div></section>
+    <section class="card"><h3>여섯 수 합계</h3><div class="bars" id="sum"></div></section>
+    <section class="card"><h3>연속 번호</h3><div class="bars" id="run"></div></section>
+  </div>
+
+  <section class="card"><h3>내 번호 기록</h3><div class="tw" id="mine"></div></section>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const kind = (n) => n <= 10 ? 1 : n <= 20 ? 2 : n <= 30 ? 3 : n <= 40 ? 4 : 5;
+const ball = (n, cls = "") => `<span class="ball k${kind(n)} ${cls}">${n}</span>`;
+const fmt = (n) => n.toLocaleString("ko-KR");
+let D = [], P = [];
+
+// pick.py 와 같은 규칙
+function ok(s, last) {
+  s = [...s].sort((a, b) => a - b);
+  if (s.filter((n) => n > 31).length < 2) return false;
+  let run = 1;
+  for (let i = 1; i < 6; i++) { run = s[i] === s[i - 1] + 1 ? run + 1 : 1; if (run >= 3) return false; }
+  if (new Set(s.slice(1).map((n, i) => n - s[i])).size === 1) return false;
+  const cnt = (f) => Math.max(...Object.values(s.reduce((m, n) => (m[f(n)] = (m[f(n)] || 0) + 1, m), {})));
+  if (cnt((n) => n % 10) >= 3 || cnt((n) => Math.floor(n / 10)) >= 4) return false;
+  const odd = s.filter((n) => n % 2).length; if ([0, 1, 5, 6].includes(odd)) return false;
+  const sum = s.reduce((a, b) => a + b, 0); if (sum < 100 || sum > 180) return false;
+  if (last && s.filter((n) => last.includes(n)).length >= 3) return false;
+  if (s.every((n) => n % 7 === 0) || s.every((n) => n % 5 === 0)) return false;
+  return true;
+}
+const rnd = (k) => { const b = new Uint32Array(1); crypto.getRandomValues(b); return b[0] % k; };
+const sample = (arr, k) => { const a = [...arr], o = []; while (o.length < k && a.length) o.push(a.splice(rnd(a.length), 1)[0]); return o; };
+const over = (a, b) => a.filter((n) => b.includes(n)).length;
+const ALL = Array.from({ length: 45 }, (_, i) => i + 1);
+const hcMemo = new Map();
+function hotCold(hist) {
+  if (hcMemo.has(hist.length)) return hcMemo.get(hist.length);
+  const c = {}; hist.slice(-10).forEach((d) => d.nums.forEach((n) => c[n] = (c[n] || 0) + 1));
+  const hot = Object.keys(c).map(Number).sort((a, b) => c[b] - c[a]).slice(0, 12);
+  const seen = {}; hist.forEach((d, i) => d.nums.forEach((n) => seen[n] = i));
+  const cold = [...ALL].sort((a, b) => (seen[a] ?? -1) - (seen[b] ?? -1)).slice(0, 15);
+  const r = { hot, cold }; hcMemo.set(hist.length, r); return r;
+}
+function five() {
+  const last = D.at(-1).nums, out = [];
+  while (out.length < 3) { const c = sample(ALL, 6).sort((a, b) => a - b); if (ok(c, last) && out.every((o) => over(c, o) <= 2)) out.push(c); }
+  const { hot, cold } = hotCold(D);
+  for (let t = 0; t < 20000 && out.length < 5; t++) {
+    const c = new Set([...sample(hot, 2), ...sample(cold, 2)]);
+    while (c.size < 6) c.add(1 + rnd(45));
+    const s = [...c].sort((a, b) => a - b);
+    if (ok(s, last) && out.every((o) => over(s, o) <= 2)) out.push(s);
+  }
+  return out;
+}
+const lineHtml = (c, i, win, bonus) => {
+  const hit = win ? over(c, win) : null;
+  return `<div class="line"><span class="lb">${"ABCDE"[i]}</span>${c.map((n) => ball(n, win ? (win.includes(n) ? "hit" : "dim") : "")).join("")}<span class="tag">${win ? rank(hit, c.includes(bonus)) : i < 3 ? "덜 겹치는 조합" : "패턴"}</span></div>`;
+};
+const rank = (h, b) => h === 6 ? "🎉 1등" : h === 5 && b ? "🎉 2등" : h === 5 ? "🎉 3등" : h === 4 ? "🎉 4등" : h === 3 ? "5등 (5천원)" : h + "개 맞음";
+
+function week() {
+  const p = P.at(-1); if (!p) return;
+  const d = D.find((x) => x.no === p.no);
+  const left = Math.ceil((Date.parse(p.date + "T20:35:00+09:00") - Date.now()) / 864e5);
+  $("#week").innerHTML = `<div class="hero"><h3 style="margin:0">${p.no}회 · ${p.date.slice(5).replace("-", "/")} (토) 추첨</h3>
+    <span class="chip ${p.status === "구매함" ? "ok" : ""}">${p.status}${!d && left > 0 ? " · D-" + left : ""}</span></div>
+    ${p.lines.map((c, i) => lineHtml(c, i, d && d.nums, d && d.bonus)).join("")}`;
+}
+function lastDraw() {
+  const d = D.at(-1);
+  $("#last").innerHTML = `<h3>${d.no}회 당첨번호 <small>${d.date}</small></h3>
+    <div class="line">${d.nums.map((n) => ball(n)).join("")}<span class="plus">+</span>${ball(d.bonus)}</div>
+    ${d.prize ? `<div class="hero" style="margin-top:8px"><span><span class="note">1등 1명당</span><div class="big">${fmt(Math.round(d.prize / 1e8 * 10) / 10)}억</div></span><span><span class="note">1등</span><div class="big">${d.winners}명</div></span></div>` : ""}`;
+}
+
+let range = 0, sel = null;
+function freq() {
+  const h = range ? D.slice(-range) : D;
+  const c = Array(46).fill(0); h.forEach((d) => d.nums.forEach((n) => c[n]++));
+  const max = Math.max(...c.slice(1)), avg = h.length * 6 / 45;
+  const W = 900, H = 230, L = 30, B = 26, bw = (W - L) / 45, sy = (v) => H - B - (v / max) * (H - B - 12);
+  let s = "";
+  for (let n = 1; n <= 45; n++) {
+    const x = L + (n - 1) * bw, y = sy(c[n]);
+    s += `<rect class="bar" data-n="${n}" x="${x + 2}" y="${y}" width="${bw - 4}" height="${H - B - y}" rx="3" fill="var(--b${kind(n)})" opacity="${sel && sel !== n ? .35 : 1}"><title>${n}번 ${c[n]}회</title></rect>`;
+    s += `<text x="${x + bw / 2}" y="${H - 10}" text-anchor="middle">${n}</text>`;
+  }
+  const ya = sy(avg);
+  s += `<line x1="${L}" x2="${W}" y1="${ya}" y2="${ya}" stroke="var(--fg)" stroke-dasharray="4 4" stroke-width="1.2"/><text x="${L - 4}" y="${ya + 3}" text-anchor="end">${avg.toFixed(avg < 10 ? 1 : 0)}</text>`;
+  s += `<text x="${L - 4}" y="${sy(max) + 3}" text-anchor="end">${max}</text>`;
+  $("#freq").innerHTML = s;
+  detail(sel || c.slice(1).indexOf(max) + 1, c, h.length);
+}
+function detail(n, c, len) {
+  let lastI = -1, longest = 0, prev = -1;
+  D.forEach((d, i) => { if (d.nums.includes(n)) { longest = Math.max(longest, i - prev - 1); prev = i; lastI = i; } });
+  const ago = D.length - 1 - lastI, bon = D.filter((d) => d.bonus === n).length;
+  $("#det").innerHTML = `${ball(n)}<span>${c[n]}회 <span class="s">/ ${fmt(len)}회 중</span></span><span>${ago ? ago + "회째 안 나옴" : "지난 회차에 나옴"}</span><span class="s">가장 길게 쉰 기간 ${longest}회 · 보너스 ${bon}회</span>`;
+}
+$("#freq").addEventListener("click", (e) => { const n = +e.target.dataset?.n; if (n) { sel = sel === n ? null : n; freq(); } });
+$("#rng").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; range = +b.dataset.n; $("#rng").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); freq(); });
+
+function barRows(el, rows, unit = "%", ref) {
+  const max = Math.max(...rows.map((r) => r[1]), ref || 0);
+  el.innerHTML = rows.map(([k, v, col]) => `<div class="br"><span>${k}</span><i class="${ref ? "ref" : ""}" style="--r:${ref / max * 100}%"><b style="width:${v / max * 100}%;${col ? "background:" + col : ""}"></b></i><span>${unit === "%" ? v.toFixed(1) + "%" : v.toFixed(3)}</span></div>`).join("");
+}
+function shapes() {
+  const N = D.length, pct = (k) => k / N * 100;
+  const odd = Array(7).fill(0), sum = {}, runs = [0, 0, 0];
+  D.forEach((d) => {
+    const s = d.nums; odd[s.filter((n) => n % 2).length]++;
+    const t = s.reduce((a, b) => a + b, 0), b = Math.min(220, Math.max(60, Math.floor(t / 20) * 20)); sum[b] = (sum[b] || 0) + 1;
+    let r = 1, m = 1; for (let i = 1; i < 6; i++) { r = s[i] === s[i - 1] + 1 ? r + 1 : 1; m = Math.max(m, r); } runs[Math.min(2, m - 1)]++;
+  });
+  barRows($("#odd"), odd.map((v, i) => [i + "개", pct(v), i >= 2 && i <= 4 ? "var(--ok)" : "var(--b4)"]));
+  barRows($("#sum"), Object.keys(sum).map(Number).sort((a, b) => a - b).map((k) => [k === 60 ? "~79" : k === 220 ? "220~" : `${k}~${k + 19}`, pct(sum[k]), k >= 100 && k < 180 ? "var(--ok)" : "var(--b4)"]));
+  barRows($("#run"), [["없음", pct(runs[0]), "var(--ok)"], ["2연속", pct(runs[1]), "var(--ok)"], ["3연속+", pct(runs[2]), "var(--b4)"]]);
+}
+// 방법별로 지난 300회를 미리 맞혀 봤다면 (각 회차는 그 전 자료만 써서)
+function backtest() {
+  const T = Math.min(300, D.length - 50), start = D.length - T, R = 30;
+  const methods = [
+    ["아무 번호", "var(--b4)", () => sample(ALL, 6)],
+    ["덜 겹치는 조합", "var(--ok)", (h) => { let c; do c = sample(ALL, 6); while (!ok(c, h.at(-1).nums)); return c; }],
+    ["많이 나온 6개", "var(--b3)", (h) => { const c = Array(46).fill(0); h.forEach((d) => d.nums.forEach((n) => c[n]++)); return [...ALL].sort((a, b) => c[b] - c[a]).slice(0, 6); }, 1],
+    ["최근 뜨거운 번호", "var(--b1)", (h) => sample(hotCold(h).hot, 6)],
+    ["오래 안 나온 번호", "var(--b2)", (h) => sample(hotCold(h).cold, 6)],
+  ];
+  const rows = methods.map(([name, col, f, fixed]) => {
+    let tot = 0, n = 0, five = 0;
+    for (let i = start; i < D.length; i++) {
+      const h = D.slice(0, i);
+      for (let r = 0; r < (fixed ? 1 : R); r++) { const m = over(f(h), D[i].nums); tot += m; n++; if (m >= 3) five++; }
+    }
+    return [name, tot / n, col, five / n * 100];
+  });
+  barRows($("#bt"), rows.map(([k, v, c]) => [k, v, c]), "n", 0.8);
+  $("#bt").insertAdjacentHTML("beforeend", `<div class="note" style="margin-top:4px">빨간 선 0.8개 = 순수 확률 · 5등 이상 ${rows.map((r) => r[0] + " " + r[3].toFixed(1) + "%").join(" · ")}</div>`);
+  $("#btNote").textContent = `최근 ${T}회 · 한 줄당 평균`;
+}
+function mine() {
+  const rows = P.slice().reverse().map((p) => {
+    const d = D.find((x) => x.no === p.no);
+    const best = d ? Math.max(...p.lines.map((c) => over(c, d.nums))) : null;
+    return `<tr><td class="mono">${p.no}회</td><td>${d ? d.nums.map((n) => ball(n, "sm")).join(" ") : '<span class="note">추첨 전</span>'}</td><td>${d ? rank(best, p.lines.some((c) => over(c, d.nums) === 5 && c.includes(d.bonus))) : ""}</td><td><span class="chip">${p.status}</span></td></tr>`;
+  });
+  $("#mine").innerHTML = `<table><tr><th>회차</th><th>당첨번호</th><th>가장 잘 맞은 줄</th><th>상태</th></tr>${rows.join("")}</table>`;
+}
+$("#gen").onclick = () => { $("#genOut").innerHTML = five().map((c, i) => lineHtml(c, i)).join(""); };
+
+Promise.all([fetch("history.json").then((r) => r.json()), fetch("picks.json").then((r) => r.json()).catch(() => ({ picks: [] }))]).then(([h, p]) => {
+  D = h.draws; P = p.picks || [];
+  week(); lastDraw(); freq(); shapes(); mine();
+  setTimeout(backtest, 30);
+});
+</script>
+</body>
+</html>

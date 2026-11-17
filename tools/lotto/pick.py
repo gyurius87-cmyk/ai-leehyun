@@ -61,7 +61,7 @@ if __name__ == "__main__":
     ap.add_argument("--lines", type=int, default=5)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--pattern", type=int, default=0, help="그중 패턴 줄 수")
-    ap.add_argument("--hist", default="")
+    ap.add_argument("--hist", default="public/programs/lotto/history.json")
     a = ap.parse_args()
     last = [int(x) for x in a.last.split(",") if x.strip()]
     hist = json.load(open(a.hist))["draws"] if a.hist else []

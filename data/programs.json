@@ -404,10 +404,10 @@
       "id": "lotto",
       "name": "로또 추천 번호",
       "status": "using",
-      "summary": "매주 월요일 다섯 줄(남들과 덜 겹치는 조합 3줄 + 재미용 패턴 2줄)을 뽑아 노션에 적고, 피클 AI가 보고 사요. 지난 회차 결과도 자동으로 맞춰 봐요.",
+      "summary": "1회부터 모든 당첨번호로 번호별 횟수·방법별 맞힌 개수를 보고, 매주 다섯 줄을 뽑아 노션에 넘기면 피클 AI가 사요.",
       "start": "2026-11-17",
       "private": true,
-      "href": "https://app.notion.com/p/41b7b277b4b8811f8772d5fff20bcf10",
+      "href": "/programs/lotto/",
       "cat": "돈·투자"
     }
   ]
