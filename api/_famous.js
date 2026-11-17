@@ -27,7 +27,7 @@ export const FAMOUS = [
   { id: "druckenmiller", who: "스탠리 드러켄밀러", fund: "듀케인 패밀리 오피스", cik: 1536411, note: "매크로 트레이더. 분기마다 크게 갈아타요" },
   { id: "dalio", who: "레이 달리오", fund: "브리지워터", cik: 1350694, note: "세계 최대 헤지펀드. ETF로 넓게 분산" },
   { id: "burry", who: "마이클 버리", fund: "사이언 에셋", cik: 1649339, note: "'빅쇼트'의 주인공. 풋옵션도 자주 써요" },
-  { id: "ackman", who: "빌 애크먼", fund: "퍼싱 스퀘어", cik: 1336528, note: "10개 안팎만 집중 보유" },
+  { id: "ackman", who: "빌 애크먼", fund: "퍼싱 스퀘어", cik: 2026053, note: "10개 안팎만 집중 보유" },
   { id: "lilu", who: "리루", fund: "히말라야 캐피털", cik: 1709323, note: "멍거가 돈을 맡긴 가치투자자" },
   { id: "nps", who: "국민연금", fund: "국민연금공단 (미국 주식)", cik: 1608046, note: "우리 국민연금이 미국에서 뭘 샀나" },
   { id: "c1061768", who: "세스 클라만", fund: "바우포스트", cik: 1061768, note: "'안전마진' 저자." },
