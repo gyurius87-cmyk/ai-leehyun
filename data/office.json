@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-16",
+  "updated": "2026-11-17",
   "depts": [
     {
       "id": "ai",
@@ -11,11 +11,10 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "waiting",
-          "doing": "버셀 모니터링을 만들고 첫 사용 기록이 쌓이길 기다려요",
+          "status": "done",
+          "doing": "로또 추천 번호 프로그램을 만들고 매주 자동으로 돌게 했어요",
           "prop": "🛠️",
-          "acc": "glasses",
-          "since": "2026-11-16"
+          "acc": "glasses"
         },
         {
           "team": "콘텐츠팀",
