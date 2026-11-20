@@ -29,10 +29,6 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
         <dd>{stats.planDone}</dd>
       </div>
       <div>
-        <dt>공부노트</dt>
-        <dd>{stats.notes}</dd>
-      </div>
-      <div>
         <dt>만든 프로그램</dt>
         <dd>{stats.programs}</dd>
       </div>
@@ -88,6 +84,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
       </div>
     </section>
 
+    {/* 공부노트 숨김 (2026-11-20)
     <section class="section">
       <h2 class="section-title">최근 공부노트</h2>
       <div class="note-list three">
@@ -95,6 +92,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
       </div>
       <a class="more" href="/notes">공부노트 전체 보기 →</a>
     </section>
+    */}
   </div>
   <script is:inline src="/tl-edit.js" defer></script>
 </Base>
@@ -264,7 +262,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
 
   .counters {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 200px));
+    grid-template-columns: repeat(3, minmax(0, 200px));
     gap: 16px;
     margin: 48px 0 0;
   }
@@ -418,7 +416,7 @@ const planPreview = [...planDoing, ...planTodo, ...planDone].filter((i) => i !==
     }
 
     .counters {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       margin-top: 28px;
     }
