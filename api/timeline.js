@@ -22,28 +22,62 @@ export default async function handler(req, res) {
     return res.json({ edits });
   }
   const admin = process.env.ADMIN_KEY && req.headers["x-admin-key"] === process.env.ADMIN_KEY;
-  if (!admin) return res.status(401).json({ error: "auth" });
   let b = req.body || {};
   if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-  // 즐겨찾기 비공개 바로가기 주소(공개 저장소·사이트에 못 적는 주소): 관리자만 읽고 씀
-  if (b.op === "links") {
-    const L = "fav:links";
-    if (b.set && /^[a-z0-9-]{1,40}$/.test(b.set.id)) {
-      const href = clip(b.set.href, 300);
-      if (/^https:\/\//.test(href)) await redis([["HSET", L, b.set.id, href]]);
-      else if (!href) await redis([["HDEL", L, b.set.id]]);
-      else return res.status(400).json({ error: "href" });
-    }
-    const flat = (await redis([["HGETALL", L]]))[0] || [];
-    const links = {};
-    for (let i = 0; i < flat.length; i += 2) links[flat[i]] = flat[i + 1];
-    return res.json({ links });
-  }
-  // 순일시간 체크: 켜져 있던 구간(세션) 저장. 관리자만.
+  // 순일시간 체크: 켜져 있던 구간(세션) 저장. 이현님(관리자 키) 또는 이현님이 만들어 준 사람 주소(?u=)로.
   if (b.op === "work") {
-    const W = "work:s", M = "work:meta";
+    const P = "work:p";
+    const TOK = /^[a-f0-9]{24}$/;
+    let who = "";
+    if (b.u) {
+      if (!TOK.test(b.u) || !(await redis([["HEXISTS", P, b.u]]))[0]) return res.status(401).json({ error: "auth" });
+      who = b.u;
+    } else if (!admin) return res.status(401).json({ error: "auth" });
+    else if (b.view) { if (!TOK.test(b.view)) return res.status(400).json({ error: "view" }); who = b.view; }
+    const W = who ? "work:s:" + who : "work:s", M = who ? "work:meta:" + who : "work:meta";
     const id = /^[a-z0-9]{4,40}$/.test(b.id) ? b.id : "";
     const num = (v) => (Number.isFinite(+v) && +v > 0 ? Math.round(+v) : 0);
+    const getP = async (u) => { try { return JSON.parse((await redis([["HGET", P, u]]))[0] || "null"); } catch { return null; } };
+    // 사람 주소: 내 이름 보기·정하기
+    if (b.act === "me") { if (!who) return res.json({ admin: true }); return res.json({ me: await getP(who) }); }
+    if (b.act === "name" && who) {
+      const o = (await getP(who)) || { created: Date.now() };
+      o.name = clip(b.name, 20);
+      await redis([["HSET", P, who, JSON.stringify(o)]]);
+      return res.json({ ok: true, me: o });
+    }
+    // 이현님만: 사람 목록·추가·빼기
+    if (admin && !b.u && b.act === "people") {
+      const flat = (await redis([["HGETALL", P]]))[0] || [];
+      const ppl = [];
+      for (let i = 0; i < flat.length; i += 2) { try { ppl.push({ u: flat[i], ...JSON.parse(flat[i + 1]) }); } catch {} }
+      ppl.sort((a, c) => (a.created || 0) - (c.created || 0));
+      const all = ppl.length ? await redis(ppl.map((p) => ["HGETALL", "work:s:" + p.u])) : [];
+      const now = Date.now(), from = num(b.from), wk = num(b.wk);
+      ppl.forEach((p, j) => {
+        const f = all[j] || []; let today = 0, week = 0, lastAt = 0;
+        for (let i = 0; i < f.length; i += 2) {
+          try {
+            const o = JSON.parse(f[i + 1]); const end = (!o.stopped && now - o.last < 90000) ? now : o.last;
+            lastAt = Math.max(lastAt, o.last);
+            if (from) today += Math.max(0, end - Math.max(o.start, from));
+            if (wk) week += Math.max(0, end - Math.max(o.start, wk));
+          } catch {}
+        }
+        p.today = today; p.week = week; p.lastAt = lastAt; p.live = now - lastAt < 90000;
+      });
+      return res.json({ people: ppl });
+    }
+    if (admin && !b.u && b.act === "addp") {
+      const { randomBytes } = await import("node:crypto");
+      const u = randomBytes(12).toString("hex");
+      await redis([["HSET", P, u, JSON.stringify({ name: clip(b.name, 20), created: Date.now() })]]);
+      return res.json({ u });
+    }
+    if (admin && !b.u && b.act === "delp" && TOK.test(b.target)) {
+      await redis([["HDEL", P, b.target], ["DEL", "work:s:" + b.target], ["DEL", "work:meta:" + b.target]]);
+      return res.json({ ok: true });
+    }
     if (b.act === "save" && id && num(b.start) && num(b.last) >= num(b.start)) {
       const o = { start: num(b.start), last: num(b.last), dev: clip(b.dev, 20) };
       if (b.stopped) o.stopped = true;
@@ -66,6 +100,21 @@ export default async function handler(req, res) {
       return res.json({ sessions });
     }
     return res.status(400).json({ error: "work" });
+  }
+  if (!admin) return res.status(401).json({ error: "auth" });
+  // 즐겨찾기 비공개 바로가기 주소(공개 저장소·사이트에 못 적는 주소): 관리자만 읽고 씀
+  if (b.op === "links") {
+    const L = "fav:links";
+    if (b.set && /^[a-z0-9-]{1,40}$/.test(b.set.id)) {
+      const href = clip(b.set.href, 300);
+      if (/^https:\/\//.test(href)) await redis([["HSET", L, b.set.id, href]]);
+      else if (!href) await redis([["HDEL", L, b.set.id]]);
+      else return res.status(400).json({ error: "href" });
+    }
+    const flat = (await redis([["HGETALL", L]]))[0] || [];
+    const links = {};
+    for (let i = 0; i < flat.length; i += 2) links[flat[i]] = flat[i + 1];
+    return res.json({ links });
   }
   const k = clip(b.k, 120);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date) ? b.date : "";

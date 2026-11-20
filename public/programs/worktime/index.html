@@ -72,6 +72,15 @@ body.mini #top{grid-template-columns:1fr;padding:10px;text-align:center}
 body.mini .year,body.mini #devBox,body.mini .now>.note{display:none}
 body.mini .clock{font-size:clamp(28px,16vw,64px)}
 body.mini .btn{padding:6px 18px;font-size:13px}
+body.naming .wrap>*:not(#nameBox){display:none}
+.pp{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.pp:first-of-type{border-top:0}
+.pp .nm{flex:1 1 120px;font-weight:600;display:flex;align-items:center;gap:6px}
+.pp .nm .dot.on{background:var(--acc)}
+.pp .t{font-size:13px;color:var(--mute);min-width:150px}
+.inp{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font:inherit}
+.newlink{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--bg);border-radius:8px;padding:8px;margin-top:8px;font-size:13px}
+.newlink code{word-break:break-all;flex:1 1 220px}
 #pipMsg{font-size:12px;color:var(--mute);max-width:360px;line-height:1.5}
 </style>
 </head>
@@ -79,9 +88,19 @@ body.mini .btn{padding:6px 18px;font-size:13px}
 
 <div class="wrap">
   <header>
-    <h1>순일시간 체크</h1>
+    <h1 id="h1">순일시간 체크</h1>
     <div class="yr"><button class="nav" id="prev" aria-label="작년">‹</button><b class="mono" id="yTitle"></b><button class="nav" id="next" aria-label="내년">›</button></div>
   </header>
+
+  <section class="card" id="nameBox" hidden style="max-width:420px;margin:40px auto;display:flex;flex-direction:column;gap:12px;text-align:center">
+    <h2 style="font-family:'Gowun Batang',serif;margin:0;font-size:22px">순일시간 체크</h2>
+    <div class="note" style="font-size:14px">이 화면을 열어 두면 일한 시간이 저절로 쌓여요.<br>먼저 이름을 정해 주세요.</div>
+    <input id="nameIn" class="inp" maxlength="20" placeholder="이름 (예: 김민지)" style="text-align:center">
+    <button class="btn go" id="nameOk">이름 정하고 시작하기</button>
+    <div class="note">이 주소는 나만 쓰는 주소예요. 즐겨찾기해 두고 다른 컴퓨터에서도 같은 주소로 열면 기록이 이어져요.</div>
+  </section>
+
+  <div class="card" id="viewBar" hidden style="border-color:var(--acc);padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 220px">👀 <b id="viewName"></b>님 화면을 보고 있어요. 여기서는 시간이 쌓이지 않아요.</span><a class="x" href="/programs/worktime/" style="text-decoration:none">내 화면으로</a></div>
 
   <div class="card" id="awBar" hidden style="border-color:var(--stop);display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px">
     <span style="flex:1 1 220px">⏰ <b>ActivityWatch 기록을 넣을 때예요.</b> <span class="note" id="awAgo"></span></span>
@@ -105,6 +124,13 @@ body.mini .btn{padding:6px 18px;font-size:13px}
       <div class="prog"><i id="yearBar"></i></div>
       <div class="prog-l"><span id="yearPast"></span><span id="yearLeft"></span></div>
     </div>
+  </section>
+
+  <section class="card" id="people" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h3 style="margin:0;font-size:15px">함께 쓰는 사람</h3><button class="x" id="addP" style="border-color:var(--acc);color:var(--acc)">＋ 사람 추가하기</button></div>
+    <div id="newLink"></div>
+    <div id="pList"></div>
+    <div class="note" style="margin-top:6px">사람을 추가하면 그 사람만의 고정 주소가 생겨요. 주소를 건네주면 처음 열 때 이름을 정하고 바로 시작해요. 컴퓨터가 바뀌어도 같은 주소로 열면 기록이 이어져요.</div>
   </section>
 
   <div class="stats">
@@ -167,11 +193,11 @@ const level = (v) => { const h = v / 3600000; return v < 60000 ? 0 : h >= 8 ? 4 
 
 function render() {
   const pd = perDay(), now = new Date(), tk = dkey(now), Y = viewY;
-  const running = !!cur;
+  const running = !!cur || (VIEW && sessions.some((s) => !s.stopped && Date.now() - s.last < 90000));
   $('top').classList.toggle('run', running);
   $('stateTxt').textContent = running ? '일하는 중' : '멈춤';
   $('clock').textContent = fmtClock(pd[tk] || 0);
-  const tg = $('toggle'); tg.hidden = false; tg.textContent = running ? '중지' : '시작'; tg.classList.toggle('go', !running);
+  const tg = $('toggle'); if (tg) { tg.hidden = false; tg.textContent = running ? '중지' : '시작'; tg.classList.toggle('go', !running); }
   $('yTitle').textContent = Y;
 
   // 1년 진행
@@ -392,8 +418,12 @@ setInterval(pipTick, 1000);
 
 // ---------- 저장: 사이트 서버(관리자 키) ----------
 let KEY = ''; try { KEY = localStorage.getItem('ai-admin-key') || ''; } catch (e) {}
-const api = (body) => fetch('/api/timeline', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json', 'x-admin-key': KEY }, body: JSON.stringify({ op: 'work', ...body }) })
-  .then((r) => { if (r.status === 401) { $('offMsg').hidden = false; $('gate').hidden = false; } if (!r.ok) throw new Error(r.status); return r.json(); });
+const QS = new URLSearchParams(location.search), TOKRE = /^[a-f0-9]{24}$/;
+const U = TOKRE.test(QS.get('u') || '') ? QS.get('u') : '';          // 이현님이 만들어 준 그 사람 주소
+const VIEW = !U && TOKRE.test(QS.get('view') || '') ? QS.get('view') : '';  // 이현님이 남의 화면 보기
+const who = U ? { u: U } : VIEW ? { view: VIEW } : {};
+const api = (body) => fetch('/api/timeline', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json', ...(U ? {} : { 'x-admin-key': KEY }) }, body: JSON.stringify({ op: 'work', ...who, ...body }) })
+  .then((r) => { if (r.status === 401) { $('offMsg').hidden = false; if (!U) $('gate').hidden = false; } if (!r.ok) throw new Error(r.status); return r.json(); });
 const full = (id) => sessions.find((x) => x.id === id) || (cur && cur.id === id ? cur : {});
 function makeDb() {
   return {
@@ -414,17 +444,85 @@ function makeDb() {
 $('gateBtn').onclick = () => { KEY = $('gateKey').value.trim(); try { localStorage.setItem('ai-admin-key', KEY); } catch (e) {} location.reload(); };
 const IS_MINI = location.hash === '#mini' || /[?&]mini=1/.test(location.search);
 if (IS_MINI) setMini(true);
-$('popBtn').onclick = () => { const w = window.open('/programs/worktime/?mini=1', 'sunil-mini', 'popup=yes,width=340,height=280'); if (w) stop(); };
+$('popBtn').onclick = () => { const w = window.open('/programs/worktime/?mini=1' + (U ? '&u=' + U : ''), 'sunil-mini', 'popup=yes,width=340,height=280'); if (w) stop(); };
 if (IS_MINI) $('popBtn').hidden = true;
 
-start();
+const esc = (t) => String(t ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+function setTitle(n) { $('h1').textContent = n ? `${n}님의 순일시간` : '순일시간 체크'; document.title = n ? `${n} · 순일시간` : '순일시간 체크'; }
 (async () => {
-  if (!KEY) { $('gate').hidden = false; $('offMsg').hidden = false; render(); return; }
+  if (U) {
+    // 사람 주소: 이름을 정해야 시작
+    db = makeDb();
+    let me = null;
+    try { me = (await api({ act: 'me' })).me; } catch (e) { $('offMsg').textContent = '이 주소를 찾을 수 없어요. 주소를 준 분께 다시 받아 주세요.'; $('offMsg').hidden = false; render(); return; }
+    $('pipBtn').closest('.tools').hidden = false;
+    if (!me || !me.name) {
+      document.body.classList.add('naming'); $('nameBox').hidden = false; $('nameIn').focus();
+      await new Promise((ok) => {
+        const go = async () => {
+          const n = $('nameIn').value.trim().slice(0, 20); if (!n) { $('nameIn').focus(); return; }
+          $('nameOk').disabled = true;
+          try { await api({ act: 'name', name: n }); } catch (e) { $('nameOk').disabled = false; return; }
+          me = { name: n }; document.body.classList.remove('naming'); $('nameBox').hidden = true; ok();
+        };
+        $('nameOk').onclick = go; $('nameIn').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+      });
+    }
+    setTitle(me.name);
+    start(); await load(); return;
+  }
+  if (!KEY) { start(); $('gate').hidden = false; $('offMsg').hidden = false; render(); return; }
   db = makeDb();
-  if (cur) { try { await db.collection('sessions').doc(cur.id).set({ start: cur.start, last: Date.now(), dev: cur.dev }); } catch (e) {} }
+  if (VIEW) {
+    // 이현님이 남의 화면 보기: 시간은 쌓지 않음
+    let n = '';
+    try { n = ((await api({ act: 'me' })).me || {}).name || ''; } catch (e) {}
+    try { const r = await api({ act: 'people' }); const p = (r.people || []).find((x) => x.u === VIEW); if (p) n = p.name || '이름 정하기 전'; } catch (e) {}
+    setTitle(n); $('viewName').textContent = n || '이 사람'; $('viewBar').hidden = false;
+    $('toggle').remove(); $('pipBtn').closest('.tools').hidden = true; $('devBox').hidden = true;
+    await load(); setInterval(load, 60000); return;
+  }
+  start();
+  try { await db.collection('sessions').doc(cur.id).set({ start: cur.start, last: Date.now(), dev: cur.dev }); } catch (e) {}
   await load();
   awCheck();
+  people();
 })();
+
+// ---------- 함께 쓰는 사람 (이현님 화면에만) ----------
+let pDel = null;
+const linkOf = (u) => `${location.origin}/programs/worktime/?u=${u}`;
+async function copy(t, btn) {
+  try { await navigator.clipboard.writeText(t); const o = btn.textContent; btn.textContent = '복사했어요'; setTimeout(() => (btn.textContent = o), 1500); }
+  catch (e) { const r = document.createRange(); const c = btn.parentElement.querySelector('code'); if (c) { r.selectNodeContents(c); getSelection().removeAllRanges(); getSelection().addRange(r); } }
+}
+async function people() {
+  $('people').hidden = false;
+  const now = new Date(), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const wk = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)).getTime();
+  let ppl = [];
+  try { ppl = (await api({ act: 'people', from: d0, wk })).people || []; } catch (e) { $('pList').innerHTML = '<div class="note">사람 목록을 못 불러왔어요.</div>'; return; }
+  $('pList').innerHTML = ppl.length ? ppl.map((p) => `<div class="pp"><span class="nm"><span class="dot${p.live ? ' on' : ''}"></span>${p.name ? esc(p.name) : '<span class="note">이름 정하기 전</span>'}</span>
+    <span class="t mono">오늘 ${fmtHM(p.today)} · 이번 주 ${fmtHM(p.week)}</span>
+    <span style="display:inline-flex;gap:4px;flex-wrap:wrap"><button class="x pc" data-u="${p.u}">주소 복사</button><a class="x" href="/programs/worktime/?view=${p.u}" target="_blank" rel="noopener" style="text-decoration:none">화면 보기</a><button class="x pd${pDel === p.u ? ' warn' : ''}" data-u="${p.u}">${pDel === p.u ? '정말 빼기 (기록도 지워져요)' : '빼기'}</button></span></div>`).join('')
+    : '<div class="note">아직 없어요. 사람 추가하기를 누르면 그 사람만의 주소가 생겨요.</div>';
+  $('pList').querySelectorAll('.pc').forEach((b) => b.onclick = () => copy(linkOf(b.dataset.u), b));
+  $('pList').querySelectorAll('.pd').forEach((b) => b.onclick = async () => {
+    if (pDel !== b.dataset.u) { pDel = b.dataset.u; people(); return; }
+    pDel = null; try { await api({ act: 'delp', target: b.dataset.u }); } catch (e) {} people();
+  });
+}
+$('addP').onclick = async () => {
+  $('addP').disabled = true;
+  try {
+    const { u } = await api({ act: 'addp' });
+    $('newLink').innerHTML = `<div class="newlink">새 주소가 생겼어요. 이 주소를 건네주세요. <code class="mono">${linkOf(u)}</code><button class="x" id="nlCopy">주소 복사</button></div>`;
+    $('nlCopy').onclick = () => copy(linkOf(u), $('nlCopy'));
+    await people();
+  } catch (e) { $('newLink').innerHTML = '<div class="note">추가하지 못했어요. 잠시 뒤 다시 눌러 주세요.</div>'; }
+  $('addP').disabled = false;
+};
+setInterval(() => { if (!U && !VIEW && KEY && !$('people').hidden && !pDel) people(); }, 60000);
 
 // ---------- 일주일마다 ActivityWatch 넣기 알림 ----------
 const WEEK = 7 * 86400000;
