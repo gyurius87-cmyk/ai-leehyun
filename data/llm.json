@@ -1,12 +1,12 @@
 {
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "models": [
     { "id": "claude", "company": "Anthropic", "family": "Claude", "latest": "Claude Fable 5.2 · Mythos 5.2", "released": "2026-11-09", "strength": "가장 어려운 기술 작업용 Fable·Mythos 5.2, 코딩·긴 에이전트 작업에 강함", "others": "Opus 5.5(09/22) · Sonnet 5.5 · Haiku 5.5(10/07)", "mine": true, "kw": ["claude", "anthropic", "클로드", "앤트로픽"],
       "log": [ { "date": "2026-11-09", "text": "어려운 기술 작업용 Fable 5.2·Mythos 5.2 공개 (5.1보다 빠르고 저렴)" }, { "date": "2026-10-07", "text": "가볍고 빠른 Haiku 5.5 공개" }, { "date": "2026-09-22", "text": "최상위 모델 Opus 5.5 공개" } ] },
     { "id": "gpt", "company": "OpenAI", "family": "GPT · ChatGPT", "latest": "GPT-6.2 Astra · Sol", "released": "2026-11-17", "strength": "어려운 프로젝트용 Astra, 싸고 두루 쓰는 Sol. 전문 업무 시험 1위권", "others": "GPT-6 Astra(09/03) · GPT-6 Luna(10/06), GPT-6.1 Terra(10/26, 빠르고 값싼 실무용·컴퓨터 사용) · GPT-6 Cyber(11/05, 보안 전용)", "kw": ["openai", "gpt", "chatgpt", "오픈ai", "오픈AI", "챗gpt", "챗GPT"],
       "log": [{"date": "2026-11-17", "text": "GPT-6.2 Astra·Sol 공개 (ChatGPT·Codex·API)"}, {"date": "2026-11-05", "text": "보안 전용 GPT-6 Cyber 공개 (승인된 기업만 사용)"}, {"date": "2026-10-26", "text": "GPT-6.1 Terra 공개(빠른 실무용, API 값 절반)"},  { "date": "2026-10-06", "text": "GPT-6 Luna 계열 추가" }, { "date": "2026-09-03", "text": "GPT-6 Astra 공개" } ] },
-    { "id": "gemini", "company": "Google", "family": "Gemini", "latest": "Gemini 4 Argon", "released": "2026-10-13", "strength": "긴 복잡한 작업용 추론 모델, 대화 순위표 1위권", "others": "이미지 Nano Banana 2.1(10/06)", "kw": ["gemini", "google", "제미나이", "구글"],
-      "log": [ { "date": "2026-10-13", "text": "Gemini 4 Argon 일반 공개 (9/30 발표)" } ] },
+    { "id": "gemini", "company": "Google", "family": "Gemini", "latest": "Gemini 4 Hydrogen", "released": "2026-11-12", "strength": "빠르고 값싼 에이전트·일상 작업용, 성능 지수에서 Argon 앞섬", "others": "Gemini 4 Argon(10/13) · Gemini 4 Neon(11/18 발표) · 이미지 Nano Banana 2.1(10/06)", "kw": ["gemini", "google", "제미나이", "구글"],
+      "log": [ { "date": "2026-11-18", "text": "Gemini 4 Neon 발표" }, { "date": "2026-11-12", "text": "빠른 에이전트용 Gemini 4 Hydrogen 공개 (앱·검색·API)" }, { "date": "2026-10-13", "text": "Gemini 4 Argon 일반 공개 (9/30 발표)" } ] },
     { "id": "grok", "company": "xAI", "family": "Grok", "latest": "Grok 4.7", "released": "2026-09-21", "strength": "코딩·지식 업무, 싼 가격", "others": "Grok Voice 3.0(10/14)", "kw": ["grok", "xai", "그록"],
       "log": [ { "date": "2026-10-14", "text": "음성 모델 Grok Voice 3.0" }, { "date": "2026-09-21", "text": "Grok 4.7 공개" } ] },
     { "id": "meta", "company": "Meta", "family": "Muse (구 Llama)", "latest": "Muse Wonder", "released": "2026-10-12", "strength": "성능 순위 3위권, 구독으로만 사용", "kw": ["meta", "llama", "muse", "메타", "라마"],
