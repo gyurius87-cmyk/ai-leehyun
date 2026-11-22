@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-22",
+  "updated": "2026-11-23",
   "models": [
     { "id": "claude", "company": "Anthropic", "family": "Claude", "latest": "Claude Fable 5.2 · Mythos 5.2", "released": "2026-11-09", "strength": "가장 어려운 기술 작업용 Fable·Mythos 5.2, 코딩·긴 에이전트 작업에 강함", "others": "Opus 5.5(09/22) · Sonnet 5.5 · Haiku 5.5(10/07)", "mine": true, "kw": ["claude", "anthropic", "클로드", "앤트로픽"],
       "log": [ { "date": "2026-11-09", "text": "어려운 기술 작업용 Fable 5.2·Mythos 5.2 공개 (5.1보다 빠르고 저렴)" }, { "date": "2026-10-07", "text": "가볍고 빠른 Haiku 5.5 공개" }, { "date": "2026-09-22", "text": "최상위 모델 Opus 5.5 공개" } ] },
@@ -17,7 +17,7 @@
       "log": [ { "date": "2026-11-16", "text": "Qwen4-Max 공개 (새 Qwen4 구조)" }, { "date": "2026-10-09", "text": "이미지 모델 Qwen Image 2.1" } ] },
     { "id": "mistral", "company": "Mistral", "family": "Mistral", "latest": "Mistral Large 4", "released": "2026-11-05", "strength": "유럽 대표, 공개 모델 약속", "others": "음성 Voxtral 3(10/20)", "kw": ["mistral", "미스트랄"],
       "log": [ { "date": "2026-11-05", "text": "Large 4 정식 공개 (공개 가중치, 그림도 이해)" }, { "date": "2026-10-20", "text": "음성 모델 Voxtral 3 공개 (듣기·말하기)" }, { "date": "2026-10-06", "text": "Large 4 미리보기 공개" } ] },
-    { "id": "korea", "company": "국내", "family": "하이퍼클로바X · 엑사원 · 솔라 · 카나나", "latest": "K-엑사원 등", "released": "", "strength": "한국어 특화. 네이버·LG·업스테이지·카카오", "kw": ["하이퍼클로바", "hyperclova", "엑사원", "exaone", "솔라", "업스테이지", "카나나", "국가대표 ai", "독자 ai"],
-      "log": [] }
+    { "id": "korea", "company": "국내", "family": "하이퍼클로바X · 엑사원 · 솔라 · 카나나", "latest": "K-엑사원 2.5 (LG)", "released": "2026-11-09", "strength": "한국어 특화. 네이버·LG·업스테이지·카카오", "others": "LG가 에이전트 성능을 높인 K-엑사원 2.5 API를 무료로 열었어요", "kw": ["하이퍼클로바", "hyperclova", "엑사원", "exaone", "솔라", "업스테이지", "카나나", "국가대표 ai", "독자 ai"],
+      "log": [ { "date": "2026-11-09", "text": "LG K-엑사원 2.5 공개, API 무료 개방" } ] }
   ]
 }
