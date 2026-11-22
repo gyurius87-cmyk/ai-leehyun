@@ -698,7 +698,7 @@ function renderTmOut() {
   if (!R || R.open.length < R.people.length) { out.innerHTML = ''; return; }
   const teams = [...Array(R.k).keys()].map((t) => R.people.filter((_, i) => R.team[i] === t));
   out.innerHTML = `<div class="result tm-res"><div class="teams">${teams.map((m, t) => `<div class="team" style="--tc:${TEAMS[t].c}"><b style="color:${TEAMS[t].c}">${TEAMS[t].n} ${m.length}명</b><div class="mem">${m.map(esc).join(' · ')}</div>${R.mode === 'tier' ? `<span class="note">티어 ${m.map(tierOf).join('+')} (합 ${m.reduce((a, p) => a + tierOf(p), 0)})</span>` : ''}</div>`).join('')}</div>
-    ${R.k === 2 ? `<div class="row" style="margin-top:10px"><button type="button" data-tofee>게임비 계산기를 ${R.people.length}명 팀전으로 맞추기</button></div>` : ''}</div>`;
+    <div class="row" style="margin-top:10px"><button type="button" class="main" data-tohd>⛳ 이 팀으로 핸디 계산하기</button>${R.k === 2 ? `<button type="button" data-tofee>게임비 계산기를 ${R.people.length}명 팀전으로 맞추기</button>` : ''}</div></div>`;
 }
 $('#teams').addEventListener('click', (e) => {
   const b = e.target.closest('button, [data-px]'); if (!b) return;
@@ -713,6 +713,11 @@ $('#teams').addEventListener('click', (e) => {
   else if ('runall' in d) { tm.res.people.forEach((_, i) => { if (!tm.res.open.includes(i)) setTimeout(() => runLadder(i), 0); }); return; }
   else if (d.card != null) { flipCard(Number(d.card)); return; }
   else if ('flipall' in d) { let k = 0; tm.res.people.forEach((_, i) => { if (!tm.res.open.includes(i)) setTimeout(() => flipCard(i), 380 * k++); }); return; }
+  else if ('tohd' in d) {
+    const R = tm.res; hd.mode = 'team'; hd.k = Math.max(2, R.k); hd.team = {}; R.people.forEach((p, i) => { hd.team[p] = R.team[i]; }); hd.sel = [...R.people];
+    renderHd(); $('#handi').scrollIntoView({ behavior: 'smooth' });
+    const miss = R.people.filter((p) => !hasG(p)); toast(miss.length ? `G핸디가 없는 사람: ${miss.join(', ')}` : '이 팀으로 핸디를 계산했어요'); return;
+  }
   else if ('tofee' in d) {
     const R = tm.res; fee.n = R.people.length; fee.mode = 'team'; fee.w = R.people.filter((_, i) => R.team[i] === 0).length;
     fee.names = []; renderFee(); $('#fee').scrollIntoView({ behavior: 'smooth' }); toast('게임비 계산기를 팀전으로 맞췄어요'); return;
