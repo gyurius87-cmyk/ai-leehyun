@@ -83,8 +83,9 @@ export default async function handler(req, res) {
   }
   if (req.method === "GET") {
     if (admin && !key) { key = newId(16); await redis([["SET", "golf:key", key]]); }
-    const [h] = await redis([["HGETALL", "golf:videos"]]);
-    return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), admin: !!admin, ...(admin ? { key } : {}) });
+    const [h, hd] = await redis([["HGETALL", "golf:videos"], ["HGETALL", "golf:handi"]]);
+    const handi = Object.fromEntries(Object.entries(pairs(hd)).map(([n, v]) => [n, Number(v)]));
+    return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), handi, admin: !!admin, ...(admin ? { key } : {}) });
   }
   if (req.method !== "POST") return res.status(405).end();
 
@@ -137,6 +138,18 @@ export default async function handler(req, res) {
     if (n >= 500 && !okId(v.id)) return res.status(400).json({ error: "full" });
     await redis([["HSET", "golf:videos", it.id, JSON.stringify(it)]]);
     return res.json({ item: it });
+  }
+  // G핸디: 이름마다 한 번 넣으면 고칠 때까지 계속 남아요
+  if (b.op === "handi") {
+    const name = clip(b.name, 12);
+    if (!name) return res.status(400).json({ error: "name" });
+    if (b.value === null || b.value === "") { await redis([["HDEL", "golf:handi", name]]); return res.json({ ok: true }); }
+    const v = Math.round(Number(b.value) * 10) / 10;
+    if (!Number.isFinite(v) || v < -10 || v > 60) return res.status(400).json({ error: "value" });
+    const [n] = await redis([["HLEN", "golf:handi"]]);
+    if (n >= 100) return res.status(400).json({ error: "full" });
+    await redis([["HSET", "golf:handi", name, String(v)]]);
+    return res.json({ ok: true, value: v });
   }
   if (b.op === "del") {
     if (!okId(b.id)) return res.status(400).json({ error: "id" });

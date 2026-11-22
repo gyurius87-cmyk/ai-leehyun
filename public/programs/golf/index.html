@@ -174,6 +174,23 @@ button.reset.warn { color: var(--red); }
 .tm-res .team { border-left: 6px solid var(--tc); }
 .tm-res .team .mem { font-size: 18px; font-weight: 700; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .card, .card.shake, .lad-bot span.open { animation: none; } .lad .trace { transition-duration: .3s; } }
+.chips button.on .note { color: inherit; opacity: .75; }
+.hd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; }
+.hd-list .hp { display: flex; align-items: center; gap: 6px; background: var(--soft); border-radius: 10px; padding: 6px 8px; min-width: 0; }
+.hd-list .hp b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hd-list .hp input { width: 68px; text-align: right; }
+.hd-list .hp .gv { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hd-mx { border-collapse: collapse; margin-top: 10px; font-variant-numeric: tabular-nums; }
+.hd-mx th, .hd-mx td { border: 1px solid var(--line); padding: 6px 8px; text-align: center; white-space: nowrap; }
+.hd-mx th { background: var(--soft); font-size: 13px; }
+.hd-mx td.give { font-weight: 800; font-size: 17px; }
+.hd-mx td.self { background: var(--soft); color: var(--muted); }
+.hd-line { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.hd-line .n { font-size: 20px; font-weight: 800; }
+.hd-tm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+.hd-tm b { min-width: 52px; }
+.hd-tm .chips button.on { background: var(--tc); border-color: var(--tc); color: #fff; }
+.hd-team { border-left: 6px solid var(--tc); padding: 6px 10px; margin-top: 6px; background: var(--soft); border-radius: 0 10px 10px 0; }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 14px; z-index: 9; max-width: 90vw; }
 </style>
 </head>
@@ -181,7 +198,7 @@ button.reset.warn { color: var(--red); }
 <div class="wrap">
   <header>
     <h1><span class="flag"></span>골프 중독자들</h1>
-    <div class="sub">편 가르기, 게임비 나누기, 타당 정산, 우리 라운드 영상</div>
+    <div class="sub">편 가르기, 핸디 계산, 게임비 나누기, 타당 정산, 우리 라운드 영상</div>
   </header>
 
   <div id="gate" class="gate" hidden>
@@ -219,6 +236,22 @@ button.reset.warn { color: var(--red); }
       <div class="tm-go"><button class="main" type="button" id="tmGo">편 가르기 시작</button><span class="note" id="tmMsg"></span></div>
       <div id="tmStage"></div>
       <div id="tmOut"></div>
+    </section>
+
+    <!-- 핸디 계산기 -->
+    <section id="handi">
+      <div class="row between"><h2>핸디 계산기</h2><button type="button" class="ghost reset" id="hdReset">↺ 리셋</button></div>
+      <div class="note" style="margin-top:6px" id="hdNote"></div>
+      <div class="hd-list" id="hdList"></div>
+      <form class="tm-add" id="hdAdd" hidden><input id="hdName" placeholder="이름 추가" maxlength="8"><button>＋ 넣기</button></form>
+      <div class="grid2">
+        <div class="f"><span class="note">방식</span><div class="chips" id="hdMode"><button data-hm="solo">개인전</button><button data-hm="team">팀전</button></div></div>
+        <label class="f" id="hdKBox">팀 수<span class="step"><button type="button" data-hk="-1">−</button><b id="hdK">2</b><button type="button" data-hk="1">＋</button></span></label>
+      </div>
+      <div class="note" style="margin-top:8px">오늘 치는 사람</div>
+      <div class="chips" id="hdPeople" style="margin-top:6px"></div>
+      <div id="hdTeams"></div>
+      <div class="result" id="hdOut"></div>
     </section>
 
     <!-- 게임비 계산기 -->
@@ -558,6 +591,7 @@ function renderTm() {
   $('#tmGo').disabled = P.length < 2;
   $('#tmGo').textContent = tm.res ? '🔀 다시 섞기' : '편 가르기 시작';
   save('team', tm);
+  if (window.hdOn) renderHd();
 }
 function assignTeams(P, k, byTier) {
   const list = shuffle(P.slice());
@@ -695,6 +729,95 @@ $('#tmAdd').addEventListener('submit', (e) => {
 });
 $('#tmReset').addEventListener('click', (e) => twoTap(e.currentTarget, () => { Object.assign(tm, structuredClone(TM0)); tmBusy.clear(); renderTm(); renderStage(); toast('편 가르기를 처음으로 돌렸어요'); }));
 let tmRz; addEventListener('resize', () => { clearTimeout(tmRz); tmRz = setTimeout(() => { if (tm.res && tm.res.show !== 'cards') renderLadder(); }, 200); });
+
+/* ───────── 핸디 계산기 ───────── */
+// G핸디는 서버(golf:handi)에 이름마다 남아요. 차이의 소수점이 .6 이상이면 올리고, 아니면 버려요.
+let handi = {};
+const HD0 = { mode: 'solo', sel: [], team: {}, k: 2 };
+const hd = Object.assign(structuredClone(HD0), loadLS('hd', {}));
+window.hdOn = true;
+const hdGive = (d) => { const t = Math.round(Math.abs(d) * 10); return Math.floor(t / 10) + (t % 10 >= 6 ? 1 : 0); };
+const ga = (w) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '이' : '가'; };
+const g1 = (v) => (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '');
+const hdNames = () => { const a = [...FRIENDS, ...tm.extra]; Object.keys(handi).forEach((n) => { if (!a.includes(n)) a.push(n); }); return a; };
+const hasG = (n) => typeof handi[n] === 'number';
+function renderHd() {
+  const names = hdNames();
+  $('#hdNote').textContent = admin ? 'G핸디를 한 번 넣으면 고칠 때까지 계속 남아요. 칸을 비우면 지워져요.' : 'G핸디는 이현님이 넣어 둔 값이에요.';
+  $('#hdAdd').hidden = !admin;
+  $('#hdList').innerHTML = names.map((n) => `<div class="hp"><b>${esc(n)}</b>${admin
+    ? `<input data-g="${esc(n)}" inputmode="decimal" placeholder="G핸디" value="${hasG(n) ? g1(handi[n]) : ''}">`
+    : `<span class="gv">${hasG(n) ? g1(handi[n]) : '–'}</span>`}</div>`).join('');
+  document.querySelectorAll('#hdMode button').forEach((b) => b.classList.toggle('on', b.dataset.hm === hd.mode));
+  $('#hdKBox').hidden = hd.mode !== 'team'; $('#hdK').textContent = hd.k;
+  hd.sel = hd.sel.filter((n) => names.includes(n));
+  $('#hdPeople').innerHTML = names.map((n) => `<button data-hp="${esc(n)}" class="${hd.sel.includes(n) ? 'on' : ''}">${esc(n)}${hasG(n) ? ` <span class="note">${g1(handi[n])}</span>` : ''}</button>`).join('');
+  const P = hd.sel.filter(hasG), miss = hd.sel.filter((n) => !hasG(n));
+  let h = miss.length ? `<div class="note">G핸디가 없어 빠진 사람: ${miss.map(esc).join(', ')}</div>` : '';
+  if (hd.mode === 'team') {
+    $('#hdTeams').innerHTML = (tm.res ? '<div class="row" style="margin-top:8px"><button type="button" class="ghost" data-hfrom>편 가르기 결과 가져오기</button></div>' : '')
+      + P.map((n) => `<div class="hd-tm"><b>${esc(n)}</b><span class="chips">${TEAMS.slice(0, hd.k).map((t, i) => `<button style="--tc:${t.c}" data-ht="${i}" data-hn="${esc(n)}" class="${hd.team[n] === i ? 'on' : ''}">${t.n}</button>`).join('')}</span></div>`).join('');
+    const T = TEAMS.slice(0, hd.k).map((t, i) => ({ ...t, m: P.filter((n) => hd.team[n] === i) })).map((t) => ({ ...t, sum: t.m.reduce((a, n) => a + handi[n], 0) }));
+    const used = T.filter((t) => t.m.length);
+    h += used.map((t) => `<div class="hd-team" style="--tc:${t.c}"><b>${t.n}</b> ${t.m.map((n) => `${esc(n)} ${g1(handi[n])}`).join(' + ')} = <b>${g1(t.sum)}</b></div>`).join('');
+    if (used.length < 2) h += '<div class="note" style="margin-top:8px">사람마다 팀을 눌러 두 팀 이상 만들어 주세요.</div>';
+    else {
+      const lines = [];
+      for (let i = 0; i < used.length; i++) for (let j = i + 1; j < used.length; j++) {
+        const [a, b] = used[i].sum <= used[j].sum ? [used[i], used[j]] : [used[j], used[i]], d = b.sum - a.sum, n = hdGive(d);
+        lines.push(`<div class="hd-line"><span><b style="color:${a.c}">${a.n}</b>이 <b style="color:${b.c}">${b.n}</b>에게</span><span class="n">${n}개</span><span class="note">합 차이 ${g1(b.sum)} − ${g1(a.sum)} = ${g1(d)}</span></div>`);
+      }
+      h += `<div style="margin-top:10px">${lines.join('')}</div>`;
+      const cnt = used.map((t) => t.m.length); if (Math.min(...cnt) !== Math.max(...cnt)) h += '<div class="note">팀 인원이 달라요. 합산이 그대로 비교돼요.</div>';
+    }
+  } else {
+    $('#hdTeams').innerHTML = '';
+    if (P.length < 2) h += '<div class="note" style="margin-top:8px">G핸디가 있는 사람을 두 명 이상 골라 주세요.</div>';
+    else {
+      const S = [...P].sort((a, b) => handi[a] - handi[b]);
+      h += `<div class="tw"><table class="hd-mx"><tr><th>주는 사람 ＼ 받는 사람</th>${S.map((n) => `<th>${esc(n)}<br><span class="note">${g1(handi[n])}</span></th>`).join('')}</tr>${S.map((a) => `<tr><th>${esc(a)}</th>${S.map((b) => {
+        if (a === b) return '<td class="self">·</td>';
+        const d = handi[b] - handi[a]; return d > 0 ? `<td class="give">${hdGive(d)}</td>` : '<td class="note">–</td>';
+      }).join('')}</tr>`).join('')}</table></div>`;
+      const lines = [];
+      for (let i = 0; i < S.length; i++) for (let j = i + 1; j < S.length; j++) {
+        const a = S[i], b = S[j], d = handi[b] - handi[a], n = hdGive(d);
+        lines.push(`<div class="hd-line"><span><b>${esc(a)}</b>${ga(a)} <b>${esc(b)}</b>에게</span><span class="n">${n}개</span><span class="note">${g1(handi[b])} − ${g1(handi[a])} = ${g1(d)}</span></div>`);
+      }
+      h += `<div style="margin-top:10px">${lines.join('')}</div>`;
+    }
+  }
+  h += '<div class="note" style="margin-top:8px">차이의 소수점이 0.6 이상이면 올리고, 0.5 이하는 버려요.</div>';
+  $('#hdOut').innerHTML = h;
+  save('hd', hd);
+}
+$('#handi').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+  if (d.hm) hd.mode = d.hm;
+  else if (d.hk) { hd.k = Math.min(4, Math.max(2, hd.k + Number(d.hk))); for (const n in hd.team) if (hd.team[n] >= hd.k) delete hd.team[n]; }
+  else if (d.hp) { const n = d.hp; hd.sel = hd.sel.includes(n) ? hd.sel.filter((x) => x !== n) : [...hd.sel, n]; }
+  else if (d.ht) { const n = d.hn, t = Number(d.ht); if (hd.team[n] === t) delete hd.team[n]; else hd.team[n] = t; }
+  else if ('hfrom' in d && tm.res) { const R = tm.res; hd.k = Math.max(2, R.k); hd.team = {}; R.people.forEach((p, i) => { hd.team[p] = R.team[i]; }); hd.sel = [...R.people]; toast('편 가르기 결과를 가져왔어요'); }
+  else return;
+  renderHd();
+});
+$('#hdList').addEventListener('change', async (e) => {
+  const n = e.target.dataset.g; if (n == null || !admin) return;
+  const raw = e.target.value.trim(), v = raw === '' ? null : Number(raw.replace(',', '.'));
+  if (v !== null && !Number.isFinite(v)) { toast('숫자로 넣어 주세요'); e.target.value = hasG(n) ? g1(handi[n]) : ''; return; }
+  try {
+    const r = await api('POST', { op: 'handi', name: n, value: v });
+    if (v === null) delete handi[n]; else handi[n] = r.value;
+    toast(v === null ? `${n} G핸디를 지웠어요` : `${n} G핸디 ${g1(r.value)} 저장했어요`); renderHd();
+  } catch { toast('저장하지 못했어요'); }
+});
+$('#hdAdd').addEventListener('submit', (e) => {
+  e.preventDefault(); const n = $('#hdName').value.trim(); if (!n) return;
+  if (!hdNames().includes(n)) tm.extra.push(n), save('team', tm);
+  $('#hdName').value = ''; renderTm(); renderHd();
+  const inp = document.querySelector(`#hdList [data-g="${CSS.escape(n)}"]`); if (inp) inp.focus();
+});
+$('#hdReset').addEventListener('click', (e) => twoTap(e.currentTarget, () => { Object.assign(hd, structuredClone(HD0)); renderHd(); toast('핸디 계산기를 처음으로 돌렸어요 (G핸디는 그대로예요)'); }));
 
 /* ───────── 유튜브 타임라인 ───────── */
 const vday = (i) => i.date || new Date(i.at + 9 * 3600e3).toISOString().slice(0, 10);
@@ -842,9 +965,9 @@ $('#db').addEventListener('click', async (e) => {
 async function load() {
   try {
     const j = await api('GET', null, viewKey ? `?k=${encodeURIComponent(viewKey)}` : '');
-    videos = j.videos; admin = j.admin; shareKey = j.key || '';
+    videos = j.videos; handi = j.handi || {}; admin = j.admin; shareKey = j.key || '';
     $('#gate').hidden = true; $('#app').hidden = false; $('#adminbar').hidden = !admin;
-    renderTm(); renderStage(); renderFee(); setUnit(unit); renderTd(); renderVideos();
+    renderTm(); renderStage(); renderHd(); renderFee(); setUnit(unit); renderTd(); renderVideos();
     logReady = true; logLast.fee = null;
   } catch (e) {
     $('#app').hidden = true; $('#gate').hidden = false;
