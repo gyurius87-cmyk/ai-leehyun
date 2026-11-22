@@ -13,10 +13,10 @@
       "log": [ { "date": "2026-10-12", "text": "Muse Wonder 공개" } ] },
     { "id": "deepseek", "company": "DeepSeek", "family": "DeepSeek", "latest": "DeepSeek V4.1 Flash", "released": "2026-10-17", "strength": "중국 오픈 모델, 아주 싼 가격", "kw": ["deepseek", "딥시크"],
       "log": [ { "date": "2026-10-17", "text": "V4.1 Flash 업데이트" } ] },
-    { "id": "qwen", "company": "Alibaba", "family": "Qwen", "latest": "Qwen3.8-Max", "released": "", "strength": "웹 만들기 순위표 상위, 중국 대표 모델", "others": "Qwen Image 2.1(10/09)", "kw": ["qwen", "alibaba", "큐원", "알리바바"],
-      "log": [ { "date": "2026-10-09", "text": "이미지 모델 Qwen Image 2.1" } ] },
-    { "id": "mistral", "company": "Mistral", "family": "Mistral", "latest": "Mistral Large 4", "released": "2026-10-06", "strength": "유럽 대표, 공개 모델 약속", "others": "음성 Voxtral 3(10/20)", "kw": ["mistral", "미스트랄"],
-      "log": [ { "date": "2026-10-20", "text": "음성 모델 Voxtral 3 공개 (듣기·말하기)" }, { "date": "2026-10-06", "text": "Large 4 미리보기 공개" } ] },
+    { "id": "qwen", "company": "Alibaba", "family": "Qwen", "latest": "Qwen4-Max", "released": "2026-11-16", "strength": "새 Qwen4 구조, 그림까지 보는 중국 대표 모델, 아주 긴 글(100만 토큰)", "others": "Qwen3.8-Max · Qwen Image 2.1(10/09)", "kw": ["qwen", "alibaba", "큐원", "알리바바"],
+      "log": [ { "date": "2026-11-16", "text": "Qwen4-Max 공개 (새 Qwen4 구조)" }, { "date": "2026-10-09", "text": "이미지 모델 Qwen Image 2.1" } ] },
+    { "id": "mistral", "company": "Mistral", "family": "Mistral", "latest": "Mistral Large 4", "released": "2026-11-05", "strength": "유럽 대표, 공개 모델 약속", "others": "음성 Voxtral 3(10/20)", "kw": ["mistral", "미스트랄"],
+      "log": [ { "date": "2026-11-05", "text": "Large 4 정식 공개 (공개 가중치, 그림도 이해)" }, { "date": "2026-10-20", "text": "음성 모델 Voxtral 3 공개 (듣기·말하기)" }, { "date": "2026-10-06", "text": "Large 4 미리보기 공개" } ] },
     { "id": "korea", "company": "국내", "family": "하이퍼클로바X · 엑사원 · 솔라 · 카나나", "latest": "K-엑사원 등", "released": "", "strength": "한국어 특화. 네이버·LG·업스테이지·카카오", "kw": ["하이퍼클로바", "hyperclova", "엑사원", "exaone", "솔라", "업스테이지", "카나나", "국가대표 ai", "독자 ai"],
       "log": [] }
   ]
