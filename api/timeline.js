@@ -85,6 +85,16 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     }
     if (b.act === "del" && id) { await redis([["HDEL", W, id]]); return res.json({ ok: true }); }
+    if (b.act === "goal") {
+      if (b.set && typeof b.set === "object" && !b.view) {
+        const m = num(b.set.min);
+        if (m > 0 && m <= 1440) await redis([["HSET", M, "goal", JSON.stringify({ min: m, at: Date.now() })]]);
+        else await redis([["HDEL", M, "goal"]]);
+      }
+      const v = (await redis([["HGET", M, "goal"]]))[0];
+      let goal = null; try { goal = v ? JSON.parse(v) : null; } catch {}
+      return res.json({ goal });
+    }
     if (b.act === "meta") {
       if (b.set && typeof b.set === "object") await redis([["HSET", M, "aw", JSON.stringify({ last: num(b.set.last), snooze: num(b.set.snooze) })]]);
       const v = (await redis([["HGET", M, "aw"]]))[0];
