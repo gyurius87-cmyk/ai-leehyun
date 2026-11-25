@@ -8,9 +8,9 @@
 <title>순일시간 체크</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-:root{--bg:#f4f1ea;--card:#fffdf8;--fg:#1f1d1a;--mute:#7a736a;--line:#e2ddd2;--acc:#1f7a5a;--stop:#b5462f;--past:#ebe6db;--future:#f8f6f0;--h1:#d6ece1;--h2:#a6d4bd;--h3:#5fae8a;--h4:#1f7a5a;--onDark:#fff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131614;--card:#1b1f1d;--fg:#ece8e1;--mute:#9a958d;--line:#2d3330;--acc:#4fc497;--stop:#e0765d;--past:#262b28;--future:#1b1f1d;--h1:#1f3a2e;--h2:#276149;--h3:#35936c;--h4:#56c99a;--onDark:#0d1411;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#131614;--card:#1b1f1d;--fg:#ece8e1;--mute:#9a958d;--line:#2d3330;--acc:#4fc497;--stop:#e0765d;--past:#262b28;--future:#1b1f1d;--h1:#1f3a2e;--h2:#276149;--h3:#35936c;--h4:#56c99a;--onDark:#0d1411;color-scheme:dark}
+:root{--bg:#f4f1ea;--card:#fffdf8;--fg:#1f1d1a;--mute:#7a736a;--line:#e2ddd2;--acc:#1f7a5a;--stop:#b5462f;--past:#ebe6db;--future:#f8f6f0;--h1:#d6ece1;--h2:#a6d4bd;--h3:#5fae8a;--h4:#1f7a5a;--onDark:#fff;--runBg:#dff2e8;--runGlow:rgba(31,122,90,.45)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131614;--card:#1b1f1d;--fg:#ece8e1;--mute:#9a958d;--line:#2d3330;--acc:#4fc497;--stop:#e0765d;--past:#262b28;--future:#1b1f1d;--h1:#1f3a2e;--h2:#276149;--h3:#35936c;--h4:#56c99a;--onDark:#0d1411;--runBg:#16362a;--runGlow:rgba(79,196,151,.5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131614;--card:#1b1f1d;--fg:#ece8e1;--mute:#9a958d;--line:#2d3330;--acc:#4fc497;--stop:#e0765d;--past:#262b28;--future:#1b1f1d;--h1:#1f3a2e;--h2:#276149;--h3:#35936c;--h4:#56c99a;--onDark:#0d1411;--runBg:#16362a;--runGlow:rgba(79,196,151,.5);color-scheme:dark}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:"IBM Plex Sans KR",system-ui,sans-serif;font-size:15px}
 .wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:14px}
@@ -49,6 +49,12 @@ h1{font-family:"Gowun Batang",serif;font-size:24px;margin:0}
 #goalForm{justify-content:center;font-size:13px}
 #goalForm input{width:70px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
 body.mini .goal .gl button,body.mini #goalForm{display:none}
+#top.run{background:var(--runBg);border:3px solid var(--acc);animation:runGlow 2.4s ease-in-out infinite}
+@keyframes runGlow{0%,100%{box-shadow:0 0 0 0 var(--runGlow)}50%{box-shadow:0 0 0 10px transparent,0 0 28px 4px var(--runGlow)}}
+#top.run .clock{color:var(--acc)}
+#top.run .state{color:var(--acc);font-weight:600;font-size:15px}
+#top.run .dot{width:12px;height:12px}
+@media (prefers-reduced-motion:reduce){#top.run{animation:none;box-shadow:0 0 24px 2px var(--runGlow)}}
 #top.run:not(.view){grid-template-columns:1fr;padding-block:28px}
 #top.run:not(.view) .year{display:none}
 #top.run:not(.view) .now{gap:12px}
