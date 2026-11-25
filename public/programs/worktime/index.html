@@ -604,6 +604,7 @@ if (!fx.seed1) { fx.seed1 = 1; fx.sfx = [...(fx.sfx || []),
   { id: 'mi3', name: '티모 웃음소리', page: 'https://www.myinstants.com/ko/instant/timo-useumsori-32281/' }]; fxSave(); }
 if (!fx.seed2) { fx.seed2 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi4', name: '밈 효과음 (meme mp3)', page: 'https://www.myinstants.com/ko/instant/meme-mp3-37545/' }]; fxSave(); }
 if (!fx.seed3) { fx.seed3 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi5', name: '애니 와우 (anime wow)', page: 'https://www.myinstants.com/ko/instant/anime-wow/' }]; fxSave(); }
+if (!fx.seed4) { fx.seed4 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi6', name: '야아아아이 (yaaaaaaaay)', page: 'https://www.myinstants.com/ko/instant/yaaaaaaaay/' }]; fxSave(); }
 const cheers = () => { const a = String(fx.cheers || '').split('\n').map(s => s.trim()).filter(Boolean); return a.length ? a : DEF_CHEERS; };
 let actx = null;
 const audio = () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch {} return actx; };
