@@ -361,6 +361,16 @@
       "cat": "업무·운영"
     },
     {
+      "id": "resize",
+      "name": "사진 한번에 리사이징",
+      "status": "using",
+      "summary": "사진 여러 장을 넣으면 중심을 찾아 1000×1000 같은 모양으로 한번에 잘라 저장해요. 사진은 내 컴퓨터 밖으로 안 나가요.",
+      "start": "2026-11-25",
+      "private": true,
+      "href": "/programs/resize",
+      "cat": "업무·운영"
+    },
+    {
       "id": "kakao-analyzer",
       "name": "카톡 대화 분석기",
       "status": "using",

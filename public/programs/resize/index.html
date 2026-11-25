@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>사진 한번에 리사이징</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#f4f1ea;--card:#fffdf8;--fg:#1f1d1a;--mute:#6f685f;--line:#e2ddd2;--acc:#1f7a5a;--accBg:#dff2e8;--warn:#b5462f;--chk:#ebe6db;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131614;--card:#1b1f1d;--fg:#ece8e1;--mute:#a49f97;--line:#2d3330;--acc:#4fc497;--accBg:#16362a;--warn:#e0765d;--chk:#262b28;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131614;--card:#1b1f1d;--fg:#ece8e1;--mute:#a49f97;--line:#2d3330;--acc:#4fc497;--accBg:#16362a;--warn:#e0765d;--chk:#262b28;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"IBM Plex Sans KR",system-ui,sans-serif;font-size:15px}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 110px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-family:"Gowun Batang",serif;font-size:24px;margin:0}
+.safe{font-size:13px;color:var(--acc);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;cursor:pointer;background:var(--card);transition:.2s}
+.drop.on,.drop:hover{border-color:var(--acc);background:var(--accBg)}
+.drop b{font-size:18px;display:block;margin-bottom:4px}
+.drop span{color:var(--mute);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lbl{font-size:13px;color:var(--mute);min-width:64px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 13px;font:inherit;font-size:14px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip small{color:var(--mute);font-size:11px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:var(--card)}
+.chip.on small{color:var(--card);opacity:.8}
+.shape{display:inline-block;border:1.5px solid currentColor;border-radius:2px}
+input.n{width:76px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font:inherit}
+.set{display:flex;flex-direction:column;gap:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.ph{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ph canvas{width:100%;height:auto;display:block;border-radius:6px;background:repeating-conic-gradient(var(--chk) 0 25%,transparent 0 50%) 0 0/14px 14px;cursor:grab;touch-action:none}
+.ph canvas:active{cursor:grabbing}
+.ph .nm{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph .tl{display:flex;gap:4px;flex-wrap:wrap}
+.x{background:none;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit;font-size:12px}
+.x.on{border-color:var(--acc);color:var(--acc);font-weight:600}
+.x.del{color:var(--warn)}
+.zoom{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.zoom input{flex:1;min-width:0}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:10}
+.bar .in{max-width:1100px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.go{border:0;border-radius:999px;padding:12px 26px;font:600 16px "IBM Plex Sans KR",sans-serif;cursor:pointer;background:var(--acc);color:var(--card)}
+.go:disabled{opacity:.4;cursor:default}
+.msg{font-size:13px;color:var(--mute);flex:1 1 200px}
+.note{font-size:12px;color:var(--mute);line-height:1.6}
+a{color:var(--acc)}
+select{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>사진 한번에 리사이징</h1>
+    <span class="safe">🔒 사진은 이 컴퓨터 안에서만 처리돼요 (업로드 없음)</span>
+  </header>
+
+  <label class="drop" id="drop">
+    <b>📷 사진 고르기 · 여기로 끌어다 놓기</b>
+    <span>여러 장 한꺼번에 돼요. JPG · PNG · WEBP · HEIC(사파리)</span>
+    <input type="file" id="file" accept="image/*" multiple hidden>
+  </label>
+
+  <div class="card set">
+    <div class="row"><span class="lbl">모양</span><div class="row" id="shapes"></div></div>
+    <div class="row" id="customRow" hidden><span class="lbl">직접</span><input class="n" id="cw" type="number" min="16" max="8000"> × <input class="n" id="ch" type="number" min="16" max="8000"> px</div>
+    <div class="row"><span class="lbl">넣는 방식</span>
+      <button class="chip" data-mode="crop">✂️ 꽉 채우기 <small>중심 찾아 자르기</small></button>
+      <button class="chip" data-mode="fit">🖼 전체 넣기 <small>남는 곳은 여백</small></button>
+      <span id="bgWrap" class="row" style="gap:6px"><span class="lbl" style="min-width:0">여백색</span><input type="color" id="bg" value="#ffffff"></span>
+    </div>
+    <div class="row"><span class="lbl">저장</span>
+      <select id="fmt"><option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WEBP</option></select>
+      <span class="zoom" style="flex:0 1 220px">품질 <input type="range" id="q" min="60" max="100" value="92"> <b id="qv">92</b></span>
+    </div>
+    <label class="row" style="cursor:pointer"><input type="checkbox" id="autoSave" style="width:18px;height:18px"> <b>사진 넣으면 바로 저장</b> <span class="note">중심 찾아 잘라서 곧장 다운로드돼요. 마음에 안 드는 사진만 아래에서 끌어 고치고 다시 저장하면 돼요.</span></label>
+  </div>
+
+  <div class="row" id="allTools" hidden>
+    <span class="note" style="flex:1 1 240px">사진을 끌어서 위치를 옮길 수 있어요. 아래 막대로 확대해요.</span>
+    <button class="x" id="allAuto">🎯 전부 자동 중심</button>
+    <button class="x" id="allCenter">⊕ 전부 가운데</button>
+    <button class="x del" id="allClear">전부 비우기</button>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <p class="note">인터넷 없이 쓰고 싶으면 <a href="/programs/resize/index.html" download="사진 리사이징.html">이 페이지를 PC에 저장</a>해 두고 그 파일을 열면 돼요. 결과는 사진 1장이면 바로, 여러 장이면 zip 하나로 받아져요.</p>
+</div>
+
+<div class="bar"><div class="in">
+  <span class="msg" id="msg">사진을 골라 주세요.</span>
+  <button class="go" id="go" disabled>⬇ 리사이징해서 저장</button>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const SHAPES=[
+  {k:'1000',w:1000,h:1000,t:'스마트스토어'},
+  {k:'1:1',w:1080,h:1080,t:'정사각'},
+  {k:'4:5',w:1080,h:1350,t:'인스타 피드'},
+  {k:'9:16',w:1080,h:1920,t:'릴스·스토리'},
+  {k:'3:4',w:1080,h:1440,t:''},
+  {k:'16:9',w:1920,h:1080,t:'유튜브'},
+  {k:'860',w:860,h:0,t:'상세페이지 폭'},
+  {k:'custom',w:0,h:0,t:'직접'}
+];
+const LS='resize-set';
+let st={auto:true,shape:'1000',mode:'crop',cw:1000,ch:1000,bg:'#ffffff',fmt:'jpg',q:92};
+try{Object.assign(st,JSON.parse(localStorage.getItem(LS)||'{}'))}catch{}
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(st))}catch{}};
+let items=[]; // {name,bmp,w,h,cx,cy,z,auto:{cx,cy},canvas}
+
+function target(it){
+  const s=SHAPES.find(x=>x.k===st.shape)||SHAPES[0];
+  if(s.k==='custom')return{w:Math.max(16,+st.cw||1000),h:Math.max(16,+st.ch||1000)};
+  if(s.h===0){ // keep ratio, fixed width
+    const w=s.w; return{w,h:it?Math.round(it.h*w/it.w):w};
+  }
+  return{w:s.w,h:s.h};
+}
+function keepRatio(){const s=SHAPES.find(x=>x.k===st.shape);return s&&s.h===0}
+
+/* ---------- settings UI ---------- */
+function drawShapes(){
+  $('shapes').innerHTML='';
+  for(const s of SHAPES){
+    const b=document.createElement('button');b.className='chip'+(st.shape===s.k?' on':'');
+    let ic='';
+    if(s.h){const r=s.w/s.h,H=14,W=Math.round(H*r);ic=`<i class="shape" style="width:${Math.min(W,24)}px;height:${W>24?Math.round(24/r):H}px"></i>`}
+    b.innerHTML=`${ic}${s.k==='custom'?'직접 입력':s.k==='860'?'폭 860':s.k==='1000'?'1000×1000':s.k}${s.t&&s.k!=='custom'?` <small>${s.t}</small>`:''}`;
+    b.onclick=()=>{st.shape=s.k;save();drawShapes();refreshAll()};
+    $('shapes').appendChild(b);
+  }
+  $('customRow').hidden=st.shape!=='custom';
+  document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('on',b.dataset.mode===st.mode);b.disabled=keepRatio();b.style.opacity=keepRatio()?.4:1});
+  $('bgWrap').hidden=st.mode!=='fit'||keepRatio();
+}
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{st.mode=b.dataset.mode;save();drawShapes();refreshAll()});
+$('cw').value=st.cw;$('ch').value=st.ch;$('bg').value=st.bg;$('fmt').value=st.fmt;$('q').value=st.q;$('qv').textContent=st.q;
+$('cw').oninput=$('ch').oninput=()=>{st.cw=+$('cw').value;st.ch=+$('ch').value;save();refreshAll()};
+$('bg').oninput=()=>{st.bg=$('bg').value;save();refreshAll()};
+$('fmt').onchange=()=>{st.fmt=$('fmt').value;save();updMsg()};
+$('autoSave').checked=st.auto;$('autoSave').onchange=()=>{st.auto=$('autoSave').checked;save()};
+$('q').oninput=()=>{st.q=+$('q').value;$('qv').textContent=st.q;save()};
+
+/* ---------- loading ---------- */
+const drop=$('drop');
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('on')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('on')}));
+drop.addEventListener('drop',ev=>addFiles(ev.dataTransfer.files));
+$('file').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+
+async function addFiles(fl){
+  const fs=[...fl].filter(f=>f.type.startsWith('image/')||/\.(heic|heif|jpe?g|png|webp|gif|bmp)$/i.test(f.name));
+  if(!fs.length)return;
+  let n=0;const added=[];
+  for(const f of fs){
+    $('msg').textContent=`불러오는 중… ${++n}/${fs.length}`;
+    try{
+      let bmp;
+      try{bmp=await createImageBitmap(f,{imageOrientation:'from-image'})}
+      catch{bmp=await new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=no;im.src=URL.createObjectURL(f)})}
+      const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight;
+      const it={name:f.name.replace(/\.[^.]+$/,''),bmp,w,h,z:1,cx:.5,cy:.5};
+      it.sal=saliency(it);
+      autoCenter(it);
+      items.push(it);added.push(it);addCard(it);
+    }catch(e){console.warn(e)}
+  }
+  updMsg();
+  if(st.auto&&added.length)exportItems(added);
+}
+
+/* ---------- center finding ---------- */
+// 작은 크기로 줄여서 '눈에 띄는 곳' 지도를 만든다: 윤곽(선명한 경계) + 채도 + 피부색, 가장자리는 덜 중요하게
+function saliency(it){
+  const S=96,r=it.w/it.h,W=r>=1?S:Math.max(8,Math.round(S*r)),H=r>=1?Math.max(8,Math.round(S/r)):S;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(it.bmp,0,0,W,H);
+  const d=x.getImageData(0,0,W,H).data,L=new Float32Array(W*H),E=new Float32Array(W*H);
+  for(let i=0;i<W*H;i++){const R=d[i*4],G=d[i*4+1],B=d[i*4+2];L[i]=.299*R+.587*G+.114*B}
+  for(let y=1;y<H-1;y++)for(let xx=1;xx<W-1;xx++){
+    const i=y*W+xx;
+    const gx=L[i+1]-L[i-1]+.5*(L[i-W+1]-L[i-W-1]+L[i+W+1]-L[i+W-1]);
+    const gy=L[i+W]-L[i-W]+.5*(L[i+W-1]-L[i-W-1]+L[i+W+1]-L[i-W+1]);
+    const R=d[i*4],G=d[i*4+1],B=d[i*4+2],mx=Math.max(R,G,B),mn=Math.min(R,G,B);
+    const sat=mx?(mx-mn)/mx:0;
+    const skin=(R>95&&G>40&&B>20&&R>G&&R>B&&R-mn>15&&Math.abs(R-G)>15)?1:0;
+    const ex=Math.min(xx,W-1-xx)/W,ey=Math.min(y,H-1-y)/H,edge=Math.min(1,Math.min(ex,ey)*8);
+    E[i]=(Math.hypot(gx,gy)/255*1.0+sat*.35+skin*.9)*(.35+.65*edge);
+  }
+  return{W,H,E};
+}
+function autoCenter(it){
+  const {W,H,E}=it.sal,t=target(it);
+  if(st.mode==='fit'||keepRatio()){it.cx=it.cy=.5;it.auto={cx:.5,cy:.5};return}
+  // 잘라낼 창(확대 1 기준) 크기
+  const tr=t.w/t.h,ir=it.w/it.h;
+  const cw=ir>tr?tr/ir:1, chh=ir>tr?1:ir/tr; // 비율(0~1)
+  const ww=Math.max(1,Math.round(cw*W)),wh=Math.max(1,Math.round(chh*H));
+  // 누적합으로 모든 창 위치의 점수 계산
+  const I=new Float64Array((W+1)*(H+1));
+  for(let y=0;y<H;y++){let s=0;for(let x=0;x<W;x++){s+=E[y*W+x];I[(y+1)*(W+1)+x+1]=I[y*(W+1)+x+1]+s}}
+  const sum=(x,y,w,h)=>I[(y+h)*(W+1)+x+w]-I[y*(W+1)+x+w]-I[(y+h)*(W+1)+x]+I[y*(W+1)+x];
+  let best=-1,bx=0,by=0;
+  for(let y=0;y<=H-wh;y++)for(let x=0;x<=W-ww;x++){
+    const midx=(x+ww/2)/W-.5,midy=(y+wh/2)/H-.5;
+    const sc=sum(x,y,ww,wh)*(1-.25*Math.hypot(midx,midy)); // 비슷하면 가운데 쪽
+    if(sc>best){best=sc;bx=x;by=y}
+  }
+  // 무게중심 쪽으로 살짝 더 맞추기
+  let tw=0,mx=0,my=0;
+  for(let y=by;y<by+wh;y++)for(let x=bx;x<bx+ww;x++){const e=E[y*W+x];tw+=e;mx+=e*x;my+=e*y}
+  let cx=(bx+ww/2)/W,cy=(by+wh/2)/H;
+  if(tw>0){cx=cx*.6+((mx/tw+.5)/W)*.4;cy=cy*.6+((my/tw+.5)/H)*.4}
+  it.cx=cx;it.cy=cy;it.auto={cx,cy};clamp(it);
+  it.found=tw>0&&best>0;
+}
+// 확대·위치를 화면 밖으로 안 나가게
+function srcRect(it){
+  const t=target(it),tr=t.w/t.h,ir=it.w/it.h;
+  let sw,sh;
+  if(st.mode==='fit'||keepRatio()){return null}
+  if(ir>tr){sh=it.h/it.z;sw=sh*tr}else{sw=it.w/it.z;sh=sw/tr}
+  let sx=it.cx*it.w-sw/2,sy=it.cy*it.h-sh/2;
+  sx=Math.max(0,Math.min(it.w-sw,sx));sy=Math.max(0,Math.min(it.h-sh,sy));
+  return{sx,sy,sw,sh};
+}
+function clamp(it){const r=srcRect(it);if(!r)return;it.cx=(r.sx+r.sw/2)/it.w;it.cy=(r.sy+r.sh/2)/it.h}
+
+/* ---------- drawing ---------- */
+function render(it,canvas,W,H){
+  const x=canvas.getContext('2d');canvas.width=W;canvas.height=H;
+  x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+  if(st.mode==='fit'&&!keepRatio()){
+    if(st.fmt!=='png'||true){x.fillStyle=st.bg;x.fillRect(0,0,W,H)}
+    const s=Math.min(W/it.w,H/it.h)*it.z,dw=it.w*s,dh=it.h*s;
+    x.drawImage(it.bmp,(W-dw)/2+(it.cx-.5)*0,(H-dh)/2,dw,dh);
+    return;
+  }
+  if(keepRatio()){x.drawImage(it.bmp,0,0,W,H);return}
+  const r=srcRect(it);
+  stepDraw(x,it.bmp,r.sx,r.sy,r.sw,r.sh,W,H);
+}
+// 많이 줄일 때는 반씩 여러 번 줄여야 선명함
+function stepDraw(ctx,img,sx,sy,sw,sh,W,H){
+  let src=img,cx=sx,cy=sy,cw=sw,ch=sh;
+  while(cw/2>W*1.05&&ch/2>H*1.05){
+    const c=document.createElement('canvas');c.width=Math.round(cw/2);c.height=Math.round(ch/2);
+    const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(src,cx,cy,cw,ch,0,0,c.width,c.height);
+    src=c;cx=0;cy=0;cw=c.width;ch=c.height;
+  }
+  ctx.drawImage(src,cx,cy,cw,ch,0,0,W,H);
+}
+function preview(it){
+  const t=target(it),PW=360,PH=Math.round(PW*t.h/t.w);
+  render(it,it.canvas,PW,Math.min(PH,1200));
+  it.lab.textContent=`${t.w}×${t.h}`;
+  const crop=st.mode==='crop'&&!keepRatio();
+  it.zoomBox.hidden=!crop;it.tools.hidden=!crop;
+  it.btnAuto.classList.toggle('on',crop&&Math.abs(it.cx-it.auto.cx)<.002&&Math.abs(it.cy-it.auto.cy)<.002&&it.z===1);
+}
+function refreshAll(){for(const it of items){autoCenter(it);it.z=1;it.zr.value=100;preview(it)}updMsg()}
+
+function addCard(it){
+  const d=document.createElement('div');d.className='ph';
+  d.innerHTML=`<canvas></canvas><div class="nm"></div>
+  <div class="zoom">확대 <input type="range" min="100" max="300" value="100"> </div>
+  <div class="tl"><button class="x" data-a="auto">🎯 자동</button><button class="x" data-a="center">⊕ 가운데</button><span style="flex:1"></span><button class="x del" data-a="del">빼기</button></div>`;
+  it.canvas=d.querySelector('canvas');it.lab=document.createElement('b');
+  const nm=d.querySelector('.nm');nm.textContent=it.name+' · ';nm.appendChild(it.lab);nm.title=it.name;
+  it.zoomBox=d.querySelector('.zoom');it.zr=it.zoomBox.querySelector('input');
+  it.tools=d.querySelector('.tl');it.btnAuto=d.querySelector('[data-a=auto]');
+  it.zr.oninput=()=>{it.z=it.zr.value/100;clamp(it);preview(it)};
+  d.querySelector('[data-a=auto]').onclick=()=>{it.z=1;it.zr.value=100;it.cx=it.auto.cx;it.cy=it.auto.cy;clamp(it);preview(it)};
+  d.querySelector('[data-a=center]').onclick=()=>{it.cx=.5;it.cy=.5;clamp(it);preview(it)};
+  d.querySelector('.tl [data-a=del]').onclick=()=>{items=items.filter(x=>x!==it);d.remove();updMsg()};
+  // 끌어서 옮기기
+  let drag=null;
+  it.canvas.addEventListener('pointerdown',e=>{if(st.mode!=='crop'||keepRatio())return;drag={x:e.clientX,y:e.clientY,cx:it.cx,cy:it.cy};it.canvas.setPointerCapture(e.pointerId)});
+  it.canvas.addEventListener('pointermove',e=>{
+    if(!drag)return;const r=srcRect(it),rect=it.canvas.getBoundingClientRect();
+    const k=r.sw/rect.width; // 화면 1px = 원본 몇 px
+    it.cx=drag.cx-(e.clientX-drag.x)*k/it.w;it.cy=drag.cy-(e.clientY-drag.y)*k/it.h;clamp(it);preview(it);
+  });
+  ['pointerup','pointercancel'].forEach(ev=>it.canvas.addEventListener(ev,()=>drag=null));
+  $('grid').appendChild(d);it.card=d;preview(it);
+}
+$('allAuto').onclick=()=>refreshAll();
+$('allCenter').onclick=()=>{for(const it of items){it.cx=.5;it.cy=.5;clamp(it);preview(it)}};
+$('allClear').onclick=()=>{items=[];$('grid').innerHTML='';updMsg()};
+
+function updMsg(){
+  $('allTools').hidden=!items.length;$('go').disabled=!items.length;
+  if(!items.length){$('msg').textContent='사진을 골라 주세요.';return}
+  const t=target(items[0]);
+  $('msg').textContent=`${items.length}장 · ${keepRatio()?'폭 860 (높이는 사진 비율대로)':t.w+'×'+t.h} · ${st.fmt.toUpperCase()} ${items.length>1?'→ zip 1개':''}`;
+}
+
+/* ---------- export ---------- */
+const MIME={jpg:'image/jpeg',png:'image/png',webp:'image/webp'};
+function toBlob(c){return new Promise(ok=>c.toBlob(ok,MIME[st.fmt],st.q/100))}
+$('go').onclick=()=>exportItems(items);
+async function exportItems(list){
+  $('go').disabled=true;const files=[],used={};
+  for(let i=0;i<list.length;i++){
+    const it=list[i],t=target(it),c=document.createElement('canvas');
+    $('msg').textContent=`리사이징 중… ${i+1}/${list.length}`;
+    if(st.fmt==='jpg'){render(it,c,t.w,t.h);const g=c.getContext('2d');if(st.mode!=='fit'){const c2=document.createElement('canvas');c2.width=t.w;c2.height=t.h;const g2=c2.getContext('2d');g2.fillStyle='#fff';g2.fillRect(0,0,t.w,t.h);g2.drawImage(c,0,0);files.push(await named(c2,it,t,used));continue}}
+    else render(it,c,t.w,t.h);
+    files.push(await named(c,it,t,used));
+    await new Promise(r=>setTimeout(r,0));
+  }
+  if(files.length===1)dl(files[0].blob,files[0].name);
+  else{$('msg').textContent='zip 묶는 중…';const z=await zip(files);dl(z,`리사이징_${stamp()}.zip`)}
+  $('msg').textContent=`✅ ${files.length}장 저장했어요 (다운로드 폴더)`;$('go').disabled=false;
+}
+async function named(c,it,t,used){
+  let n=`${it.name}_${t.w}x${t.h}`;if(used[n]){n+=`_${++used[n]}`}else used[n]=1;
+  return{name:`${n}.${st.fmt}`,blob:await toBlob(c)};
+}
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(a.href)},4000)}
+
+// 압축 없이 묶는 간단한 zip (사진은 이미 압축돼 있어서 이걸로 충분)
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+async function zip(files){
+  const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  const d=new Date(),dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1)),dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate());
+  for(const f of files){
+    const data=new Uint8Array(await f.blob.arrayBuffer()),nm=enc.encode(f.name),crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);
+    h.setUint16(10,dt,true);h.setUint16(12,dd,true);h.setUint32(14,crc,true);h.setUint32(18,data.length,true);h.setUint32(22,data.length,true);
+    h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+    parts.push(h.buffer,nm,data);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);
+    c.setUint16(12,dt,true);c.setUint16(14,dd,true);c.setUint32(16,crc,true);c.setUint32(20,data.length,true);c.setUint32(24,data.length,true);
+    c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+    cen.push(c.buffer,nm);off+=30+nm.length+data.length;
+  }
+  const cs=cen.reduce((s,b)=>s+(b.byteLength||b.length),0),e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cen,e.buffer],{type:'application/zip'});
+}
+drawShapes();updMsg();
+</script>
+</body>
+</html>
