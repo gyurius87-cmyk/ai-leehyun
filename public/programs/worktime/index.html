@@ -58,6 +58,18 @@ body.mini .goal .gl button,body.mini #goalForm{display:none}
 #top.run:not(.view) .goal .gl{font-size:14px}
 body.mini #top.run .clock{font-size:clamp(28px,16vw,64px)}
 body.mini #top.run{padding:10px}
+.goal .prog{position:relative;overflow:visible}
+.goal .prog>i{border-radius:inherit}
+#goalTicks{position:absolute;inset:0;pointer-events:none}
+#goalTicks span{position:absolute;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:var(--card);border:2px solid var(--line);font:600 10px/16px "IBM Plex Sans KR",sans-serif;color:var(--mute);text-align:center;transition:all .4s}
+#goalTicks span.ok{background:#d9a21b;border-color:#d9a21b;color:#fff}
+#goalTicks span.pop{animation:pop 1.2s ease-out}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.9);box-shadow:0 0 0 8px rgba(217,162,27,.35)}100%{transform:scale(1)}}
+.goal .prog.flash>i{animation:fl 1.4s ease-out}
+@keyframes fl{30%{filter:brightness(1.5);box-shadow:0 0 14px #d9a21b}}
+#hourToast{font-size:14px;font-weight:600;color:#b07d0c;min-height:0;opacity:0;transition:opacity .5s;text-align:center}
+#hourToast.on{opacity:1}
+#top.run:not(.view) #goalTicks span{width:24px;height:24px;margin:-12px 0 0 -12px;font-size:11px;line-height:20px}
 .prog-l{display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -136,7 +148,8 @@ body.naming .wrap>*:not(#nameBox){display:none}
       <div class="clock mono" id="clock">0:00:00</div>
       <div class="note">오늘 순일시간</div>
       <div class="goal" id="goalBox">
-        <div class="prog"><i id="goalBar"></i></div>
+        <div class="prog" id="goalProg"><i id="goalBar"></i><div id="goalTicks"></div></div>
+        <div id="hourToast"></div>
         <div class="gl"><span id="goalTxt">오늘 목표를 정해 보세요</span><button class="x" id="goalEdit">목표 정하기</button></div>
         <div class="tools" id="goalForm" hidden><span>오늘 목표</span><input id="goalIn" type="number" min="0.5" max="16" step="0.5" inputmode="decimal"><span>시간</span><button class="x" id="goalOk">저장</button><button class="x" id="goalOff">목표 없애기</button></div>
       </div>
@@ -489,9 +502,22 @@ function setIcon(on) {
   let l = document.querySelector('link[rel="icon"]'); if (!l) { l = document.createElement('link'); l.rel = 'icon'; document.head.appendChild(l); }
   l.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
+let tickKey = '', lastHr = -1, toastT = 0;
+const CHEERS = ['좋아요, 흐름 탔어요', '집중이 쌓이고 있어요', '꾸준함이 실력이에요', '오늘도 한 칸 더', '이 시간이 1년을 바꿔요'];
+function hourCheer(h) {
+  const t = $('hourToast'); t.textContent = `🎉 ${h}시간 채웠어요! ${CHEERS[(h - 1) % CHEERS.length]}`; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 6000);
+  const pr = $('goalProg'); pr.classList.remove('flash'); void pr.offsetWidth; pr.classList.add('flash');
+  const sp = $('goalTicks').children[h - 1]; if (sp) { sp.classList.remove('pop'); void sp.offsetWidth; sp.classList.add('pop'); }
+}
 function updGoal(ms, running) {
   const g = goalMin, pct = g ? Math.min(100, ms / (g * 3600000) * 100) : 0, done = g && pct >= 100;
   $('goalBar').style.width = pct + '%';
+  const hrs = Math.floor(ms / 3600000), n = g ? Math.ceil(g) - (Number.isInteger(g) ? 0 : 1) : 0, key = g + ':' + n;
+  if (key !== tickKey) { tickKey = key; $('goalTicks').innerHTML = Array.from({ length: n }, (_, i) => `<span style="left:${Math.min(100, (i + 1) / g * 100)}%">${i + 1}</span>`).join(''); }
+  [...$('goalTicks').children].forEach((sp, i) => { const ok = hrs >= i + 1; if (sp.classList.contains('ok') !== ok) { sp.classList.toggle('ok', ok); sp.textContent = ok ? '✓' : i + 1; } });
+  if (lastHr >= 0 && hrs > lastHr && running) hourCheer(hrs);
+  lastHr = hrs;
   const top = $('goalTop'); top.firstElementChild.style.width = pct + '%'; top.classList.toggle('run', running); top.classList.toggle('done', !!done); top.hidden = !g;
   $('goalBox').classList.toggle('done', !!done);
   $('goalTxt').innerHTML = !g ? '오늘 목표를 정해 보세요' : done ? `🎉 목표 <b>${fmtHM(g * 3600000)}</b> 달성!` : `목표 <b>${fmtHM(g * 3600000)}</b> · ${Math.floor(pct)}% · 남은 ${fmtHM(g * 3600000 - ms)}`;
