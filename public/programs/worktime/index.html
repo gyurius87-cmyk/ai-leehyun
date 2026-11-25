@@ -86,6 +86,16 @@ body.mini #top.run{padding:10px}
 #winDlg.mini{background:transparent;pointer-events:none;align-items:flex-end;justify-content:flex-end;padding:0}
 #winDlg.mini #winBox{pointer-events:auto;width:300px;max-width:calc(100vw - 32px);margin:0 max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) 0;background:#111;padding:8px;border-radius:12px;gap:6px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 #winDlg.mini .wf{display:none}#winDlg.mini #winPlay{width:130px;height:40px;font-size:14px}#winDlg.mini .wh b{font-size:14px}
+.sndl{display:flex;flex-direction:column;gap:4px}
+.sndl .sr{display:flex;align-items:center;gap:8px;font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:8px}
+.sndl .sr .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sndl .sr.wait{border-style:dashed;flex-wrap:wrap}.sndl .sr.wait a{text-decoration:none}
+.sndl .sr small{color:var(--mute);font-size:11px}
+.sndh{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.sndh label{display:flex;gap:6px;align-items:center;font-size:13px}.sndh select{flex:1;min-width:0}
+.sndadd{display:flex;flex-direction:column;gap:8px;background:var(--bg);border-radius:10px;padding:10px}
+.sndadd.on{outline:2px dashed var(--acc)}
+.fin,.fxbox select{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font:inherit;font-size:13px}
 #fxDlg[hidden]{display:none}
 #fxPrev{min-height:20px;font-weight:600;color:#b07d0c;font-size:14px;text-align:center}
 #fxDlg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
@@ -259,7 +269,15 @@ body.naming .wrap>*:not(#nameBox){display:none}
     <div class="fxr"><span class="k">크기</span><label><input type="radio" name="size" data-k="size" value="sm"> 작게</label><label><input type="radio" name="size" data-k="size" value="mid"> 보통</label><label><input type="radio" name="size" data-k="size" value="lg"> 크게</label></div>
   </section>
   <section><h4>소리</h4>
-    <div class="fxr"><label><input type="radio" name="sound" data-k="sound" value="chime"> 띵동</label><label><input type="radio" name="sound" data-k="sound" value="fanfare"> 팡파레</label><label><input type="radio" name="sound" data-k="sound" value="bell"> 종소리</label><label><input type="radio" name="sound" data-k="sound" value="coin"> 띠링(코인)</label></div>
+    <div class="fxr"><span class="k">방식</span><label><input type="radio" name="sndMode" data-k="sndMode" value="one"> 하나만</label><label><input type="radio" name="sndMode" data-k="sndMode" value="random"> 랜덤</label><label><input type="radio" name="sndMode" data-k="sndMode" value="hour"> 시간마다 다르게</label></div>
+    <div id="sndList" class="sndl"></div>
+    <div id="sndHour" class="sndh" hidden></div>
+    <div class="sndadd">
+      <b>＋ 효과음 넣기</b>
+      <div class="fxr"><input id="sfxName" placeholder="이름 (예: 미쳤어 날뛰고 있습니다)" class="fin" style="flex:1 1 180px"></div>
+      <div class="fxr"><label class="x" style="cursor:pointer">🎵 mp3 파일 고르기<input type="file" id="sfxFile" accept="audio/*" hidden></label><span class="note">또는</span><input id="sfxUrl" placeholder="mp3 주소 (…/sound.mp3)" class="fin" style="flex:1 1 180px"><button class="x" id="sfxAdd">넣기</button></div>
+      <p class="note" style="margin:0" id="sfxMsg">마이인스턴트(myinstants)는 소리 페이지의 <b>MP3 다운로드</b> 버튼으로 받은 파일을 여기로 끌어다 놓거나 고르면 돼요. 파일은 이 PC 안에만 저장돼요.</p>
+    </div>
     <div class="fxr"><span class="k">크기</span><input type="range" min="5" max="100" data-k="vol" style="flex:1;min-width:0"><b id="fxVolV"></b></div>
   </section>
   <section><h4>🏆 목표 달성하면</h4>
@@ -576,10 +594,14 @@ function setIcon(on) {
 }
 let tickKey = '', lastHr = -1, lastUnit = -1, toastT = 0;
 const DEF_CHEERS = ['좋아요, 흐름 탔어요', '집중이 쌓이고 있어요', '꾸준함이 실력이에요', '오늘도 한 칸 더', '이 시간이 1년을 바꿔요'];
-const FX_DEF = { every: 60, toast: true, flash: true, confetti: true, size: 'mid', shape: 'paper', snd: true, sound: 'chime', vol: 60, ntf: false, goalBig: true, cheers: DEF_CHEERS.join('\n'), winOn: true, winUrl: 'https://www.youtube.com/watch?v=qnBdUHWMoCk&t=14s' };
+const FX_DEF = { every: 60, toast: true, flash: true, confetti: true, size: 'mid', shape: 'paper', snd: true, sound: 'chime', vol: 60, sndMode: 'one', sfx: [], pool: [], hourSnd: {}, ntf: false, goalBig: true, cheers: DEF_CHEERS.join('\n'), winOn: true, winUrl: 'https://www.youtube.com/watch?v=qnBdUHWMoCk&t=14s' };
 let fx = { ...FX_DEF };
 try { const o = JSON.parse(localStorage.getItem('sunil-fx') || '{}'); Object.assign(fx, o); } catch {}
 const fxSave = () => { try { localStorage.setItem('sunil-fx', JSON.stringify(fx)); } catch {} };
+if (!fx.seed1) { fx.seed1 = 1; fx.sfx = [...(fx.sfx || []),
+  { id: 'mi1', name: '미쳐 날뛰고 있습니다', page: 'https://www.myinstants.com/ko/instant/micyeonalddwigoissseubnida-58160/' },
+  { id: 'mi2', name: '적을 처치했습니다', page: 'https://www.myinstants.com/ko/instant/jeogeul-ceocihyasseubnida-77745/' },
+  { id: 'mi3', name: '티모 웃음소리', page: 'https://www.myinstants.com/ko/instant/timo-useumsori-32281/' }]; fxSave(); }
 const cheers = () => { const a = String(fx.cheers || '').split('\n').map(s => s.trim()).filter(Boolean); return a.length ? a : DEF_CHEERS; };
 let actx = null;
 const audio = () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch {} return actx; };
@@ -590,15 +612,80 @@ const SOUNDS = {
   bell: { n: '종소리', big: [1046.5, 1318.5, 1568, 2093], sm: [1318.5, 1760], type: 'sine', gap: .22, len: 1.8 },
   coin: { n: '띠링(코인)', big: [987.8, 1318.5, 987.8, 1318.5, 1975.5], sm: [987.8, 1318.5], type: 'square', gap: .08, len: .35 },
 };
-function chime(big, force) {
-  if (!(fx.snd || force) || !audio()) return;
-  const s = SOUNDS[fx.sound] || SOUNDS.chime, notes = big ? s.big : s.sm, vol = (fx.vol / 100) * (s.type === 'square' ? .12 : .3);
+function synth(key, big) {
+  if (!audio()) return;
+  const s = SOUNDS[key] || SOUNDS.chime, notes = big ? s.big : s.sm, vol = (fx.vol / 100) * (s.type === 'square' ? .12 : .3);
   notes.forEach((f, i) => {
     const t = actx.currentTime + i * s.gap, o = actx.createOscillator(), g = actx.createGain();
     o.type = s.type; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0005, t + s.len * (big ? 1.3 : 1));
     o.connect(g).connect(actx.destination); o.start(t); o.stop(t + s.len * 1.4);
   });
 }
+/* 효과음: 기본(합성) + 내가 넣은 것 (파일은 IndexedDB, 주소는 그대로) */
+const idb = () => new Promise((ok, no) => { const r = indexedDB.open('sunil-sfx', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+const idbDo = async (mode, fn) => { const db = await idb(); return new Promise((ok, no) => { const tx = db.transaction('f', mode), st = tx.objectStore('f'), rq = fn(st); tx.oncomplete = () => ok(rq && rq.result); tx.onerror = () => no(tx.error); }); };
+const blobUrls = {};
+async function sfxSrc(x) { if (x.url) return x.url; if (blobUrls[x.id]) return blobUrls[x.id]; const b = await idbDo('readonly', st => st.get(x.id)); if (!b) return ''; return (blobUrls[x.id] = URL.createObjectURL(b)); }
+const uiSnd = () => [...Object.keys(SOUNDS).map(k => ({ id: k, name: SOUNDS[k].n, builtin: true })), ...(fx.sfx || [])];
+const allSnd = () => uiSnd().filter(s => !s.page);
+let curAudio = null;
+async function playSnd(id, big) {
+  if (SOUNDS[id]) return synth(id, big);
+  const x = (fx.sfx || []).find(s => s.id === id); if (!x) return synth('chime', big);
+  try { const src = await sfxSrc(x); if (!src) return synth('chime', big); if (curAudio) curAudio.pause(); curAudio = new Audio(src); curAudio.volume = Math.min(1, fx.vol / 100); await curAudio.play(); } catch { synth('chime', big); }
+}
+function pickSnd(u) {
+  const ids = allSnd().map(s => s.id);
+  if (fx.sndMode === 'random') { const pool = (fx.pool || []).filter(id => ids.includes(id)); const a = pool.length ? pool : ids; return a[Math.floor(Math.random() * a.length)]; }
+  if (fx.sndMode === 'hour') { const h = Math.max(1, Math.ceil(u * fx.every / 60)); const id = (fx.hourSnd || {})[h]; if (id && ids.includes(id)) return id; }
+  return ids.includes(fx.sound) ? fx.sound : 'chime';
+}
+function chime(big, force, u) { if (!(fx.snd || force)) return; playSnd(pickSnd(u || 1), big); }
+function drawSnd() {
+  const list = uiSnd(), ready = allSnd(), mode = fx.sndMode || 'one', pool = fx.pool || [];
+  $('sndList').innerHTML = list.map(s => s.page ? `<div class="sr wait"><span class="nm"></span><a class="x" href="${s.page}" target="_blank" rel="noopener">⬇ 받으러 가기</a><label class="x" style="cursor:pointer">📂 받은 파일 넣기<input type="file" accept="audio/*" hidden data-fill="${s.id}"></label><button class="x del" data-rm="${s.id}">빼기</button></div>` : `<div class="sr">${mode === 'one' ? `<input type="radio" name="sndPick" value="${s.id}" ${fx.sound === s.id ? 'checked' : ''}>` : mode === 'random' ? `<input type="checkbox" class="sndPool" value="${s.id}" ${!pool.length || pool.includes(s.id) ? 'checked' : ''}>` : ''}<span class="nm"></span><small>${s.builtin ? '기본' : s.url ? '주소' : '내 파일'}</small><button class="x" data-play="${s.id}">▶</button>${s.builtin ? '' : `<button class="x del" data-rm="${s.id}">빼기</button>`}</div>`).join('');
+  [...$('sndList').querySelectorAll('.nm')].forEach((el, i) => { el.textContent = list[i].name; el.title = list[i].name; });
+  const sh = $('sndHour'); sh.hidden = mode !== 'hour';
+  if (mode === 'hour') {
+    const n = Math.max(4, Math.ceil(goalMin || 8)), opts = ready.map(s => `<option value="${s.id}"></option>`).join('');
+    sh.innerHTML = Array.from({ length: n }, (_, i) => `<label>${i + 1}시간<select data-h="${i + 1}">${opts}</select></label>`).join('');
+    sh.querySelectorAll('select').forEach(sel => { [...sel.options].forEach((o, i) => o.textContent = ready[i].name); sel.value = (fx.hourSnd || {})[sel.dataset.h] || ready[i0(sel.dataset.h, ready.length)].id; });
+  }
+}
+const i0 = (h, n) => (h - 1) % n;
+$('sndList').addEventListener('click', e => {
+  const pl = e.target.dataset.play, rm = e.target.dataset.rm;
+  if (pl) { audio(); playSnd(pl, false); }
+  if (rm) { fx.sfx = (fx.sfx || []).filter(s => s.id !== rm); fx.pool = (fx.pool || []).filter(x => x !== rm); if (fx.sound === rm) fx.sound = 'chime'; fxSave(); idbDo('readwrite', st => st.delete(rm)).catch(() => {}); drawSnd(); }
+});
+$('sndList').addEventListener('change', async e => {
+  const fid = e.target.dataset && e.target.dataset.fill;
+  if (fid) { const f = e.target.files[0]; if (!f) return; try { await idbDo('readwrite', st => st.put(f, fid)); } catch { return; } fx.sfx = (fx.sfx || []).map(x => x.id === fid ? { id: x.id, name: x.name } : x); if (fx.pool && fx.pool.length) fx.pool.push(fid); fxSave(); drawSnd(); audio(); playSnd(fid, false); return; }
+  if (e.target.name === 'sndPick') { fx.sound = e.target.value; fxSave(); playSnd(fx.sound, false); }
+  if (e.target.classList.contains('sndPool')) { fx.pool = [...$('sndList').querySelectorAll('.sndPool:checked')].map(c => c.value); fxSave(); }
+});
+$('sndHour').addEventListener('change', e => { const h = e.target.dataset.h; if (!h) return; fx.hourSnd = { ...(fx.hourSnd || {}) }; $('sndHour').querySelectorAll('select').forEach(s => fx.hourSnd[s.dataset.h] = s.value); fxSave(); playSnd(e.target.value, false); });
+async function addSfx(file) {
+  const name = $('sfxName').value.trim() || (file ? file.name.replace(/\.[^.]+$/, '') : '효과음'), id = 'u' + Date.now().toString(36);
+  let url = '';
+  if (file) {
+    if (file.size > 8e6) { $('sfxMsg').textContent = '8MB 넘는 파일은 못 넣어요'; return; }
+    try { await idbDo('readwrite', st => st.put(file, id)); } catch { $('sfxMsg').textContent = '이 브라우저에 저장을 못 했어요'; return; }
+  } else {
+    url = $('sfxUrl').value.trim();
+    if (!/^https?:\/\/\S+$/.test(url)) { $('sfxMsg').textContent = 'mp3 주소를 넣거나 파일을 골라 주세요'; return; }
+    if (/myinstants\.com\/.*instant\//.test(url)) { const pg = url.split('?')[0]; fx.sfx = [...(fx.sfx || []), { id, name: $('sfxName').value.trim() || decodeURIComponent(pg.split('/').filter(Boolean).pop()).replace(/-\d+$/, ''), page: pg }]; fxSave(); $('sfxName').value = ''; $('sfxUrl').value = ''; $('sfxMsg').innerHTML = '목록에 올렸어요. <b>⬇ 받으러 가기</b> → 그 페이지의 MP3 다운로드 → <b>📂 받은 파일 넣기</b> 순서로 하면 끝나요.'; drawSnd(); return; }
+  }
+  fx.sfx = [...(fx.sfx || []), url ? { id, name, url } : { id, name }];
+  if (fx.pool && fx.pool.length) fx.pool.push(id);
+  fxSave(); $('sfxName').value = ''; $('sfxUrl').value = ''; $('sfxMsg').textContent = `✅ "${name}" 넣었어요`; drawSnd(); audio(); playSnd(id, false);
+}
+$('sfxFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) addSfx(f); };
+$('sfxAdd').onclick = () => addSfx(null);
+const sadd = document.querySelector('.sndadd');
+['dragenter', 'dragover'].forEach(ev => sadd.addEventListener(ev, e => { e.preventDefault(); sadd.classList.add('on'); }));
+['dragleave', 'drop'].forEach(ev => sadd.addEventListener(ev, e => { e.preventDefault(); sadd.classList.remove('on'); }));
+sadd.addEventListener('drop', e => { const f = [...e.dataTransfer.files].find(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(f.name)); if (f) addSfx(f); });
 const SIZES = { sm: [45, 0, 2200], mid: [100, 0, 3000], lg: [170, 90, 3800] };
 function confetti(big) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -640,7 +727,7 @@ function cheer(u, test) {
   if (fx.flash) { const pr = $('goalProg'); pr.classList.remove('flash'); void pr.offsetWidth; pr.classList.add('flash'); }
   const h = (u * fx.every) / 60; if (Number.isInteger(h)) { const sp = $('goalTicks').children[h - 1]; if (sp) { sp.classList.remove('pop'); void sp.offsetWidth; sp.classList.add('pop'); } }
   if (fx.confetti) confetti(false);
-  chime(false);
+  chime(false, false, u);
   notify(`🎉 ${label} 채웠어요!`, msg);
 }
 function goalCheer(g) {
@@ -648,7 +735,7 @@ function goalCheer(g) {
   if (fx.winOn) showWin(g);
   if (fx.toast) toast(`🏆 오늘 목표 ${fmtHM(g * 3600000)} 달성! 정말 잘했어요`, 9000);
   if (fx.confetti || big) confetti(big);
-  chime(big);
+  if (!fx.winOn) chime(big);
   notify('🏆 오늘 목표 달성!', `목표 ${fmtHM(g * 3600000)}를 다 채웠어요`);
 }
 /* ---------- 설정 창 ---------- */
@@ -660,7 +747,7 @@ function fxForm() {
   });
   const ok = 'Notification' in window && Notification.permission;
   $('ntfState').textContent = !('Notification' in window) ? '이 브라우저는 알림을 못 띄워요' : ok === 'granted' ? '브라우저 허용됨' : ok === 'denied' ? '브라우저에서 막혀 있어요 (주소창 왼쪽 자물쇠 → 알림 → 허용)' : '켜면 브라우저가 허용할지 물어봐요';
-  $('fxVolV').textContent = fx.vol;
+  $('fxVolV').textContent = fx.vol; drawSnd();
 }
 $('fxBtn').onclick = () => { fxForm(); $('fxDlg').hidden = false; };
 $('fxClose').onclick = () => { $('fxDlg').hidden = true; };
@@ -676,12 +763,13 @@ $('fxDlg').addEventListener('input', async e => {
     if (p !== 'granted') { v = false; el.checked = false; } else notify('🔔 순일시간 알림이 켜졌어요', '정한 시간마다 이렇게 알려 드려요', true);
   }
   fx[k] = v; fxSave(); fxForm(); lastUnit = -1;
-  if (k === 'sound' || k === 'vol' || (k === 'snd' && v)) chime(false, true);
+  if (k === 'sndMode') drawSnd();
+  if (k === 'vol' || (k === 'snd' && v)) chime(false, true);
   if (k === 'shape' || k === 'size' || (k === 'confetti' && v)) confetti(false);
 });
 $('fxTestHour').onclick = () => cheer(Math.max(1, lastUnit + 1), true);
 $('fxTestGoal').onclick = () => { $('fxDlg').hidden = true; goalCheer(goalMin || 6); };
-$('fxReset').onclick = () => { fx = { ...FX_DEF, ntf: fx.ntf }; fxSave(); fxForm(); };
+$('fxReset').onclick = () => { fx = { ...FX_DEF, ntf: fx.ntf, sfx: fx.sfx }; fxSave(); fxForm(); };
 let lastDone = null;
 /* ---------- 목표 달성 영상 ---------- */
 function ytParse(u) {
