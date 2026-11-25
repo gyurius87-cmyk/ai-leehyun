@@ -102,6 +102,7 @@ body.mini #top.run{padding:10px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .row:first-of-type{border-top:0}
 .x{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px}
+.x.on{border-color:var(--acc);color:var(--acc);font-weight:600}
 .x.warn{border-color:var(--stop);color:var(--stop)}
 .note{font-size:12px;color:var(--mute);line-height:1.6}
 .off{color:var(--stop);font-size:13px}
@@ -160,7 +161,7 @@ body.naming .wrap>*:not(#nameBox){display:none}
         <div class="tools" id="goalForm" hidden><span>오늘 목표</span><input id="goalIn" type="number" min="0.5" max="16" step="0.5" inputmode="decimal"><span>시간</span><button class="x" id="goalOk">저장</button><button class="x" id="goalOff">목표 없애기</button></div>
       </div>
       <button class="btn" id="toggle" hidden>중지</button>
-      <div class="tools"><button class="x" id="pipBtn">📌 항상 위로 띄우기</button><button class="x" id="popBtn">보통 창</button><button class="x" id="miniBtn">작게 보기</button></div>
+      <div class="tools"><button class="x" id="pipBtn">📌 항상 위로 띄우기</button><button class="x" id="popBtn">보통 창</button><button class="x" id="miniBtn">작게 보기</button><button class="x" id="sndBtn"></button><button class="x" id="ntfBtn"></button><button class="x" id="fxTest">🎉 미리 보기</button></div>
       <div id="pipMsg" hidden></div>
       <div class="note" id="devBox">이 기기: <b id="devLbl"></b> <button class="x" id="devEdit">이름 바꾸기</button></div>
       <div class="off" id="offMsg" hidden>저장이 안 되고 있어요. 관리자 키를 확인해 주세요.</div>
@@ -510,12 +511,67 @@ function setIcon(on) {
 }
 let tickKey = '', lastHr = -1, toastT = 0;
 const CHEERS = ['좋아요, 흐름 탔어요', '집중이 쌓이고 있어요', '꾸준함이 실력이에요', '오늘도 한 칸 더', '이 시간이 1년을 바꿔요'];
-function hourCheer(h) {
+function hourCheer(h, test) {
   const t = $('hourToast'); t.textContent = `🎉 ${h}시간 채웠어요! ${CHEERS[(h - 1) % CHEERS.length]}`; t.classList.add('on');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 6000);
   const pr = $('goalProg'); pr.classList.remove('flash'); void pr.offsetWidth; pr.classList.add('flash');
   const sp = $('goalTicks').children[h - 1]; if (sp) { sp.classList.remove('pop'); void sp.offsetWidth; sp.classList.add('pop'); }
+  confetti(false); chime(false);
+  if (!test) notify(`🎉 ${h}시간 채웠어요!`, CHEERS[(h - 1) % CHEERS.length]);
 }
+let fx = { snd: true, ntf: false };
+try { Object.assign(fx, JSON.parse(localStorage.getItem('sunil-fx') || '{}')); } catch {}
+const fxSave = () => { try { localStorage.setItem('sunil-fx', JSON.stringify(fx)); } catch {} };
+let actx = null;
+document.addEventListener('pointerdown', () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch {} }, { capture: true });
+function chime(big) {
+  if (!fx.snd || !actx) return;
+  const notes = big ? [523.25, 659.25, 783.99, 1046.5, 1318.5] : [659.25, 783.99, 1046.5];
+  notes.forEach((f, i) => {
+    const t = actx.currentTime + i * 0.13, o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + (big ? 1.2 : 0.8));
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 1.3);
+  });
+}
+function confetti(big) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = document.createElement('canvas'); c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50';
+  document.body.appendChild(c); const W = c.width = innerWidth, H = c.height = innerHeight, x = c.getContext('2d');
+  const cols = ['#1f9a6c', '#d9a21b', '#e0765d', '#4f8fd6', '#a66fd6', '#f2c94c'], P = [];
+  const burst = (ox, oy, n, dir) => { for (let i = 0; i < n; i++) { const a = dir + (Math.random() - .5) * 1.3, v = 9 + Math.random() * 11; P.push({ x: ox, y: oy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, w: 6 + Math.random() * 6, h: 4 + Math.random() * 4, c: cols[i % cols.length] }); } };
+  const top = $('top').getBoundingClientRect();
+  burst(top.left + top.width / 2, top.top + top.height * .45, big ? 160 : 90, -Math.PI / 2);
+  if (big) { burst(0, H * .7, 110, -Math.PI / 3); burst(W, H * .7, 110, -Math.PI * 2 / 3); }
+  const end = performance.now() + (big ? 4200 : 3000);
+  (function f(now) {
+    x.clearRect(0, 0, W, H); const left = Math.max(0, (end - now) / 900);
+    for (const p of P) { p.vy += .35; p.vx *= .985; p.vy *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr; x.save(); x.globalAlpha = Math.min(1, left); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2))); x.restore(); }
+    if (now < end) requestAnimationFrame(f); else c.remove();
+  })(performance.now());
+}
+function notify(title, body) {
+  if (!fx.ntf || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try { const n = new Notification(title, { body, tag: 'sunil-hour', icon: '/favicon.svg' }); n.onclick = () => { window.focus(); n.close(); }; } catch {}
+}
+function fxBtns() {
+  $('sndBtn').textContent = fx.snd ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
+  const ok = 'Notification' in window && Notification.permission === 'granted';
+  $('ntfBtn').textContent = fx.ntf && ok ? '🔔 알림 켜짐' : '🔕 알림 켜기';
+  $('ntfBtn').classList.toggle('on', fx.ntf && ok); $('sndBtn').classList.toggle('on', fx.snd);
+}
+$('sndBtn').onclick = () => { fx.snd = !fx.snd; fxSave(); fxBtns(); if (fx.snd) chime(false); };
+$('ntfBtn').onclick = async () => {
+  if (!('Notification' in window)) { alertMsg('이 브라우저는 알림을 못 띄워요'); return; }
+  if (fx.ntf && Notification.permission === 'granted') { fx.ntf = false; fxSave(); fxBtns(); return; }
+  let p = Notification.permission; if (p === 'default') p = await Notification.requestPermission();
+  if (p !== 'granted') { alertMsg('브라우저에서 알림이 막혀 있어요. 주소창 왼쪽 자물쇠 → 알림 → 허용으로 바꿔 주세요'); fx.ntf = false; }
+  else { fx.ntf = true; notify('🔔 순일시간 알림이 켜졌어요', '1시간 채울 때마다 이렇게 알려 드려요'); }
+  fxSave(); fxBtns();
+};
+function alertMsg(m) { const t = $('hourToast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 6000); }
+$('fxTest').onclick = () => hourCheer(Math.max(1, lastHr + 1), true);
+fxBtns();
+let lastDone = null;
 function updGoal(ms, running) {
   const g = goalMin, pct = g ? Math.min(100, ms / (g * 3600000) * 100) : 0, done = g && pct >= 100;
   $('goalBar').style.width = pct + '%';
@@ -524,6 +580,8 @@ function updGoal(ms, running) {
   [...$('goalTicks').children].forEach((sp, i) => { const ok = hrs >= i + 1; if (sp.classList.contains('ok') !== ok) { sp.classList.toggle('ok', ok); sp.textContent = ok ? '✓' : i + 1; } });
   if (lastHr >= 0 && hrs > lastHr && running) hourCheer(hrs);
   lastHr = hrs;
+  if (lastDone === false && done && running) { setTimeout(() => { confetti(true); chime(true); }, 700); notify('🏆 오늘 목표 달성!', `목표 ${fmtHM(g * 3600000)}를 다 채웠어요`); }
+  lastDone = !!done;
   const top = $('goalTop'); top.firstElementChild.style.width = pct + '%'; top.classList.toggle('run', running); top.classList.toggle('done', !!done); top.hidden = !g;
   $('goalBox').classList.toggle('done', !!done);
   $('goalTxt').innerHTML = !g ? '오늘 목표를 정해 보세요' : done ? `🎉 목표 <b>${fmtHM(g * 3600000)}</b> 달성!` : `목표 <b>${fmtHM(g * 3600000)}</b> · ${Math.floor(pct)}% · 남은 ${fmtHM(g * 3600000 - ms)}`;
