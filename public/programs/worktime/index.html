@@ -598,17 +598,7 @@ const FX_DEF = { every: 60, toast: true, flash: true, confetti: true, size: 'mid
 let fx = { ...FX_DEF };
 try { const o = JSON.parse(localStorage.getItem('sunil-fx') || '{}'); Object.assign(fx, o); } catch {}
 const fxSave = () => { try { localStorage.setItem('sunil-fx', JSON.stringify(fx)); } catch {} };
-if (!fx.seed1) { fx.seed1 = 1; fx.sfx = [...(fx.sfx || []),
-  { id: 'mi1', name: '미쳐 날뛰고 있습니다', page: 'https://www.myinstants.com/ko/instant/micyeonalddwigoissseubnida-58160/' },
-  { id: 'mi2', name: '적을 처치했습니다', page: 'https://www.myinstants.com/ko/instant/jeogeul-ceocihyasseubnida-77745/' },
-  { id: 'mi3', name: '티모 웃음소리', page: 'https://www.myinstants.com/ko/instant/timo-useumsori-32281/' }]; fxSave(); }
-if (!fx.seed2) { fx.seed2 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi4', name: '밈 효과음 (meme mp3)', page: 'https://www.myinstants.com/ko/instant/meme-mp3-37545/' }]; fxSave(); }
-if (!fx.seed3) { fx.seed3 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi5', name: '애니 와우 (anime wow)', page: 'https://www.myinstants.com/ko/instant/anime-wow/' }]; fxSave(); }
-if (!fx.seed4) { fx.seed4 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi6', name: '야아아아이 (yaaaaaaaay)', page: 'https://www.myinstants.com/ko/instant/yaaaaaaaay/' }]; fxSave(); }
-const SEED_SFX = [
-  ['mi7', '유희왕 (you xi wang)', 'you-xi-wang-46550'],
-];
-{ const have = new Set((fx.sfx || []).map(x => x.id)), add = SEED_SFX.filter(([id]) => !have.has(id) && !(fx.gone || []).includes(id)).map(([id, name, slug]) => ({ id, name, page: `https://www.myinstants.com/ko/instant/${slug}/` })); if (add.length) { fx.sfx = [...(fx.sfx || []), ...add]; fxSave(); } }
+if ((fx.sfx || []).some(x => x.page)) { fx.sfx = fx.sfx.filter(x => !x.page); fxSave(); }
 const cheers = () => { const a = String(fx.cheers || '').split('\n').map(s => s.trim()).filter(Boolean); return a.length ? a : DEF_CHEERS; };
 let actx = null;
 const audio = () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch {} return actx; };
@@ -681,7 +671,7 @@ async function addSfx(file) {
   } else {
     url = $('sfxUrl').value.trim();
     if (!/^https?:\/\/\S+$/.test(url)) { $('sfxMsg').textContent = 'mp3 주소를 넣거나 파일을 골라 주세요'; return; }
-    if (/myinstants\.com\/.*instant\//.test(url)) { const pg = url.split('?')[0]; fx.sfx = [...(fx.sfx || []), { id, name: $('sfxName').value.trim() || decodeURIComponent(pg.split('/').filter(Boolean).pop()).replace(/-\d+$/, ''), page: pg }]; fxSave(); $('sfxName').value = ''; $('sfxUrl').value = ''; $('sfxMsg').innerHTML = '목록에 올렸어요. <b>⬇ 받으러 가기</b> → 그 페이지의 MP3 다운로드 → <b>📂 받은 파일 넣기</b> 순서로 하면 끝나요.'; drawSnd(); return; }
+    if (/myinstants\.com\/.*instant\//.test(url)) { $('sfxMsg').innerHTML = '이건 소리 <b>페이지</b> 주소예요. 그 페이지에서 <b>MP3 다운로드</b>로 받은 파일을 위 <b>🎵 mp3 파일 고르기</b>로 넣어 주세요.'; return; }
   }
   fx.sfx = [...(fx.sfx || []), url ? { id, name, url } : { id, name }];
   if (fx.pool && fx.pool.length) fx.pool.push(id);
