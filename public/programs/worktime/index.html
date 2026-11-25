@@ -605,6 +605,10 @@ if (!fx.seed1) { fx.seed1 = 1; fx.sfx = [...(fx.sfx || []),
 if (!fx.seed2) { fx.seed2 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi4', name: '밈 효과음 (meme mp3)', page: 'https://www.myinstants.com/ko/instant/meme-mp3-37545/' }]; fxSave(); }
 if (!fx.seed3) { fx.seed3 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi5', name: '애니 와우 (anime wow)', page: 'https://www.myinstants.com/ko/instant/anime-wow/' }]; fxSave(); }
 if (!fx.seed4) { fx.seed4 = 1; fx.sfx = [...(fx.sfx || []), { id: 'mi6', name: '야아아아이 (yaaaaaaaay)', page: 'https://www.myinstants.com/ko/instant/yaaaaaaaay/' }]; fxSave(); }
+const SEED_SFX = [
+  ['mi7', '유희왕 (you xi wang)', 'you-xi-wang-46550'],
+];
+{ const have = new Set((fx.sfx || []).map(x => x.id)), add = SEED_SFX.filter(([id]) => !have.has(id) && !(fx.gone || []).includes(id)).map(([id, name, slug]) => ({ id, name, page: `https://www.myinstants.com/ko/instant/${slug}/` })); if (add.length) { fx.sfx = [...(fx.sfx || []), ...add]; fxSave(); } }
 const cheers = () => { const a = String(fx.cheers || '').split('\n').map(s => s.trim()).filter(Boolean); return a.length ? a : DEF_CHEERS; };
 let actx = null;
 const audio = () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch {} return actx; };
@@ -659,7 +663,7 @@ const i0 = (h, n) => (h - 1) % n;
 $('sndList').addEventListener('click', e => {
   const pl = e.target.dataset.play, rm = e.target.dataset.rm;
   if (pl) { audio(); playSnd(pl, false); }
-  if (rm) { fx.sfx = (fx.sfx || []).filter(s => s.id !== rm); fx.pool = (fx.pool || []).filter(x => x !== rm); if (fx.sound === rm) fx.sound = 'chime'; fxSave(); idbDo('readwrite', st => st.delete(rm)).catch(() => {}); drawSnd(); }
+  if (rm) { fx.gone = [...(fx.gone || []), rm]; fx.sfx = (fx.sfx || []).filter(s => s.id !== rm); fx.pool = (fx.pool || []).filter(x => x !== rm); if (fx.sound === rm) fx.sound = 'chime'; fxSave(); idbDo('readwrite', st => st.delete(rm)).catch(() => {}); drawSnd(); }
 });
 $('sndList').addEventListener('change', async e => {
   const fid = e.target.dataset && e.target.dataset.fill;
