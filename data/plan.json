@@ -688,6 +688,22 @@
               "tools": [
                 "Claude Code"
               ]
+            },
+            {
+              "id": "worktime",
+              "title": "AI로 일하는 시간 재고 목표 채우기",
+              "what": "켜 두면 순수하게 일한 시간을 재고, 오늘 목표와 1시간 칸·축하 효과로 꾸준히 채우는 재미를 주는 프로그램을 만들었습니다.",
+              "yt": "AI로 만든 순일시간 체크",
+              "status": "done",
+              "start": "2026-11-13",
+              "end": "2026-11-25",
+              "result": {
+                "label": "순일시간 체크",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude Code"
+              ]
             }
           ]
         },
