@@ -73,6 +73,19 @@ body.mini #top.run{padding:10px}
 @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.9);box-shadow:0 0 0 8px rgba(217,162,27,.35)}100%{transform:scale(1)}}
 .goal .prog.flash>i{animation:fl 1.4s ease-out}
 @keyframes fl{30%{filter:brightness(1.5);box-shadow:0 0 14px #d9a21b}}
+#winDlg{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:150;display:flex;align-items:center;justify-content:center;padding:16px;transition:background .4s}
+#winDlg[hidden]{display:none}
+#winBox{width:min(880px,100%);display:flex;flex-direction:column;gap:12px;color:#fff}
+#winBox .wh{display:flex;justify-content:space-between;align-items:center;gap:8px}#winBox .wh b{font-family:"Gowun Batang",serif;font-size:clamp(22px,4vw,34px);color:#f2c94c}
+#winBox .wh .x{color:#fff;border-color:rgba(255,255,255,.4)}
+#winBox .wv{position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:12px;overflow:hidden}
+#winBox .wv iframe,#winVid{position:absolute;inset:0;width:100%;height:100%;border:0}
+#winPlay{position:absolute;inset:0;margin:auto;width:200px;height:60px;border:0;border-radius:999px;background:#f2c94c;color:#1f1d1a;font:600 18px "IBM Plex Sans KR",sans-serif;cursor:pointer}
+#winBox .wf{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}#winBox .wf .note{color:#ddd;font-size:14px}
+#winBox .wf .btn{padding:12px 40px;font-size:17px}
+#winDlg.mini{background:transparent;pointer-events:none;align-items:flex-end;justify-content:flex-end;padding:0}
+#winDlg.mini #winBox{pointer-events:auto;width:300px;max-width:calc(100vw - 32px);margin:0 max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) 0;background:#111;padding:8px;border-radius:12px;gap:6px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+#winDlg.mini .wf{display:none}#winDlg.mini #winPlay{width:130px;height:40px;font-size:14px}#winDlg.mini .wh b{font-size:14px}
 #fxDlg[hidden]{display:none}
 #fxPrev{min-height:20px;font-weight:600;color:#b07d0c;font-size:14px;text-align:center}
 #fxDlg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
@@ -221,6 +234,11 @@ body.naming .wrap>*:not(#nameBox){display:none}
   <p class="note">이 화면을 열면 바로 시간이 가요. 중지를 누르면 멈추고, 다시 열거나 시작을 누르면 이어서 쌓여요. 창을 닫거나 컴퓨터가 잠들면 그 시점까지만 기록돼요. 컴퓨터마다 이름(예: 사무실PC, 집PC)을 붙여 두면 날짜를 눌렀을 때 어느 기기에서 몇 시간 켰는지 보여요. 여러 기기를 같이 켜 둬도 겹친 시간은 한 번만 세요.</p>
 </div>
 
+<div id="winDlg" hidden><div id="winBox">
+  <div class="wh"><b id="winTitle">🏆 오늘 목표 달성!</b><button class="x" id="winX" title="노래 끄기">✕ 끄기</button></div>
+  <div class="wv"><div id="winVid"></div><button id="winPlay" hidden>▶ 노래 틀기</button></div>
+  <div class="wf"><span class="note" id="winSub">정말 잘했어요. 확인을 눌러도 노래는 계속 나와요.</span><button class="btn go" id="winOk">확인</button></div>
+</div></div>
 <div id="fxDlg" hidden><div class="fxbox" role="dialog" aria-label="축하 설정">
   <div class="fxh"><b>⚙️ 축하 설정</b><button class="x" id="fxClose">닫기</button></div>
   <section><h4>언제</h4>
@@ -243,6 +261,10 @@ body.naming .wrap>*:not(#nameBox){display:none}
   <section><h4>소리</h4>
     <div class="fxr"><label><input type="radio" name="sound" data-k="sound" value="chime"> 띵동</label><label><input type="radio" name="sound" data-k="sound" value="fanfare"> 팡파레</label><label><input type="radio" name="sound" data-k="sound" value="bell"> 종소리</label><label><input type="radio" name="sound" data-k="sound" value="coin"> 띠링(코인)</label></div>
     <div class="fxr"><span class="k">크기</span><input type="range" min="5" max="100" data-k="vol" style="flex:1;min-width:0"><b id="fxVolV"></b></div>
+  </section>
+  <section><h4>🏆 목표 달성하면</h4>
+    <div class="fxr col"><label><input type="checkbox" data-k="winOn"> 화면을 어둡게 하고 영상(노래) 틀기</label></div>
+    <div class="fxr"><span class="k">1번 영상</span><input data-k="winUrl" placeholder="유튜브 주소" style="flex:1;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px"></div>
   </section>
   <section><h4>응원 문구 <small>한 줄에 하나, 차례대로 나와요</small></h4>
     <textarea data-k="cheers" rows="5"></textarea>
@@ -554,7 +576,7 @@ function setIcon(on) {
 }
 let tickKey = '', lastHr = -1, lastUnit = -1, toastT = 0;
 const DEF_CHEERS = ['좋아요, 흐름 탔어요', '집중이 쌓이고 있어요', '꾸준함이 실력이에요', '오늘도 한 칸 더', '이 시간이 1년을 바꿔요'];
-const FX_DEF = { every: 60, toast: true, flash: true, confetti: true, size: 'mid', shape: 'paper', snd: true, sound: 'chime', vol: 60, ntf: false, goalBig: true, cheers: DEF_CHEERS.join('\n') };
+const FX_DEF = { every: 60, toast: true, flash: true, confetti: true, size: 'mid', shape: 'paper', snd: true, sound: 'chime', vol: 60, ntf: false, goalBig: true, cheers: DEF_CHEERS.join('\n'), winOn: true, winUrl: 'https://www.youtube.com/watch?v=qnBdUHWMoCk&t=14s' };
 let fx = { ...FX_DEF };
 try { const o = JSON.parse(localStorage.getItem('sunil-fx') || '{}'); Object.assign(fx, o); } catch {}
 const fxSave = () => { try { localStorage.setItem('sunil-fx', JSON.stringify(fx)); } catch {} };
@@ -623,6 +645,7 @@ function cheer(u, test) {
 }
 function goalCheer(g) {
   const big = fx.goalBig;
+  if (fx.winOn) showWin(g);
   if (fx.toast) toast(`🏆 오늘 목표 ${fmtHM(g * 3600000)} 달성! 정말 잘했어요`, 9000);
   if (fx.confetti || big) confetti(big);
   chime(big);
@@ -657,9 +680,32 @@ $('fxDlg').addEventListener('input', async e => {
   if (k === 'shape' || k === 'size' || (k === 'confetti' && v)) confetti(false);
 });
 $('fxTestHour').onclick = () => cheer(Math.max(1, lastUnit + 1), true);
-$('fxTestGoal').onclick = () => goalCheer(goalMin || 6);
+$('fxTestGoal').onclick = () => { $('fxDlg').hidden = true; goalCheer(goalMin || 6); };
 $('fxReset').onclick = () => { fx = { ...FX_DEF, ntf: fx.ntf }; fxSave(); fxForm(); };
 let lastDone = null;
+/* ---------- 목표 달성 영상 ---------- */
+function ytParse(u) {
+  u = String(u || '').trim(); let id = '', t = 0;
+  try { const x = new URL(u); id = x.searchParams.get('v') || (x.hostname.includes('youtu.be') ? x.pathname.slice(1) : (x.pathname.match(/\/(shorts|embed|live)\/([\w-]{11})/) || [])[2] || '');
+    const tt = x.searchParams.get('t') || x.searchParams.get('start') || ''; const m = String(tt).match(/(?:(\d+)h)?(?:(\d+)m)?(\d+)?s?/); t = m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : 0;
+  } catch { if (/^[\w-]{11}$/.test(u)) id = u; }
+  return { id: (id || '').slice(0, 11), t };
+}
+let winP = null;
+function ytApi() { return new Promise(ok => { if (window.YT && YT.Player) return ok(); const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev && prev(); ok(); }; if (!document.querySelector('script[src*="iframe_api"]')) { const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(sc); } }); }
+async function showWin(g) {
+  const { id, t } = ytParse(fx.winUrl); if (!id) return;
+  $('winTitle').textContent = `🏆 오늘 목표 ${fmtHM(g * 3600000)} 달성!`;
+  const d = $('winDlg'); d.classList.remove('mini'); d.hidden = false; $('winPlay').hidden = true;
+  if (winP) { try { winP.loadVideoById({ videoId: id, startSeconds: t }); } catch {} return; }
+  await ytApi();
+  winP = new YT.Player('winVid', { videoId: id, playerVars: { autoplay: 1, start: t, rel: 0, playsinline: 1, modestbranding: 1 },
+    events: { onReady: e => { try { e.target.unMute(); e.target.setVolume(100); e.target.playVideo(); } catch {} setTimeout(() => { try { if (winP && winP.getPlayerState() !== 1) $('winPlay').hidden = false; } catch {} }, 1800); },
+      onStateChange: e => { if (e.data === 1) $('winPlay').hidden = true; } } });
+}
+$('winPlay').onclick = () => { try { winP.unMute(); winP.playVideo(); } catch {} };
+$('winOk').onclick = () => { $('winDlg').classList.add('mini'); $('winTitle').textContent = '🎵 축하 노래 나오는 중'; };
+$('winX').onclick = () => { try { winP && winP.destroy(); } catch {} winP = null; $('winDlg').hidden = true; $('winDlg').classList.remove('mini'); const v = document.createElement('div'); v.id = 'winVid'; $('winBox').querySelector('.wv').prepend(v); };
 function updGoal(ms, running) {
   const g = goalMin, pct = g ? Math.min(100, ms / (g * 3600000) * 100) : 0, done = g && pct >= 100;
   $('goalBar').style.width = pct + '%';
