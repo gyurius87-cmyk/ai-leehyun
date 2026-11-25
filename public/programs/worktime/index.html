@@ -49,6 +49,15 @@ h1{font-family:"Gowun Batang",serif;font-size:24px;margin:0}
 #goalForm{justify-content:center;font-size:13px}
 #goalForm input{width:70px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
 body.mini .goal .gl button,body.mini #goalForm{display:none}
+#top.run:not(.view){grid-template-columns:1fr;padding-block:28px}
+#top.run:not(.view) .year{display:none}
+#top.run:not(.view) .now{gap:12px}
+#top.run:not(.view) .clock{font-size:clamp(48px,13vw,84px)}
+#top.run:not(.view) .goal{max-width:720px}
+#top.run:not(.view) .goal .prog{height:16px;border-radius:8px}
+#top.run:not(.view) .goal .gl{font-size:14px}
+body.mini #top.run .clock{font-size:clamp(28px,16vw,64px)}
+body.mini #top.run{padding:10px}
 .prog-l{display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -530,7 +539,7 @@ $('goalOff').onclick = () => saveGoal(0);
     let n = '';
     try { n = ((await api({ act: 'me' })).me || {}).name || ''; } catch (e) {}
     try { const r = await api({ act: 'people' }); const p = (r.people || []).find((x) => x.u === VIEW); if (p) n = p.name || '이름 정하기 전'; } catch (e) {}
-    setTitle(n); $('viewName').textContent = n || '이 사람'; $('viewBar').hidden = false;
+    setTitle(n); $('viewName').textContent = n || '이 사람'; $('viewBar').hidden = false; $('top').classList.add('view');
     $('toggle').remove(); $('pipBtn').closest('.tools').hidden = true; $('devBox').hidden = true;
     $('goalEdit').hidden = true; await load(); loadGoal(); setInterval(load, 60000); return;
   }
