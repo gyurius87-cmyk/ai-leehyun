@@ -623,12 +623,13 @@ const idb = () => new Promise((ok, no) => { const r = indexedDB.open('sunil-sfx'
 const idbDo = async (mode, fn) => { const db = await idb(); return new Promise((ok, no) => { const tx = db.transaction('f', mode), st = tx.objectStore('f'), rq = fn(st); tx.oncomplete = () => ok(rq && rq.result); tx.onerror = () => no(tx.error); }); };
 const blobUrls = {};
 async function sfxSrc(x) { if (x.url) return x.url; if (blobUrls[x.id]) return blobUrls[x.id]; const b = await idbDo('readonly', st => st.get(x.id)); if (!b) return ''; return (blobUrls[x.id] = URL.createObjectURL(b)); }
-const uiSnd = () => [...Object.keys(SOUNDS).map(k => ({ id: k, name: SOUNDS[k].n, builtin: true })), ...(fx.sfx || [])];
+const FILE_SND = [['rampage', '미쳐 날뛰고 있습니다'], ['enemy-slain', '적을 처치했습니다'], ['teemo-laugh', '티모 웃음소리'], ['anime-wow', '애니 와우'], ['kids-yay', '아이들 야~이'], ['yugioh', '유희왕'], ['credits-meme', '엔딩 크레딧 밈']].map(([f, n]) => ({ id: 'f-' + f, name: n, url: `/programs/worktime/sfx/${f}.mp3`, builtin: true }));
+const uiSnd = () => [...Object.keys(SOUNDS).map(k => ({ id: k, name: SOUNDS[k].n, builtin: true })), ...FILE_SND, ...(fx.sfx || [])];
 const allSnd = () => uiSnd().filter(s => !s.page);
 let curAudio = null;
 async function playSnd(id, big) {
   if (SOUNDS[id]) return synth(id, big);
-  const x = (fx.sfx || []).find(s => s.id === id); if (!x) return synth('chime', big);
+  const x = [...FILE_SND, ...(fx.sfx || [])].find(s => s.id === id); if (!x) return synth('chime', big);
   try { const src = await sfxSrc(x); if (!src) return synth('chime', big); if (curAudio) curAudio.pause(); curAudio = new Audio(src); curAudio.volume = Math.min(1, fx.vol / 100); await curAudio.play(); } catch { synth('chime', big); }
 }
 function pickSnd(u) {
@@ -640,7 +641,7 @@ function pickSnd(u) {
 function chime(big, force, u) { if (!(fx.snd || force)) return; playSnd(pickSnd(u || 1), big); }
 function drawSnd() {
   const list = uiSnd(), ready = allSnd(), mode = fx.sndMode || 'one', pool = fx.pool || [];
-  $('sndList').innerHTML = list.map(s => s.page ? `<div class="sr wait"><span class="nm"></span><a class="x" href="${s.page}" target="_blank" rel="noopener">⬇ 받으러 가기</a><label class="x" style="cursor:pointer">📂 받은 파일 넣기<input type="file" accept="audio/*" hidden data-fill="${s.id}"></label><button class="x del" data-rm="${s.id}">빼기</button></div>` : `<div class="sr">${mode === 'one' ? `<input type="radio" name="sndPick" value="${s.id}" ${fx.sound === s.id ? 'checked' : ''}>` : mode === 'random' ? `<input type="checkbox" class="sndPool" value="${s.id}" ${!pool.length || pool.includes(s.id) ? 'checked' : ''}>` : ''}<span class="nm"></span><small>${s.builtin ? '기본' : s.url ? '주소' : '내 파일'}</small><button class="x" data-play="${s.id}">▶</button>${s.builtin ? '' : `<button class="x del" data-rm="${s.id}">빼기</button>`}</div>`).join('');
+  $('sndList').innerHTML = list.map(s => s.page ? `<div class="sr wait"><span class="nm"></span><a class="x" href="${s.page}" target="_blank" rel="noopener">⬇ 받으러 가기</a><label class="x" style="cursor:pointer">📂 받은 파일 넣기<input type="file" accept="audio/*" hidden data-fill="${s.id}"></label><button class="x del" data-rm="${s.id}">빼기</button></div>` : `<div class="sr">${mode === 'one' ? `<input type="radio" name="sndPick" value="${s.id}" ${fx.sound === s.id ? 'checked' : ''}>` : mode === 'random' ? `<input type="checkbox" class="sndPool" value="${s.id}" ${!pool.length || pool.includes(s.id) ? 'checked' : ''}>` : ''}<span class="nm"></span><small>${s.builtin ? (s.url ? '효과음' : '기본') : s.url ? '주소' : '내 파일'}</small><button class="x" data-play="${s.id}">▶</button>${s.builtin ? '' : `<button class="x del" data-rm="${s.id}">빼기</button>`}</div>`).join('');
   [...$('sndList').querySelectorAll('.nm')].forEach((el, i) => { el.textContent = list[i].name; el.title = list[i].name; });
   const sh = $('sndHour'); sh.hidden = mode !== 'hour';
   if (mode === 'hour') {
