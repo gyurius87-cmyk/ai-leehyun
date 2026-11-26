@@ -244,6 +244,12 @@ button.reset.warn { color: var(--red); }
   .sc-bar .lbl { min-width: 0; font-size: 13px; }
   .sc-bar button { padding: 6px 10px; }
 }
+#scMulti.on { background: var(--blue); border-color: var(--blue); color: var(--panel); font-weight: 700; }
+.sc-c.pk, .sc-d.pk { outline: 3px dashed var(--blue); outline-offset: -3px; }
+.sc-pick { position: sticky; bottom: 8px; z-index: 5; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 2px solid var(--blue);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.sc-pick .cnt { font-weight: 700; }
+.sc-pick .chips button.on { background: var(--blue); border-color: var(--blue); }
 .sc-me input { width: 110px; padding: 5px 10px; font-size: 13px; }
 </style>
 </head>
@@ -277,14 +283,16 @@ button.reset.warn { color: var(--red); }
     <!-- 일정 조율 -->
     <section id="sched">
       <div class="row between"><h2>일정 조율</h2><span class="note" id="scWho"></span></div>
-      <div class="note" style="margin-top:6px">내 이름을 고르고, 되는 시간 칸을 누르세요. 다시 누르면 빠져요.</div>
+      <div class="note" style="margin-top:6px">내 이름을 고르고, 되는 시간 칸을 누르세요. 다시 누르면 빠져요. 한꺼번에 넣으려면 ☑ 여러 개 골라 넣기.</div>
       <div class="sc-me" id="scMe"></div>
       <div class="sc-bar">
         <div class="chips" id="scView"><button data-scv="week">주</button><button data-scv="month">월</button></div>
         <button type="button" data-scnav="-1">◀</button><span class="lbl" id="scLbl"></span><button type="button" data-scnav="1">▶</button>
         <button type="button" class="ghost" data-scnav="0">오늘</button>
+        <button type="button" id="scMulti" data-scmulti>☑ 여러 개 골라 넣기</button>
       </div>
       <div id="scBody"></div>
+      <div id="scPick" class="sc-pick" hidden></div>
       <div id="scTop"></div>
     </section>
 
@@ -1036,7 +1044,7 @@ $('#db').addEventListener('click', async (e) => {
 /* ───────── 일정 조율 ───────── */
 const SLOTS = [['dawn', '🌅', '새벽', '~8시'], ['am', '☀️', '오전', '8~12시'], ['pm', '🌤️', '오후', '12~17시'], ['night', '🌙', '야간', '17시~']];
 let avail = {};            // "YYYY-MM-DD|이름" → "dawn,am"
-const sc = { view: loadLS('sc-view', 'week'), at: null, me: loadLS('me', '') };
+const sc = { view: loadLS('sc-view', 'week'), at: null, me: loadLS('me', ''), multi: false, pick: new Set(), ps: new Set(['dawn', 'am', 'pm', 'night']) };
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const todayD = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -1071,7 +1079,7 @@ function renderSc() {
     }).join('');
     const rows = SLOTS.map(([s, e, l, h]) => `<tr><th class="slot">${e}<br>${l}<small>${h}</small></th>${days.map((d) => {
       const k = ymd(d), ns = idx[k]?.[s] || [], me = ns.includes(sc.me), r = ns.length / people;
-      return `<td><button type="button" class="sc-c${me ? ' me' : ''}${r >= .5 ? ' hot' : ''}${best > 1 && ns.length === best && k >= t0 ? ' best' : ''}" style="--h:${r.toFixed(2)}" data-scd="${k}" data-scs="${s}" ${k < t0 ? 'disabled' : ''}>
+      return `<td><button type="button" class="sc-c${me ? ' me' : ''}${sc.pick.has(k + '|' + s) ? ' pk' : ''}${r >= .5 ? ' hot' : ''}${best > 1 && ns.length === best && k >= t0 ? ' best' : ''}" style="--h:${r.toFixed(2)}" data-scd="${k}" data-scs="${s}" ${k < t0 ? 'disabled' : ''}>
         ${ns.length ? `<b>${ns.length}명</b><span class="nm">${ns.map(esc).join(' ')}</span>` : '<b class="z">·</b>'}</button></td>`;
     }).join('')}</tr>`).join('');
     $('#scBody').innerHTML = `<div class="sc-scroll"><table class="sc-week"><thead><tr><th class="slot"></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
@@ -1084,7 +1092,7 @@ function renderSc() {
     const cells = days.map((d) => {
       const k = ymd(d), sl = idx[k] || {}, mx = Math.max(0, ...SLOTS.map(([s]) => (sl[s] || []).length));
       const mine = !!avail[k + '|' + sc.me];
-      return `<button type="button" class="sc-d${k < t0 ? ' past' : ''}${k === t0 ? ' today' : ''}${mine ? ' mine' : ''}" data-scday="${k}"><span class="dn">${d.getDate()}${mx ? ` <span class="mx">${mx}명</span>` : ''}</span><span class="bars">${SLOTS.map(([s, e]) => {
+      return `<button type="button" class="sc-d${k < t0 ? ' past' : ''}${sc.pick.has(k) ? ' pk' : ''}${k === t0 ? ' today' : ''}${mine ? ' mine' : ''}" data-scday="${k}"><span class="dn">${d.getDate()}${mx ? ` <span class="mx">${mx}명</span>` : ''}</span><span class="bars">${SLOTS.map(([s, e]) => {
         const c = (sl[s] || []).length;
         return `<span class="bar${c && c === mx ? ' top' : ''}" title="${e} ${c}명">${e}<i style="--h:${(c / people).toFixed(2)}"></i>${c || ''}</span>`;
       }).join('')}</span></button>`;
@@ -1101,25 +1109,64 @@ function renderSc() {
     : '<div class="note" style="margin-top:12px">아직 이 기간에 체크한 사람이 없어요.</div>';
   const inRange = new Set(); days.forEach((d) => SLOTS.forEach(([s]) => (idx[ymd(d)]?.[s] || []).forEach((n) => inRange.add(n))));
   $('#scWho').textContent = inRange.size ? `체크한 사람 ${inRange.size}명` : '';
+  renderScPick();
 }
-async function scSet(date, slots) {
+function renderScPick() {
+  $('#scMulti').classList.toggle('on', sc.multi);
+  $('#scMulti').textContent = sc.multi ? '☑ 여러 개 고르는 중' : '☑ 여러 개 골라 넣기';
+  const box = $('#scPick'); box.hidden = !sc.multi;
+  if (!sc.multi) return;
+  const n = sc.pick.size, wk = sc.view === 'week';
+  box.innerHTML = `<span class="cnt">${n ? (wk ? `${n}칸` : `${n}일`) + ' 골랐어요' : (wk ? '넣을 칸들을 누르세요' : '넣을 날짜들을 누르세요')}</span>
+    ${wk ? '' : `<div class="chips">${SLOTS.map(([k, e, l]) => `<button type="button" data-scps="${k}" class="${sc.ps.has(k) ? 'on' : ''}">${e} ${l}</button>`).join('')}</div>`}
+    <button type="button" class="main" data-scapply="1" ${n ? '' : 'disabled'}>되는 걸로 넣기</button>
+    <button type="button" data-scapply="0" ${n ? '' : 'disabled'}>빼기</button>
+    <button type="button" class="ghost" data-scpickx>${n ? '고른 것 지우기' : '끝내기'}</button>`;
+}
+async function scApply(add) {
+  const wk = sc.view === 'week', by = {};
+  if (wk) sc.pick.forEach((x) => { const [d, s] = x.split('|'); (by[d] ||= []).push(s); });
+  else { if (!sc.ps.size) { toast('시간대를 하나 이상 골라 주세요'); return; } sc.pick.forEach((d) => (by[d] = [...sc.ps])); }
+  const t0 = ymd(todayD()), jobs = [];
+  for (const [d, ss] of Object.entries(by)) {
+    if (d < t0) continue;
+    const cur = (avail[d + '|' + sc.me] || '').split(',').filter(Boolean);
+    const next = add ? [...new Set([...cur, ...ss])] : cur.filter((x) => !ss.includes(x));
+    if (next.join() !== cur.join()) jobs.push(scSet(d, next, true));
+  }
+  const n = Object.keys(by).length;
+  sc.pick.clear(); renderSc();
+  const r = await Promise.all(jobs);
+  const bad = r.filter((x) => !x).length;
+  toast(bad ? `${bad}일은 저장하지 못했어요. 다시 해 주세요` : `${n}일에 ${add ? '넣었어요' : '뺐어요'}`);
+}
+async function scSet(date, slots, quiet) {
   const f = date + '|' + sc.me, prev = avail[f];
   if (slots.length) avail[f] = SLOTS.map(([k]) => k).filter((k) => slots.includes(k)).join(','); else delete avail[f];
   renderSc();
-  try { await api('POST', { op: 'avail', date, name: sc.me, slots }); }
-  catch { if (prev) avail[f] = prev; else delete avail[f]; renderSc(); toast('저장하지 못했어요. 다시 눌러 주세요'); }
+  try { await api('POST', { op: 'avail', date, name: sc.me, slots }); return true; }
+  catch { if (prev) avail[f] = prev; else delete avail[f]; renderSc(); if (!quiet) toast('저장하지 못했어요. 다시 눌러 주세요'); return false; }
 }
 function needMe() { if (sc.me) return false; toast('먼저 위에서 내 이름을 골라 주세요'); $('#scMe').scrollIntoView({ behavior: 'smooth', block: 'center' }); return true; }
 $('#sched').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.scme) { sc.me = sc.me === b.dataset.scme ? '' : b.dataset.scme; save('me', sc.me); renderScMe(); renderSc(); return; }
-  if (b.dataset.scv) { sc.view = b.dataset.scv; save('sc-view', sc.view); renderSc(); return; }
+  if (b.dataset.scv) { sc.view = b.dataset.scv; save('sc-view', sc.view); sc.pick.clear(); renderSc(); return; }
+  if ('scmulti' in b.dataset) { if (!sc.multi && needMe()) return; sc.multi = !sc.multi; sc.pick.clear(); renderSc(); return; }
+  if ('scpickx' in b.dataset) { if (sc.pick.size) sc.pick.clear(); else sc.multi = false; renderSc(); return; }
+  if (b.dataset.scps) { const k = b.dataset.scps; sc.ps.has(k) ? sc.ps.delete(k) : sc.ps.add(k); renderScPick(); return; }
+  if (b.dataset.scapply) { scApply(b.dataset.scapply === '1'); return; }
+  if (sc.multi && (b.dataset.scd || b.dataset.scday)) {
+    const k = b.dataset.scd ? b.dataset.scd + '|' + b.dataset.scs : b.dataset.scday;
+    if (k.slice(0, 10) < ymd(todayD())) return;
+    sc.pick.has(k) ? sc.pick.delete(k) : sc.pick.add(k); renderSc(); return;
+  }
   if (b.dataset.scnav !== undefined) {
     const n = Number(b.dataset.scnav);
     if (!n) sc.at = todayD();
     else if (sc.view === 'week') sc.at = addD(sc.at, 7 * n);
     else sc.at = new Date(sc.at.getFullYear(), sc.at.getMonth() + n, 1);
-    renderSc(); return;
+    sc.pick.clear(); renderSc(); return;
   }
   if (b.dataset.scday) { sc.at = new Date(b.dataset.scday + 'T00:00:00'); sc.view = 'week'; save('sc-view', 'week'); renderSc(); return; }
   if (b.dataset.scd) {
