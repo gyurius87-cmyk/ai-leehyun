@@ -192,13 +192,66 @@ button.reset.warn { color: var(--red); }
 .hd-tm .chips button.on { background: var(--tc); border-color: var(--tc); color: #fff; }
 .hd-team { border-left: 6px solid var(--tc); padding: 6px 10px; margin-top: 6px; background: var(--soft); border-radius: 0 10px 10px 0; }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 14px; z-index: 9; max-width: 90vw; }
+/* 일정 조율 */
+.sc-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.sc-bar .lbl { font-weight: 700; min-width: 128px; text-align: center; font-family: var(--mono); }
+.sc-scroll { overflow-x: auto; margin-top: 10px; }
+.sc-week { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 360px; table-layout: fixed; }
+.sc-week th { font-size: 12px; font-weight: 500; color: var(--muted); padding: 2px; }
+.sc-week th.slot { width: 54px; text-align: left; line-height: 1.25; }
+.sc-week th.slot small { display: block; font-size: 10px; }
+.sc-week th.today b { color: var(--green); }
+.sc-week th .all { display: block; margin: 3px auto 0; padding: 1px 6px; font-size: 11px; border-radius: 6px; }
+.sc-week th .all.on { background: var(--green); border-color: var(--green); color: var(--greenInk); }
+.sc-c { width: 100%; min-height: 58px; padding: 4px 2px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: color-mix(in srgb, var(--green) calc(var(--h, 0) * 70%), var(--soft)); border: 1px solid var(--line); }
+.sc-c b { font-family: var(--mono); font-size: 16px; line-height: 1.1; }
+.sc-c b.z { color: var(--muted); font-weight: 500; font-size: 13px; }
+.sc-c.hot b { color: var(--greenInk); }
+.sc-c .nm { font-size: 10px; line-height: 1.2; word-break: keep-all; color: var(--muted); }
+.sc-c.hot .nm { color: var(--greenInk); opacity: .9; }
+.sc-c.me { outline: 2.5px solid var(--flag); outline-offset: -2px; }
+.sc-c.best { box-shadow: 0 0 0 2px var(--ink); }
+.sc-c:disabled { opacity: .35; }
+.sc-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 10px; }
+.sc-month .dw { text-align: center; font-size: 12px; color: var(--muted); }
+.sc-d { padding: 4px 3px; border-radius: 10px; min-height: 66px; text-align: left; display: flex; flex-direction: column; gap: 2px; background: var(--soft); }
+.sc-d.blank { visibility: hidden; }
+.sc-d.past { opacity: .45; }
+.sc-d.today { border-color: var(--green); border-width: 2px; }
+.sc-d .dn { font-size: 12px; font-weight: 700; }
+.sc-d .mx { float: right; font-size: 11px; color: var(--green); font-family: var(--mono); }
+.sc-d .bars { display: grid; gap: 2px; }
+.sc-d .bar { display: flex; align-items: center; gap: 3px; font-size: 10px; line-height: 1; font-family: var(--mono); }
+.sc-d .bar i { flex: 1; height: 7px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+.sc-d .bar i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--h) * 100%); background: var(--green); }
+.sc-d .bar.top i::after { background: var(--flag); }
+.sc-d.mine .dn::after { content: " ✓"; color: var(--green); }
+.sc-top { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.sc-top li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 12px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); }
+.sc-top li .n { font-family: var(--mono); font-weight: 700; color: var(--green); }
+.sc-top li .w { font-size: 13px; color: var(--muted); }
+.sc-me { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+@media (max-width: 520px) {
+  .sc-week { min-width: 0; border-spacing: 2px; }
+  .sc-week th { font-size: 11px; padding: 1px; }
+  .sc-week th.slot { width: 38px; font-size: 11px; }
+  .sc-week th.slot small { display: none; }
+  .sc-week th .all { padding: 1px 3px; font-size: 10px; white-space: nowrap; }
+  .sc-week th .md { display: none; }
+  .sc-c { min-height: 52px; }
+  .sc-c b { font-size: 13px; }
+  .sc-bar .lbl { min-width: 0; font-size: 13px; }
+  .sc-bar button { padding: 6px 10px; }
+}
+.sc-me input { width: 110px; padding: 5px 10px; font-size: 13px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1><span class="flag"></span>골프 중독자들</h1>
-    <div class="sub">편 가르기, 핸디 계산, 게임비 나누기, 타당 정산, 우리 라운드 영상</div>
+    <div class="sub">일정 조율, 편 가르기, 핸디 계산, 게임비 나누기, 타당 정산, 우리 라운드 영상</div>
   </header>
 
   <div id="gate" class="gate" hidden>
@@ -220,6 +273,20 @@ button.reset.warn { color: var(--red); }
       <div class="chips" id="adminTabs" style="flex-basis:100%"><button data-tab="main" class="on">계산기·영상</button><button data-tab="db">📒 DB (친구들이 쓴 기록)</button></div>
     </div>
     <section id="db" hidden></section>
+
+    <!-- 일정 조율 -->
+    <section id="sched">
+      <div class="row between"><h2>일정 조율</h2><span class="note" id="scWho"></span></div>
+      <div class="note" style="margin-top:6px">내 이름을 고르고, 되는 시간 칸을 누르세요. 다시 누르면 빠져요.</div>
+      <div class="sc-me" id="scMe"></div>
+      <div class="sc-bar">
+        <div class="chips" id="scView"><button data-scv="week">주</button><button data-scv="month">월</button></div>
+        <button type="button" data-scnav="-1">◀</button><span class="lbl" id="scLbl"></span><button type="button" data-scnav="1">▶</button>
+        <button type="button" class="ghost" data-scnav="0">오늘</button>
+      </div>
+      <div id="scBody"></div>
+      <div id="scTop"></div>
+    </section>
 
     <!-- 편 가르기 -->
     <section id="teams">
@@ -953,7 +1020,7 @@ $('#adminTabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]'); if (!b) return;
   const isDb = b.dataset.tab === 'db';
   document.querySelectorAll('#adminTabs button').forEach((x) => x.classList.toggle('on', x === b));
-  ['teams', 'fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
+  ['sched', 'teams', 'handi', 'fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
   $('#db').hidden = !isDb;
   if (isDb) renderDb(true);
 });
@@ -966,13 +1033,120 @@ $('#db').addEventListener('click', async (e) => {
   else if ('dball' in b.dataset) twoTap(b, async () => { await api('POST', { op: 'logDel', all: true }).catch(() => {}); db.logs = []; renderDb(); toast('기록을 모두 지웠어요'); });
 });
 
+/* ───────── 일정 조율 ───────── */
+const SLOTS = [['dawn', '🌅', '새벽', '~8시'], ['am', '☀️', '오전', '8~12시'], ['pm', '🌤️', '오후', '12~17시'], ['night', '🌙', '야간', '17시~']];
+let avail = {};            // "YYYY-MM-DD|이름" → "dawn,am"
+const sc = { view: loadLS('sc-view', 'week'), at: null, me: loadLS('me', '') };
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayD = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const weekStart = (d) => addD(d, -((d.getDay() + 6) % 7)); // 월요일 시작
+function scIndex() { // date → slot → [names]
+  const m = {};
+  for (const [f, v] of Object.entries(avail)) {
+    const [d, n] = [f.slice(0, 10), f.slice(11)];
+    for (const s of String(v).split(',')) ((m[d] ||= {})[s] ||= []).push(n);
+  }
+  return m;
+}
+function scPeople() { return [...new Set(Object.keys(avail).map((f) => f.slice(11)))]; }
+function renderScMe() {
+  const names = [...new Set([...FRIENDS, ...scPeople(), ...(sc.me ? [sc.me] : [])])];
+  $('#scMe').innerHTML = `<span class="note">나는</span><div class="chips">${names.map((n) => `<button data-scme="${esc(n)}" class="${n === sc.me ? 'on' : ''}">${esc(n)}</button>`).join('')}</div>
+    <form id="scMeAdd" class="row" style="gap:4px"><input id="scMeName" placeholder="다른 이름" maxlength="8"><button>＋</button></form>`;
+}
+function renderSc() {
+  if (!sc.at) sc.at = todayD();
+  document.querySelectorAll('#scView button').forEach((b) => b.classList.toggle('on', b.dataset.scv === sc.view));
+  const idx = scIndex(), people = Math.max(scPeople().length, 1), t0 = ymd(todayD());
+  let days;
+  if (sc.view === 'week') {
+    const s0 = weekStart(sc.at); days = Array.from({ length: 7 }, (_, i) => addD(s0, i));
+    const e0 = days[6];
+    $('#scLbl').textContent = `${s0.getMonth() + 1}.${s0.getDate()} ~ ${e0.getMonth() + 1}.${e0.getDate()}`;
+    let best = 0; days.forEach((d) => SLOTS.forEach(([k]) => { if (ymd(d) >= t0) best = Math.max(best, (idx[ymd(d)]?.[k] || []).length); }));
+    const head = days.map((d) => {
+      const k = ymd(d), mine = (avail[k + '|' + sc.me] || '').split(',').filter(Boolean);
+      return `<th class="${k === t0 ? 'today' : ''}"><b><span class="md">${d.getMonth() + 1}/</span>${d.getDate()}</b> ${DOW[d.getDay()]}${k >= t0 ? `<button type="button" class="all ${mine.length === 4 ? 'on' : ''}" data-scall="${k}">종일</button>` : ''}</th>`;
+    }).join('');
+    const rows = SLOTS.map(([s, e, l, h]) => `<tr><th class="slot">${e}<br>${l}<small>${h}</small></th>${days.map((d) => {
+      const k = ymd(d), ns = idx[k]?.[s] || [], me = ns.includes(sc.me), r = ns.length / people;
+      return `<td><button type="button" class="sc-c${me ? ' me' : ''}${r >= .5 ? ' hot' : ''}${best > 1 && ns.length === best && k >= t0 ? ' best' : ''}" style="--h:${r.toFixed(2)}" data-scd="${k}" data-scs="${s}" ${k < t0 ? 'disabled' : ''}>
+        ${ns.length ? `<b>${ns.length}명</b><span class="nm">${ns.map(esc).join(' ')}</span>` : '<b class="z">·</b>'}</button></td>`;
+    }).join('')}</tr>`).join('');
+    $('#scBody').innerHTML = `<div class="sc-scroll"><table class="sc-week"><thead><tr><th class="slot"></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="note" style="margin-top:6px">노란 테두리 = 내가 되는 칸 · 진할수록 많이 돼요 · 검은 테두리 = 이번 주 제일 많이 되는 때</div>`;
+  } else {
+    const y = sc.at.getFullYear(), mo = sc.at.getMonth(), first = new Date(y, mo, 1), nd = new Date(y, mo + 1, 0).getDate();
+    $('#scLbl').textContent = `${y}.${String(mo + 1).padStart(2, '0')}`;
+    days = Array.from({ length: nd }, (_, i) => new Date(y, mo, i + 1));
+    const lead = (first.getDay() + 6) % 7;
+    const cells = days.map((d) => {
+      const k = ymd(d), sl = idx[k] || {}, mx = Math.max(0, ...SLOTS.map(([s]) => (sl[s] || []).length));
+      const mine = !!avail[k + '|' + sc.me];
+      return `<button type="button" class="sc-d${k < t0 ? ' past' : ''}${k === t0 ? ' today' : ''}${mine ? ' mine' : ''}" data-scday="${k}"><span class="dn">${d.getDate()}${mx ? ` <span class="mx">${mx}명</span>` : ''}</span><span class="bars">${SLOTS.map(([s, e]) => {
+        const c = (sl[s] || []).length;
+        return `<span class="bar${c && c === mx ? ' top' : ''}" title="${e} ${c}명">${e}<i style="--h:${(c / people).toFixed(2)}"></i>${c || ''}</span>`;
+      }).join('')}</span></button>`;
+    }).join('');
+    $('#scBody').innerHTML = `<div class="sc-month">${['월', '화', '수', '목', '금', '토', '일'].map((w) => `<div class="dw">${w}</div>`).join('')}${'<div class="sc-d blank"></div>'.repeat(lead)}${cells}</div>
+      <div class="note" style="margin-top:6px">막대 = 그 시간 되는 사람 수 · 노란 막대 = 그날 제일 많이 되는 때 · ✓ = 내가 체크한 날 · 날짜를 누르면 그 주로 가서 체크해요</div>`;
+  }
+  // 보이는 기간에서 제일 많이 되는 때
+  const cand = [];
+  days.forEach((d) => { const k = ymd(d); if (k < t0) return; SLOTS.forEach(([s, e, l]) => { const ns = idx[k]?.[s] || []; if (ns.length) cand.push({ d, k, e, l, ns }); }); });
+  cand.sort((a, b) => b.ns.length - a.ns.length || a.k.localeCompare(b.k));
+  $('#scTop').innerHTML = cand.length ? `<div class="note" style="margin-top:14px"><b>제일 많이 되는 때</b> (${sc.view === 'week' ? '이번 주' : '이번 달'})</div><ul class="sc-top">${cand.slice(0, 5).map((c) =>
+    `<li><span class="n">${c.ns.length}명</span><b>${c.d.getMonth() + 1}/${c.d.getDate()} (${DOW[c.d.getDay()]}) ${c.e} ${c.l}</b><span class="w">${c.ns.map(esc).join(', ')}</span></li>`).join('')}</ul>`
+    : '<div class="note" style="margin-top:12px">아직 이 기간에 체크한 사람이 없어요.</div>';
+  const inRange = new Set(); days.forEach((d) => SLOTS.forEach(([s]) => (idx[ymd(d)]?.[s] || []).forEach((n) => inRange.add(n))));
+  $('#scWho').textContent = inRange.size ? `체크한 사람 ${inRange.size}명` : '';
+}
+async function scSet(date, slots) {
+  const f = date + '|' + sc.me, prev = avail[f];
+  if (slots.length) avail[f] = SLOTS.map(([k]) => k).filter((k) => slots.includes(k)).join(','); else delete avail[f];
+  renderSc();
+  try { await api('POST', { op: 'avail', date, name: sc.me, slots }); }
+  catch { if (prev) avail[f] = prev; else delete avail[f]; renderSc(); toast('저장하지 못했어요. 다시 눌러 주세요'); }
+}
+function needMe() { if (sc.me) return false; toast('먼저 위에서 내 이름을 골라 주세요'); $('#scMe').scrollIntoView({ behavior: 'smooth', block: 'center' }); return true; }
+$('#sched').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.scme) { sc.me = sc.me === b.dataset.scme ? '' : b.dataset.scme; save('me', sc.me); renderScMe(); renderSc(); return; }
+  if (b.dataset.scv) { sc.view = b.dataset.scv; save('sc-view', sc.view); renderSc(); return; }
+  if (b.dataset.scnav !== undefined) {
+    const n = Number(b.dataset.scnav);
+    if (!n) sc.at = todayD();
+    else if (sc.view === 'week') sc.at = addD(sc.at, 7 * n);
+    else sc.at = new Date(sc.at.getFullYear(), sc.at.getMonth() + n, 1);
+    renderSc(); return;
+  }
+  if (b.dataset.scday) { sc.at = new Date(b.dataset.scday + 'T00:00:00'); sc.view = 'week'; save('sc-view', 'week'); renderSc(); return; }
+  if (b.dataset.scd) {
+    if (needMe()) return;
+    const cur = (avail[b.dataset.scd + '|' + sc.me] || '').split(',').filter(Boolean), s = b.dataset.scs;
+    scSet(b.dataset.scd, cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]); return;
+  }
+  if (b.dataset.scall) {
+    if (needMe()) return;
+    const cur = (avail[b.dataset.scall + '|' + sc.me] || '').split(',').filter(Boolean);
+    scSet(b.dataset.scall, cur.length === 4 ? [] : SLOTS.map(([k]) => k));
+  }
+});
+$('#sched').addEventListener('submit', (e) => {
+  if (e.target.id !== 'scMeAdd') return;
+  e.preventDefault();
+  const n = $('#scMeName').value.trim().replace(/\|/g, '').slice(0, 8); if (!n) return;
+  sc.me = n; save('me', n); renderScMe(); renderSc();
+});
+
 /* ───────── 들어가기·공유 ───────── */
 async function load() {
   try {
     const j = await api('GET', null, viewKey ? `?k=${encodeURIComponent(viewKey)}` : '');
-    videos = j.videos; handi = j.handi || {}; admin = j.admin; shareKey = j.key || '';
+    videos = j.videos; handi = j.handi || {}; avail = j.avail || {}; admin = j.admin; shareKey = j.key || '';
     $('#gate').hidden = true; $('#app').hidden = false; $('#adminbar').hidden = !admin;
-    renderTm(); renderStage(); renderHd(); renderFee(); setUnit(unit); renderTd(); renderVideos();
+    renderScMe(); renderSc(); renderTm(); renderStage(); renderHd(); renderFee(); setUnit(unit); renderTd(); renderVideos();
     logReady = true; logLast.fee = null;
   } catch (e) {
     $('#app').hidden = true; $('#gate').hidden = false;

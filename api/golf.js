@@ -16,6 +16,7 @@ const okDate = (s) => /^20\d\d-\d\d-\d\d$/.test(String(s || ""));
 const newId = (n = 10) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join("");
 const pairs = (flat) => { const o = {}; for (let i = 0; flat && i < flat.length; i += 2) o[flat[i]] = flat[i + 1]; return o; };
 
+const AV_SLOTS = ["dawn", "am", "pm", "night"];
 const LOG_KINDS = ["fee", "tadang", "scan", "team"], LOG_MAX = 400, LOGS_PER_IP_PER_DAY = 300;
 const device = (ua = "") => (/iPhone|iPad/.test(ua) ? "아이폰" : /Android/.test(ua) ? "안드로이드" : /Mac/.test(ua) ? "맥" : /Windows/.test(ua) ? "PC" : "기타");
 const logHits = new Map();
@@ -83,9 +84,9 @@ export default async function handler(req, res) {
   }
   if (req.method === "GET") {
     if (admin && !key) { key = newId(16); await redis([["SET", "golf:key", key]]); }
-    const [h, hd] = await redis([["HGETALL", "golf:videos"], ["HGETALL", "golf:handi"]]);
+    const [h, hd, av] = await redis([["HGETALL", "golf:videos"], ["HGETALL", "golf:handi"], ["HGETALL", "golf:avail"]]);
     const handi = Object.fromEntries(Object.entries(pairs(hd)).map(([n, v]) => [n, Number(v)]));
-    return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), handi, admin: !!admin, ...(admin ? { key } : {}) });
+    return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), handi, avail: pairs(av), admin: !!admin, ...(admin ? { key } : {}) });
   }
   if (req.method !== "POST") return res.status(405).end();
 
@@ -108,6 +109,29 @@ export default async function handler(req, res) {
       const oldest = Object.values(pairs(h)).map((v) => JSON.parse(v)).sort((a, c) => a.at - c.at).slice(0, len - LOG_MAX + 20);
       if (oldest.length) cmds.push(["HDEL", "golf:log", ...oldest.map((r) => r.id)]);
     }
+    await redis(cmds);
+    return res.json({ ok: true });
+  }
+
+  // 일정 조율: 친구들이 "이 날 이 시간 돼요"를 직접 체크 (필드 "YYYY-MM-DD|이름", 값 "dawn,am")
+  if (b.op === "avail") {
+    const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
+    const dk = "av|" + new Date().toISOString().slice(0, 10) + "|" + ip, n = (logHits.get(dk) || 0) + 1;
+    if (logHits.size > 5000) logHits.clear();
+    logHits.set(dk, n);
+    if (n > 1500) return res.status(429).json({ error: "limit" });
+    const name = clip(b.name, 12), date = String(b.date || "");
+    const t = Date.parse(date + "T00:00:00Z"), today = Date.parse(new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10) + "T00:00:00Z");
+    if (!name || name.includes("|") || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !(t >= today - 864e5 && t <= today + 200 * 864e5)) return res.status(400).json({ error: "avail" });
+    const slots = AV_SLOTS.filter((x) => Array.isArray(b.slots) && b.slots.includes(x));
+    const f = date + "|" + name;
+    if (!slots.length) { await redis([["HDEL", "golf:avail", f]]); return res.json({ ok: true }); }
+    const [all] = await redis([["HGETALL", "golf:avail"]]);
+    const fields = Object.keys(pairs(all));
+    const old = fields.filter((x) => Date.parse(x.slice(0, 10) + "T00:00:00Z") < today - 30 * 864e5);
+    if (fields.length - old.length >= 3000 && !fields.includes(f)) return res.status(400).json({ error: "full" });
+    const cmds = [["HSET", "golf:avail", f, slots.join(",")]];
+    if (old.length) cmds.push(["HDEL", "golf:avail", ...old]);
     await redis(cmds);
     return res.json({ ok: true });
   }
