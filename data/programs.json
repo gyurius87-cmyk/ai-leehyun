@@ -419,6 +419,16 @@
       "private": true,
       "href": "/programs/lotto/",
       "cat": "돈·투자"
+    },
+    {
+      "id": "cal-room",
+      "name": "캘린더 기록실",
+      "status": "using",
+      "summary": "바탕화면 캘린더 기록을 올리면 주·월·연력으로 일정을 보고 체크하고, 노션 일정과 함께 보며 습관·미룬 일·AI 리포트를 남겨요.",
+      "start": "2026-11-26",
+      "private": true,
+      "href": "https://claude.ai/artifact/9djWiUkXAZFXrX8QtP3tLE",
+      "cat": "업무·운영"
     }
   ]
 }
