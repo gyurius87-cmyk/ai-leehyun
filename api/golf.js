@@ -84,9 +84,9 @@ export default async function handler(req, res) {
   }
   if (req.method === "GET") {
     if (admin && !key) { key = newId(16); await redis([["SET", "golf:key", key]]); }
-    const [h, hd, av] = await redis([["HGETALL", "golf:videos"], ["HGETALL", "golf:handi"], ["HGETALL", "golf:avail"]]);
+    const [h, hd, av, rd] = await redis([["HGETALL", "golf:videos"], ["HGETALL", "golf:handi"], ["HGETALL", "golf:avail"], ["HGETALL", "golf:rounds"]]);
     const handi = Object.fromEntries(Object.entries(pairs(hd)).map(([n, v]) => [n, Number(v)]));
-    return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), handi, avail: pairs(av), admin: !!admin, ...(admin ? { key } : {}) });
+    return res.json({ videos: Object.values(pairs(h)).map((v) => JSON.parse(v)), handi, avail: pairs(av), rounds: Object.values(pairs(rd)).map((v) => JSON.parse(v)), admin: !!admin, ...(admin ? { key } : {}) });
   }
   if (req.method !== "POST") return res.status(405).end();
 
@@ -174,6 +174,27 @@ export default async function handler(req, res) {
     if (n >= 100) return res.status(400).json({ error: "full" });
     await redis([["HSET", "golf:handi", name, String(v)]]);
     return res.json({ ok: true, value: v });
+  }
+  // 확정된 라운드 + 결과 (이현님이 적음). golf:rounds hash id → JSON
+  if (b.op === "round") {
+    const id = okId(b.id) ? b.id : newId(10);
+    if (!okDate(b.date) || !AV_SLOTS.includes(b.slot)) return res.status(400).json({ error: "round" });
+    const people = [...new Set((Array.isArray(b.people) ? b.people : []).map((n) => clip(n, 12)).filter(Boolean))].slice(0, 12);
+    const scores = {};
+    for (const [n, v] of Object.entries(b.scores && typeof b.scores === "object" ? b.scores : {}).slice(0, 12)) {
+      const x = Math.round(Number(v)); if (clip(n, 12) && Number.isFinite(x) && x >= 50 && x <= 200) scores[clip(n, 12)] = x;
+    }
+    const [old, n] = await redis([["HGET", "golf:rounds", id], ["HLEN", "golf:rounds"]]);
+    if (!old && n >= 500) return res.status(400).json({ error: "full" });
+    const prev = old ? JSON.parse(old) : {};
+    const it = { id, date: b.date, slot: b.slot, people, place: clip(b.place, 40), memo: clip(b.memo, 300), scores, at: prev.at || Date.now(), upd: Date.now() };
+    await redis([["HSET", "golf:rounds", id, JSON.stringify(it)]]);
+    return res.json({ item: it });
+  }
+  if (b.op === "roundDel") {
+    if (!okId(b.id)) return res.status(400).json({ error: "id" });
+    await redis([["HDEL", "golf:rounds", b.id]]);
+    return res.json({ ok: true });
   }
   if (b.op === "del") {
     if (!okId(b.id)) return res.status(400).json({ error: "id" });

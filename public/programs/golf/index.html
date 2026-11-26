@@ -250,6 +250,32 @@ button.reset.warn { color: var(--red); }
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
 .sc-pick .cnt { font-weight: 700; }
 .sc-pick .chips button.on { background: var(--blue); border-color: var(--blue); }
+.sc-c.fix { border: 2px solid var(--flag); }
+.sc-top .fixb { margin-left: auto; padding: 3px 10px; font-size: 13px; }
+.sc-top .fixed { margin-left: auto; font-size: 13px; color: var(--green); font-weight: 700; }
+.rd-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.rd-list > li { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--soft); }
+.rd-list .hd { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.rd-list .hd b { font-size: 15px; }
+.rd-list .pp { font-size: 13px; color: var(--muted); }
+.rd-list .acts { margin-left: auto; display: flex; gap: 4px; }
+.rd-sc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.rd-sc span { font-size: 13px; padding: 2px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); }
+.rd-sc span b { font-family: var(--mono); }
+.rd-sc span.w { background: var(--flagSoft); border-color: var(--flag); }
+.rd-form { display: grid; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.rd-form .scs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.rd-form .scs label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.rd-form .scs input { width: 64px; font-family: var(--mono); }
+.rd-stat { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+.rd-stat th, .rd-stat td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.rd-stat th:first-child, .rd-stat td:first-child { text-align: left; }
+.rd-stat td { font-family: var(--mono); }
+.rd-stat td:first-child { font-family: var(--sans); font-weight: 700; }
+.rd-chart { width: 100%; height: auto; margin-top: 10px; }
+.rd-chart text { fill: var(--muted); font-size: 15px; font-family: var(--mono); }
+.rd-tg button.off { opacity: .35; }
+.rd-tg button i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
 .sc-me input { width: 110px; padding: 5px 10px; font-size: 13px; }
 </style>
 </head>
@@ -295,6 +321,9 @@ button.reset.warn { color: var(--red); }
       <div id="scPick" class="sc-pick" hidden></div>
       <div id="scTop"></div>
     </section>
+
+    <!-- 라운드 기록 -->
+    <section id="rounds"></section>
 
     <!-- 편 가르기 -->
     <section id="teams">
@@ -1028,7 +1057,7 @@ $('#adminTabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]'); if (!b) return;
   const isDb = b.dataset.tab === 'db';
   document.querySelectorAll('#adminTabs button').forEach((x) => x.classList.toggle('on', x === b));
-  ['sched', 'teams', 'handi', 'fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
+  ['sched', 'rounds', 'teams', 'handi', 'fee', 'tadang', 'videos'].forEach((id) => ($('#' + id).hidden = isDb));
   $('#db').hidden = !isDb;
   if (isDb) renderDb(true);
 });
@@ -1078,9 +1107,9 @@ function renderSc() {
       return `<th class="${k === t0 ? 'today' : ''}"><b><span class="md">${d.getMonth() + 1}/</span>${d.getDate()}</b> ${DOW[d.getDay()]}${k >= t0 ? `<button type="button" class="all ${mine.length === 4 ? 'on' : ''}" data-scall="${k}">종일</button>` : ''}</th>`;
     }).join('');
     const rows = SLOTS.map(([s, e, l, h]) => `<tr><th class="slot">${e}<br>${l}<small>${h}</small></th>${days.map((d) => {
-      const k = ymd(d), ns = idx[k]?.[s] || [], me = ns.includes(sc.me), r = ns.length / people;
-      return `<td><button type="button" class="sc-c${me ? ' me' : ''}${sc.pick.has(k + '|' + s) ? ' pk' : ''}${r >= .5 ? ' hot' : ''}${best > 1 && ns.length === best && k >= t0 ? ' best' : ''}" style="--h:${r.toFixed(2)}" data-scd="${k}" data-scs="${s}" ${k < t0 ? 'disabled' : ''}>
-        ${ns.length ? `<b>${ns.length}명</b><span class="nm">${ns.map(esc).join(' ')}</span>` : '<b class="z">·</b>'}</button></td>`;
+      const k = ymd(d), ns = idx[k]?.[s] || [], me = ns.includes(sc.me), r = ns.length / people, fx = rounds.some((x) => x.date === k && x.slot === s);
+      return `<td><button type="button" class="sc-c${me ? ' me' : ''}${sc.pick.has(k + '|' + s) ? ' pk' : ''}${r >= .5 ? ' hot' : ''}${best > 1 && ns.length === best && k >= t0 ? ' best' : ''}${fx ? ' fix' : ''}" style="--h:${r.toFixed(2)}" data-scd="${k}" data-scs="${s}" ${k < t0 ? 'disabled' : ''}>
+        ${fx ? '<span class="nm">⛳ 확정</span>' : ''}${ns.length ? `<b>${ns.length}명</b><span class="nm">${ns.map(esc).join(' ')}</span>` : '<b class="z">·</b>'}</button></td>`;
     }).join('')}</tr>`).join('');
     $('#scBody').innerHTML = `<div class="sc-scroll"><table class="sc-week"><thead><tr><th class="slot"></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
       <div class="note" style="margin-top:6px">노란 테두리 = 내가 되는 칸 · 진할수록 많이 돼요 · 검은 테두리 = 이번 주 제일 많이 되는 때</div>`;
@@ -1092,7 +1121,7 @@ function renderSc() {
     const cells = days.map((d) => {
       const k = ymd(d), sl = idx[k] || {}, mx = Math.max(0, ...SLOTS.map(([s]) => (sl[s] || []).length));
       const mine = !!avail[k + '|' + sc.me];
-      return `<button type="button" class="sc-d${k < t0 ? ' past' : ''}${sc.pick.has(k) ? ' pk' : ''}${k === t0 ? ' today' : ''}${mine ? ' mine' : ''}" data-scday="${k}"><span class="dn">${d.getDate()}${mx ? ` <span class="mx">${mx}명</span>` : ''}</span><span class="bars">${SLOTS.map(([s, e]) => {
+      return `<button type="button" class="sc-d${k < t0 ? ' past' : ''}${sc.pick.has(k) ? ' pk' : ''}${k === t0 ? ' today' : ''}${mine ? ' mine' : ''}" data-scday="${k}"><span class="dn">${rounds.some((x) => x.date === k) ? '⛳' : ''}${d.getDate()}${mx ? ` <span class="mx">${mx}명</span>` : ''}</span><span class="bars">${SLOTS.map(([s, e]) => {
         const c = (sl[s] || []).length;
         return `<span class="bar${c && c === mx ? ' top' : ''}" title="${e} ${c}명">${e}<i style="--h:${(c / people).toFixed(2)}"></i>${c || ''}</span>`;
       }).join('')}</span></button>`;
@@ -1102,10 +1131,10 @@ function renderSc() {
   }
   // 보이는 기간에서 제일 많이 되는 때
   const cand = [];
-  days.forEach((d) => { const k = ymd(d); if (k < t0) return; SLOTS.forEach(([s, e, l]) => { const ns = idx[k]?.[s] || []; if (ns.length) cand.push({ d, k, e, l, ns }); }); });
+  days.forEach((d) => { const k = ymd(d); if (k < t0) return; SLOTS.forEach(([s, e, l]) => { const ns = idx[k]?.[s] || []; if (ns.length) cand.push({ d, k, s, e, l, ns }); }); });
   cand.sort((a, b) => b.ns.length - a.ns.length || a.k.localeCompare(b.k));
   $('#scTop').innerHTML = cand.length ? `<div class="note" style="margin-top:14px"><b>제일 많이 되는 때</b> (${sc.view === 'week' ? '이번 주' : '이번 달'})</div><ul class="sc-top">${cand.slice(0, 5).map((c) =>
-    `<li><span class="n">${c.ns.length}명</span><b>${c.d.getMonth() + 1}/${c.d.getDate()} (${DOW[c.d.getDay()]}) ${c.e} ${c.l}</b><span class="w">${c.ns.map(esc).join(', ')}</span></li>`).join('')}</ul>`
+    `<li><span class="n">${c.ns.length}명</span><b>${c.d.getMonth() + 1}/${c.d.getDate()} (${DOW[c.d.getDay()]}) ${c.e} ${c.l}</b><span class="w">${c.ns.map(esc).join(', ')}</span>${rounds.some((x) => x.date === c.k && x.slot === c.s) ? '<span class="fixed">⛳ 확정됨</span>' : admin ? `<button type="button" class="fixb" data-scfix="${c.k}|${c.s}">✅ 일정 확정</button>` : ''}</li>`).join('')}</ul>`
     : '<div class="note" style="margin-top:12px">아직 이 기간에 체크한 사람이 없어요.</div>';
   const inRange = new Set(); days.forEach((d) => SLOTS.forEach(([s]) => (idx[ymd(d)]?.[s] || []).forEach((n) => inRange.add(n))));
   $('#scWho').textContent = inRange.size ? `체크한 사람 ${inRange.size}명` : '';
@@ -1156,6 +1185,13 @@ $('#sched').addEventListener('click', (e) => {
   if ('scpickx' in b.dataset) { if (sc.pick.size) sc.pick.clear(); else sc.multi = false; renderSc(); return; }
   if (b.dataset.scps) { const k = b.dataset.scps; sc.ps.has(k) ? sc.ps.delete(k) : sc.ps.add(k); renderScPick(); return; }
   if (b.dataset.scapply) { scApply(b.dataset.scapply === '1'); return; }
+  if (b.dataset.scfix) {
+    const [date, slot] = b.dataset.scfix.split('|'), people = scIndex()[date]?.[slot] || [];
+    b.disabled = true;
+    api('POST', { op: 'round', date, slot, people }).then((j) => { rounds.push(j.item); renderSc(); renderRd(); toast('일정을 확정했어요. 아래 라운드 기록에 들어갔어요'); })
+      .catch(() => { b.disabled = false; toast('확정하지 못했어요'); });
+    return;
+  }
   if (sc.multi && (b.dataset.scd || b.dataset.scday)) {
     const k = b.dataset.scd ? b.dataset.scd + '|' + b.dataset.scs : b.dataset.scday;
     if (k.slice(0, 10) < ymd(todayD())) return;
@@ -1187,13 +1223,116 @@ $('#sched').addEventListener('submit', (e) => {
   sc.me = n; save('me', n); renderScMe(); renderSc();
 });
 
+/* ───────── 라운드 기록 (확정된 일정 + 결과) ───────── */
+let rounds = [];
+const rd = { edit: null, hide: new Set(loadLS('rd-hide', [])) };
+const RD_COLORS = ['#1f6b45', '#c23b32', '#2457a6', '#d9930d', '#7b3fa0', '#0f8b8d', '#b5487a', '#5d6a61', '#8a6d1f', '#3c7d2b', '#a0522d', '#4b5bbf'];
+const slotOf = (k) => SLOTS.find((x) => x[0] === k) || ['', '', ''];
+const rdLabel = (r) => { const d = new Date(r.date + 'T00:00:00'); const [, e, l] = slotOf(r.slot); return `${d.getMonth() + 1}/${d.getDate()} (${DOW[d.getDay()]}) ${e} ${l}`; };
+function rdStats() {
+  const done = rounds.filter((r) => Object.keys(r.scores || {}).length).sort((a, b) => a.date.localeCompare(b.date) || a.slot.localeCompare(b.slot));
+  const st = {};
+  done.forEach((r) => {
+    const ent = Object.entries(r.scores), lo = Math.min(...ent.map(([, v]) => v));
+    ent.forEach(([n, v]) => { const x = (st[n] ||= { n, cnt: 0, sum: 0, best: 999, last: 0, win: 0, pts: [] }); x.cnt++; x.sum += v; x.best = Math.min(x.best, v); x.last = v; if (v === lo && ent.length > 1) x.win++; x.pts.push([r, v]); });
+  });
+  return { done, list: Object.values(st).sort((a, b) => a.sum / a.cnt - b.sum / b.cnt) };
+}
+function rdChart(done, list) {
+  if (done.length < 2) return '<div class="note" style="margin-top:8px">결과가 두 번 이상 쌓이면 타수 변화 그래프가 나와요.</div>';
+  const W = 640, H = 220, L = 34, R = 12, T = 12, B = 26;
+  const vs = list.filter((p) => !rd.hide.has(p.n)).flatMap((p) => p.pts.map(([, v]) => v));
+  const lo = Math.floor((Math.min(...(vs.length ? vs : [70])) - 2) / 5) * 5, hi = Math.ceil((Math.max(...(vs.length ? vs : [110])) + 2) / 5) * 5;
+  const X = (i) => L + (done.length === 1 ? 0 : (i * (W - L - R)) / (done.length - 1)), Y = (v) => T + ((v - lo) * (H - T - B)) / Math.max(hi - lo, 1);
+  let g = '';
+  for (let v = lo; v <= hi; v += 5) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  done.forEach((r, i) => { if (done.length <= 12 || i % Math.ceil(done.length / 12) === 0) g += `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${r.date.slice(5).replace('-', '/')}</text>`; });
+  list.forEach((p) => {
+    if (rd.hide.has(p.n)) return;
+    const c = RD_COLORS[list.indexOf(p) % RD_COLORS.length];
+    const pts = p.pts.map(([r, v]) => [X(done.indexOf(r)), Y(v), v]);
+    g += `<polyline fill="none" stroke="${c}" stroke-width="2.5" points="${pts.map(([x, y]) => `${x},${y}`).join(' ')}"/>`;
+    g += pts.map(([x, y, v]) => `<circle cx="${x}" cy="${y}" r="4" fill="${c}"><title>${esc(p.n)} ${v}타</title></circle>`).join('');
+  });
+  const tg = list.map((p, i) => `<button type="button" data-rdtg="${esc(p.n)}" class="${rd.hide.has(p.n) ? 'off' : ''}"><i style="background:${RD_COLORS[i % RD_COLORS.length]}"></i>${esc(p.n)}</button>`).join('');
+  return `<div class="chips rd-tg" style="margin-top:10px">${tg}</div><svg class="rd-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="라운드별 타수">${g}</svg><div class="note">위로 갈수록 타수가 적어요 (잘 친 거예요)</div>`;
+}
+function rdForm(r) {
+  const names = [...new Set([...r.people, ...Object.keys(r.scores || {})])];
+  return `<form class="rd-form" data-rdform="${r.id}">
+    <div class="row"><input name="place" placeholder="골프장" maxlength="40" value="${esc(r.place)}" style="flex:1"></div>
+    <div class="note">타수 (비워 두면 안 친 걸로)</div>
+    <div class="scs">${names.map((n) => `<label>${esc(n)}<input name="s:${esc(n)}" inputmode="numeric" placeholder="타수" value="${r.scores?.[n] ?? ''}"></label>`).join('')}</div>
+    <div class="row"><input name="add" placeholder="사람 더 넣기" maxlength="8" style="width:140px"><button type="button" data-rdadd>＋</button></div>
+    <textarea name="memo" placeholder="메모 (내기 결과, 날씨 등)" maxlength="300">${esc(r.memo)}</textarea>
+    <div class="row"><button class="main">저장</button><button type="button" class="ghost" data-rdcancel>닫기</button></div>
+  </form>`;
+}
+function renderRd() {
+  const box = $('#rounds'); if (!box) return;
+  const t0 = ymd(todayD());
+  const up = rounds.filter((r) => r.date >= t0 && !Object.keys(r.scores || {}).length).sort((a, b) => a.date.localeCompare(b.date));
+  const past = rounds.filter((r) => !up.includes(r)).sort((a, b) => b.date.localeCompare(a.date));
+  const card = (r) => {
+    const ent = Object.entries(r.scores || {}).sort((a, b) => a[1] - b[1]), lo = ent.length ? ent[0][1] : 0;
+    return `<li><div class="hd"><b>⛳ ${rdLabel(r)}</b>${r.place ? `<span>${esc(r.place)}</span>` : ''}
+      ${admin ? `<span class="acts"><button type="button" class="ghost" data-rdedit="${r.id}">${ent.length ? '결과 고치기' : '결과 적기'}</button><button type="button" class="ghost" data-rddel="${r.id}">취소</button></span>` : ''}</div>
+      <div class="pp">${r.people.map(esc).join(', ') || '사람 없음'}</div>
+      ${ent.length ? `<div class="rd-sc">${ent.map(([n, v]) => `<span class="${v === lo && ent.length > 1 ? 'w' : ''}">${v === lo && ent.length > 1 ? '🥇 ' : ''}${esc(n)} <b>${v}</b></span>`).join('')}</div>` : ''}
+      ${r.memo ? `<div class="note" style="margin-top:4px">${esc(r.memo)}</div>` : ''}
+      ${rd.edit === r.id ? rdForm(r) : ''}</li>`;
+  };
+  const { done, list } = rdStats();
+  box.innerHTML = `<div class="row between"><h2>라운드 기록</h2><span class="note">확정 ${rounds.length}번 · 결과 ${done.length}번</span></div>
+    ${!rounds.length ? `<div class="note" style="margin-top:8px">${admin ? '위 일정 조율의 "제일 많이 되는 때"에서 ✅ 일정 확정을 누르면 여기 쌓여요.' : '아직 확정된 라운드가 없어요.'}</div>` : ''}
+    ${up.length ? `<div class="note" style="margin-top:10px"><b>다가오는 라운드</b></div><ul class="rd-list">${up.map(card).join('')}</ul>` : ''}
+    ${past.length ? `<div class="note" style="margin-top:14px"><b>지난 라운드</b></div><ul class="rd-list">${past.map(card).join('')}</ul>` : ''}
+    ${list.length ? `<div class="note" style="margin-top:16px"><b>📊 기록으로 보기</b> (평균 타수 낮은 순)</div>
+      <div class="sc-scroll"><table class="rd-stat"><thead><tr><th>이름</th><th>라운드</th><th>평균</th><th>베스트</th><th>최근</th><th>🥇</th></tr></thead><tbody>
+      ${list.map((p) => `<tr><td>${esc(p.n)}</td><td>${p.cnt}</td><td>${(p.sum / p.cnt).toFixed(1)}</td><td>${p.best}</td><td>${p.last}</td><td>${p.win}</td></tr>`).join('')}</tbody></table></div>
+      ${rdChart(done, list)}` : ''}`;
+}
+$('#rounds').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rdtg) { const n = b.dataset.rdtg; rd.hide.has(n) ? rd.hide.delete(n) : rd.hide.add(n); save('rd-hide', [...rd.hide]); renderRd(); return; }
+  if (b.dataset.rdedit) { rd.edit = rd.edit === b.dataset.rdedit ? null : b.dataset.rdedit; renderRd(); return; }
+  if ('rdcancel' in b.dataset) { rd.edit = null; renderRd(); return; }
+  if (b.dataset.rddel) {
+    twoTap(b, async () => { try { await api('POST', { op: 'roundDel', id: b.dataset.rddel }); rounds = rounds.filter((r) => r.id !== b.dataset.rddel); renderRd(); renderSc(); toast('확정을 취소했어요'); } catch { toast('취소하지 못했어요'); } });
+    return;
+  }
+  if ('rdadd' in b.dataset) {
+    const f = b.closest('form'), n = f.add.value.trim().replace(/\|/g, '').slice(0, 8), r = rounds.find((x) => x.id === f.dataset.rdform);
+    if (!n || !r) return;
+    const keep = rdRead(f); r.people = [...new Set([...r.people, n])]; renderRd();
+    const f2 = $(`[data-rdform="${r.id}"]`); f2.place.value = keep.place; f2.memo.value = keep.memo;
+    Object.entries(keep.scores).forEach(([k, v]) => { const i = f2.querySelector(`[name="s:${CSS.escape(k)}"]`); if (i) i.value = v; });
+  }
+});
+function rdRead(f) {
+  const scores = {};
+  f.querySelectorAll('[name^="s:"]').forEach((i) => { const v = num(i.value); if (v) scores[i.name.slice(2)] = v; });
+  return { place: f.place.value.trim(), memo: f.memo.value.trim(), scores };
+}
+$('#rounds').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target, r = rounds.find((x) => x.id === f.dataset.rdform); if (!r) return;
+  const v = rdRead(f);
+  const bad = Object.entries(v.scores).find(([, x]) => x < 50 || x > 200);
+  if (bad) { toast(`${bad[0]} 타수가 이상해요 (50~200)`); return; }
+  try {
+    const j = await api('POST', { op: 'round', id: r.id, date: r.date, slot: r.slot, people: [...new Set([...r.people, ...Object.keys(v.scores)])], ...v });
+    Object.assign(r, j.item); rd.edit = null; renderRd(); toast('결과를 저장했어요');
+  } catch { toast('저장하지 못했어요'); }
+});
+
 /* ───────── 들어가기·공유 ───────── */
 async function load() {
   try {
     const j = await api('GET', null, viewKey ? `?k=${encodeURIComponent(viewKey)}` : '');
-    videos = j.videos; handi = j.handi || {}; avail = j.avail || {}; admin = j.admin; shareKey = j.key || '';
+    videos = j.videos; handi = j.handi || {}; avail = j.avail || {}; rounds = j.rounds || []; admin = j.admin; shareKey = j.key || '';
     $('#gate').hidden = true; $('#app').hidden = false; $('#adminbar').hidden = !admin;
-    renderScMe(); renderSc(); renderTm(); renderStage(); renderHd(); renderFee(); setUnit(unit); renderTd(); renderVideos();
+    renderScMe(); renderSc(); renderRd(); renderTm(); renderStage(); renderHd(); renderFee(); setUnit(unit); renderTd(); renderVideos();
     logReady = true; logLast.fee = null;
   } catch (e) {
     $('#app').hidden = true; $('#gate').hidden = false;
