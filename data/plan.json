@@ -704,6 +704,23 @@
               "tools": [
                 "Claude Code"
               ]
+            },
+            {
+              "id": "total-calendar",
+              "title": "AI로 지난 일정 기록 분석하고 캘린더 하나로 모으기",
+              "what": "오래 써 온 캘린더 기록을 AI로 분석해 습관과 미룬 일을 보고, 노션 캘린더들과 연결해 일정 하나로 관리하는 프로그램을 만들었습니다.",
+              "yt": "AI로 만든 종합 캘린더",
+              "status": "done",
+              "start": "2026-11-26",
+              "end": "2026-11-26",
+              "result": {
+                "label": "종합 캘린더",
+                "href": "/programs"
+              },
+              "tools": [
+                "Claude Code",
+                "Notion"
+              ]
             }
           ]
         },
