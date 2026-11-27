@@ -157,6 +157,38 @@ details.health[open] > summary::before { content: "▾ "; }
 details.health .in { padding: 0 18px 18px; }
 details.health.has { border-style: solid; }
 details.health.has > summary { color: var(--ink); font-family: var(--serif); font-size: 22px; padding: 18px; }
+#foodBox { display: grid; gap: 12px; }
+#foodBox > * { min-width: 0; }
+.fd-note { background: var(--soft); border-radius: 10px; padding: 9px 12px; font-size: 14px; color: var(--muted); }
+.fd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fd-chips button { border-radius: 999px; padding: 5px 12px; }
+.fd-chips button.on { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 700; }
+.fd-r.ok.on { background: var(--sage); border-color: var(--sage); }
+.fd-r.some.on { background: #b7791f; border-color: #b7791f; }
+.fd-r.no.on { background: var(--danger); border-color: var(--danger); }
+.fd-count { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+.fd-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.fd-it { border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 12px; padding: 11px 13px; display: grid; gap: 5px; }
+.fd-it.ok { border-left-color: var(--sage); }
+.fd-it.some { border-left-color: #d69e2e; }
+.fd-it.no { border-left-color: var(--danger); }
+.fd-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.fd-top b { font-size: 17px; }
+.fd-badge { flex: none; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.fd-badge.ok { background: var(--sageSoft); color: var(--sage); }
+.fd-badge.some { background: #fbf0d9; color: #8a5a00; }
+.fd-badge.no { background: var(--roseSoft); color: var(--danger); }
+.fd-a { font-size: 13px; color: var(--muted); }
+.fd-lv { display: flex; flex-wrap: wrap; gap: 5px; }
+.lv { font-size: 12px; border-radius: 6px; padding: 1px 7px; background: var(--soft); color: var(--muted); }
+.lv.H { background: var(--roseSoft); color: var(--danger); font-weight: 700; }
+.lv.M { color: var(--ink); }
+.fd-t { font-size: 14px; }
+.fd-tips { background: var(--soft); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.fd-tips summary { cursor: pointer; font-weight: 700; }
+.fd-tips ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fd-badge.some { background: #3a2f1a; color: #f2c46d; } }
+:root[data-theme="dark"] .fd-badge.some { background: #3a2f1a; color: #f2c46d; }
 .cal { margin-top: 12px; }
 .cal .nav { display: flex; align-items: center; justify-content: center; gap: 14px; font-family: var(--serif); font-size: 18px; }
 .cal .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
@@ -208,11 +240,13 @@ details.health.has > summary { color: var(--ink); font-family: var(--serif); fon
       <summary>병원 일정</summary>
       <div class="in" id="health"></div>
     </details>
+    <section id="foodBox"></section>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="/programs/mom/map.js"></script>
+<script src="/programs/mom/food.js" defer></script>
 <script>
 const API = '/api/mom';
 const q = new URLSearchParams(location.search);
