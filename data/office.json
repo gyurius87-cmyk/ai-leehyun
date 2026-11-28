@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-27",
+  "updated": "2026-11-28",
   "depts": [
     {
       "id": "ai",
@@ -11,8 +11,9 @@
         {
           "team": "개발팀",
           "name": "개발 담당",
-          "status": "done",
-          "doing": "가족 프로그램에 건강한 식사 찾아보기를 붙였어요",
+          "status": "waiting",
+          "doing": "구독 관리실에 API 사용량 칸을 붙이고 확인을 기다려요",
+          "since": "2026-11-28",
           "prop": "🛠️",
           "acc": "glasses"
         },
