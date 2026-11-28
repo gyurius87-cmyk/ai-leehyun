@@ -188,7 +188,7 @@ export async function koMap(names) {
 ${miss.map((n, i) => `${i}. ${n}`).join("\n")}
 
 JSON 하나만: {"0":"한글 이름", "1":"..."}` }] });
-      await recordUsage(msg.usage || {}, model);
+      await recordUsage(msg.usage || {}, model, "stock");
       const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), o = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {};
       miss.forEach((n, i) => { if (o[i]) M[n] = String(o[i]).slice(0, 40); });
       await redis([["SET", "stk:konames", JSON.stringify(M)]]);

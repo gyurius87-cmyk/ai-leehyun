@@ -126,7 +126,7 @@ JSON만 답해: {"picks":[{"id":"채널 id","why":"..."}]}`;
 
 async function ask(content, maxTokens) {
   const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: maxTokens, output_config: { effort: "low" }, messages: [{ role: "user", content }] });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "sns");
   const out = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
   return JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
 }

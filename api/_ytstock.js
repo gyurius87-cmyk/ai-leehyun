@@ -71,6 +71,7 @@ async function geminiNotes(vid) {
       contents: [{ parts: [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${vid}` }, ...(meta ? { video_metadata: { fps: 0.1 } } : {}) }, { text: "이 주식·경제 영상의 내용을 한국어로 자세히 정리해 주세요. 말한 주장, 근거로 든 숫자·차트, 언급한 종목과 그에 대한 의견(사라/팔라/관망), 결론을 빠짐없이. 2000자 이내." }] }],
       generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW", maxOutputTokens: 4000, thinkingConfig: { thinkingBudget: 0 } } }) });
     const j = await r.json().catch(() => ({}));
+    if (r.ok) await recordUsage(j?.usageMetadata || {}, model, "stock-yt");
     return { status: r.status, t: (j?.candidates?.[0]?.content?.parts || []).map((x) => x.text || "").join("").trim(), msg: j?.error?.message || j?.candidates?.[0]?.finishReason || "" };
   };
   try {
@@ -97,7 +98,7 @@ ${tx ? `${basis === "영상" ? "영상 내용 정리" : "자막(앞부분)"}: ${
 JSON 하나만 답해 주세요:
 {"sum":["핵심 한 줄","핵심 한 줄","핵심 한 줄"],"points":["숫자·근거가 담긴 포인트 (최대 5개)"],"stocks":["언급된 종목·자산 이름 (최대 8개)"],"tone":"강세|약세|중립|정보"}`;
   const msg = await claude({ model: MODEL, max_tokens: 1500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "stock");
   const txt = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), o = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
   if (!o?.sum) return null;
   const out = { sum: o.sum.slice(0, 3), points: (o.points || []).slice(0, 5), stocks: (o.stocks || []).slice(0, 8), tone: o.tone || "정보", basis, at: Date.now() };

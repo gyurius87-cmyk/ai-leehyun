@@ -106,7 +106,7 @@ export default async function handler(req, res) {
       output_config: { effort: "low" },
       messages: [{ role: "user", content: ask ? ASK_PROMPT(text, p) : PROMPT(text, p, qa) }],
     });
-    await recordUsage(msg.usage || {}, MODEL);
+    await recordUsage(msg.usage || {}, MODEL, "help");
     if (msg.stop_reason === "refusal") return res.status(422).json({ error: "refusal" });
     const out = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     const r = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));

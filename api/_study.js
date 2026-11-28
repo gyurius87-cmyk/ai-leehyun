@@ -11,7 +11,7 @@ const r2 = (v, d = 2) => (v == null || !isFinite(v) ? null : Math.round(v * 10 *
 const pickJson = (t) => json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
 async function ask(content, max = 3000) {
   const msg = await claude({ model: MODEL, max_tokens: max, output_config: { effort: "low" }, messages: typeof content === "string" ? [{ role: "user", content }] : content });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "stock");
   return msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
 }
 

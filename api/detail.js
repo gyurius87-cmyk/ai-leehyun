@@ -164,6 +164,7 @@ async function genFill(b, res) {
     const r = await fetch(`${process.env.OPENAI_BASE_URL || "https://api.openai.com/v1"}/images/edits`, { method: "POST", headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: fd });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { console.error("fill", r.status, j?.error?.message); return res.status(r.status === 429 ? 429 : 502).json({ error: r.status === 429 ? "busy" : r.status === 400 ? "refused" : "api", msg: clip(j?.error?.message, 200) }); }
+    await recordUsage(j?.usage || {}, FILL_MODEL, "detail-img");
     const out = j?.data?.[0]?.b64_json; if (!out) return res.status(502).json({ error: "shape" });
     return res.json({ img: out });
   } catch (err) { console.error(err); return res.status(502).json({ error: "api" }); }
@@ -201,7 +202,7 @@ async function aiQs(b, res) {
 ${slots.map((s) => `- ${s.id} | ${s.label || "-"} | ${JSON.stringify(s.orig)}`).join("\n")}${other ? `\n\n칸이 아닌 다른 글(참고):\n${other}` : ""}`;
   try {
     const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 3000, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
-    await recordUsage(msg.usage || {}, MODEL);
+    await recordUsage(msg.usage || {}, MODEL, "detail");
     const out = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
     const r = json(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
     if (!Array.isArray(r?.qs)) return res.status(502).json({ error: "shape" });
@@ -235,7 +236,7 @@ ${memo}
 ${slots.map((s) => `- ${s.id} | ${s.label || "-"} | ${s.lines}줄 | ${JSON.stringify(s.orig)}`).join("\n")}`;
   try {
     const msg = await new Anthropic().messages.create({ model: MODEL, max_tokens: 4000, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
-    await recordUsage(msg.usage || {}, MODEL);
+    await recordUsage(msg.usage || {}, MODEL, "detail");
     const out = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
     const r = json(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
     if (!r?.values || typeof r.values !== "object") return res.status(502).json({ error: "shape" });

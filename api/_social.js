@@ -63,7 +63,7 @@ export async function socialSync(days = 3) {
 ${inp}
 
 JSON 하나만: {"<id>":{"mood":"이 사람의 최근 톤 한 줄","items":[{"k":항목번호,"take":"무슨 말을 했고 시장에 어떤 의미인지 한 줄","stocks":["관련 종목·자산"],"impact":"호재|악재|중립"}]}} — 사람마다 의미 있는 것 최대 ${days <= 3 ? 4 : days <= 7 ? 6 : 8}개, 없으면 items 빈 배열.` }] });
-    await recordUsage(msg.usage || {}, MODEL);
+    await recordUsage(msg.usage || {}, MODEL, "stock");
     const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); ai = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {};
   } catch (e) { if (isQueued(e)) { await redis([["SET", "stk:soc:pend:" + days, JSON.stringify({ lists, reddit, errs }), "EX", 86400]]); throw e; } errs.ai = String(e?.message || e).slice(0, 80); }
   const out = {

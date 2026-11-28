@@ -344,7 +344,7 @@ ${ms}
 - JSON 한 덩어리만:
 {"headline":"오늘 시장 한 줄","us":{"move":"미국 시장이 어떻게 움직였나 2~3문장","why":["오른/내린 이유 1","이유 2","이유 3"]},"kr":{"move":"한국 시장 2~3문장","why":["이유"]},"macro":["오늘 꼭 볼 매크로 포인트 (숫자 포함) 3~5개"],"experts":[{"who":"사람/기관","src":"매체","said":"한 일/한 말 요약"}],"masters":[{"id":"buffett","mood":"매수|관망|매도|보유","say":"그 사람 말투로 3~4문장","todo":"그라면 오늘 할 일 한 줄"}],"verdict":{"stance":"공격|중립|방어","summary":"종합해서 이현이 오늘 어떻게 하면 좋을지 3~4문장","watch":["내일까지 지켜볼 것 2~3개"]}}`;
   const msg = await claude({ model: MODEL, max_tokens: 6000, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "stock");
   const txt = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
   const r = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
   if (!r?.headline) return { err: "shape" };
@@ -368,7 +368,7 @@ export async function review(t) {
 대가들: ${MASTERS.map((m) => `${m.name}(${m.style})`).join(", ")}
 JSON 한 덩어리만: {"grade":"A|B|C|D","good":"잘한 점","miss":"아쉬운 점","lesson":"다음에 쓸 교훈 한 줄","masters":[{"name":"대가 이름","say":"그 원칙으로 본 이 매매 한두 문장"}]} (대가는 이 매매와 가장 관련 깊은 3명만)`;
   const msg = await claude({ model: MODEL, max_tokens: 2500, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "stock");
   const txt = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("");
   const r = json(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
   return r?.grade ? { ...r, after, at: Date.now() } : { err: "shape" };
@@ -410,7 +410,7 @@ export async function findSym(q) {
   }
   if (!out.length) { // 한글로 쓴 해외 종목 (엔비디아 → NVDA)
     const ck = "stk:symq:" + q.toLowerCase(), [c] = await redis([["GET", ck]]); let cand = json(c);
-    if (!cand) { try { const msg = await claude({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `"${q}" 이 가리키는 주식·ETF·지수의 야후 파이낸스 심볼을 최대 4개 (가능성 높은 순). 한국 종목은 6자리코드.KS 또는 .KQ, 미국은 티커, 지수는 ^로 시작. JSON 배열만: [{"s":"NVDA","n":"엔비디아"}]` }] }); await recordUsage(msg.usage || {}, MODEL); const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); cand = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1)) || []; await redis([["SET", ck, JSON.stringify(cand)], ["EXPIRE", ck, 30 * 86400]]); } catch (e) { if (isQueued(e)) throw e; cand = []; } }
+    if (!cand) { try { const msg = await claude({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `"${q}" 이 가리키는 주식·ETF·지수의 야후 파이낸스 심볼을 최대 4개 (가능성 높은 순). 한국 종목은 6자리코드.KS 또는 .KQ, 미국은 티커, 지수는 ^로 시작. JSON 배열만: [{"s":"NVDA","n":"엔비디아"}]` }] }); await recordUsage(msg.usage || {}, MODEL, "stock"); const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""); cand = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1)) || []; await redis([["SET", ck, JSON.stringify(cand)], ["EXPIRE", ck, 30 * 86400]]); } catch (e) { if (isQueued(e)) throw e; cand = []; } }
     const ok = await Promise.all(cand.slice(0, 4).map((x) => chart(String(x.s), "5d").then((g) => (g ? x : null)).catch(() => null)));
     ok.filter(Boolean).forEach((x) => add(x.s, x.n, "AI 추천"));
   }
@@ -439,7 +439,7 @@ ${ctx}
   hist.push({ role: "user", content: String(text).slice(0, 2000) });
   const msgs = hist.slice(-20);
   const msg = await claude({ model: MODEL, max_tokens: 1200, system, messages: msgs[0].role === "user" ? msgs : msgs.slice(1) });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "stock");
   const reply = msg.content.filter((x) => x.type === "text").map((x) => x.text).join("").trim();
   hist.push({ role: "assistant", content: reply });
   await redis([["SET", "stk:mchat:" + id, JSON.stringify(hist.slice(-40))]]);
@@ -497,7 +497,7 @@ export async function councilAsk(text) {
   let focus = [{ s: "^IXIC", n: "나스닥" }];
   try {
     const m = await claude({ model: MODEL, max_tokens: 300, output_config: { effort: "low" }, messages: [{ role: "user", content: `주식 질문: "${text}"\n이 질문을 차트로 보여 주기 가장 좋은 야후 파이낸스 심볼 1~2개 (지수면 ^IXIC ^GSPC ^SOX ^KS11 ^KQ11, 한국 종목은 6자리.KS/.KQ, 미국은 티커). 특정 종목이 없으면 시장 지수. JSON만: {"syms":[{"s":"^IXIC","n":"나스닥"}]}` }] });
-    await recordUsage(m.usage || {}, MODEL); const j = obj(tx(m)); if (j?.syms?.length) focus = j.syms.slice(0, 2).map((x) => ({ s: String(x.s), n: String(x.n || x.s) }));
+    await recordUsage(m.usage || {}, MODEL, "stock"); const j = obj(tx(m)); if (j?.syms?.length) focus = j.syms.slice(0, 2).map((x) => ({ s: String(x.s), n: String(x.n || x.s) }));
   } catch (e) { if (isQueued(e)) throw e; }
   const gs = await Promise.all(focus.map((f) => chart(f.s, "2y").catch(() => null)));
   focus = focus.map((f, i) => (gs[i]?.rows?.length > 30 ? { ...f, cur: gs[i].cur, tech: techOf(gs[i].rows) } : null)).filter(Boolean);
@@ -530,7 +530,7 @@ JSON 하나만:
 "levels":[{"s":"${syms[0]}","p":가격 숫자,"k":"진입|추가|손절|목표 중 하나","why":"짧은 이유"}] (심볼은 ${syms.join(", ")} 중에서, 1~4개, 현재가 근처의 현실적인 값),
 "watch":["확인할 신호 1","2"]}`;
     try {
-      const m = await claude({ model: MODEL, max_tokens: 1400, messages: [{ role: "user", content: prompt }] }); await recordUsage(m.usage || {}, MODEL);
+      const m = await claude({ model: MODEL, max_tokens: 1400, messages: [{ role: "user", content: prompt }] }); await recordUsage(m.usage || {}, MODEL, "stock");
       const j = obj(tx(m)); if (!j?.view) return null;
       const near = (l) => { const f = focus.find((x) => x.s === l.s); return f && +l.p > 0 && Math.abs(+l.p / f.tech.last - 1) < 0.6; };
       return { id: M.id, stance: j.stance, score: Math.max(-100, Math.min(100, +j.score || 0)), conf: Math.max(0, Math.min(100, +j.conf || 0)), head: j.head, view: j.view, when: j.when, eta: Math.max(0, Math.min(24, +j.eta || 0)), levels: (Array.isArray(j.levels) ? j.levels : []).map((l) => ({ s: String(l.s), p: +l.p, k: String(l.k || ""), why: String(l.why || "").slice(0, 80) })).filter(near).slice(0, 4), watch: (j.watch || []).slice(0, 3) };
@@ -541,7 +541,7 @@ JSON 하나만:
   let sum = {};
   try {
     const m = await claude({ model: MODEL, max_tokens: 500, output_config: { effort: "low" }, messages: [{ role: "user", content: `질문: ${text}\n대가들 답:\n${ans.map((x) => `- ${MASTERS.find((m) => m.id === x.id).name}: ${x.stance}(${x.score}) ${x.head} / 진입: ${x.when}`).join("\n")}\nJSON만: {"consensus":"공통된 생각 1~2문장","split":"갈린 지점 1문장","tip":"제자가 오늘 기억할 한 문장"}` }] });
-    await recordUsage(m.usage || {}, MODEL); sum = obj(tx(m)) || {};
+    await recordUsage(m.usage || {}, MODEL, "stock"); sum = obj(tx(m)) || {};
   } catch (e) { if (isQueued(e)) throw e; }
   const id = Date.now().toString(36), out = { id, at: Date.now(), q: text, focus: focus.map(({ s, n, cur, tech }) => ({ s, n, cur, tech })), ans, sum, avg: Math.round(ans.reduce((t, x) => t + x.score, 0) / ans.length) };
   const [l] = await redis([["GET", "stk:councils"]]); const list = json(l) || [];
@@ -587,7 +587,7 @@ ${ctx}
 JSON 한 개만 출력: {"mood":"칭찬|걱정|경고|격려 중 하나","head":"한 줄 요약(25자 안)","text":"제자에게 말하듯 4~7문장","todo":["이번 주에 해 볼 것","하나 더"]}`;
     try {
       const msg = await claude({ model: MODEL, max_tokens: 1200, messages: [{ role: "user", content: prompt }] });
-      await recordUsage(msg.usage || {}, MODEL);
+      await recordUsage(msg.usage || {}, MODEL, "stock");
       const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
       return j?.text ? { id: m.id, mood: j.mood, head: j.head, text: j.text, todo: Array.isArray(j.todo) ? j.todo.slice(0, 3) : [] } : { id: m.id, mood: "", head: "", text: t.trim().slice(0, 1500), todo: [] };
     } catch (e) { if (isQueued(e)) throw e; console.error("advice", m.id, e?.message); return null; }
@@ -597,7 +597,7 @@ JSON 한 개만 출력: {"mood":"칭찬|걱정|경고|격려 중 하나","head":
   let common = "", split = "";
   try {
     const msg = await claude({ model: MODEL, max_tokens: 400, output_config: { effort: "low" }, messages: [{ role: "user", content: `스승 ${list.length}명이 제자 계좌에 준 훈수 요약이에요:\n${list.map((x) => `- ${MASTERS.find((m) => m.id === x.id)?.name}: ${x.head} / ${String(x.text).slice(0, 300)}`).join("\n")}\nJSON만: {"common":"공통으로 짚은 것 한두 문장","split":"의견이 갈린 부분 한 문장"}` }] });
-    await recordUsage(msg.usage || {}, MODEL);
+    await recordUsage(msg.usage || {}, MODEL, "stock");
     const t = msg.content.filter((x) => x.type === "text").map((x) => x.text).join(""), j = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) || {}; common = j.common || ""; split = j.split || "";
   } catch (e) { if (isQueued(e)) throw e; }
   const out = { at: Date.now(), day: kstDay(), acctAt: acct.at || acct.kwAt || null, tot: Math.round(tot), list, common, split };

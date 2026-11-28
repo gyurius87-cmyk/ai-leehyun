@@ -54,7 +54,7 @@ async function scan(img) {
     output_config: { effort: "low" },
     messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } }, { type: "text", text: SCAN_PROMPT }] }],
   });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "golf");
   const out = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   const r = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
   if (r.error) return { status: 422, body: { error: r.error } };

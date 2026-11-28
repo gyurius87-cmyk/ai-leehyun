@@ -63,7 +63,7 @@ ${parts}
 
 JSON 하나만. 각 칸은 엑셀 칸에 들어갈 만큼 짧게(20~40자), g는 투자자 입장에서 좋음|나쁨|중립, 자료가 없으면 t를 빈 문자열로:
 {"line":"그날을 한 줄로 (무슨 일이 굵었나)","event":{"t":"그날 시장을 크게 흔든 사건이 있었다면 짧은 제목, 평범한 날이면 빈 문자열","w":"무슨 일이 있었고 시장이 어떻게 반응했나 한두 문장","g":"좋음|나쁨"},"mood":"강세|약세|혼조|관망","keys":["키워드 3~5개"],"hot":["그날 많이 나온 종목·자산 최대 5개"],"cells":{"us":{"t":"미국 증시","g":""},"kr":{"t":"한국 증시","g":""},"macro":{"t":"금리·환율·유가·VIX","g":""},"semi":{"t":"반도체·AI","g":""},"news":{"t":"뉴스에서 많았던 이야기","g":""},"policy":{"t":"연준·정책·관세·정치","g":""},"talk":{"t":"유명인 발언","g":""},"yt":{"t":"유튜버들이 많이 다룬 것","g":""},"crowd":{"t":"개미·레딧 분위기","g":""},"masters":{"t":"대가 매매·유명인 포폴","g":""}}}` }] });
-    await recordUsage(msg.usage || {}, MODEL);
+    await recordUsage(msg.usage || {}, MODEL, "stock");
     const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     ai = json(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
   } catch (e) { if (isQueued(e)) throw e; return { day, err: String(e?.message || e).slice(0, 100) }; }
@@ -95,7 +95,7 @@ async function evChunk(from, to) {
 - 폭락·폭등한 날, 연준 금리 결정·의장 발언, 물가(CPI)·고용 쇼크, 전쟁·지정학, 팬데믹, 큰 정책(관세·부양책·규제), 큰 기업 이벤트(실적 쇼크, 파산, 대형 상장), 한국 시장 사건, 반도체·AI 이정표 등.
 - g는 그날 주식시장에 좋았으면 "좋음", 나빴으면 "나쁨".
 JSON 배열 하나만: [{"d":"YYYY-MM-DD","t":"짧은 제목 (15자 안팎)","w":"무슨 일이 있었고 시장이 어떻게 반응했나 한 문장 (60자 안팎)","g":"좋음|나쁨"}]` }] });
-  await recordUsage(msg.usage || {}, MODEL);
+  await recordUsage(msg.usage || {}, MODEL, "stock");
   const t = msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""), arr = json(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1));
   return (Array.isArray(arr) ? arr : []).filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e?.d) && e.t && e.d >= from && e.d <= to + "-12-31").map((e) => ({ d: e.d, t: String(e.t).slice(0, 40), w: String(e.w || "").slice(0, 300), g: e.g === "좋음" ? "좋음" : "나쁨", src: "ai" }));
 }
